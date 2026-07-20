@@ -1,0 +1,170 @@
+/* ============================================================================
+   InfluencerHub — Original Design Tokens (ih-*)
+   هوية أصلية مستقلة. اللون الرئيسي بنفسجي #6252E5، والتكامل/الذكاء سماوي #06B6D4.
+   لا يوجد أخضر كهوية أساسية (الأخضر فقط لحالة النجاح). لا بادئة sc-. لا لون قديم.
+   ============================================================================ */
+:root {
+  /* ---- Primary (Violet) ---- */
+  --ih-primary-50:  #F3F1FF;
+  --ih-primary-100: #E7E3FF;
+  --ih-primary-200: #D2CBFF;
+  --ih-primary-300: #B4A8FF;
+  --ih-primary-400: #9180FF;
+  --ih-primary-500: #7564F5;
+  --ih-primary-600: #6252E5;
+  --ih-primary-700: #5041C7;
+  --ih-primary-800: #4136A1;
+  --ih-primary-900: #352F7C;
+  --ih-primary-950: #211D4C;
+
+  /* ---- Accent (Cyan — AI / Integrations / Live) ---- */
+  --ih-accent-50:  #ECFEFF;
+  --ih-accent-100: #CFFAFE;
+  --ih-accent-400: #22D3EE;
+  --ih-accent-500: #06B6D4;
+  --ih-accent-600: #0891B2;
+  --ih-accent-700: #0E7490;
+
+  /* ---- Ink (dark surfaces / sidebar) ---- */
+  --ih-ink-950: #080D1A;
+  --ih-ink-900: #0D1424;
+  --ih-ink-850: #121B2E;
+  --ih-ink-800: #172238;
+
+  /* ---- Neutral ----
+     الرمادي ضُبط على سلّم الواجهة المعتمَد: خلفية #F6F8FB وحدّ #E4E9F0
+     ونصّ ثانوي #667085. الأسماء كما هي فلا يتغيّر أي مستدعٍ. */
+  --ih-gray-25:  #FCFCFD;
+  --ih-gray-50:  #F6F8FB;
+  --ih-gray-100: #EFF2F7;
+  --ih-gray-200: #E4E9F0;
+  --ih-gray-300: #D0D6E0;
+  --ih-gray-400: #98A2B3;
+  --ih-gray-500: #667085;
+  --ih-gray-600: #4B5565;
+  --ih-gray-700: #344054;
+  --ih-gray-800: #1F2937;
+  --ih-gray-900: #111827;
+
+  /* ---- State ---- */
+  --ih-success: #16A36A;
+  --ih-success-soft: #E6F6EF;
+  --ih-success-ink: #0E7A4E;
+  --ih-warning: #F59E0B;
+  --ih-warning-soft: #FEF3C7;
+  --ih-warning-ink: #B45309;
+  --ih-danger:  #E5484D;
+  --ih-danger-soft: #FEE2E2;
+  --ih-danger-ink: #B91C1C;
+  --ih-info:    #2F6FED;
+  --ih-info-soft: #E8F0FE;
+  --ih-info-ink: #1D4ED8;
+
+  /* ---- Semantic surfaces (light theme) ---- */
+  --ih-bg:            var(--ih-gray-50);
+  --ih-surface:       #FFFFFF;
+  --ih-surface-muted: var(--ih-gray-50);
+  --ih-surface-sunken:var(--ih-gray-100);
+  --ih-border:        var(--ih-gray-200);
+  --ih-border-strong: var(--ih-gray-300);
+  --ih-text:          #162033;
+  --ih-text-secondary:var(--ih-gray-600);
+  --ih-text-muted:    var(--ih-gray-500);
+  --ih-on-primary:    #FFFFFF;
+
+  /* ---- Primary intents ---- */
+  --ih-primary:       var(--ih-primary-600);
+  --ih-primary-hover: var(--ih-primary-700);
+  --ih-primary-active:var(--ih-primary-800);
+  --ih-primary-soft:  var(--ih-primary-50);
+  --ih-primary-ring:  rgba(98, 82, 229, .28);
+  --ih-accent:        var(--ih-accent-500);
+  --ih-accent-soft:   var(--ih-accent-50);
+
+  /* ---- Typography ---- */
+  --ih-font-sans: "IBM Plex Sans Arabic", "Inter", "Tajawal", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --ih-font-mono: "IBM Plex Mono", ui-monospace, "SF Mono", Menlo, monospace;
+  /* سلّم ثابت لا سائل: الفروق بين الصفحات كانت تأتي من clamp لا من القصد.
+     الأرقام بالبكسل كما اعتُمدت، والجذر 16px فالتحويل مباشر. */
+  --ih-fs-metric:  2rem;      /* 32px — رقم مؤشّر */
+  --ih-fs-page:    1.6875rem; /* 27px — عنوان صفحة */
+  --ih-fs-section: 1.3125rem; /* 21px — عنوان قسم */
+  --ih-fs-card:    1.0625rem; /* 17px — عنوان بطاقة */
+  --ih-fs-body:    0.9375rem; /* 15px — نصّ أساسي */
+  --ih-fs-label:   0.8125rem; /* 13px — تسمية */
+  --ih-fs-btn:     0.875rem;  /* 14px — زرّ */
+  --ih-fs-table:   0.875rem;  /* 14px — جدول */
+  --ih-fs-caption: 0.75rem;   /* 12px */
+  /* المتبقّي للتوافق مع مستدعين قدماء */
+  --ih-fs-display: var(--ih-fs-metric);
+  --ih-fs-sm:      var(--ih-fs-label);
+
+  /* ---- Font weights ---- */
+  --ih-fw-body: 400; --ih-fw-label: 500; --ih-fw-btn: 600; --ih-fw-title: 700;
+
+  /* ---- Spacing scale ---- */
+  --ih-space-1: 0.25rem; --ih-space-2: 0.5rem; --ih-space-3: 0.75rem;
+  --ih-space-4: 1rem; --ih-space-5: 1.25rem; --ih-space-6: 1.5rem;
+  --ih-space-8: 2rem; --ih-space-10: 2.5rem; --ih-space-12: 3rem;
+
+  /* ---- Radius ---- */
+  --ih-radius-sm: 8px; --ih-radius: 12px; --ih-radius-lg: 16px; --ih-radius-xl: 20px; --ih-radius-pill: 999px;
+
+  /* ---- Shadows (soft, violet-tinted) ---- */
+  --ih-shadow-xs: 0 1px 2px rgba(16, 24, 40, .05);
+  --ih-shadow-sm: 0 1px 3px rgba(16, 24, 40, .07), 0 1px 2px rgba(16, 24, 40, .04);
+  --ih-shadow:    0 6px 18px -6px rgba(33, 29, 76, .16), 0 2px 6px -2px rgba(16, 24, 40, .06);
+  --ih-shadow-lg: 0 20px 40px -12px rgba(33, 29, 76, .22);
+  --ih-ring: 0 0 0 3px var(--ih-primary-ring);
+
+  /* ---- Motion ---- */
+  --ih-motion-fast: 140ms; --ih-motion: 180ms; --ih-motion-slow: 240ms;
+  --ih-ease: cubic-bezier(.4, 0, .2, 1);
+
+  /* ---- Layout ---- */
+  --ih-sidebar-w: 258px;
+  --ih-rail-w: 64px;          /* الشريط المطوي: أيقونة + Tooltip */
+  --ih-topbar-h: 62px;
+  --ih-z-sticky: 30; --ih-z-drawer: 40; --ih-z-modal: 50; --ih-z-toast: 60; --ih-z-cmd: 70;
+  --ih-z-tooltip: 65;
+
+  /* ---- Breakpoints (reference) ---- */
+  --ih-bp-sm: 375px; --ih-bp-md: 768px; --ih-bp-lg: 1024px; --ih-bp-xl: 1280px; --ih-bp-2xl: 1440px;
+
+  /* ---- Safe areas ---- */
+  --ih-safe-top: env(safe-area-inset-top, 0px);
+  --ih-safe-bottom: env(safe-area-inset-bottom, 0px);
+  --ih-safe-left: env(safe-area-inset-left, 0px);
+  --ih-safe-right: env(safe-area-inset-right, 0px);
+
+  /* ==== Legacy variable bridge — يجعل كل الواجهات القديمة ترث الهوية الجديدة دون تعديل ==== */
+  --brand: var(--ih-primary);
+  --brand-hover: var(--ih-primary-hover);
+  --brand-soft: var(--ih-primary-soft);
+  --text: var(--ih-text);
+  --text-muted: var(--ih-text-muted);
+  --surface: var(--ih-surface);
+  --surface-2: var(--ih-surface-muted);
+  --border: var(--ih-border);
+  --border-strong: var(--ih-border-strong);
+  --danger: var(--ih-danger);
+  --success: var(--ih-success);
+  --warning: var(--ih-warning);
+  --radius: var(--ih-radius);
+  --shadow-sm: var(--ih-shadow-sm);
+  --shadow: var(--ih-shadow);
+}
+
+/* Dark-mode readiness (لا يُفعّل تلقائيًا؛ جاهز للتبديل لاحقًا عبر [data-theme="dark"]) */
+:root[data-theme="dark"] {
+  --ih-bg: var(--ih-ink-950);
+  --ih-surface: var(--ih-ink-900);
+  --ih-surface-muted: var(--ih-ink-850);
+  --ih-surface-sunken: var(--ih-ink-800);
+  --ih-border: #22304A;
+  --ih-border-strong: #2E3E5C;
+  --ih-text: #EAECF2;
+  --ih-text-secondary: #AEB6C6;
+  --ih-text-muted: #8A94A8;
+  --ih-primary-soft: rgba(98, 82, 229, .18);
+}

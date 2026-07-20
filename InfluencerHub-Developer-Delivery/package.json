@@ -1,0 +1,38 @@
+{
+    "$schema": "https://www.schemastore.org/package.json",
+    "private": true,
+    "type": "module",
+    "scripts": {
+        "build": "vite build",
+        "dev": "vite"
+    },
+    "devDependencies": {
+        "@playwright/test": "^1.61.1",
+        "@tailwindcss/vite": "^4.0.0",
+        "@types/node": "^26.1.1",
+        "@types/react": "^19.2.17",
+        "@types/react-dom": "^19.2.3",
+        "@vitejs/plugin-react": "^5.2.0",
+        "axios": "^1.11.0",
+        "concurrently": "^9.0.1",
+        "laravel-vite-plugin": "^2.0.0",
+        "tailwindcss": "^4.0.0",
+        "typescript": "^7.0.2",
+        "vite": "^7.0.7"
+    },
+    "dependencies": {
+        "@inertiajs/react": "^3.6.1",
+        "alpinejs": "^3.14.1",
+        "lucide-react": "^1.25.0",
+        "react": "^19.2.7",
+        "react-dom": "^19.2.7"
+    },
+    "browserslist": [
+        "last 2 Chrome versions",
+        "last 2 Edge versions",
+        "last 2 Firefox versions",
+        "last 2 Safari versions",
+        "iOS >= 15",
+        "not dead"
+    ]
+}

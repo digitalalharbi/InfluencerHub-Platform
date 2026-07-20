@@ -1,0 +1,18 @@
+{
+  "name": "InfluencerHub",
+  "short_name": "InfluencerHub",
+  "description": "منصّة تشغيل متكاملة لوكالات المؤثرين — العملاء والحملات والمحتوى والعقود والمدفوعات والتقارير.",
+  "lang": "ar",
+  "dir": "rtl",
+  "start_url": "/app",
+  "scope": "/",
+  "display": "standalone",
+  "display_override": ["standalone", "minimal-ui", "browser"],
+  "orientation": "any",
+  "background_color": "#080D1A",
+  "theme_color": "#6252E5",
+  "icons": [
+    { "src": "/icons/ih-icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any" },
+    { "src": "/icons/ih-maskable.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "maskable" }
+  ]
+}

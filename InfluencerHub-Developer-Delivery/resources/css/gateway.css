@@ -1,0 +1,825 @@
+/* ============================================================================
+   بوّابة الدخول — صفحة واحدة تملأ الشاشة بلا تمرير
+   ============================================================================
+
+   القيد الحاكم: كل المحتوى داخل أوّل شاشة على اللابتوب والمكتب. وهو قيدٌ
+   يُكسَر بسهولة كلّما أُضيف عنصر، فالتخطيط هنا **شبكة صفوف ثابتة** لا تكديس
+   رأسي: الصفحة `100dvh` مقسومة على أربعة صفوف، وما يزيد يُضغط داخل صفّه ولا
+   يدفع ما بعده.
+
+   ولماذا `dvh` لا `vh`: على المتصفّحات المحمولة يشمل `vh` شريط العنوان الذي
+   يختفي عند التمرير، فتُقصّ الصفحة من أسفلها بمقدار الشريط. و`dvh` يتبع
+   المساحة الفعلية.
+
+   والمقاسات كلّها `clamp()` بمرجع `vh` لا `px`: شاشةٌ ارتفاعها 768 تحصل على
+   نسخة مضغوطة تقرأ، بدل شريط تمرير أو نصٍّ مقصوص.
+   ============================================================================ */
+
+.gw {
+  --gw-gap: clamp(0.6rem, 1.4vh, 1.1rem);
+  --gw-pad: clamp(0.8rem, 2vw, 1.6rem);
+  --gw-radius: 16px;
+  --gw-radius-sm: 12px;
+
+  min-height: 100dvh;
+  display: grid;
+  /*
+   * `minmax(0, 1fr)` لا `auto`.
+   *
+   * العمود الضمني `auto` يتّسع إلى **max-content** أعرض أبنائه — وشريط الرحلة
+   * تسع فقاعات لا تلتفّ، فبلغ عرضه 856 بكسل. فاتّسع العمود معه ودُفع كل
+   * المحتوى خارج الشاشة على الجوّال، بينما `scrollWidth` يبقى 375 فلا يبدو
+   * في القياس شيء. وهذا نظير `min-block-size: 0` في محور الصفوف.
+   */
+  grid-template-columns: minmax(0, 1fr);
+  grid-template-rows: auto minmax(0, 1fr) auto auto;
+  background:
+    radial-gradient(120% 80% at 88% -10%, var(--ih-primary-50) 0%, transparent 55%),
+    radial-gradient(90% 60% at 5% 105%, var(--ih-accent-50) 0%, transparent 50%),
+    var(--ih-bg);
+  color: var(--ih-text);
+  overflow: hidden; /* الالتزام بالشاشة الواحدة يُفرض هنا لا بالأمل */
+}
+
+.gw-wrap {
+  width: min(1560px, 100%);
+  margin-inline: auto;
+  padding-inline: var(--gw-pad);
+}
+
+/* ---------- 1) الشريط العلوي ---------- */
+
+.gw-header {
+  border-block-end: 1px solid var(--ih-border);
+  background: color-mix(in srgb, var(--ih-surface) 78%, transparent);
+  backdrop-filter: blur(10px);
+}
+
+.gw-header-inner {
+  display: flex;
+  align-items: center;
+  gap: clamp(0.75rem, 2vw, 2rem);
+  block-size: clamp(52px, 7vh, 64px);
+}
+
+.gw-brand {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.55rem;
+  font-weight: 800;
+  font-size: clamp(0.95rem, 1.7vh, 1.1rem);
+  color: var(--ih-text);
+  text-decoration: none;
+  white-space: nowrap;
+}
+
+.gw-mark {
+  inline-size: 30px;
+  block-size: 30px;
+  border-radius: 9px;
+  display: grid;
+  place-items: center;
+  color: #fff;
+  font-size: 0.9rem;
+  background: linear-gradient(135deg, var(--ih-primary-600), var(--ih-primary-800));
+  box-shadow: 0 3px 10px rgb(98 82 229 / 0.32);
+}
+
+.gw-nav {
+  display: flex;
+  gap: clamp(0.4rem, 1.4vw, 1.4rem);
+  margin-inline-start: auto;
+}
+
+.gw-nav a {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--ih-text-muted);
+  text-decoration: none;
+  padding-block: 0.3rem;
+  border-block-end: 2px solid transparent;
+  white-space: nowrap;
+}
+
+.gw-nav a:hover,
+.gw-nav a[aria-current='page'] {
+  color: var(--ih-primary-700);
+  border-block-end-color: var(--ih-primary-500);
+}
+
+.gw-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-inline-start: clamp(0.5rem, 2vw, 1.5rem);
+}
+
+/* ---------- الأزرار ---------- */
+
+.gw-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.4rem;
+  border: 1px solid transparent;
+  border-radius: 10px;
+  padding: 0.5rem 0.95rem;
+  font: inherit;
+  font-size: 0.85rem;
+  font-weight: 700;
+  cursor: pointer;
+  text-decoration: none;
+  white-space: nowrap;
+  transition: transform 0.12s var(--ih-ease), box-shadow 0.12s var(--ih-ease),
+    background-color 0.12s var(--ih-ease);
+}
+
+.gw-btn:active { transform: translateY(1px); }
+
+.gw-btn--primary {
+  background: linear-gradient(135deg, var(--ih-primary-600), var(--ih-primary-700));
+  color: #fff;
+  box-shadow: 0 4px 14px rgb(98 82 229 / 0.3);
+}
+.gw-btn--primary:hover { box-shadow: 0 6px 20px rgb(98 82 229 / 0.4); }
+
+.gw-btn--ghost {
+  background: var(--ih-surface);
+  color: var(--ih-text);
+  border-color: var(--ih-border);
+}
+.gw-btn--ghost:hover { border-color: var(--ih-primary-300); color: var(--ih-primary-700); }
+
+.gw-btn--block { inline-size: 100%; }
+.gw-btn--lg { padding-block: 0.65rem; font-size: 0.92rem; }
+
+/* ---------- 2) الجسم: عمودان ---------- */
+
+.gw-main {
+  display: grid;
+  grid-template-columns: minmax(320px, 380px) minmax(0, 1fr);
+  gap: var(--gw-gap);
+  padding-block: var(--gw-gap);
+  min-block-size: 0; /* حرِج: بدونه يتمدّد الصفّ ويكسر القيد */
+}
+
+.gw-card {
+  background: var(--ih-surface);
+  border: 1px solid var(--ih-border);
+  border-radius: var(--gw-radius);
+  box-shadow: 0 1px 2px rgb(13 20 36 / 0.04), 0 8px 24px rgb(13 20 36 / 0.05);
+}
+
+/* ---------- بطاقة الوصول ---------- */
+
+.gw-access {
+  padding: clamp(0.9rem, 2.2vh, 1.5rem);
+  display: flex;
+  flex-direction: column;
+  gap: clamp(0.55rem, 1.3vh, 0.95rem);
+  min-block-size: 0;
+  overflow: auto;
+}
+
+.gw-access h1 {
+  margin: 0;
+  font-size: clamp(1.1rem, 2.5vh, 1.4rem);
+  font-weight: 800;
+  letter-spacing: -0.01em;
+}
+
+.gw-access-lede {
+  margin: 0;
+  font-size: 0.83rem;
+  line-height: 1.55;
+  color: var(--ih-text-muted);
+}
+
+.gw-label {
+  font-size: 0.72rem;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  color: var(--ih-text-muted);
+  text-transform: uppercase;
+}
+
+/* اختيار نوع الحساب — لكل فئة مسارها الخاص */
+.gw-roles {
+  display: grid;
+  gap: 0.4rem;
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+
+.gw-role {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  padding: 0.55rem 0.7rem;
+  border: 1.5px solid var(--ih-border);
+  border-radius: var(--gw-radius-sm);
+  cursor: pointer;
+  background: var(--ih-surface);
+  transition: border-color 0.12s var(--ih-ease), background-color 0.12s var(--ih-ease);
+}
+
+.gw-role:hover { border-color: var(--ih-primary-300); background: var(--ih-primary-50); }
+
+.gw-role input { position: absolute; opacity: 0; pointer-events: none; }
+
+.gw-role:has(input:checked) {
+  border-color: var(--ih-primary-600);
+  background: var(--ih-primary-50);
+  box-shadow: 0 0 0 3px var(--ih-primary-100);
+}
+
+/* التركيز بالكيبورد يجب أن يظهر: الاختيار هنا يقرّر مسار التسجيل كلّه */
+.gw-role:has(input:focus-visible) { outline: 2px solid var(--ih-primary-600); outline-offset: 2px; }
+
+.gw-role-icon {
+  inline-size: 32px;
+  block-size: 32px;
+  border-radius: 9px;
+  display: grid;
+  place-items: center;
+  flex: none;
+  background: var(--ih-primary-100);
+  color: var(--ih-primary-700);
+}
+
+.gw-role:has(input:checked) .gw-role-icon {
+  background: var(--ih-primary-600);
+  color: #fff;
+}
+
+.gw-role-text { display: grid; gap: 0.1rem; min-inline-size: 0; }
+.gw-role-text b { font-size: 0.85rem; font-weight: 700; }
+.gw-role-text span {
+  font-size: 0.72rem;
+  color: var(--ih-text-muted);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.gw-actions { display: grid; gap: 0.4rem; }
+
+.gw-links {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 0.3rem 0.9rem;
+  font-size: 0.76rem;
+}
+.gw-links a { color: var(--ih-text-muted); text-decoration: none; font-weight: 600; }
+.gw-links a:hover { color: var(--ih-primary-700); text-decoration: underline; }
+
+.gw-divider {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  font-size: 0.72rem;
+  color: var(--ih-text-subtle);
+}
+.gw-divider::before,
+.gw-divider::after {
+  content: '';
+  flex: 1;
+  block-size: 1px;
+  background: var(--ih-border);
+}
+
+/* شارات الثقة */
+.gw-trust {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.3rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.gw-trust li {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  font-size: 0.71rem;
+  color: var(--ih-text-muted);
+}
+.gw-trust svg { color: var(--ih-success, #16A34A); flex: none; }
+
+/* ---------- العمود الثاني: العرض ---------- */
+
+/*
+ * توزيع الفائض الرأسي: **اللوحة** تأخذه لا البطاقات.
+ *
+ * حين كان الفائض للبطاقات كانت تتمدّد إلى صناديق فارغة طويلة — مساحةٌ مهدورة
+ * تُقرأ خطأً في التصميم. واللوحة سطحٌ متدرّج يزداد حسنًا باتّساعه.
+ */
+.gw-showcase {
+  display: grid;
+  /*
+   * اللوحة تأخذ الفائض لأنها تحمل المعاينة — سطحٌ يزداد نفعًا باتّساعه.
+   * والبطاقات بحجم محتواها فلا تصير صناديق جوفاء.
+   */
+  grid-template-rows: minmax(0, 1fr) auto;
+  gap: var(--gw-gap);
+  min-block-size: 0;
+}
+
+/* لوحة الترحيب */
+/*
+ * لا سقف بعد اليوم.
+ *
+ * كان السقف صوابًا حين كانت اللوحة نصًّا وحده — يمنعها أن تبتلع الفائض فتصير
+ * نصفها فراغًا. وقد صارت تحمل معاينة المنتَج، فالسقف يقصّها: آخر صفٍّ في
+ * المعاينة كان يُقطع عند حافّتها. فرُفع، وصارت هي الصفّ المرن.
+ */
+.gw-hero {
+  position: relative;
+  border-radius: var(--gw-radius);
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  padding: clamp(0.9rem, 2.4vh, 1.6rem) clamp(1rem, 2.5vw, 2rem);
+  color: #fff;
+  overflow: hidden;
+  background:
+    radial-gradient(90% 140% at 92% 10%, rgb(6 182 212 / 0.5) 0%, transparent 55%),
+    linear-gradient(135deg, var(--ih-primary-700) 0%, var(--ih-primary-900) 60%, var(--ih-ink-900) 100%);
+}
+
+/* شبكة خفيفة تعطي إحساس المنصّة التقنية بلا صورة تُحمَّل */
+.gw-hero::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background-image: linear-gradient(rgb(255 255 255 / 0.06) 1px, transparent 1px),
+    linear-gradient(90deg, rgb(255 255 255 / 0.06) 1px, transparent 1px);
+  background-size: 34px 34px;
+  mask-image: radial-gradient(70% 100% at 80% 0%, #000 0%, transparent 75%);
+  pointer-events: none;
+}
+
+.gw-hero > * { position: relative; z-index: 1; }
+
+.gw-eyebrow {
+  align-self: flex-start;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-size: 0.7rem;
+  font-weight: 700;
+  padding: 0.22rem 0.6rem;
+  border-radius: 999px;
+  background: rgb(255 255 255 / 0.14);
+  border: 1px solid rgb(255 255 255 / 0.2);
+}
+
+.gw-hero h2 {
+  margin: 0.5rem 0 0;
+  font-size: clamp(1.25rem, 3.4vh, 2rem);
+  font-weight: 800;
+  line-height: 1.25;
+  letter-spacing: -0.015em;
+}
+
+.gw-hero h2 em {
+  font-style: normal;
+  background: linear-gradient(90deg, var(--ih-accent-400), #fff);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+.gw-hero p {
+  margin: 0.4rem 0 0;
+  max-inline-size: 60ch;
+  font-size: clamp(0.78rem, 1.6vh, 0.9rem);
+  line-height: 1.6;
+  color: rgb(255 255 255 / 0.78);
+}
+
+/* المميزات */
+/* أربع فوائد + زرّ الاستعراض في صفّ واحد */
+.gw-benefits {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 0.5rem;
+  align-content: start;
+}
+
+@media (max-width: 1280px) {
+  .gw-benefits { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+}
+@media (max-width: 760px) {
+  .gw-benefits { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+
+/* زرّ يفتح لوحة التفاصيل — بهيئة بطاقة ليقرأ امتدادًا للصفّ لا عنصرًا غريبًا */
+.gw-more-btn {
+  display: grid;
+  gap: 0.25rem;
+  align-content: center;
+  padding: clamp(0.5rem, 1.4vh, 0.85rem);
+  text-align: start;
+  cursor: pointer;
+  font: inherit;
+  color: var(--ih-primary-700);
+  border-color: var(--ih-primary-200);
+  background: var(--ih-primary-50);
+}
+.gw-more-btn:hover { border-color: var(--ih-primary-400); }
+.gw-more-btn b { font-size: 0.81rem; }
+.gw-more-btn span {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  font-size: 0.71rem;
+  color: var(--ih-primary-600);
+}
+
+.gw-feature {
+  padding: clamp(0.5rem, 1.4vh, 0.85rem);
+  display: grid;
+  gap: 0.25rem;
+  align-content: start;
+}
+
+.gw-feature-icon {
+  inline-size: 28px;
+  block-size: 28px;
+  border-radius: 8px;
+  display: grid;
+  place-items: center;
+  background: var(--ih-primary-50);
+  color: var(--ih-primary-700);
+}
+
+.gw-feature b { font-size: 0.81rem; font-weight: 700; }
+.gw-feature span {
+  font-size: 0.71rem;
+  line-height: 1.45;
+  color: var(--ih-text-muted);
+}
+
+/* البوّابات */
+.gw-portals { display: grid; gap: 0.4rem; }
+
+.gw-portals-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 1rem;
+}
+.gw-portals-head h3 { margin: 0; font-size: 0.86rem; font-weight: 800; }
+.gw-portals-head span { font-size: 0.72rem; color: var(--ih-text-muted); }
+
+.gw-portal-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(122px, 1fr));
+  gap: 0.35rem;
+}
+
+.gw-portal {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+  padding: 0.4rem 0.55rem;
+  border: 1px solid var(--ih-border);
+  border-radius: 10px;
+  background: var(--ih-surface);
+  text-decoration: none;
+  color: inherit;
+  min-inline-size: 0;
+  transition: border-color 0.12s var(--ih-ease), transform 0.12s var(--ih-ease);
+}
+.gw-portal:hover {
+  border-color: var(--ih-primary-300);
+  transform: translateY(-1px);
+}
+
+.gw-portal-dot {
+  inline-size: 7px;
+  block-size: 7px;
+  border-radius: 50%;
+  flex: none;
+  background: var(--ih-primary-500);
+}
+.gw-portal[data-state='soon'] .gw-portal-dot { background: var(--ih-gray-400, #9CA3AF); }
+
+.gw-portal-text { min-inline-size: 0; display: grid; }
+.gw-portal-text b {
+  font-size: 0.75rem;
+  font-weight: 700;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.gw-portal-text span {
+  font-size: 0.66rem;
+  color: var(--ih-text-muted);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* ---------- 3) شريط الرحلة التشغيلية ---------- */
+
+.gw-flow {
+  border-block-start: 1px solid var(--ih-border);
+  background: color-mix(in srgb, var(--ih-surface) 70%, transparent);
+}
+
+.gw-flow-inner {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding-block: clamp(0.5rem, 1.4vh, 0.85rem);
+  overflow-x: auto;
+  scrollbar-width: thin;
+}
+
+.gw-flow-label {
+  font-size: 0.72rem;
+  font-weight: 800;
+  color: var(--ih-text-muted);
+  white-space: nowrap;
+  flex: none;
+}
+
+.gw-flow-steps {
+  display: flex;
+  align-items: center;
+  gap: 0.3rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  min-inline-size: 0;
+}
+
+.gw-flow-steps li {
+  display: flex;
+  align-items: center;
+  gap: 0.3rem;
+  flex: none;
+}
+
+.gw-step {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  padding: 0.28rem 0.6rem;
+  border-radius: 999px;
+  background: var(--ih-surface);
+  border: 1px solid var(--ih-border);
+  font-size: 0.72rem;
+  font-weight: 650;
+  white-space: nowrap;
+}
+
+.gw-step i {
+  font-style: normal;
+  font-size: 0.62rem;
+  font-weight: 800;
+  color: var(--ih-primary-600);
+}
+
+/* السهم يتبع اتجاه الكتابة: في RTL يشير يسارًا */
+.gw-flow-steps li::after {
+  content: '←';
+  color: var(--ih-border-strong);
+  font-size: 0.75rem;
+}
+.gw-flow-steps li:last-child::after { content: none; }
+
+/* ---------- 4) الذيل ---------- */
+
+.gw-footer {
+  border-block-start: 1px solid var(--ih-border);
+  background: var(--ih-surface);
+}
+
+.gw-footer-inner {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.5rem clamp(0.75rem, 2vw, 1.75rem);
+  padding-block: clamp(0.5rem, 1.3vh, 0.8rem);
+  font-size: 0.74rem;
+  color: var(--ih-text-muted);
+}
+
+.gw-footer-links { display: flex; flex-wrap: wrap; gap: 0.4rem 1rem; }
+.gw-footer-links a { color: inherit; text-decoration: none; }
+.gw-footer-links a:hover { color: var(--ih-primary-700); text-decoration: underline; }
+
+.gw-footer-contact { display: flex; flex-wrap: wrap; gap: 0.4rem 1rem; margin-inline-start: auto; }
+.gw-footer-contact a { color: inherit; text-decoration: none; }
+.gw-footer-contact a:hover { color: var(--ih-primary-700); }
+
+.gw-copy { font-size: 0.71rem; color: var(--ih-text-subtle); }
+
+/* ============================================================================
+   الاستجابة
+   ============================================================================
+   قيد «الشاشة الواحدة» يخصّ اللابتوب والمكتب. وعلى اللوح والجوّال يصير ضارًّا:
+   عمودٌ واحد ضيّق لا يسع ما يسعه عمودان، فيُصغَّر النصّ حتّى لا يُقرأ. فيُرفع
+   القيد صراحةً هناك ويُسمح بالتمرير — وهو ما يتوقّعه المستخدم على الجوّال أصلًا.
+   ============================================================================ */
+
+@media (max-width: 1100px) {
+  .gw { overflow: auto; }
+  .gw-main { grid-template-columns: 1fr; }
+  .gw-showcase { grid-template-rows: auto auto auto; }
+  .gw-nav { display: none; }
+}
+
+@media (max-width: 640px) {
+  .gw-trust { grid-template-columns: 1fr; }
+  .gw-footer-contact { margin-inline-start: 0; }
+}
+
+/* شاشات قصيرة جدًّا: التمرير أصدق من نصٍّ مقصوص */
+@media (max-height: 640px) {
+  .gw { overflow: auto; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .gw-btn, .gw-portal, .gw-role { transition: none; }
+  .gw-btn:active, .gw-portal:hover { transform: none; }
+}
+
+
+/* ---------- معاينة المنتَج ---------- */
+
+.gw-preview {
+  margin-block-start: clamp(0.6rem, 1.6vh, 1rem);
+  min-block-size: 0;
+  overflow: hidden;
+  border-radius: 12px;
+  padding: 0.6rem 0.7rem;
+  background: rgb(255 255 255 / 0.08);
+  border: 1px solid rgb(255 255 255 / 0.16);
+  backdrop-filter: blur(6px);
+}
+
+.gw-preview-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  font-size: 0.78rem;
+  margin-block-end: 0.5rem;
+}
+
+/*
+ * التعليم إلزامي.
+ *
+ * الأرقام أدناه مخترَعة للعرض. وبلا هذه الشارة يقرؤها الزائر إحصاءً حقيقيًّا
+ * للمنصّة — وذاك ادّعاء لا نملكه.
+ */
+.gw-preview-tag {
+  font-size: 0.62rem;
+  font-weight: 700;
+  padding: 0.12rem 0.45rem;
+  border-radius: 999px;
+  background: rgb(255 255 255 / 0.16);
+  color: rgb(255 255 255 / 0.85);
+}
+
+.gw-preview-stats {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.4rem;
+  margin-block-end: 0.5rem;
+}
+.gw-preview-stats > div {
+  display: grid;
+  gap: 0.05rem;
+  padding: 0.35rem 0.5rem;
+  border-radius: 9px;
+  background: rgb(255 255 255 / 0.09);
+}
+.gw-preview-stats b { font-size: 0.95rem; font-weight: 800; }
+.gw-preview-stats span { font-size: 0.63rem; color: rgb(255 255 255 / 0.7); }
+
+.gw-preview-rows { list-style: none; margin: 0; padding: 0; display: grid; gap: 0.25rem; }
+.gw-preview-rows li {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  font-size: 0.72rem;
+  padding: 0.28rem 0.5rem;
+  border-radius: 8px;
+  background: rgb(255 255 255 / 0.06);
+}
+.gw-preview-rows em {
+  font-style: normal;
+  font-size: 0.65rem;
+  font-weight: 700;
+  padding: 0.1rem 0.45rem;
+  border-radius: 999px;
+}
+.gw-preview-rows em[data-tone='active'] { background: rgb(34 211 238 / 0.22); color: #A5F3FC; }
+.gw-preview-rows em[data-tone='pending'] { background: rgb(251 191 36 / 0.22); color: #FDE68A; }
+.gw-preview-rows em[data-tone='done'] { background: rgb(255 255 255 / 0.14); color: rgb(255 255 255 / 0.8); }
+
+/* ---------- لوحة «استعراض المميزات» ---------- */
+
+.gw-scrim {
+  position: fixed;
+  inset: 0;
+  z-index: 60;
+  background: rgb(8 13 26 / 0.5);
+  backdrop-filter: blur(3px);
+  display: flex;
+  justify-content: flex-start;
+}
+
+.gw-drawer {
+  inline-size: min(460px, 100%);
+  block-size: 100%;
+  background: var(--ih-surface);
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr) auto;
+  box-shadow: -12px 0 40px rgb(13 20 36 / 0.18);
+}
+
+.gw-drawer-head,
+.gw-drawer-foot {
+  padding: 0.9rem 1.1rem;
+  border-block-end: 1px solid var(--ih-border);
+}
+.gw-drawer-foot { border-block-end: 0; border-block-start: 1px solid var(--ih-border); }
+
+.gw-drawer-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+}
+.gw-drawer-head h2 { margin: 0; font-size: 1rem; font-weight: 800; }
+
+.gw-drawer-body { overflow: auto; padding: 1.1rem; display: grid; gap: 1.4rem; }
+.gw-drawer-body h3 {
+  margin: 0 0 0.5rem;
+  font-size: 0.8rem;
+  font-weight: 800;
+  color: var(--ih-primary-700);
+}
+.gw-drawer-body ul { margin: 0; padding: 0; list-style: none; display: grid; gap: 0.45rem; }
+.gw-drawer-body li {
+  display: flex;
+  align-items: start;
+  gap: 0.45rem;
+  font-size: 0.83rem;
+  line-height: 1.5;
+  color: var(--ih-text-secondary, var(--ih-text));
+}
+.gw-drawer-body li svg { color: var(--ih-success, #16A34A); flex: none; margin-block-start: 0.2rem; }
+
+/* ---------- صفحة `/start` ---------- */
+
+/* التمرير مسموح هنا: هذه خطوة إدخال لا بوّابة عرض */
+.gw--start { overflow: auto; }
+
+.gw-start-main {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 0.85fr);
+  gap: var(--gw-gap);
+  align-content: center;
+  padding-block: clamp(1rem, 4vh, 3rem);
+}
+
+.gw-start-card,
+.gw-start-aside {
+  padding: clamp(1rem, 2.6vh, 1.75rem);
+  display: flex;
+  flex-direction: column;
+  gap: clamp(0.6rem, 1.4vh, 1rem);
+}
+
+.gw-start-card h1 { margin: 0; font-size: clamp(1.15rem, 2.6vh, 1.5rem); font-weight: 800; }
+.gw-start-aside { background: var(--ih-primary-50); border-color: var(--ih-primary-100); }
+.gw-start-aside h2 { margin: 0; font-size: 1rem; font-weight: 800; }
+
+.gw-start-benefits { margin: 0; padding: 0; list-style: none; display: grid; gap: 0.5rem; }
+.gw-start-benefits li {
+  display: flex;
+  align-items: start;
+  gap: 0.45rem;
+  font-size: 0.84rem;
+  line-height: 1.5;
+}
+.gw-start-benefits svg { color: var(--ih-primary-600); flex: none; margin-block-start: 0.2rem; }
+
+.gw-muted-note { margin: 0; font-size: 0.74rem; color: var(--ih-text-muted); text-align: center; }
+
+@media (max-width: 900px) {
+  .gw-start-main { grid-template-columns: 1fr; }
+  /* الجانب شرحٌ مساند — يسبقه النموذج على الشاشة الضيّقة */
+  .gw-start-aside { order: -1; }
+}
