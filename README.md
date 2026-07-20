@@ -3,6 +3,9 @@
 منصّة إدارة التسويق مع صنّاع المحتوى: من طلب الحملة إلى تسوية المستحقّات.
 **عربية أوّلًا · RTL · متعدّدة المستأجرين.**
 
+> ابدأ من **[`READ-ME-FIRST.md`](READ-ME-FIRST.md)** — فيه الشرح الكامل.
+> التوثيق التفصيلي في **[`docs/`](docs/)** (68 ملفًا).
+
 ## البنية التقنية
 
 | العنصر | الإصدار |
@@ -12,26 +15,19 @@
 | قاعدة البيانات | **PostgreSQL 16 — إلزامية** |
 | Node | 24 (يعمل على 20+) |
 | الواجهة | Inertia 3 + React 19 + TypeScript 7 + Vite 7 |
-| الاختبارات | PHPUnit (1043 اختبارًا) + Playwright |
+| الاختبارات | PHPUnit + Playwright |
 
 **PostgreSQL ليست تفضيلًا:** الشيفرة تستعمل فهارس جزئية
 (`CREATE UNIQUE INDEX … WHERE`) و`ilike`. لا تعمل على MySQL ولا SQLite.
 
-## المحتويات
-
-| المسار | الوصف |
-|---|---|
-| `InfluencerHub-Developer-Delivery/` | الشيفرة المصدرية |
-| `InfluencerHub-Developer-Delivery-2026-07-20.zip` | نفسها مضغوطة، مع SHA-256 |
-
-ابدأ من `InfluencerHub-Developer-Delivery/READ-ME-FIRST.md`، والتوثيق الكامل
-في `InfluencerHub-Developer-Delivery/docs/`.
-
 ## التشغيل من الصفر
 
 ```bash
-cd InfluencerHub-Developer-Delivery
-composer install && npm ci
+git clone https://github.com/digitalalharbi/InfluencerHub-Platform.git
+cd InfluencerHub-Platform
+
+composer install
+npm ci
 
 cp .env.example .env
 php artisan key:generate
@@ -45,6 +41,10 @@ npm run build
 php artisan serve --host=127.0.0.1 --port=8010
 ```
 
-## الأسرار
+## ما ليس في المستودع — وهذا مقصود
 
-لا يوجد `.env` في المستودع — بالتصميم. يُولَّد `APP_KEY` بـ`key:generate`.
+`vendor/` و`node_modules/` و`public/build/` تُولَّد بالأوامر أعلاه.
+ملفّات القفل (`composer.lock` · `package-lock.json`) مضمَّنة، فتُثبَّت الإصدارات
+نفسها بالضبط.
+
+`.env` لا يُرفع أبدًا — يحوي مفاتيح سرّية. يُولَّد `APP_KEY` بـ`key:generate`.

@@ -1,12 +1,37 @@
+*.log
 .DS_Store
 .env
-.env.*
-!.env.example
-vendor/
-node_modules/
-# public/build/ — مضمّن عمدًا في هذه الحزمة
-storage/logs/*
-storage/framework/cache/*
-storage/framework/sessions/*
-storage/framework/views/*
+.env.backup
+.env.production
+.phpactor.json
 .phpunit.result.cache
+/.fleet
+/.idea
+/.nova
+/.phpunit.cache
+/.vscode
+/.zed
+/auth.json
+/node_modules
+/public/build
+/public/hot
+/public/storage
+/storage/*.key
+/storage/pail
+/vendor
+Homestead.json
+Homestead.yaml
+Thumbs.db
+
+# Playwright
+/tests/e2e/report
+/test-results
+/playwright-report
+
+# Local preview credentials
+/.preview-accounts.local.md
+
+# Local preview credentials (never commit)
+/storage/app/private/preview-credentials.txt
+.claude/settings.local.json
+storage/app/private/development-screenshots/
