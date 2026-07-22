@@ -1,0 +1,100 @@
+services:
+  db:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${DB_DATABASE:-influencerhub_crmv2}
+      POSTGRES_USER: ${DB_USERNAME:-influencerhub_crmv2}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:?Set DB_PASSWORD in deploy/vps/.env}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USERNAME:-influencerhub_crmv2} -d ${DB_DATABASE:-influencerhub_crmv2}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  app:
+    build:
+      context: ../..
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    env_file:
+      - .env
+    environment:
+      APP_URL: ${APP_URL}
+      ASSET_URL: ${ASSET_URL:-}
+      DB_CONNECTION: pgsql
+      DB_HOST: db
+      DB_PORT: 5432
+      DB_DATABASE: ${DB_DATABASE:-influencerhub_crmv2}
+      DB_USERNAME: ${DB_USERNAME:-influencerhub_crmv2}
+      DB_PASSWORD: ${DB_PASSWORD:?Set DB_PASSWORD in deploy/vps/.env}
+      CACHE_STORE: ${CACHE_STORE:-database}
+      SESSION_DRIVER: ${SESSION_DRIVER:-database}
+      QUEUE_CONNECTION: ${QUEUE_CONNECTION:-database}
+      PORT: 8000
+    depends_on:
+      db:
+        condition: service_healthy
+    expose:
+      - "8000"
+
+  queue:
+    build:
+      context: ../..
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    env_file:
+      - .env
+    environment:
+      DB_CONNECTION: pgsql
+      DB_HOST: db
+      DB_PORT: 5432
+      DB_DATABASE: ${DB_DATABASE:-influencerhub_crmv2}
+      DB_USERNAME: ${DB_USERNAME:-influencerhub_crmv2}
+      DB_PASSWORD: ${DB_PASSWORD:?Set DB_PASSWORD in deploy/vps/.env}
+      QUEUE_CONNECTION: ${QUEUE_CONNECTION:-database}
+    command: sh -c 'php artisan queue:work --queue=default --tries=3 --sleep=1 --timeout=120 --max-time=3600'
+    depends_on:
+      db:
+        condition: service_healthy
+
+  scheduler:
+    build:
+      context: ../..
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    env_file:
+      - .env
+    environment:
+      DB_CONNECTION: pgsql
+      DB_HOST: db
+      DB_PORT: 5432
+      DB_DATABASE: ${DB_DATABASE:-influencerhub_crmv2}
+      DB_USERNAME: ${DB_USERNAME:-influencerhub_crmv2}
+      DB_PASSWORD: ${DB_PASSWORD:?Set DB_PASSWORD in deploy/vps/.env}
+    command: sh -c 'while true; do php artisan schedule:run --no-interaction; sleep 60; done'
+    depends_on:
+      db:
+        condition: service_healthy
+
+  caddy:
+    image: caddy:2-alpine
+    restart: unless-stopped
+    env_file:
+      - .env
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    depends_on:
+      - app
+
+volumes:
+  postgres_data:
+  caddy_data:
+  caddy_config:

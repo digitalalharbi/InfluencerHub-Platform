@@ -21,7 +21,9 @@ return new class extends Migration
 {
     public function up(): void
     {
-        DB::statement("ALTER TABLE brands ALTER COLUMN status SET DEFAULT 'draft'");
+        if (DB::connection()->getDriverName() === 'pgsql') {
+            DB::statement("ALTER TABLE brands ALTER COLUMN status SET DEFAULT 'draft'");
+        }
 
         // العلامات القديمة «النشطة» كانت تُستعمل كمعتمَدة فعلًا
         DB::table('brands')->where('status', 'active')->update([
@@ -32,7 +34,9 @@ return new class extends Migration
 
     public function down(): void
     {
-        DB::statement("ALTER TABLE brands ALTER COLUMN status SET DEFAULT 'active'");
+        if (DB::connection()->getDriverName() === 'pgsql') {
+            DB::statement("ALTER TABLE brands ALTER COLUMN status SET DEFAULT 'active'");
+        }
         // لا نُعيد كل «approved» إلى «active»: منها ما اعتُمد بالمسار الصحيح.
         // الرجوع يقتصر على الافتراضي، والبيانات تبقى كما هي.
     }
