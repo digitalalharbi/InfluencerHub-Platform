@@ -15,6 +15,20 @@ jobs:
   backend:
     name: Backend Laravel checks
     runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:15
+        env:
+          POSTGRES_DB: influencerhub_testing
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: password
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
     defaults:
       run:
         working-directory: .
@@ -43,10 +57,12 @@ jobs:
         run: |
           cp .env.example .env
           php artisan key:generate --force
-          mkdir -p database
-          touch database/database.sqlite
-          echo "DB_CONNECTION=sqlite" >> .env
-          echo "DB_DATABASE=${{ github.workspace }}/database/database.sqlite" >> .env
+          echo "DB_CONNECTION=pgsql" >> .env
+          echo "DB_HOST=127.0.0.1" >> .env
+          echo "DB_PORT=5432" >> .env
+          echo "DB_DATABASE=influencerhub_testing" >> .env
+          echo "DB_USERNAME=postgres" >> .env
+          echo "DB_PASSWORD=password" >> .env
           echo "CACHE_STORE=array" >> .env
           echo "SESSION_DRIVER=array" >> .env
           echo "MAIL_MAILER=array" >> .env
