@@ -143,6 +143,6 @@ jobs:
             echo "Created deploy/vps/.env from example. Fill it on the VPS before the next deployment."
             exit 1
           fi
-          docker compose -f deploy/vps/docker-compose.yml --env-file deploy/vps/.env up -d --build
+          docker compose -p platform -f deploy/vps/docker-compose.yml --env-file deploy/vps/.env up -d --build
           docker image prune -f
           EOF
