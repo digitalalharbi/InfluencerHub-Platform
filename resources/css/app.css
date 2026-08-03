@@ -863,7 +863,7 @@ a.ih-kpi:hover, .ih-kpi--link:hover { box-shadow: var(--ih-shadow); transform: t
   border: 0;
   background: var(--ih-surface);
   box-shadow: none;
-  direction: rtl;
+  direction: ltr;
 }
 
 .ih-login-close {
@@ -874,7 +874,7 @@ a.ih-kpi:hover, .ih-kpi--link:hover { box-shadow: var(--ih-shadow); transform: t
   z-index: 2;
   width: 2.2rem;
   height: 2.2rem;
-  display: inline-grid;
+
   place-items: center;
   border: 1px solid var(--ih-border);
   border-radius: 8px;
@@ -887,10 +887,12 @@ a.ih-kpi:hover, .ih-kpi--link:hover { box-shadow: var(--ih-shadow); transform: t
   min-height: 578px;
   display: flex;
   flex-direction: column;
-  align-items: center;
+  align-items: flex-end;
   padding: 13px 86px 12px;
   background: #f8fafc;
   overflow: auto;
+  direction: rtl;
+  text-align: right;
 }
 
 .ih-login-logo {
@@ -902,6 +904,7 @@ a.ih-kpi:hover, .ih-kpi--link:hover { box-shadow: var(--ih-shadow); transform: t
   font-weight: 800;
   margin-bottom: 1.75rem;
   font-size: 0.94rem;
+  align-self: flex-end;
 }
 
 .ih-login-logo i {
@@ -947,11 +950,13 @@ a.ih-kpi:hover, .ih-kpi--link:hover { box-shadow: var(--ih-shadow); transform: t
   width: min(420px, 100%);
   display: grid;
   gap: 0.88rem;
+  direction: rtl;
 }
 
 .ih-login-form label:not(.ih-login-remember) {
   display: grid;
   gap: 0.45rem;
+  text-align: right;
   font-size: 0.82rem;
   font-weight: 700;
   color: var(--ih-text);
@@ -981,6 +986,7 @@ a.ih-kpi:hover, .ih-kpi--link:hover { box-shadow: var(--ih-shadow); transform: t
   align-items: center;
   gap: 0.45rem;
   justify-self: end;
+  direction: rtl;
   color: var(--ih-text-muted);
   font-size: 0.84rem;
 }
@@ -1051,6 +1057,8 @@ a.ih-kpi:hover, .ih-kpi--link:hover { box-shadow: var(--ih-shadow); transform: t
     radial-gradient(circle at 24px 24px, rgb(255 255 255 / 0.08) 1px, transparent 1.5px),
     #0b1224;
   background-size: auto, 24px 24px, auto;
+  direction: rtl;
+  text-align: right;
 }
 
 .ih-login-brandpane h3 {
