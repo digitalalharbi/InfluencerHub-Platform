@@ -125,9 +125,9 @@ export default function Gateway({
           </nav>
 
           <div className="gw-header-actions">
-            <Link href="/login" className="gw-btn gw-btn--ghost">
+            <a href="/login" target="_top" data-no-modal="true" className="gw-btn gw-btn--ghost">
               تسجيل الدخول
-            </Link>
+            </a>
             <Link href="/start" className="gw-btn gw-btn--primary">
               ابدأ الآن
             </Link>
@@ -173,9 +173,9 @@ export default function Gateway({
             >
               متابعة كـ{selected.label}
             </button>
-            <Link href={selected.login} className="gw-btn gw-btn--ghost gw-btn--block">
+            <a href={selected.login} target="_top" data-no-modal="true" className="gw-btn gw-btn--ghost gw-btn--block">
               لدي حساب — تسجيل الدخول
-            </Link>
+            </a>
           </div>
 
           <ul className="gw-trust">

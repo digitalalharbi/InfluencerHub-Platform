@@ -83,9 +83,9 @@ export default function Start({ accountTypes, selected, prefill, carry }: Props)
           </Link>
 
           <div className="gw-header-actions" style={{ marginInlineStart: 'auto' }}>
-            <Link href={type.login} className="gw-btn gw-btn--ghost">
+            <a href={type.login} target="_top" data-no-modal="true" className="gw-btn gw-btn--ghost">
               تسجيل الدخول
-            </Link>
+            </a>
           </div>
         </div>
       </header>
