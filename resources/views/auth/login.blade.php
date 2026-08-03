@@ -12,7 +12,7 @@
 @section('form_title', 'تسجيل الدخول')
 @section('form_sub', 'ادخل إلى مساحة عمل وكالتك.')
 @section('form')
-    <form method="POST" action="/login">@csrf
+    <form method="POST" action="{{ url('/login') }}">@csrf
         <label class="label" for="email">البريد الإلكتروني</label>
         <input id="email" class="field" type="email" name="email" value="{{ old('email') }}" required autofocus autocomplete="username" inputmode="email" style="margin-bottom:1rem;">
         <label class="label" for="password">كلمة المرور</label>

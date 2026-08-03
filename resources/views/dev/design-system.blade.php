@@ -303,7 +303,7 @@
     <div style="background:var(--ih-surface-sunken); border-radius:var(--ih-radius); padding:1rem; overflow-x:auto;">
         <div style="margin:0 auto; transition:width var(--ih-motion) var(--ih-ease); box-shadow:var(--ih-shadow-lg); border-radius:var(--ih-radius-sm); overflow:hidden; background:#fff;"
              :style="'width:' + vw + 'px; max-width:100%;'">
-            <iframe src="/login" title="معاينة الدخول" style="width:100%; height:560px; border:0; display:block;"></iframe>
+            <iframe src="{{ url('/login') }}" sandbox="allow-forms allow-scripts allow-same-origin allow-top-navigation" title="معاينة الدخول" style="width:100%; height:560px; border:0; display:block;"></iframe>
         </div>
     </div>
     <div style="color:var(--ih-text-muted); font-size:.72rem; margin-top:.6rem; direction:ltr;">
