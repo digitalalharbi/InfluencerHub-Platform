@@ -21,6 +21,6 @@ class LoginController extends Controller {
         Auth::guard('web')->logout();
         $r->session()->invalidate();
         $r->session()->regenerateToken();
-        return redirect('/login');
+        return redirect('/?login=1');
     }
 }
