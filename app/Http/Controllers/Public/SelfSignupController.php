@@ -10,6 +10,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Mail;
+use Illuminate\Support\Facades\URL;
 use Illuminate\Validation\Rules\Password;
 use Inertia\Inertia;
 use Inertia\Response;
@@ -53,6 +54,18 @@ class SelfSignupController extends Controller
         return Inertia::render('Public/SelfSignup/Verify', $this->payload($signup));
     }
 
+    public function verifyLink(Request $r, string $reference, string $code): RedirectResponse
+    {
+        $signup = SelfSignup::where('reference', $reference)->firstOrFail();
+
+        try {
+            $this->svc->verify($signup, $code);
+        } catch (\RuntimeException $e) {
+            return redirect("/register/agency/verify/{$signup->reference}")->withErrors(['code' => $e->getMessage()]);
+        }
+
+        return redirect("/register/agency/setup/{$signup->reference}")->with('ok', 'تم تأكيد البريد الإلكتروني.');
+    }
     public function verify(Request $r, string $reference): RedirectResponse
     {
         $signup = SelfSignup::where('reference', $reference)->firstOrFail();
@@ -120,8 +133,15 @@ class SelfSignupController extends Controller
      */
     private function deliverCode(SelfSignup $signup, string $code): void
     {
-        Mail::raw(
-            "رمز تأكيد بريدك في إنفلونسر هَب: {$code}\nينتهي خلال 15 دقيقة.",
+        $verifyUrl = URL::temporarySignedRoute(
+            'register.agency.verify-link',
+            now()->addMinutes(15),
+            ['reference' => $signup->reference, 'code' => $code],
+        );
+
+        Mail::send(
+            'mail.verification-code',
+            ['code' => $code, 'verifyUrl' => $verifyUrl],
             fn ($m) => $m->to($signup->email)->subject('رمز تأكيد البريد — إنفلونسر هَب'),
         );
 
