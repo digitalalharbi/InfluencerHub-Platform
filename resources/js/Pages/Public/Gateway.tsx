@@ -87,18 +87,20 @@ export default function Gateway({
 }: Props) {
   const [selected, setSelected] = useState<AccountType>(accountTypes[0])
   const [showMore, setShowMore] = useState(false)
+  const [showLogin, setShowLogin] = useState(false)
 
   // اللوحة تُغلق بـEsc: نافذةٌ لا تُغلق إلا بالفأرة تحبس من يتنقّل بالكيبورد
   useEffect(() => {
-    if (!showMore) return
-    const onKey = (e: KeyboardEvent) => e.key === 'Escape' && setShowMore(false)
+    if (!showMore && !showLogin) return
+    const onKey = (e: KeyboardEvent) => e.key === 'Escape' && (showMore ? setShowMore(false) : setShowLogin(false))
     window.addEventListener('keydown', onKey)
 
     return () => window.removeEventListener('keydown', onKey)
-  }, [showMore])
+  }, [showMore, showLogin])
 
   // اختيار النوع يقود إلى `/start?type=…` — مسار واحد لا فروع
   const go = (type: AccountType) => router.visit(`/start?type=${type.key}`)
+  const csrf = typeof document === 'undefined' ? '' : document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') ?? ''
 
   return (
     <div className="gw" dir="rtl">
@@ -125,9 +127,9 @@ export default function Gateway({
           </nav>
 
           <div className="gw-header-actions">
-            <a href="/login" target="_top" data-no-modal="true" className="gw-btn gw-btn--ghost">
+            <button type="button" className="gw-btn gw-btn--ghost" onClick={() => setShowLogin(true)}>
               تسجيل الدخول
-            </a>
+            </button>
             <Link href="/start" className="gw-btn gw-btn--primary">
               ابدأ الآن
             </Link>
@@ -173,9 +175,9 @@ export default function Gateway({
             >
               متابعة كـ{selected.label}
             </button>
-            <a href={selected.login} target="_top" data-no-modal="true" className="gw-btn gw-btn--ghost gw-btn--block">
+            <button type="button" className="gw-btn gw-btn--ghost gw-btn--block" onClick={() => setShowLogin(true)}>
               لدي حساب — تسجيل الدخول
-            </a>
+            </button>
           </div>
 
           <ul className="gw-trust">
@@ -288,6 +290,48 @@ export default function Gateway({
         </div>
       </footer>
 
+      {showLogin && (
+        <div className="gw-scrim gw-login-scrim" onClick={() => setShowLogin(false)}>
+          <aside
+            className="gw-login-modal"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="gw-login-title"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="gw-drawer-head">
+              <h2 id="gw-login-title">تسجيل الدخول</h2>
+              <button
+                type="button"
+                className="gw-btn gw-btn--ghost"
+                onClick={() => setShowLogin(false)}
+                aria-label="إغلاق"
+              >
+                <Icon name="close" />
+              </button>
+            </div>
+
+            <form className="gw-login-form" method="POST" action={selected.login}>
+              <input type="hidden" name="_token" value={csrf} />
+              <label className="pub-field">
+                <span>البريد الإلكتروني</span>
+                <input className="field" type="email" name="email" required autoComplete="username" inputMode="email" autoFocus />
+              </label>
+              <label className="pub-field">
+                <span>كلمة المرور</span>
+                <input className="field" type="password" name="password" required autoComplete="current-password" />
+              </label>
+              <label className="gw-login-check">
+                <input type="checkbox" name="remember" />
+                <span>تذكرني</span>
+              </label>
+              <button type="submit" className="gw-btn gw-btn--primary gw-btn--lg gw-btn--block">
+                دخول
+              </button>
+            </form>
+          </aside>
+        </div>
+      )}
       {showMore && (
         <div className="gw-scrim" onClick={() => setShowMore(false)}>
           <aside

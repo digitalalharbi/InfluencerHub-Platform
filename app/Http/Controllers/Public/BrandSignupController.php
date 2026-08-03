@@ -16,6 +16,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Mail;
+use Illuminate\Support\Facades\URL;
 use Illuminate\Validation\Rules\Password;
 use Inertia\Inertia;
 use Inertia\Response;
@@ -73,6 +74,18 @@ class BrandSignupController extends Controller
             : Inertia::render('Public/BrandSignup/VerifyEmail', $this->payload($signup));
     }
 
+    public function verifyEmailLink(Request $r, string $reference, string $code): RedirectResponse
+    {
+        $signup = $this->find($reference);
+
+        try {
+            $this->svc->verifyEmail($signup, $code);
+        } catch (\RuntimeException $e) {
+            return redirect("/register/brand/verify/{$reference}")->withErrors(['code' => $e->getMessage()]);
+        }
+
+        return redirect("/register/brand/phone/{$reference}")->with('ok', 'تم تأكيد البريد الإلكتروني.');
+    }
     public function verifyEmail(Request $r, string $reference): RedirectResponse
     {
         $signup = $this->find($reference);
@@ -397,8 +410,15 @@ class BrandSignupController extends Controller
     private function deliver(string $to, string $code, string $channel, string $reference): void
     {
         if ($channel === 'البريد') {
-            Mail::raw(
-                "رمز تأكيد بريدك في إنفلونسر هَب: {$code}\nينتهي خلال 15 دقيقة.",
+            $verifyUrl = URL::temporarySignedRoute(
+                'register.brand.verify-link',
+                now()->addMinutes(15),
+                ['reference' => $reference, 'code' => $code],
+            );
+
+            Mail::send(
+                'mail.verification-code',
+                ['code' => $code, 'verifyUrl' => $verifyUrl],
                 fn ($m) => $m->to($to)->subject('رمز تأكيد البريد — إنفلونسر هَب'),
             );
         }

@@ -39,6 +39,7 @@ Route::middleware('inertia')->controller(SelfSignupController::class)->group(fun
     Route::get('/register/agency', 'startForm');
     Route::post('/register/agency/start', 'start')->middleware('throttle:join-start');
     Route::get('/register/agency/verify/{reference}', 'verifyForm');
+    Route::get('/register/agency/verify/{reference}/{code}', 'verifyLink')->name('register.agency.verify-link')->middleware('signed');
     Route::post('/register/agency/verify/{reference}', 'verify')->middleware('throttle:join-otp');
     Route::post('/register/agency/resend/{reference}', 'resend')->middleware('throttle:join-otp');
     Route::get('/register/agency/setup/{reference}', 'setupForm');
@@ -698,6 +699,7 @@ Route::middleware('inertia')->controller(\App\Http\Controllers\Public\BrandSignu
     Route::post('/register/brand/start', 'start')->middleware('throttle:join-start');
 
     Route::get('/register/brand/verify/{reference}', 'verifyEmailForm');
+    Route::get('/register/brand/verify/{reference}/{code}', 'verifyEmailLink')->name('register.brand.verify-link')->middleware('signed');
     Route::post('/register/brand/verify/{reference}', 'verifyEmail')->middleware('throttle:join-otp');
 
     Route::get('/register/brand/phone/{reference}', 'phoneForm');
