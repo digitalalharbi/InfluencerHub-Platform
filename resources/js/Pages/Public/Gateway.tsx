@@ -1,5 +1,6 @@
 import { Head, Link, router } from '@inertiajs/react'
 import { useEffect, useState } from 'react'
+import PublicLoginModal from '@/Components/PublicLoginModal'
 
 /* ============================================================================
    بوّابة المنتَج — الجذر `/` داخل شاشة واحدة.
@@ -87,7 +88,9 @@ export default function Gateway({
 }: Props) {
   const [selected, setSelected] = useState<AccountType>(accountTypes[0])
   const [showMore, setShowMore] = useState(false)
-  const [showLogin, setShowLogin] = useState(false)
+  const [showLogin, setShowLogin] = useState(() =>
+    typeof window !== 'undefined' && new URLSearchParams(window.location.search).get('login') === '1',
+  )
 
   // اللوحة تُغلق بـEsc: نافذةٌ لا تُغلق إلا بالفأرة تحبس من يتنقّل بالكيبورد
   useEffect(() => {
@@ -100,7 +103,6 @@ export default function Gateway({
 
   // اختيار النوع يقود إلى `/start?type=…` — مسار واحد لا فروع
   const go = (type: AccountType) => router.visit(`/start?type=${type.key}`)
-  const csrf = typeof document === 'undefined' ? '' : document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') ?? ''
 
   return (
     <div className="gw" dir="rtl">
@@ -290,48 +292,12 @@ export default function Gateway({
         </div>
       </footer>
 
-      {showLogin && (
-        <div className="gw-scrim gw-login-scrim" onClick={() => setShowLogin(false)}>
-          <aside
-            className="gw-login-modal"
-            role="dialog"
-            aria-modal="true"
-            aria-labelledby="gw-login-title"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <div className="gw-drawer-head">
-              <h2 id="gw-login-title">تسجيل الدخول</h2>
-              <button
-                type="button"
-                className="gw-btn gw-btn--ghost"
-                onClick={() => setShowLogin(false)}
-                aria-label="إغلاق"
-              >
-                <Icon name="close" />
-              </button>
-            </div>
-
-            <form className="gw-login-form" method="POST" action={selected.login}>
-              <input type="hidden" name="_token" value={csrf} />
-              <label className="pub-field">
-                <span>البريد الإلكتروني</span>
-                <input className="field" type="email" name="email" required autoComplete="username" inputMode="email" autoFocus />
-              </label>
-              <label className="pub-field">
-                <span>كلمة المرور</span>
-                <input className="field" type="password" name="password" required autoComplete="current-password" />
-              </label>
-              <label className="gw-login-check">
-                <input type="checkbox" name="remember" />
-                <span>تذكرني</span>
-              </label>
-              <button type="submit" className="gw-btn gw-btn--primary gw-btn--lg gw-btn--block">
-                دخول
-              </button>
-            </form>
-          </aside>
-        </div>
-      )}
+      <PublicLoginModal
+        open={showLogin}
+        action={selected.login}
+        portal={`بوابة ${selected.label}`}
+        onClose={() => setShowLogin(false)}
+      />
       {showMore && (
         <div className="gw-scrim" onClick={() => setShowMore(false)}>
           <aside

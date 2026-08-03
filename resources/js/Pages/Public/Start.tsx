@@ -1,5 +1,6 @@
 import { Head, Link, useForm } from '@inertiajs/react'
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
+import PublicLoginModal from '@/Components/PublicLoginModal'
 
 /* ============================================================================
    `/start` — المسار الرسمي الوحيد لاختيار نوع الحساب وبدء التسجيل.
@@ -58,6 +59,7 @@ function Icon({ name, size = 16 }: { name: string; size?: number }) {
 export default function Start({ accountTypes, selected, prefill, carry }: Props) {
   const initial = accountTypes.find((t) => t.key === selected) ?? accountTypes[0]
   const [type, setType] = useState<AccountType>(initial)
+  const [showLogin, setShowLogin] = useState(false)
 
   // المعاملات المحمولة تُرسَل مع النموذج فلا تنقطع سلسلة الإحالة عند POST
   const form = useForm({ type: initial.key, email: prefill.email ?? '', ...carry })
@@ -66,6 +68,14 @@ export default function Start({ accountTypes, selected, prefill, carry }: Props)
     setType(t)
     form.setData('type', t.key)
   }
+
+  useEffect(() => {
+    if (!showLogin) return
+    const onKey = (e: KeyboardEvent) => e.key === 'Escape' && setShowLogin(false)
+    window.addEventListener('keydown', onKey)
+
+    return () => window.removeEventListener('keydown', onKey)
+  }, [showLogin])
 
   return (
     <div className="gw gw--start" dir="rtl">
@@ -83,9 +93,7 @@ export default function Start({ accountTypes, selected, prefill, carry }: Props)
           </Link>
 
           <div className="gw-header-actions" style={{ marginInlineStart: 'auto' }}>
-            <a href={type.login} target="_top" data-no-modal="true" className="gw-btn gw-btn--ghost">
-              تسجيل الدخول
-            </a>
+            <button type="button" className="gw-btn gw-btn--ghost" onClick={() => setShowLogin(true)}>تسجيل الدخول</button>
           </div>
         </div>
       </header>
@@ -168,6 +176,13 @@ export default function Start({ accountTypes, selected, prefill, carry }: Props)
           </ul>
         </aside>
       </main>
+
+      <PublicLoginModal
+        open={showLogin}
+        action={type.login}
+        portal={`بوابة ${type.label}`}
+        onClose={() => setShowLogin(false)}
+      />
     </div>
   )
 }
