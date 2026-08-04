@@ -56,6 +56,19 @@ const P: Record<string, string> = {
   arrow: 'M19 12H5M12 19l-7-7 7-7',
 }
 
+function BrandMark({ size = 26 }: { size?: number }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+      <rect x="1.25" y="1.25" width="29.5" height="29.5" rx="8.5" stroke="var(--ih-primary)" strokeWidth="1.6" opacity=".28" />
+      <path d="M9 22V10" stroke="var(--ih-primary)" strokeWidth="2.4" strokeLinecap="round" />
+      <path d="M23 10v12" stroke="var(--ih-primary)" strokeWidth="2.4" strokeLinecap="round" />
+      <path d="M9 16h14" stroke="var(--ih-primary)" strokeWidth="2.4" strokeLinecap="round" opacity=".55" />
+      <circle cx="16" cy="16" r="3.4" fill="var(--ih-primary)" />
+      <circle cx="9" cy="10" r="2" fill="var(--ih-primary)" />
+      <circle cx="23" cy="22" r="2" fill="var(--ih-primary)" />
+    </svg>
+  )
+}
 function Icon({ name, size = 16 }: { name: string; size?: number }) {
   return (
     <svg
@@ -115,7 +128,7 @@ export default function Gateway({
         <div className="gw-wrap gw-header-inner">
           <Link href="/" className="gw-brand">
             <span className="gw-mark" aria-hidden="true">
-              <Icon name="spark" size={17} />
+              <BrandMark />
             </span>
             {system.name}
           </Link>
