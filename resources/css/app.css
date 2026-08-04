@@ -935,6 +935,8 @@ a.ih-kpi:hover, .ih-kpi--link:hover { box-shadow: var(--ih-shadow); transform: t
   font-weight: 700;
   margin-bottom: 0.85rem;
   align-self: flex-end;
+  direction: rtl;
+  text-align: right;
 }
 
 .ih-login-formpane h2 {
