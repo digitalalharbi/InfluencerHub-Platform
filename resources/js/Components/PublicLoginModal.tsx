@@ -50,7 +50,7 @@ export default function PublicLoginModal({ open, action = '/login', portal = 'ب
 
         <aside className="ih-login-formpane">
           <Link href="/" className="ih-login-logo">
-            <span>InfluencerHub</span>
+            <span>إنفلونسر هَب</span>
             <i aria-hidden="true"><Icon name="spark" size={15} /></i>
           </Link>
 
