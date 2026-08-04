@@ -118,6 +118,15 @@ class TwilioVerifySmsSender implements OtpSmsSender
         $phone = trim($phone);
         $phone = str_replace([' ', '-', '(', ')'], '', $phone);
 
+        if (str_starts_with($phone, '00')) {
+            $phone = '+' . substr($phone, 2);
+        }
+
+        if (preg_match('/^\+?01[0125][0-9]{8}$/', $phone) === 1) {
+            $digits = ltrim($phone, '+');
+            $phone = '+20' . substr($digits, 1);
+        }
+
         if (! str_starts_with($phone, '+')) {
             throw new InvalidArgumentException('Twilio requires phone numbers in E.164 format, for example +201234567890.');
         }

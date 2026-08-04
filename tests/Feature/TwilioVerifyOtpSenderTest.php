@@ -62,6 +62,26 @@ class TwilioVerifyOtpSenderTest extends TestCase
         );
     }
 
+
+    public function test_it_normalizes_egyptian_local_mobile_numbers_for_twilio_whatsapp(): void
+    {
+        config()->set('services.twilio.sid', 'AC123');
+        config()->set('services.twilio.auth_token', 'secret');
+        config()->set('services.twilio.verify_sid', null);
+        config()->set('services.twilio.verify_channel', 'whatsapp');
+        config()->set('services.twilio.whatsapp_from', '+14155238886');
+
+        Log::spy();
+
+        Http::fake([
+            'api.twilio.com/*' => Http::response(['status' => 'queued'], 201),
+        ]);
+
+        $status = (new TwilioVerifySmsSender())->send('+01090962585', '123456');
+
+        $this->assertSame('sent', $status);
+        Http::assertSent(fn ($request) => $request['To'] === 'whatsapp:+201090962585');
+    }
     public function test_it_requires_e164_phone_numbers(): void
     {
         config()->set('services.twilio.sid', 'AC123');
@@ -70,6 +90,6 @@ class TwilioVerifyOtpSenderTest extends TestCase
 
         $this->expectException(InvalidArgumentException::class);
 
-        (new TwilioVerifySmsSender())->send('01234567890', '123456');
+        (new TwilioVerifySmsSender())->send('12345', '123456');
     }
 }
