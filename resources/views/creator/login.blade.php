@@ -19,6 +19,7 @@
         <label style="display:flex; align-items:center; gap:.5rem; font-size:.85rem; color:var(--ih-text-secondary); margin-bottom:1.3rem;"><input type="checkbox" name="remember"> تذكّرني</label>
         <button type="submit" class="btn btn-primary btn-lg btn-block">دخول</button>
     </form>
+    <a href="{{ route('auth.google.redirect', ['portal' => 'creator']) }}" class="btn btn-outline btn-lg btn-block" style="margin-top:.75rem;">تسجيل الدخول بواسطة Google</a>
     <div style="text-align:center; margin-top:1rem; font-size:.85rem;"><span style="color:var(--ih-text-muted);">لست مسجّلًا؟</span> <a href="/join/creator" style="color:var(--ih-primary-700); font-weight:700; text-decoration:none;">انضم الآن</a></div>
 @endsection
 @section('portal_switch')

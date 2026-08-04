@@ -22,6 +22,7 @@
         </div>
         <button type="submit" class="btn btn-primary btn-lg btn-block">دخول إلى الوكالة</button>
     </form>
+    <a href="{{ route('auth.google.redirect', ['portal' => 'agency']) }}" class="btn btn-outline btn-lg btn-block" style="margin-top:.75rem;">تسجيل الدخول بواسطة Google</a>
 @endsection
 @section('portal_switch')
     <a href="/client/login">العميل</a>

@@ -12,6 +12,12 @@ test.describe('المصادقة', () => {
         await expect(page.locator('body')).toContainText('البريد الإلكتروني');
         await expect(page.locator('button[type="submit"]')).toContainText('دخول');
     });
+    test('2b- public login button navigates to login page without popup', async ({ page }) => {
+        await page.goto('/');
+        await page.locator('a[href="/login"]').first().click();
+        await expect(page).toHaveURL(/\/login$/);
+        await expect(page.locator('.ih-login-backdrop, .gw-login-scrim, .inertia-error-modal')).toHaveCount(0);
+    });
     test('3- بيانات خاطئة تُرفض برسالة', async ({ page }) => {
         await page.goto('/login');
         await page.fill('input[name="email"]', 'admin@a.test');

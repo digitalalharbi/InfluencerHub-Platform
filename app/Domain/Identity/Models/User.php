@@ -20,7 +20,7 @@ class User extends Authenticatable
         return \Database\Factories\UserFactory::new();
     }
 
-    protected $fillable = ['name','email','phone','password','is_active'];
+    protected $fillable = ['name','email','phone','password','is_active','google_id','google_avatar'];
     protected $hidden = ['password','remember_token','two_factor_secret'];
     protected function casts(): array {
         return [

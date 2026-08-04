@@ -52,7 +52,7 @@ export default function PublicLayout({
             <Link href="/pricing">الأسعار</Link>
           </nav>
           <div className="pub-header-cta">
-            <Link href="/login" className="btn btn-sm btn-outline">تسجيل الدخول</Link>
+            <a href="/login" className="btn btn-sm btn-outline">تسجيل الدخول</a>
             <Link href="/register" className="btn btn-sm btn-primary">
               إنشاء حساب
             </Link>
@@ -81,7 +81,7 @@ export default function PublicLayout({
             <div>
               <h4>ابدأ</h4>
               <Link href="/register">إنشاء حساب</Link>
-              <Link href="/login">تسجيل الدخول</Link>
+              <a href="/login">تسجيل الدخول</a>
               <Link href="/join/creator">الانضمام كصانع محتوى</Link>
               <Link href="/demo">اطلب عرضًا توضيحيًا</Link>
             </div>

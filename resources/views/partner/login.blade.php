@@ -19,6 +19,7 @@
         <label style="display:flex; align-items:center; gap:.5rem; font-size:.85rem; color:var(--ih-text-secondary); margin-bottom:1.3rem;"><input type="checkbox" name="remember"> تذكّرني</label>
         <button type="submit" class="btn btn-primary btn-lg btn-block">دخول إلى بوابة الشريك</button>
     </form>
+    <a href="{{ route('auth.google.redirect', ['portal' => 'partner']) }}" class="btn btn-outline btn-lg btn-block" style="margin-top:.75rem;">تسجيل الدخول بواسطة Google</a>
 @endsection
 @section('portal_switch')
     <a href="/login">الوكالة</a>
