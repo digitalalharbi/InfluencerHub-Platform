@@ -1,6 +1,5 @@
 import { Head, Link, router } from '@inertiajs/react'
 import { useEffect, useState } from 'react'
-import PublicLoginModal from '@/Components/PublicLoginModal'
 
 /* ============================================================================
    بوّابة المنتَج — الجذر `/` داخل شاشة واحدة.
@@ -101,18 +100,15 @@ export default function Gateway({
 }: Props) {
   const [selected, setSelected] = useState<AccountType>(accountTypes[0])
   const [showMore, setShowMore] = useState(false)
-  const [showLogin, setShowLogin] = useState(() =>
-    typeof window !== 'undefined' && new URLSearchParams(window.location.search).get('login') === '1',
-  )
 
-  // اللوحة تُغلق بـEsc: نافذةٌ لا تُغلق إلا بالفأرة تحبس من يتنقّل بالكيبورد
+  // اللوحة تغلق بـ Esc.
   useEffect(() => {
-    if (!showMore && !showLogin) return
-    const onKey = (e: KeyboardEvent) => e.key === 'Escape' && (showMore ? setShowMore(false) : setShowLogin(false))
+    if (!showMore) return
+    const onKey = (e: KeyboardEvent) => e.key === 'Escape' && setShowMore(false)
     window.addEventListener('keydown', onKey)
 
     return () => window.removeEventListener('keydown', onKey)
-  }, [showMore, showLogin])
+  }, [showMore])
 
   // اختيار النوع يقود إلى `/start?type=…` — مسار واحد لا فروع
   const go = (type: AccountType) => router.visit(`/start?type=${type.key}`)
@@ -142,9 +138,9 @@ export default function Gateway({
           </nav>
 
           <div className="gw-header-actions">
-            <button type="button" className="gw-btn gw-btn--ghost" onClick={() => setShowLogin(true)}>
+            <Link href={selected.login} className="gw-btn gw-btn--ghost">
               تسجيل الدخول
-            </button>
+            </Link>
             <Link href="/start" className="gw-btn gw-btn--primary">
               ابدأ الآن
             </Link>
@@ -190,9 +186,9 @@ export default function Gateway({
             >
               متابعة كـ{selected.label}
             </button>
-            <button type="button" className="gw-btn gw-btn--ghost gw-btn--block" onClick={() => setShowLogin(true)}>
+            <Link href={selected.login} className="gw-btn gw-btn--ghost gw-btn--block">
               لدي حساب — تسجيل الدخول
-            </button>
+            </Link>
           </div>
 
           <ul className="gw-trust">
@@ -305,12 +301,6 @@ export default function Gateway({
         </div>
       </footer>
 
-      <PublicLoginModal
-        open={showLogin}
-        action={selected.login}
-        portal={`بوابة ${selected.label}`}
-        onClose={() => setShowLogin(false)}
-      />
       {showMore && (
         <div className="gw-scrim" onClick={() => setShowMore(false)}>
           <aside

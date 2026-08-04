@@ -1,6 +1,5 @@
 import { Head, Link, useForm } from '@inertiajs/react'
-import { useEffect, useState } from 'react'
-import PublicLoginModal from '@/Components/PublicLoginModal'
+import { useState } from 'react'
 
 /* ============================================================================
    `/start` — المسار الرسمي الوحيد لاختيار نوع الحساب وبدء التسجيل.
@@ -72,7 +71,6 @@ function Icon({ name, size = 16 }: { name: string; size?: number }) {
 export default function Start({ accountTypes, selected, prefill, carry }: Props) {
   const initial = accountTypes.find((t) => t.key === selected) ?? accountTypes[0]
   const [type, setType] = useState<AccountType>(initial)
-  const [showLogin, setShowLogin] = useState(false)
 
   // المعاملات المحمولة تُرسَل مع النموذج فلا تنقطع سلسلة الإحالة عند POST
   const form = useForm({ type: initial.key, email: prefill.email ?? '', ...carry })
@@ -82,13 +80,6 @@ export default function Start({ accountTypes, selected, prefill, carry }: Props)
     form.setData('type', t.key)
   }
 
-  useEffect(() => {
-    if (!showLogin) return
-    const onKey = (e: KeyboardEvent) => e.key === 'Escape' && setShowLogin(false)
-    window.addEventListener('keydown', onKey)
-
-    return () => window.removeEventListener('keydown', onKey)
-  }, [showLogin])
 
   return (
     <div className="gw gw--start" dir="rtl">
@@ -106,7 +97,7 @@ export default function Start({ accountTypes, selected, prefill, carry }: Props)
           </Link>
 
           <div className="gw-header-actions" style={{ marginInlineStart: 'auto' }}>
-            <button type="button" className="gw-btn gw-btn--ghost" onClick={() => setShowLogin(true)}>تسجيل الدخول</button>
+            <Link href={type.login} className="gw-btn gw-btn--ghost">تسجيل الدخول</Link>
           </div>
         </div>
       </header>
@@ -190,12 +181,6 @@ export default function Start({ accountTypes, selected, prefill, carry }: Props)
         </aside>
       </main>
 
-      <PublicLoginModal
-        open={showLogin}
-        action={type.login}
-        portal={`بوابة ${type.label}`}
-        onClose={() => setShowLogin(false)}
-      />
     </div>
   )
 }

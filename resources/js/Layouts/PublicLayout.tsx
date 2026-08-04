@@ -1,7 +1,5 @@
 import { Link, Head } from '@inertiajs/react'
-import { useEffect, useState } from 'react'
 import type { ReactNode } from 'react'
-import PublicLoginModal from '@/Components/PublicLoginModal'
 
 function BrandMark({ size = 26 }: { size?: number }) {
   return (
@@ -29,15 +27,6 @@ export default function PublicLayout({
   description?: string
   children: ReactNode
 }) {
-  const [showLogin, setShowLogin] = useState(false)
-
-  useEffect(() => {
-    if (!showLogin) return
-    const onKey = (e: KeyboardEvent) => e.key === 'Escape' && setShowLogin(false)
-    window.addEventListener('keydown', onKey)
-
-    return () => window.removeEventListener('keydown', onKey)
-  }, [showLogin])
 
   return (
     <div className="pub">
@@ -63,7 +52,7 @@ export default function PublicLayout({
             <Link href="/pricing">الأسعار</Link>
           </nav>
           <div className="pub-header-cta">
-            <button type="button" className="btn btn-sm btn-outline" onClick={() => setShowLogin(true)}>تسجيل الدخول</button>
+            <Link href="/login" className="btn btn-sm btn-outline">تسجيل الدخول</Link>
             <Link href="/register" className="btn btn-sm btn-primary">
               إنشاء حساب
             </Link>
@@ -73,7 +62,6 @@ export default function PublicLayout({
 
       <main>{children}</main>
 
-      <PublicLoginModal open={showLogin} onClose={() => setShowLogin(false)} />
 
       <footer className="pub-footer">
         <div className="pub-wrap">
@@ -93,7 +81,7 @@ export default function PublicLayout({
             <div>
               <h4>ابدأ</h4>
               <Link href="/register">إنشاء حساب</Link>
-              <button type="button" className="pub-link-button" onClick={() => setShowLogin(true)}>تسجيل الدخول</button>
+              <Link href="/login">تسجيل الدخول</Link>
               <Link href="/join/creator">الانضمام كصانع محتوى</Link>
               <Link href="/demo">اطلب عرضًا توضيحيًا</Link>
             </div>
