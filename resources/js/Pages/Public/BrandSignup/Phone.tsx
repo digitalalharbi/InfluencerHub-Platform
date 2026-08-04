@@ -70,15 +70,16 @@ export default function Phone({
           نستعمله لتأكيد هويتك والتنبيهات العاجلة على حملاتك، لا للتسويق.
         </p>
 
-        <form
-          onSubmit={(e) => {
+        {!sent && (
+          <form
+            onSubmit={(e) => {
             e.preventDefault()
             start
               .transform(() => ({ phone: fullPhone }))
               .post(`/register/brand/phone/${reference}`)
-          }}
-          className="pub-form"
-        >
+            }}
+            className="pub-form"
+          >
           <label className="pub-field">
             <span>
               رقم الجوال<b aria-hidden="true"> *</b>
@@ -138,9 +139,10 @@ export default function Phone({
           </label>
 
           <button type="submit" className="btn btn-secondary" disabled={start.processing || localPhone.replace(/\D/g, '').length < 6}>
-            {start.processing ? 'جارٍ الإرسال…' : sent ? 'أرسل الرمز مرة أخرى' : 'أرسل رمز التأكيد'}
+            {start.processing ? 'جارٍ الإرسال…' : 'أرسل رمز التأكيد'}
           </button>
-        </form>
+          </form>
+        )}
 
         {sent && (
           <form
