@@ -20,7 +20,10 @@ class AppServiceProvider extends ServiceProvider
                 ? new \App\Domain\Creators\Services\Otp\MailOtpMailer()
                 : new \App\Domain\Creators\Services\Otp\LogOtpMailer());
         $this->app->bind(\App\Domain\Creators\Contracts\OtpSmsSender::class, fn () =>
-            config('services.twilio.sid') && config('services.twilio.auth_token') && config('services.twilio.verify_sid')
+            config('services.twilio.mobile_provider') === 'twilio'
+            && config('services.twilio.sid')
+            && config('services.twilio.auth_token')
+            && (config('services.twilio.verify_sid') || config('services.twilio.whatsapp_from'))
                 ? new \App\Domain\Creators\Services\Otp\TwilioVerifySmsSender()
                 : new \App\Domain\Creators\Services\Otp\NullSmsSender());
     }

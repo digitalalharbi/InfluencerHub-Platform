@@ -35,6 +35,8 @@ return [
         'verify_sid' => env('TWILIO_VERIFY_SID'),
         'verify_channel' => env('TWILIO_VERIFY_CHANNEL', 'whatsapp'),
         'locale' => env('TWILIO_VERIFY_LOCALE', 'ar'),
+        'whatsapp_from' => env('TWILIO_WHATSAPP_FROM'),
+        'mobile_provider' => env('ONBOARDING_MOBILE_PROVIDER', 'twilio'),
     ],
     'slack' => [
         'notifications' => [
