@@ -419,6 +419,8 @@ Route::middleware(['auth', 'creator', 'inertia'])->prefix('beta/creator')->group
 });
 
 // بوابة مدير النظام (SaaS) — React/Inertia؛ إشراف عبر المستأجرين للقراءة فقط
+Route::redirect('/admin', '/beta/admin');
+
 Route::middleware(['auth', 'system_admin', 'inertia'])->prefix('beta/admin')->group(function () {
     // مراجعة طلبات فتح الحساب — استثناء مقصود عن كون اللوحة للقراءة فقط
     Route::get('/signup-requests', [\App\Http\Controllers\Inertia\Admin\SignupReviewController::class, 'index']);

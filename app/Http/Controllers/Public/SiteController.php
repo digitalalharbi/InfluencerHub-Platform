@@ -87,7 +87,7 @@ class SiteController extends Controller
         ]);
 
         return match (true) {
-            $user->is_system_admin => redirect('/admin'),
+            $user->is_system_admin => redirect('/beta/admin'),
             $isBrandMember => redirect('/brand'),
             $isAgencyMember => redirect('/app'),
             $isCreator => redirect('/creator'),
