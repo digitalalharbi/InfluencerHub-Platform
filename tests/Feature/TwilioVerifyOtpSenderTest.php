@@ -17,6 +17,7 @@ class TwilioVerifyOtpSenderTest extends TestCase
         config()->set('services.twilio.verify_sid', 'VA123');
         config()->set('services.twilio.verify_channel', 'whatsapp');
         config()->set('services.twilio.locale', 'ar');
+        config()->set('services.twilio.whatsapp_from', null);
 
         Log::spy();
 
@@ -33,6 +34,31 @@ class TwilioVerifyOtpSenderTest extends TestCase
             && $request['Channel'] === 'whatsapp'
             && $request['CustomCode'] === '123456'
             && $request['Locale'] === 'ar'
+        );
+    }
+
+    public function test_it_sends_local_otp_code_through_twilio_whatsapp_sandbox_number(): void
+    {
+        config()->set('services.twilio.sid', 'AC123');
+        config()->set('services.twilio.auth_token', 'secret');
+        config()->set('services.twilio.verify_sid', null);
+        config()->set('services.twilio.verify_channel', 'whatsapp');
+        config()->set('services.twilio.whatsapp_from', '+14155238886');
+
+        Log::spy();
+
+        Http::fake([
+            'api.twilio.com/*' => Http::response(['status' => 'queued'], 201),
+        ]);
+
+        $status = (new TwilioVerifySmsSender())->send('+201234567890', '123456');
+
+        $this->assertSame('sent', $status);
+        Http::assertSent(fn ($request) =>
+            $request->url() === 'https://api.twilio.com/2010-04-01/Accounts/AC123/Messages.json'
+            && $request['From'] === 'whatsapp:+14155238886'
+            && $request['To'] === 'whatsapp:+201234567890'
+            && str_contains($request['Body'], '123456')
         );
     }
 

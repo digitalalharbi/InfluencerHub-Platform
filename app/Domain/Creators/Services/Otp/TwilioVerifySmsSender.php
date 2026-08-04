@@ -17,14 +17,26 @@ class TwilioVerifySmsSender implements OtpSmsSender
         $serviceSid = (string) config('services.twilio.verify_sid');
         $channel = (string) config('services.twilio.verify_channel', 'whatsapp');
         $locale = (string) config('services.twilio.locale', 'ar');
+        $whatsappFrom = (string) config('services.twilio.whatsapp_from');
 
-        if ($sid === '' || $token === '' || $serviceSid === '') {
+        if ($sid === '' || $token === '' || ($serviceSid === '' && $whatsappFrom === '')) {
             Log::info('[OTP][twilio] WAITING_FOR_CREDENTIALS phone=' . $this->maskPhone($phone));
 
             return 'waiting_for_credentials';
         }
 
         $to = $this->normalizePhone($phone);
+
+        if ($channel === 'whatsapp' && $whatsappFrom !== '') {
+            return $this->sendWhatsAppMessage($sid, $token, $whatsappFrom, $to, $code);
+        }
+
+        if ($serviceSid === '') {
+            Log::info('[OTP][twilio] WAITING_FOR_VERIFY_SERVICE phone=' . $this->maskPhone($phone));
+
+            return 'waiting_for_credentials';
+        }
+
         $url = "https://verify.twilio.com/v2/Services/{$serviceSid}/Verifications";
 
         $payload = [
@@ -52,12 +64,49 @@ class TwilioVerifySmsSender implements OtpSmsSender
                 'twilio_message' => $response->json('message'),
             ]);
 
-            throw new RuntimeException('???? ????? ??? ?????? ??? Twilio.');
+            throw new RuntimeException('تعذر إرسال رمز التحقق عبر Twilio.');
         }
 
         Log::info('[OTP][twilio] sent', [
             'phone' => $this->maskPhone($to),
             'channel' => $channel,
+            'status' => $response->json('status'),
+        ]);
+
+        return 'sent';
+    }
+
+    private function sendWhatsAppMessage(string $sid, string $token, string $from, string $to, string $code): string
+    {
+        $url = "https://api.twilio.com/2010-04-01/Accounts/{$sid}/Messages.json";
+        $from = $this->normalizeWhatsAppAddress($from);
+        $to = $this->normalizeWhatsAppAddress($to);
+
+        $response = Http::asForm()
+            ->withBasicAuth($sid, $token)
+            ->timeout(15)
+            ->retry(2, 250)
+            ->post($url, [
+                'From' => $from,
+                'To' => $to,
+                'Body' => "رمز التحقق الخاص بك في إنفلونسر هَب هو: {$code}",
+            ]);
+
+        if (! $response->successful()) {
+            Log::warning('[OTP][twilio] whatsapp_send_failed', [
+                'phone' => $this->maskPhone($to),
+                'from' => $from,
+                'status' => $response->status(),
+                'twilio_code' => $response->json('code'),
+                'twilio_message' => $response->json('message'),
+            ]);
+
+            throw new RuntimeException('تعذر إرسال رمز التحقق عبر واتساب.');
+        }
+
+        Log::info('[OTP][twilio] whatsapp_sent', [
+            'phone' => $this->maskPhone($to),
+            'from' => $from,
             'status' => $response->json('status'),
         ]);
 
@@ -74,6 +123,17 @@ class TwilioVerifySmsSender implements OtpSmsSender
         }
 
         return $phone;
+    }
+
+    private function normalizeWhatsAppAddress(string $phone): string
+    {
+        $phone = trim($phone);
+
+        if (str_starts_with($phone, 'whatsapp:')) {
+            return $phone;
+        }
+
+        return 'whatsapp:' . $this->normalizePhone($phone);
     }
 
     private function maskPhone(string $phone): string

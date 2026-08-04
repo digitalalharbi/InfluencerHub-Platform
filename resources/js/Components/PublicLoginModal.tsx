@@ -63,8 +63,8 @@ export default function PublicLoginModal({ open, action = '/login', portal = 'ب
 
         <aside className="ih-login-formpane">
           <Link href="/" className="ih-login-logo">
-            <span>إنفلونسر هَب</span>
             <i aria-hidden="true"><BrandMark /></i>
+            <span>إنفلونسر هَب</span>
           </Link>
 
           <span className="ih-login-tag">{portal}</span>
