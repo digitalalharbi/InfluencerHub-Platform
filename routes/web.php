@@ -8,6 +8,7 @@ use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\Public\SiteController;
 Route::middleware('inertia')->controller(SiteController::class)->group(function () {
     Route::get('/', 'home')->name('home');
+    Route::view('/session-expired', 'errors.419')->name('session-expired');
     // تحويل دائم إلى `/start` — المسار الرسمي الوحيد لاختيار نوع الحساب
     Route::get('/register', 'legacyRegister')->name('register');
     Route::get('/register/account-type', 'legacyRegister');
@@ -371,7 +372,6 @@ Route::middleware(['auth', 'tenant', 'agency_member', 'inertia'])->prefix('beta'
     Route::post('/client-reviews/documents/{document}/review', [\App\Http\Controllers\Inertia\ClientReviewsController::class, 'reviewDocument']);
     Route::get('/client-reviews/documents/{document}/download', [\App\Http\Controllers\Inertia\ClientReviewsController::class, 'downloadDocument']);
     Route::get('/integrations', [\App\Http\Controllers\Inertia\IntegrationsController::class, 'index']);
-    Route::get('/team', [\App\Http\Controllers\Inertia\TeamController::class, 'index']);
     Route::get('/team', [\App\Http\Controllers\Inertia\TeamController::class, 'index']);
     Route::get('/settings', [\App\Http\Controllers\Inertia\SettingsController::class, 'index']);
     Route::get('/campaigns/{campaign}/shortlist', [\App\Http\Controllers\Inertia\ShortlistController::class, 'index']);

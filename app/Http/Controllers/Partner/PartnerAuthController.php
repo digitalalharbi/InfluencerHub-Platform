@@ -45,7 +45,7 @@ class PartnerAuthController extends Controller
         $r->session()->invalidate();
         $r->session()->regenerateToken();
 
-        return redirect('/partner/login');
+        return redirect('/');
     }
 
     public function switch(Request $r)

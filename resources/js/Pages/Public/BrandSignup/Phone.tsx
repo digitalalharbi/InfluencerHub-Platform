@@ -73,74 +73,73 @@ export default function Phone({
         {!sent && (
           <form
             onSubmit={(e) => {
-            e.preventDefault()
-            start
-              .transform(() => ({ phone: fullPhone }))
-              .post(`/register/brand/phone/${reference}`)
+              e.preventDefault()
+              start.transform(() => ({ phone: fullPhone }))
+              start.post(`/register/brand/phone/${reference}`, { preserveScroll: true })
             }}
             className="pub-form"
           >
-          <label className="pub-field">
-            <span>
-              رقم الجوال<b aria-hidden="true"> *</b>
-            </span>
-            <div
-              style={{
-                display: 'grid',
-                gridTemplateColumns: 'minmax(150px, 190px) 1fr',
-                gap: '.6rem',
-                direction: 'rtl',
-              }}
-            >
-              <select
-                className="field"
-                value={countryCode}
-                onChange={(e) => setCountryCode(e.target.value)}
-                aria-label="كود الدولة"
+            <label className="pub-field">
+              <span>
+                رقم الجوال<b aria-hidden="true"> *</b>
+              </span>
+              <div
+                style={{
+                  display: 'grid',
+                  gridTemplateColumns: 'minmax(150px, 190px) 1fr',
+                  gap: '.6rem',
+                  direction: 'rtl',
+                }}
               >
-                {COUNTRIES.map((item) => (
-                  <option key={item.code} value={item.code}>
-                    {item.name} {item.dial}
-                  </option>
-                ))}
-              </select>
-              <div style={{ display: 'flex', direction: 'ltr' }}>
-                <span
-                  style={{
-                    display: 'inline-flex',
-                    alignItems: 'center',
-                    paddingInline: '.85rem',
-                    border: '1px solid var(--ih-border)',
-                    borderInlineEnd: 0,
-                    borderRadius: '10px 0 0 10px',
-                    background: 'var(--ih-muted)',
-                    color: 'var(--ih-text-muted)',
-                    fontWeight: 700,
-                  }}
-                >
-                  {country.dial}
-                </span>
-                <input
-                  type="tel"
-                  value={localPhone}
-                  onChange={(e) => setLocalPhone(e.target.value.replace(/[^0-9\s-]/g, ''))}
+                <select
                   className="field"
-                  style={{ direction: 'ltr', borderRadius: '0 10px 10px 0' }}
-                  placeholder={country.placeholder}
-                  autoComplete="tel-national"
-                  autoFocus={!sent}
-                />
+                  value={countryCode}
+                  onChange={(e) => setCountryCode(e.target.value)}
+                  aria-label="كود الدولة"
+                >
+                  {COUNTRIES.map((item) => (
+                    <option key={item.code} value={item.code}>
+                      {item.name} {item.dial}
+                    </option>
+                  ))}
+                </select>
+                <div style={{ display: 'flex', direction: 'ltr' }}>
+                  <span
+                    style={{
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      paddingInline: '.85rem',
+                      border: '1px solid var(--ih-border)',
+                      borderInlineEnd: 0,
+                      borderRadius: '10px 0 0 10px',
+                      background: 'var(--ih-muted)',
+                      color: 'var(--ih-text-muted)',
+                      fontWeight: 700,
+                    }}
+                  >
+                    {country.dial}
+                  </span>
+                  <input
+                    type="tel"
+                    value={localPhone}
+                    onChange={(e) => setLocalPhone(e.target.value.replace(/[^0-9\s-]/g, ''))}
+                    className="field"
+                    style={{ direction: 'ltr', borderRadius: '0 10px 10px 0' }}
+                    placeholder={country.placeholder}
+                    autoComplete="tel-national"
+                    autoFocus={!sent}
+                  />
+                </div>
               </div>
-            </div>
-            <small className="pub-muted" style={{ display: 'block', marginTop: '.45rem', direction: 'ltr', textAlign: 'right' }}>
-              سيتم الإرسال إلى {fullPhone}
-            </small>
-            {start.errors.phone && <em className="pub-field-error">{start.errors.phone}</em>}
-          </label>
+              <small className="pub-muted" style={{ display: 'block', marginTop: '.45rem', direction: 'ltr', textAlign: 'right' }}>
+                سيتم الإرسال إلى {fullPhone}
+              </small>
+              {start.errors.phone && <em className="pub-field-error">{start.errors.phone}</em>}
+            </label>
 
-          <button type="submit" className="btn btn-secondary" disabled={start.processing || localPhone.replace(/\D/g, '').length < 6}>
-            {start.processing ? 'جارٍ الإرسال…' : 'أرسل رمز التأكيد'}
-          </button>
+            <button type="submit" className="btn btn-secondary" disabled={start.processing || localPhone.replace(/\D/g, '').length < 6}>
+              {start.processing ? 'جارٍ الإرسال...' : 'أرسل رمز التأكيد'}
+            </button>
           </form>
         )}
 
@@ -176,7 +175,7 @@ export default function Phone({
               className="btn btn-primary btn-lg"
               disabled={verify.processing || verify.data.code.length < 6}
             >
-              {verify.processing ? 'جارٍ التحقّق…' : 'تأكيد ومتابعة'}
+              {verify.processing ? 'جارٍ التحقق...' : 'تأكيد ومتابعة'}
             </button>
 
             <p className="pub-muted pub-center">

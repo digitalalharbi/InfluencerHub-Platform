@@ -45,6 +45,6 @@ class CreatorAuthController extends Controller
         $r->session()->invalidate();
         $r->session()->regenerateToken();
 
-        return redirect('/creator/login');
+        return redirect('/');
     }
 }

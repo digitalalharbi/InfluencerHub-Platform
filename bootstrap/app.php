@@ -36,6 +36,17 @@ return Application::configure(basePath: dirname(__DIR__))
         );
     })
     ->withExceptions(function (Exceptions $exceptions): void {
+        $exceptions->render(function (\Illuminate\Session\TokenMismatchException $e, $request) {
+            if ($request->expectsJson() || $request->is('api/*')) {
+                return response()->json(['message' => 'انتهت الجلسة. حدّث الصفحة ثم أعد المحاولة.', 'error' => 'session_expired'], 419);
+            }
+
+            if ($request->header('X-Inertia')) {
+                return redirect('/session-expired');
+            }
+
+            return response()->view('errors.419', [], 419);
+        });
         // استجابات JSON موحّدة لأخطاء API
         $exceptions->render(function (\App\Domain\Billing\Exceptions\EntitlementLimitExceeded $e, $request) {
             if ($request->is('api/*')) {

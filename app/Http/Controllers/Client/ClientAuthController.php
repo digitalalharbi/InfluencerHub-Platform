@@ -45,7 +45,7 @@ class ClientAuthController extends Controller
         $r->session()->invalidate();
         $r->session()->regenerateToken();
 
-        return redirect('/client/login');
+        return redirect('/');
     }
 
     /** تبديل العميل النشِط ضمن عضويات المستخدم الفعّالة فقط. */
