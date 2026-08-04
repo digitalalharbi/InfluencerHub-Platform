@@ -36,6 +36,9 @@
 }
 
 .pub-logo {
+  display: inline-flex;
+  align-items: center;
+  gap: .5rem;
   font-weight: 700;
   font-size: 1.05rem;
   color: var(--ih-ink-900);

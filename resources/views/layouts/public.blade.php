@@ -12,7 +12,7 @@
 </head>
 <body style="background:linear-gradient(180deg,#f0fdf9,#f8fafc);">
 <header style="background:var(--surface); border-bottom:1px solid var(--border); padding:1rem 1.5rem; display:flex; align-items:center; gap:1rem;">
-    <a href="/join" style="font-weight:800; font-size:1.15rem; color:var(--brand); text-decoration:none;">◆ إنفلونسر هَب</a>
+    <a href="/join" style="font-weight:800; font-size:1.15rem; color:var(--brand); text-decoration:none;"><x-ih-logo :size="26" color="var(--brand)"/> <span>إنفلونسر هَب</span></a>
     <div style="margin-inline-start:auto; display:flex; gap:.5rem; align-items:center;">
         <a href="?lang=ar" class="btn btn-sm {{ $lang==='ar' ? 'btn-primary' : 'btn-ghost' }}">ع</a>
         <a href="?lang=en" class="btn btn-sm {{ $lang==='en' ? 'btn-primary' : 'btn-ghost' }}">EN</a>
