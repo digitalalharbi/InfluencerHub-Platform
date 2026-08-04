@@ -8,6 +8,7 @@ use App\Domain\Brands\Services\BrandClaimService;
 use App\Domain\Brands\Services\BrandMatchingService;
 use App\Domain\Brands\Services\BrandProvisioningService;
 use App\Domain\Brands\Services\BrandSignupService;
+use App\Domain\Creators\Contracts\OtpSmsSender;
 use App\Domain\CRM\Models\Brand;
 use App\Domain\Tenancy\Support\TenantContext;
 use App\Http\Controllers\Controller;
@@ -39,6 +40,7 @@ class BrandSignupController extends Controller
     public function __construct(
         private BrandSignupService $svc,
         private BrandMatchingService $matcher,
+        private OtpSmsSender $sms,
     ) {}
 
     // ===== 1) البريد =====
@@ -421,6 +423,22 @@ class BrandSignupController extends Controller
                 ['code' => $code, 'verifyUrl' => $verifyUrl],
                 fn ($m) => $m->to($to)->subject('رمز تأكيد البريد — إنفلونسر هَب'),
             );
+        } else {
+            try {
+                $status = $this->sms->send($to, $code);
+                Log::info('[brand-signup][phone] delivery_status', [
+                    'reference' => $reference,
+                    'status' => $status,
+                    'provider' => 'twilio',
+                ]);
+            } catch (\Throwable $e) {
+                Log::warning('[brand-signup][phone] delivery_failed', [
+                    'reference' => $reference,
+                    'error' => $e->getMessage(),
+                ]);
+
+                throw $e;
+            }
         }
 
         if (! app()->environment('production')) {
