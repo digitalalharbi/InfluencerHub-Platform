@@ -3,113 +3,314 @@ namespace App\Console\Commands;
 
 use App\Domain\Billing\Actions\CreateSubscription;
 use App\Domain\Billing\Models\{Plan, PlanVersion, PlanEntitlement};
+use App\Domain\Creators\Services\CreatorCapabilityService;
 use App\Domain\CRM\Actions\CreateClient;
+use App\Domain\CRM\Enums\ClientMemberRole;
+use App\Domain\CRM\Models\{Client, ClientMember};
+use App\Domain\Identity\Enums\Role;
 use App\Domain\Identity\Models\User;
+use App\Domain\Partners\Models\{ExternalAgency, ExternalAgencyMember};
 use App\Domain\Tenancy\Models\{Organization, OrganizationMembership, Tenant};
 use App\Domain\Tenancy\Support\TenantContext;
 use Illuminate\Console\Command;
+use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Str;
 
 /**
- * حسابات معاينة محلية لكل دور (local/E2E فقط، ممنوع في الإنتاج).
- * كلمة المرور من PREVIEW_PASSWORD أو تُولَّد؛ تُكتب البيانات في ملف محلي غير متتبَّع بـGit.
+ * حسابات معاينة محلية لكل دور. ممنوع في الإنتاج، وتُكتب بيانات الدخول في ملف غير متتبع.
  */
-class SeedPreviewAccountsCommand extends Command {
+class SeedPreviewAccountsCommand extends Command
+{
     protected $signature = 'preview:seed {--fresh : أعد إنشاء بيانات المعاينة}';
-    protected $description = 'حسابات معاينة محلية لكل دور (غير إنتاجي)';
+    protected $description = 'حسابات معاينة محلية لكل دور وصلاحية (غير إنتاجي)';
 
-    private const ORG_ROLES = ['system_admin','agency_admin','campaign_manager','creator_manager','finance'];
-
-    public function handle(): int {
-        if (app()->environment('production')) { $this->error('ممنوع في الإنتاج.'); return self::FAILURE; }
-        // لا كلمة مرور ثابتة: من .env.preview أو تُولَّد عشوائيًا في كل تشغيل
-        $password = env('PREVIEW_PASSWORD') ?: \Illuminate\Support\Str::password(16);
-
-        $tenant = Tenant::where('slug', 'demo')->first();
-        if (! $tenant) {
-            $tenant = Tenant::create(['name' => 'وكالة تجريبية', 'slug' => 'demo', 'deployment_mode' => 'saas', 'status' => 'active']);
-        }
-        [$org, $rows] = TenantContext::withBypass(function () use ($tenant, $password) {
-        $org = Organization::where('tenant_id', $tenant->id)->first()
-            ?? Organization::create(['tenant_id' => $tenant->id, 'name' => 'الوكالة', 'slug' => 'demo-org', 'type' => 'agency']);
-
-        // اشتراك بحد كافٍ
-        if (! \App\Domain\Billing\Models\Subscription::where('organization_id', $org->id)->exists()) {
-            $plan = Plan::firstOrCreate(['key' => 'preview'], ['name' => 'معاينة', 'is_active' => true]);
-            $v = PlanVersion::firstOrCreate(['plan_id' => $plan->id, 'version' => 1], ['is_active' => true]);
-            PlanEntitlement::firstOrCreate(['plan_version_id' => $v->id, 'feature_key' => 'customers.max'], ['value' => 100]);
-            foreach (['creators.max' => 100, 'creator_applications.monthly.max' => 50, 'creator_storage.gb' => 10, 'creator_portal.enabled' => 1, 'ugc_creator.enabled' => 1, 'social_integrations.max' => 10] as $fk => $val) {
-                PlanEntitlement::firstOrCreate(['plan_version_id' => $v->id, 'feature_key' => $fk], ['value' => $val]);
-            }
-            (new CreateSubscription)->handle($org, $v);
+    public function handle(): int
+    {
+        if (app()->environment('production')) {
+            $this->error('ممنوع في الإنتاج.');
+            return self::FAILURE;
         }
 
-        $rows = [];
-        // أدوار المؤسسة (الوكالة)
-        foreach (self::ORG_ROLES as $role) {
-            $email = "{$role}@demo.test";
-            $u = User::firstOrCreate(['email' => $email], ['name' => ucfirst(str_replace('_', ' ', $role)), 'is_active' => true, 'password' => $password]);
-            $u->update(['password' => $password]); // تدوير كلمة المرور في كل تشغيل
-            if ($role === 'system_admin') { $u->forceFill(['is_system_admin' => true])->save(); }
-            OrganizationMembership::firstOrCreate(
-                ['tenant_id' => $tenant->id, 'organization_id' => $org->id, 'user_id' => $u->id],
-                ['role' => $role, 'status' => 'active'],
+        $password = env('PREVIEW_PASSWORD') ?: Str::password(16);
+        $passwordHash = Hash::make($password);
+
+        $tenant = Tenant::firstOrCreate(
+            ['slug' => 'demo'],
+            ['name' => 'وكالة تجريبية', 'deployment_mode' => 'saas', 'status' => 'active'],
+        );
+
+        [$agencyOrg, $brandOrg, $client, $partner, $rows] = TenantContext::withBypass(function () use ($tenant, $passwordHash) {
+            $agencyOrg = Organization::firstOrCreate(
+                ['tenant_id' => $tenant->id, 'slug' => 'demo-org'],
+                ['name' => 'الوكالة التجريبية', 'type' => 'agency', 'status' => 'active'],
             );
-            $rows[] = [$role, $email];
-        }
-        // أدوار خارج الوكالة (المبدع/البوابة) — حسابات مستخدم فقط الآن (بواباتها تُبنى في مراحل لاحقة)
-        foreach (['client_admin','client_member','influencer','ugc_creator'] as $role) {
-            $email = "{$role}@demo.test";
-            $u = User::firstOrCreate(['email' => $email], ['name' => ucfirst(str_replace('_', ' ', $role)), 'is_active' => true, 'password' => $password]);
-            $u->update(['password' => $password]);
-            $rows[] = [$role, $email];
-        }
 
-        return [$org, $rows];
+            $brandOrg = Organization::firstOrCreate(
+                ['tenant_id' => $tenant->id, 'slug' => 'demo-brand-org'],
+                ['name' => 'علامة تجريبية', 'type' => 'brand', 'status' => 'active'],
+            );
+
+            $this->ensurePreviewSubscription($agencyOrg);
+
+            $rows = [];
+            $agencyRoles = [
+                Role::SystemAdmin,
+                Role::SuperAdmin,
+                Role::AgencyAdmin,
+                Role::AgencyEmployee,
+                Role::OperationsManager,
+                Role::CampaignManager,
+                Role::CreatorManager,
+                Role::Finance,
+                Role::ContentReviewer,
+                Role::Viewer,
+            ];
+
+            foreach ($agencyRoles as $role) {
+                $user = $this->user($role->value . '@demo.test', $this->label($role->value), $passwordHash);
+                if ($role === Role::SystemAdmin) {
+                    $user->forceFill(['is_system_admin' => true])->save();
+                }
+                OrganizationMembership::updateOrCreate(
+                    ['tenant_id' => $tenant->id, 'organization_id' => $agencyOrg->id, 'user_id' => $user->id],
+                    ['role' => $role->value, 'status' => 'active'],
+                );
+                $rows[] = ['agency', $role->value, $user->email];
+            }
+
+            foreach ([Role::BrandAdmin, Role::BrandMember] as $role) {
+                $user = $this->user($role->value . '@demo.test', $this->label($role->value), $passwordHash);
+                OrganizationMembership::updateOrCreate(
+                    ['tenant_id' => $tenant->id, 'organization_id' => $brandOrg->id, 'user_id' => $user->id],
+                    ['role' => $role->value, 'status' => 'active'],
+                );
+                $rows[] = ['brand', $role->value, $user->email];
+            }
+
+            $client = $this->ensureClient($tenant, $agencyOrg);
+            foreach (ClientMemberRole::cases() as $role) {
+                $user = $this->user($role->value . '@demo.test', $this->label($role->value), $passwordHash);
+                ClientMember::updateOrCreate(
+                    ['tenant_id' => $tenant->id, 'client_id' => $client->id, 'user_id' => $user->id],
+                    ['role' => $role->value, 'status' => 'active', 'accepted_at' => now()],
+                );
+                $rows[] = ['client', $role->value, $user->email];
+            }
+
+            $partner = ExternalAgency::updateOrCreate(
+                ['tenant_id' => $tenant->id, 'contact_email' => 'partner_admin@demo.test'],
+                [
+                    'name' => 'وكالة شريكة تجريبية',
+                    'legal_name' => 'Demo Partner Agency',
+                    'status' => 'approved',
+                    'contact_name' => 'Partner Admin',
+                    'contact_phone' => '+201000000000',
+                    'country_code' => 'EG',
+                    'specialization' => 'production',
+                    'reviewed_at' => now(),
+                ],
+            );
+
+            foreach ([Role::ExternalAgencyAdmin, Role::ExternalAgencyMember] as $role) {
+                $user = $this->user($role->value . '@demo.test', $this->label($role->value), $passwordHash);
+                ExternalAgencyMember::updateOrCreate(
+                    ['tenant_id' => $tenant->id, 'external_agency_id' => $partner->id, 'user_id' => $user->id],
+                    ['role' => $role->value, 'status' => 'active', 'accepted_at' => now()],
+                );
+                $rows[] = ['partner', $role->value, $user->email];
+            }
+
+            foreach ([Role::Influencer, Role::UgcCreator, Role::InfluencerAndUgc] as $role) {
+                $user = $this->user($role->value . '@demo.test', $this->label($role->value), $passwordHash);
+                OrganizationMembership::updateOrCreate(
+                    ['tenant_id' => $tenant->id, 'organization_id' => $agencyOrg->id, 'user_id' => $user->id],
+                    ['role' => $role->value, 'status' => 'active'],
+                );
+                $creator = \App\Domain\Creators\Models\Creator::withoutGlobalScopes()
+                    ->where('tenant_id', $tenant->id)
+                    ->where('user_id', $user->id)
+                    ->first();
+
+                if (! $creator) {
+                    $creator = app(\App\Domain\Creators\Actions\CreateCreator::class)->handle($agencyOrg, [
+                        'display_name' => $this->label($role->value),
+                        'professional_name' => $this->label($role->value),
+                        'type' => $this->creatorType($role),
+                        'capabilities' => $this->creatorCapabilities($role),
+                        'handle' => str_replace('_', '.', $role->value),
+                        'email' => $user->email,
+                        'phone' => '+2010' . random_int(10000000, 99999999),
+                        'primary_platform' => 'instagram',
+                        'followers_count' => 120000,
+                        'status' => 'active',
+                    ], User::where('email', Role::AgencyAdmin->value . '@demo.test')->first());
+                }
+
+                $creator->forceFill([
+                    'user_id' => $user->id,
+                    'email' => $user->email,
+                    'status' => 'active',
+                ])->save();
+                CreatorCapabilityService::sync($creator, $this->creatorCapabilities($role), 'preview');
+                $rows[] = ['creator', $role->value, $user->email];
+            }
+
+            return [$agencyOrg, $brandOrg, $client, $partner, $rows];
         });
 
-        // عملاء تجريبيون إن لم يوجدوا
-        TenantContext::withTenant($tenant->id, function () use ($tenant, $org) {
-        if (\App\Domain\CRM\Models\Client::count() === 0) {
-            $admin = User::where('email', 'agency_admin@demo.test')->first();
-            foreach ([['نايك السعودية', 'active', 'رياضة'], ['stc', 'active', 'اتصالات'], ['مطاعم البيك', 'qualified', 'أغذية'], ['نون', 'lead', 'تجارة']] as [$n, $s, $sec]) {
-                app(CreateClient::class)->handle($org, ['display_name' => $n, 'status' => $s, 'type' => 'company', 'sector' => $sec], $admin);
-            }
-        }
-        // مبدعون (Phase 4)
-        if (\App\Domain\Creators\Models\Creator::count() === 0) {
-            $admin = User::where('email', 'agency_admin@demo.test')->first();
-            foreach ([['نورة القحطاني', 'influencer', 'noura_q', 'instagram', 250000, 'active'], ['فيصل العتيبي', 'influencer', 'faisal', 'tiktok', 480000, 'active'], ['ستوديو لقطة', 'ugc_creator', 'laqta', 'instagram', 12000, 'prospect'], ['ريم UGC', 'ugc_creator', 'reem.ugc', 'tiktok', 8000, 'active'], ['محمد الشمري', 'both', 'm_shammari', 'youtube', 95000, 'paused']] as [$n, $ty, $h, $pf, $fol, $st]) {
-                app(\App\Domain\Creators\Actions\CreateCreator::class)->handle($org, ['display_name' => $n, 'type' => $ty, 'handle' => $h, 'primary_platform' => $pf, 'followers_count' => $fol, 'status' => $st], $admin);
-            }
-        }
-        // طلب انضمام تجريبي (مُرسَل، للمراجعة)
-        if (\App\Domain\Creators\Models\CreatorApplication::count() === 0) {
-            $svc = app(\App\Domain\Creators\Services\CreatorApplicationService::class);
-            $appl = $svc->startDraft($tenant, ['account_type' => 'influencer', 'full_name' => 'ريناد الزهراني',
-                'professional_name' => 'Renad', 'email' => 'renad@applicant.test', 'phone' => '+966505556677', 'country_code' => 'SA', 'city' => 'جدة']);
-            TenantContext::withTenant($tenant->id, function () use ($appl, $tenant) {
-                $appl->update(['email_verified_at' => now(), 'bio' => 'صانعة محتوى أزياء وجمال.', 'categories' => ['fashion', 'beauty']]);
-                \App\Domain\Creators\Models\CreatorApplicationPlatform::create(['tenant_id' => $tenant->id, 'application_id' => $appl->id,
-                    'platform' => 'instagram', 'username' => 'renad.style', 'followers_count' => 180000, 'status' => 'manual_unverified']);
-            });
-            $svc->transition($appl, 'submitted', null, ['submitted_at' => now()]);
-            $svc->transition($appl->fresh(), 'under_review');
-        }
-        }, $org->id);
+        TenantContext::withTenant($tenant->id, function () use ($tenant, $agencyOrg) {
+            $this->ensureDemoData($tenant, $agencyOrg);
+        }, $agencyOrg->id);
 
-        // اكتب البيانات في تخزين خاص (غير متتبَّع بـGit، خارج الويب، صلاحيات محدودة)
-        $dir = storage_path('app/private');
-        if (! is_dir($dir)) { mkdir($dir, 0700, true); }
-        $path = $dir . '/preview-credentials.txt';
-        $lines = ["# حسابات معاينة محلية — InfluencerHub V2 (لا تُرفع إلى Git، غير إنتاجي)", "# كلمة المرور للجميع: {$password}", ''];
-        foreach ($rows as [$role, $email]) { $lines[] = sprintf('%-22s %s', $role, $email); }
-        file_put_contents($path, implode("\n", $lines) . "\n");
-        @chmod($path, 0600); // صلاحيات وصول محدودة
+        $this->writeCredentials($password, $rows);
+        $this->auditPreviewAccounts($tenant->id, $rows);
 
-        // لا تُطبَع كلمة المرور في المخرجات/التقارير
-        $this->info('حسابات المعاينة جاهزة (' . count($rows) . ' دورًا). كلمة المرور في storage/app/private/preview-credentials.txt (غير متتبَّع).');
-        $this->line('كلمة المرور: من PREVIEW_PASSWORD أو مُولَّدة عشوائيًا في كل تشغيل.');
+        $this->info('حسابات المعاينة جاهزة (' . count($rows) . ' حسابًا).');
+        $this->line('البيانات في storage/app/private/preview-credentials.txt');
+
         return self::SUCCESS;
+    }
+
+    private function user(string $email, string $name, string $passwordHash): User
+    {
+        return tap(User::updateOrCreate(
+            ['email' => $email],
+            ['name' => $name, 'is_active' => true, 'password' => $passwordHash, 'email_verified_at' => now()],
+        ), function (User $user) use ($passwordHash) {
+            if (! str_starts_with($user->email, Role::SystemAdmin->value . '@')) {
+                $user->forceFill(['is_system_admin' => false])->save();
+            }
+            $user->forceFill(['password' => $passwordHash, 'email_verified_at' => $user->email_verified_at ?: now()])->save();
+        });
+    }
+
+    private function ensurePreviewSubscription(Organization $org): void
+    {
+        if (\App\Domain\Billing\Models\Subscription::where('organization_id', $org->id)->exists()) {
+            return;
+        }
+
+        $plan = Plan::firstOrCreate(['key' => 'preview'], ['name' => 'معاينة', 'is_active' => true]);
+        $version = PlanVersion::firstOrCreate(['plan_id' => $plan->id, 'version' => 1], ['is_active' => true]);
+        foreach ([
+            'customers.max' => 100,
+            'creators.max' => 100,
+            'creator_applications.monthly.max' => 50,
+            'creator_storage.gb' => 10,
+            'creator_portal.enabled' => 1,
+            'ugc_creator.enabled' => 1,
+            'social_integrations.max' => 10,
+        ] as $feature => $value) {
+            PlanEntitlement::firstOrCreate(['plan_version_id' => $version->id, 'feature_key' => $feature], ['value' => $value]);
+        }
+        (new CreateSubscription)->handle($org, $version);
+    }
+
+    private function ensureClient(Tenant $tenant, Organization $org): Client
+    {
+        return TenantContext::withTenant($tenant->id, function () use ($org) {
+            $client = Client::where('email', 'client@demo.test')->first();
+            if ($client) {
+                return $client;
+            }
+
+            return app(CreateClient::class)->handle($org, [
+                'display_name' => 'عميل تجريبي',
+                'legal_name' => 'Demo Client',
+                'status' => 'active',
+                'type' => 'company',
+                'sector' => 'تجربة',
+                'email' => 'client@demo.test',
+                'phone' => '+201000000000',
+            ], User::where('email', Role::AgencyAdmin->value . '@demo.test')->first());
+        }, $org->id);
+    }
+
+    private function ensureDemoData(Tenant $tenant, Organization $org): void
+    {
+        if (Client::count() === 0) {
+            $admin = User::where('email', Role::AgencyAdmin->value . '@demo.test')->first();
+            foreach ([['نايك السعودية', 'active', 'رياضة'], ['stc', 'active', 'اتصالات'], ['مطاعم البيك', 'qualified', 'أغذية'], ['نون', 'lead', 'تجارة']] as [$name, $status, $sector]) {
+                app(CreateClient::class)->handle($org, ['display_name' => $name, 'status' => $status, 'type' => 'company', 'sector' => $sector], $admin);
+            }
+        }
+    }
+
+    private function writeCredentials(string $password, array $rows): void
+    {
+        $dir = storage_path('app/private');
+        if (! is_dir($dir)) {
+            mkdir($dir, 0700, true);
+        }
+
+        $lines = [
+            '# حسابات معاينة محلية - لا ترفع إلى Git',
+            '# كلمة المرور للجميع: ' . $password,
+            '',
+            sprintf('%-12s %-28s %s', 'portal', 'role', 'email'),
+            str_repeat('-', 72),
+        ];
+
+        foreach ($rows as [$portal, $role, $email]) {
+            $lines[] = sprintf('%-12s %-28s %s', $portal, $role, $email);
+        }
+
+        file_put_contents($dir . '/preview-credentials.txt', implode("\n", $lines) . "\n");
+        @chmod($dir . '/preview-credentials.txt', 0600);
+    }
+
+    private function auditPreviewAccounts(int $tenantId, array $rows): void
+    {
+        $errors = [];
+        foreach ($rows as [$portal, $role, $email]) {
+            $user = User::where('email', $email)->first();
+            if (! $user || ! $user->is_active) {
+                $errors[] = "$email user missing/inactive";
+                continue;
+            }
+
+            $ok = match ($portal) {
+                'agency' => $role === Role::SystemAdmin->value
+                    ? (bool) $user->is_system_admin
+                    : OrganizationMembership::withoutGlobalScopes()->where('tenant_id', $tenantId)->where('user_id', $user->id)->where('role', $role)->where('status', 'active')->exists(),
+                'brand' => OrganizationMembership::withoutGlobalScopes()->where('tenant_id', $tenantId)->where('user_id', $user->id)->where('role', $role)->where('status', 'active')->exists(),
+                'client' => ClientMember::withoutGlobalScopes()->where('tenant_id', $tenantId)->where('user_id', $user->id)->where('role', $role)->where('status', 'active')->exists(),
+                'partner' => ExternalAgencyMember::withoutGlobalScopes()->where('tenant_id', $tenantId)->where('user_id', $user->id)->where('role', $role)->where('status', 'active')->exists(),
+                'creator' => OrganizationMembership::withoutGlobalScopes()->where('tenant_id', $tenantId)->where('user_id', $user->id)->where('role', $role)->where('status', 'active')->exists()
+                    && \App\Domain\Creators\Models\Creator::withoutGlobalScopes()->where('tenant_id', $tenantId)->where('user_id', $user->id)->exists(),
+                default => false,
+            };
+
+            if (! $ok) {
+                $errors[] = "$email missing active $portal membership for $role";
+            }
+        }
+
+        if ($errors) {
+            throw new \RuntimeException('Preview auth audit failed: ' . implode('; ', $errors));
+        }
+    }
+
+    private function creatorType(Role $role): string
+    {
+        return match ($role) {
+            Role::UgcCreator => 'ugc_creator',
+            Role::InfluencerAndUgc => 'both',
+            default => 'influencer',
+        };
+    }
+
+    private function creatorCapabilities(Role $role): array
+    {
+        return match ($role) {
+            Role::UgcCreator => ['ugc_creator'],
+            Role::InfluencerAndUgc => ['influencer', 'ugc_creator'],
+            default => ['influencer'],
+        };
+    }
+
+    private function label(string $role): string
+    {
+        return Str::headline(str_replace('_', ' ', $role));
     }
 }
