@@ -39,13 +39,13 @@ class GoogleAuthController extends Controller
             report($e);
 
             return redirect($this->loginPath($portal))
-                ->withErrors(['email' => 'Could not sign in with Google. Please try again.']);
+                ->withErrors(['email' => 'تعذر تسجيل الدخول بواسطة Google. حاول مرة أخرى.']);
         }
 
         $email = strtolower((string) $googleUser->getEmail());
         if ($email === '') {
             return redirect($this->loginPath($portal))
-                ->withErrors(['email' => 'Google did not return a valid email address.']);
+                ->withErrors(['email' => 'لم ترسل Google بريدًا إلكترونيًا صالحًا لهذا الحساب.']);
         }
 
         $user = User::where('email', $email)
@@ -54,17 +54,17 @@ class GoogleAuthController extends Controller
 
         if (! $user) {
             return redirect($this->loginPath($portal))
-                ->withErrors(['email' => 'No platform account exists for this Google email.']);
+                ->withErrors(['email' => 'لا يوجد حساب في المنصة بهذا البريد الإلكتروني. سجّل أولًا أو استخدم بريد حسابك المسجل.']);
         }
 
         if (! $this->canUsePortal($user, $portal)) {
             return redirect($this->loginPath($portal))
-                ->withErrors(['email' => 'This account cannot access the selected portal.']);
+                ->withErrors(['email' => 'هذا الحساب لا يملك صلاحية الدخول إلى هذه البوابة.']);
         }
 
         if (! $user->is_active) {
             return redirect($this->loginPath($portal))
-                ->withErrors(['email' => 'This account is not active.']);
+                ->withErrors(['email' => 'هذا الحساب غير مفعّل حاليًا.']);
         }
 
         $user->forceFill([
