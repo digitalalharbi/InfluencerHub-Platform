@@ -28,6 +28,14 @@ return [
         'region' => env('AWS_DEFAULT_REGION', 'us-east-1'),
     ],
 
+
+    'twilio' => [
+        'sid' => env('TWILIO_SID', env('TWILIO_ACCOUNT_SID')),
+        'auth_token' => env('TWILIO_AUTH_TOKEN'),
+        'verify_sid' => env('TWILIO_VERIFY_SID'),
+        'verify_channel' => env('TWILIO_VERIFY_CHANNEL', 'whatsapp'),
+        'locale' => env('TWILIO_VERIFY_LOCALE', 'ar'),
+    ],
     'slack' => [
         'notifications' => [
             'bot_user_oauth_token' => env('SLACK_BOT_USER_OAUTH_TOKEN'),
