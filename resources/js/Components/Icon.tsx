@@ -4,6 +4,7 @@ import {
   Wallet, BarChart3, Plug, Settings, Search, LogOut, Rocket, Plus, Menu,
   ChevronLeft, Circle, Gauge, Activity, Radar, CalendarDays, ListChecks,
   TrendingUp, Receipt, Sparkles, Tag, Phone, Share2, AlertTriangle,
+  LayoutGrid, Rows3, Table2, X, Star, Heart, MapPin, ExternalLink,
   type LucideProps,
 } from 'lucide-react';
 
@@ -45,6 +46,14 @@ const MAP = {
   phone: Phone,
   share: Share2,
   'alert-triangle': AlertTriangle,
+  grid: LayoutGrid,
+  rows: Rows3,
+  table: Table2,
+  x: X,
+  star: Star,
+  heart: Heart,
+  'map-pin': MapPin,
+  'external-link': ExternalLink,
 } as const;
 
 export type IconName = keyof typeof MAP;
