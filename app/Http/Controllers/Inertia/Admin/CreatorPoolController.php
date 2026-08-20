@@ -46,7 +46,7 @@ class CreatorPoolController extends Controller
 
         // في وضع الترشيح: نسجّل ونرتّب بالدرجة. وإلا نرتّب بالمتابعين.
         if ($matching) {
-            $q->orderByDesc('followers');
+            $q->orderByRaw('followers DESC NULLS LAST');
             $ranked = $q->limit(300)->get()
                 ->map(function (PoolCreator $c) use ($matcher, $criteria) {
                     $m = $matcher->score($criteria, $c);
@@ -61,7 +61,7 @@ class CreatorPoolController extends Controller
             );
             $rows = $page->through(fn ($pair) => $this->row($pair[0], $pair[1]));
         } else {
-            $rows = $q->orderByDesc('followers')->paginate(24)->through(fn (PoolCreator $c) => $this->row($c));
+            $rows = $q->orderByRaw('followers DESC NULLS LAST')->paginate(24)->through(fn (PoolCreator $c) => $this->row($c));
         }
 
         return Inertia::render('Admin/CreatorPool', [

@@ -59,7 +59,7 @@ class ShortlistingController extends Controller
             // عدد المطابقين للمعايير الصارمة (قبل الاقتصار) — سياق للتحليلات
             $candidates = (clone $base)->count();
 
-            $results = $base->orderByDesc('followers')->limit(400)->get()
+            $results = $base->orderByRaw('followers DESC NULLS LAST')->limit(400)->get()
                 ->map(fn (PoolCreator $c) => $c->toBookingArray($matcher->score($matchCriteria, $c)))
                 ->sortByDesc('matchScore')
                 ->take(30)

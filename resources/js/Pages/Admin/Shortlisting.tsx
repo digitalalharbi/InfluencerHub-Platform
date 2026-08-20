@@ -4,19 +4,13 @@ import AppShell from '@/Layouts/AppShell'
 import { adminNav } from '@/lib/nav'
 import { ListHead } from '@/Components/ui'
 import { Icon, type IconName } from '@/Components/Icon'
+import {
+  CreatorDetailModal, ScoreRing, TierBadge, PlatformTag, UgcBadge,
+  fnum, sar, platColor, scoreTone, TIER_COLOR, type PoolCreatorRow,
+} from '@/Components/PoolCreator'
 import { u } from '@/lib/href'
 
-interface Result {
-  id: number; name: string; platform: string; platformLabel: string
-  accountUrl: string | null; phone: string | null; followers: number | null
-  tier: string | null; gender: string | null; categories: string[]
-  costPost: number | null; costCoverage: number | null
-  sellPost: number | null; sellCoverage: number | null
-  showsFace: boolean | null
-  region: string | null; city: string | null; rating: string | null
-  likes: number | null; store: string | null; sourceType: string
-  matchScore: number | null; matchReasons: string[]; matchFlags: string[]
-}
+type Result = PoolCreatorRow
 interface Analytics {
   shown: number; candidates: number; avgScore: number; topScore: number
   reach: number; contactable: number; pricedCount: number
@@ -42,42 +36,6 @@ const EXAMPLES = [
   'تيك توك تغطيات جدة',
 ]
 
-/** منسّق أرقام مضغوط صحيح — يرقّي إلى M (لا 2800K) ويشذّب .0 */
-const fnum = (n: number | null): string => {
-  if (n == null) return '—'
-  if (n >= 1_000_000) return (n / 1_000_000).toFixed(1).replace('.0', '') + 'M'
-  if (n >= 1000) return (n / 1000).toFixed(n >= 100_000 ? 0 : 1).replace('.0', '') + 'K'
-  return n.toLocaleString('en-US')
-}
-const sar = (n: number | null): string => (n == null ? '—' : n.toLocaleString('en-US'))
-const margin = (sell: number | null, cost: number | null): number | null =>
-  sell != null && cost != null ? sell - cost : null
-
-const TIER_COLOR: Record<string, string> = { A: 'var(--ih-primary)', B: 'var(--ih-accent-600)', C: 'var(--ih-gray-500)' }
-const PLATFORM_TONE: Record<string, string> = {
-  snapchat: '#F5C518', tiktok: '#EE1D52', instagram: '#C13584', youtube: '#FF0000', x: '#1DA1F2', linkedin: '#0A66C2',
-}
-const scoreTone = (s: number): { fg: string; bg: string } =>
-  s >= 70 ? { fg: 'var(--ih-success-700, #067647)', bg: 'var(--ih-success-soft, #ECFDF3)' }
-    : s >= 45 ? { fg: 'var(--ih-warning-ink, #B54708)', bg: 'var(--ih-warning-soft, #FFFAEB)' }
-      : { fg: 'var(--ih-gray-600)', bg: 'var(--ih-gray-100)' }
-
-/** حلقة درجة الملاءمة — SVG دائريّ احترافيّ */
-function ScoreRing({ score, size = 56 }: { score: number; size?: number }) {
-  const r = size / 2 - 6, c = 2 * Math.PI * r, off = c * (1 - score / 100)
-  const t = scoreTone(score)
-  return (
-    <div style={{ position: 'relative', width: size, height: size, flexShrink: 0 }}>
-      <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`} style={{ transform: 'rotate(-90deg)' }}>
-        <circle cx={size / 2} cy={size / 2} r={r} fill="none" stroke="var(--ih-border)" strokeWidth="5" />
-        <circle cx={size / 2} cy={size / 2} r={r} fill="none" stroke={t.fg} strokeWidth="5" strokeLinecap="round"
-          strokeDasharray={c} strokeDashoffset={off} />
-      </svg>
-      <div style={{ position: 'absolute', inset: 0, display: 'grid', placeItems: 'center', fontWeight: 800, fontSize: size < 50 ? '.74rem' : '.86rem', color: t.fg }}>{score}٪</div>
-    </div>
-  )
-}
-
 function DistBar({ label, count, total, color }: { label: string; count: number; total: number; color?: string }) {
   const pct = total ? Math.round((count / total) * 100) : 0
   return (
@@ -91,28 +49,20 @@ function DistBar({ label, count, total, color }: { label: string; count: number;
   )
 }
 
-const platColor = (label: string): string | undefined =>
-  PLATFORM_TONE[Object.keys(PLATFORM_TONE).find((k) => label.toLowerCase().includes(k)) ?? '']
-
-function TierBadge({ tier }: { tier: string | null }) {
-  if (!tier) return null
-  return <span className="badge" style={{ background: (TIER_COLOR[tier] ?? TIER_COLOR.C) + '1f', color: TIER_COLOR[tier] ?? TIER_COLOR.C, fontWeight: 800 }}>{tier}</span>
-}
-
-type ViewMode = 'list' | 'grid' | 'table'
-const VIEWS: [ViewMode, IconName, string][] = [['list', 'rows', 'قائمة'], ['grid', 'grid', 'بطاقات'], ['table', 'table', 'جدول']]
+type ViewMode = 'grid' | 'list' | 'table'
+const VIEWS: [ViewMode, IconName, string][] = [['grid', 'grid', 'بطاقات'], ['list', 'rows', 'قائمة'], ['table', 'table', 'جدول']]
 
 /**
  * ترشيح المؤثرين — محرّك بحث/مساعد تحليليّ فوق القاعدة. لمدير النظام وحده.
- * تطوير متكامل: ٣ أوضاع عرض (قائمة/بطاقات/جدول)، لوحة تفاصيل جانبية عند النقر
- * ببطاقة تسعير وهامش وتحليل ملاءمة، واختيار وتحويل مباشر إلى عميل (دمج).
+ * تطوير متكامل: ٣ أوضاع عرض (بطاقات مربّعة افتراضيًّا/قائمة/جدول)، نافذة تفاصيل
+ * مركزيّة عند النقر (مكوّن مشترك)، واختيار وتحويل مباشر إلى عميل (دمج).
  */
 export default function Shortlisting({ query, understood, results, analytics, clients, hasSearch, assistant, poolSize }: Props) {
   const [text, setText] = useState(query)
   const [selected, setSelected] = useState<Set<number>>(new Set())
   const [transferOpen, setTransferOpen] = useState(false)
   const [clientId, setClientId] = useState('')
-  const [view, setView] = useState<ViewMode>('list')
+  const [view, setView] = useState<ViewMode>('grid')
   const [detail, setDetail] = useState<Result | null>(null)
 
   const search = (q: string) => {
@@ -123,12 +73,12 @@ export default function Shortlisting({ query, understood, results, analytics, cl
     const n = new Set(prev); n.has(id) ? n.delete(id) : n.add(id); return n
   })
   const selectAll = () => setSelected(new Set(results.map((r) => r.id)))
-  const openTransfer = (ids?: number[]) => { if (ids) setSelected(new Set(ids)); setTransferOpen(true) }
+  const openTransfer = (ids?: number[]) => { if (ids) setSelected(new Set(ids)); setDetail(null); setTransferOpen(true) }
   const transfer = () => {
     if (!clientId || selected.size === 0) return
     router.post(u('/creator-pool/transfer'),
       { client_id: clientId, pool_ids: [...selected] },
-      { onSuccess: () => { setSelected(new Set()); setTransferOpen(false); setClientId(''); setDetail(null) } })
+      { onSuccess: () => { setSelected(new Set()); setTransferOpen(false); setClientId('') } })
   }
 
   const platEntries = analytics ? Object.entries(analytics.platforms) : []
@@ -224,7 +174,7 @@ export default function Shortlisting({ query, understood, results, analytics, cl
         </div>
       ) : (
         <>
-          {/* شريط الأدوات: عدد + اختيار الكل + مبدّل العرض */}
+          {/* شريط الأدوات */}
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '.6rem', flexWrap: 'wrap', marginBottom: '.8rem' }}>
             <span style={{ fontSize: '.82rem', color: 'var(--ih-text-secondary)' }}>
               أفضل {results.length} ترشيحًا — مرتّبة بالملاءمة{analytics && analytics.candidates > results.length ? ` · من ${analytics.candidates.toLocaleString('en-US')} مطابقًا` : ''}
@@ -240,9 +190,47 @@ export default function Shortlisting({ query, understood, results, analytics, cl
             </div>
           </div>
 
-          {/* ═══ وضع القائمة ═══ */}
+          {/* ═══ بطاقات مربّعة (افتراضي) ═══ */}
+          {view === 'grid' && (
+            <div className="ih-recgrid">
+              {results.map((c, rank) => {
+                const isSel = selected.has(c.id)
+                return (
+                  <div key={c.id} className="ih-gcard" onClick={() => setDetail(c)} style={isSel ? { borderColor: 'var(--ih-primary)', background: 'var(--ih-primary-50, #F5F8FF)' } : undefined}>
+                    <div className="ih-gcard__top">
+                      <label onClick={(e) => e.stopPropagation()} style={{ display: 'flex', alignItems: 'center', gap: '.3rem', cursor: 'pointer' }}>
+                        <input type="checkbox" checked={isSel} onChange={() => toggle(c.id)} aria-label={`اختيار ${c.name}`} />
+                        <span className="ih-reccard__rank">#{rank + 1}</span>
+                      </label>
+                      <ScoreRing score={c.matchScore ?? 0} size={46} />
+                    </div>
+                    <div style={{ fontWeight: 800, fontSize: '.95rem', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{c.name}</div>
+                    <div style={{ display: 'flex', gap: '.35rem', alignItems: 'center', flexWrap: 'wrap' }}>
+                      <TierBadge tier={c.tier} /><PlatformTag label={c.platformLabel} /><UgcBadge source={c.sourceType} />
+                    </div>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '.76rem', color: 'var(--ih-text-secondary)', direction: 'ltr' }}>
+                      <span>{fnum(c.followers)} متابع</span>
+                      {c.sellCoverage != null && <span>{sar(c.sellCoverage)} ر.س</span>}
+                    </div>
+                    {c.categories.length > 0 && (
+                      <div style={{ display: 'flex', gap: '.25rem', flexWrap: 'wrap' }}>
+                        {c.categories.slice(0, 2).map((cat, i) => <span key={i} className="ih-tag" style={{ fontSize: '.6rem' }}>{cat}</span>)}
+                        {c.categories.length > 2 && <span className="ih-tag" style={{ fontSize: '.6rem' }}>+{c.categories.length - 2}</span>}
+                      </div>
+                    )}
+                    <div style={{ marginTop: 'auto', display: 'flex', gap: '.35rem' }} onClick={(e) => e.stopPropagation()}>
+                      <button className="btn btn-xs btn-outline" style={{ flex: 1 }} onClick={() => setDetail(c)}>تفاصيل</button>
+                      <button className="btn btn-xs" style={{ flex: 1 }} onClick={() => openTransfer([c.id])}>تحويل</button>
+                    </div>
+                  </div>
+                )
+              })}
+            </div>
+          )}
+
+          {/* ═══ قائمة ═══ */}
           {view === 'list' && (
-            <div style={{ display: 'grid', gap: '.6rem' }}>
+            <div style={{ display: 'grid', gap: '.5rem' }}>
               {results.map((c, rank) => {
                 const isSel = selected.has(c.id)
                 return (
@@ -255,10 +243,9 @@ export default function Shortlisting({ query, understood, results, analytics, cl
                     <div style={{ minWidth: 0, flex: 1 }}>
                       <div style={{ display: 'flex', alignItems: 'center', gap: '.5rem', flexWrap: 'wrap' }}>
                         <b style={{ fontSize: '.98rem' }}>{c.name}</b>
-                        <TierBadge tier={c.tier} />
-                        <span className="ih-tag" style={{ color: platColor(c.platformLabel) }}>{c.platformLabel}</span>
+                        <TierBadge tier={c.tier} /><PlatformTag label={c.platformLabel} />
                         <span style={{ fontSize: '.8rem', color: 'var(--ih-text-secondary)', direction: 'ltr' }}>{fnum(c.followers)} متابع</span>
-                        {c.sourceType === 'ugc' && <span className="badge" style={{ background: 'var(--ih-accent-soft, #FDF2FA)', color: 'var(--ih-accent-600, #C13584)', fontSize: '.58rem' }}>UGC</span>}
+                        <UgcBadge source={c.sourceType} />
                       </div>
                       <div style={{ display: 'flex', gap: '.3rem', flexWrap: 'wrap', marginTop: '.4rem' }}>
                         {c.matchReasons.slice(0, 4).map((r, i) => (
@@ -284,47 +271,7 @@ export default function Shortlisting({ query, understood, results, analytics, cl
             </div>
           )}
 
-          {/* ═══ وضع البطاقات المربّعة ═══ */}
-          {view === 'grid' && (
-            <div className="ih-recgrid">
-              {results.map((c, rank) => {
-                const isSel = selected.has(c.id)
-                return (
-                  <div key={c.id} className="ih-gcard" onClick={() => setDetail(c)} style={isSel ? { borderColor: 'var(--ih-primary)', background: 'var(--ih-primary-50, #F5F8FF)' } : undefined}>
-                    <div className="ih-gcard__top">
-                      <label onClick={(e) => e.stopPropagation()} style={{ display: 'flex', alignItems: 'center', gap: '.3rem', cursor: 'pointer' }}>
-                        <input type="checkbox" checked={isSel} onChange={() => toggle(c.id)} aria-label={`اختيار ${c.name}`} />
-                        <span className="ih-reccard__rank">#{rank + 1}</span>
-                      </label>
-                      <ScoreRing score={c.matchScore ?? 0} size={46} />
-                    </div>
-                    <div style={{ fontWeight: 800, fontSize: '.95rem', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{c.name}</div>
-                    <div style={{ display: 'flex', gap: '.35rem', alignItems: 'center', flexWrap: 'wrap' }}>
-                      <TierBadge tier={c.tier} />
-                      <span className="ih-tag" style={{ color: platColor(c.platformLabel) }}>{c.platformLabel}</span>
-                      {c.sourceType === 'ugc' && <span className="badge" style={{ background: 'var(--ih-accent-soft, #FDF2FA)', color: 'var(--ih-accent-600, #C13584)', fontSize: '.56rem' }}>UGC</span>}
-                    </div>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '.76rem', color: 'var(--ih-text-secondary)', direction: 'ltr' }}>
-                      <span>{fnum(c.followers)} متابع</span>
-                      {c.sellCoverage != null && <span>{sar(c.sellCoverage)} ر.س</span>}
-                    </div>
-                    {c.categories.length > 0 && (
-                      <div style={{ display: 'flex', gap: '.25rem', flexWrap: 'wrap' }}>
-                        {c.categories.slice(0, 2).map((cat, i) => <span key={i} className="ih-tag" style={{ fontSize: '.6rem' }}>{cat}</span>)}
-                        {c.categories.length > 2 && <span className="ih-tag" style={{ fontSize: '.6rem' }}>+{c.categories.length - 2}</span>}
-                      </div>
-                    )}
-                    <div style={{ marginTop: 'auto', display: 'flex', gap: '.35rem' }} onClick={(e) => e.stopPropagation()}>
-                      <button className="btn btn-xs btn-outline" style={{ flex: 1 }} onClick={() => setDetail(c)}>تفاصيل</button>
-                      <button className="btn btn-xs" style={{ flex: 1 }} onClick={() => openTransfer([c.id])}>تحويل</button>
-                    </div>
-                  </div>
-                )
-              })}
-            </div>
-          )}
-
-          {/* ═══ وضع الجدول ═══ */}
+          {/* ═══ جدول ═══ */}
           {view === 'table' && (
             <div className="ih-dt-wrap"><div className="ih-dt-scroll">
               <table className="ih-dt">
@@ -337,10 +284,10 @@ export default function Shortlisting({ query, understood, results, analytics, cl
                     <tr key={c.id} className={selected.has(c.id) ? 'is-selected' : ''} onClick={() => setDetail(c)} style={{ cursor: 'pointer' }}>
                       <td onClick={(e) => e.stopPropagation()}><input type="checkbox" checked={selected.has(c.id)} onChange={() => toggle(c.id)} aria-label={`اختيار ${c.name}`} /></td>
                       <td className="ih-dt__num" style={{ color: 'var(--ih-text-muted)' }}>{rank + 1}</td>
-                      <td><b>{c.name}</b>{c.sourceType === 'ugc' && <span className="badge" style={{ background: 'var(--ih-accent-soft, #FDF2FA)', color: 'var(--ih-accent-600, #C13584)', fontSize: '.54rem', marginInlineStart: 4 }}>UGC</span>}</td>
+                      <td><b>{c.name}</b> <UgcBadge source={c.sourceType} /></td>
                       <td><span className="badge" style={{ ...(() => { const t = scoreTone(c.matchScore ?? 0); return { background: t.bg, color: t.fg, fontWeight: 800 } })() }}>{c.matchScore ?? 0}٪</span></td>
                       <td><TierBadge tier={c.tier} /></td>
-                      <td><span className="ih-tag" style={{ color: platColor(c.platformLabel) }}>{c.platformLabel}</span></td>
+                      <td><PlatformTag label={c.platformLabel} /></td>
                       <td className="ih-dt__num" style={{ direction: 'ltr', textAlign: 'right' }}>{fnum(c.followers)}</td>
                       <td className="ih-dt__num" style={{ direction: 'ltr', textAlign: 'right' }}>{sar(c.sellCoverage)}</td>
                       <td style={{ direction: 'ltr', textAlign: 'right', fontSize: '.74rem' }}>{c.phone ?? '—'}</td>
@@ -359,107 +306,16 @@ export default function Shortlisting({ query, understood, results, analytics, cl
         </>
       )}
 
-      {/* ═══ لوحة التفاصيل الجانبية ═══ */}
+      {/* نافذة التفاصيل — مركزيّة (مكوّن مشترك) */}
       {detail && (
-        <>
-          <div className="ih-drawer__scrim" onClick={() => setDetail(null)} />
-          <aside className="ih-drawer ih-drawer--end" role="dialog" aria-modal="true" aria-label={`تفاصيل ${detail.name}`}>
-            <div className="ih-drawer__head">
-              <ScoreRing score={detail.matchScore ?? 0} size={48} />
-              <div style={{ flex: 1, minWidth: 0 }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '.4rem', flexWrap: 'wrap' }}>
-                  <b style={{ fontSize: '1.05rem' }}>{detail.name}</b>
-                  <TierBadge tier={detail.tier} />
-                </div>
-                <div style={{ fontSize: '.78rem', color: 'var(--ih-text-secondary)', display: 'flex', gap: '.5rem', flexWrap: 'wrap', marginTop: '.2rem' }}>
-                  <span style={{ color: platColor(detail.platformLabel) }}>{detail.platformLabel}</span>
-                  <span style={{ direction: 'ltr' }}>{fnum(detail.followers)} متابع</span>
-                  {detail.rating && <span>★ {detail.rating}</span>}
-                  {detail.sourceType === 'ugc' && <span className="badge" style={{ background: 'var(--ih-accent-soft, #FDF2FA)', color: 'var(--ih-accent-600, #C13584)', fontSize: '.56rem' }}>UGC</span>}
-                </div>
-              </div>
-              <button className="btn btn-xs btn-ghost" onClick={() => setDetail(null)} aria-label="إغلاق"><Icon name="x" size={16} /></button>
-            </div>
-
-            <div className="ih-drawer__body">
-              {/* تحليل الملاءمة */}
-              <div className="ih-dsec">
-                <div className="ih-dsec__title">تحليل الملاءمة</div>
-                <div style={{ display: 'flex', gap: '.3rem', flexWrap: 'wrap' }}>
-                  {detail.matchReasons.length === 0 && detail.matchFlags.length === 0 && <span style={{ fontSize: '.78rem', color: 'var(--ih-text-muted)' }}>لا معايير — اعرض بحثًا بمعايير لرؤية أسباب الترشيح.</span>}
-                  {detail.matchReasons.map((r, i) => (
-                    <span key={i} style={{ fontSize: '.72rem', background: 'var(--ih-success-soft, #ECFDF3)', color: 'var(--ih-success-700, #067647)', borderRadius: 6, padding: '.15rem .5rem' }}>✓ {r}</span>
-                  ))}
-                  {detail.matchFlags.map((r, i) => (
-                    <span key={i} style={{ fontSize: '.72rem', background: 'var(--ih-warning-soft, #FFFAEB)', color: 'var(--ih-warning-ink, #B54708)', borderRadius: 6, padding: '.15rem .5rem' }}>⚠ {r}</span>
-                  ))}
-                </div>
-              </div>
-
-              {/* حقائق سريعة */}
-              <div className="ih-dsec">
-                <div className="ih-dsec__title">نظرة سريعة</div>
-                <div className="ih-dfacts">
-                  <div><span className="ih-dfacts__l">المتابعون</span><span className="ih-dfacts__v" style={{ direction: 'ltr' }}>{fnum(detail.followers)}</span></div>
-                  <div><span className="ih-dfacts__l">الإعجابات</span><span className="ih-dfacts__v" style={{ direction: 'ltr' }}>{fnum(detail.likes)}</span></div>
-                  <div><span className="ih-dfacts__l">الفئة</span><span className="ih-dfacts__v">{detail.tier ?? '—'}</span></div>
-                  <div><span className="ih-dfacts__l">التقييم</span><span className="ih-dfacts__v">{detail.rating ? `★ ${detail.rating}` : '—'}</span></div>
-                  <div><span className="ih-dfacts__l">المصدر</span><span className="ih-dfacts__v">{detail.sourceType === 'ugc' ? 'UGC' : 'مشاهير'}</span></div>
-                  <div><span className="ih-dfacts__l">يظهر وجهه</span><span className="ih-dfacts__v">{detail.showsFace == null ? '—' : detail.showsFace ? 'نعم' : 'لا'}</span></div>
-                </div>
-              </div>
-
-              {/* المجالات */}
-              {detail.categories.length > 0 && (
-                <div className="ih-dsec">
-                  <div className="ih-dsec__title">المجالات</div>
-                  <div style={{ display: 'flex', gap: '.3rem', flexWrap: 'wrap' }}>
-                    {detail.categories.map((cat, i) => <span key={i} className="ih-tag">{cat}</span>)}
-                  </div>
-                </div>
-              )}
-
-              {/* التسعير والهامش */}
-              <div className="ih-dsec">
-                <div className="ih-dsec__title">التسعير والهامش (ر.س)</div>
-                <table className="ih-ptable">
-                  <thead><tr><th></th><th>التكلفة</th><th>البيع</th><th>الهامش</th></tr></thead>
-                  <tbody>
-                    <tr><td>منشور</td><td>{sar(detail.costPost)}</td><td>{sar(detail.sellPost)}</td><td style={{ color: 'var(--ih-success-700, #067647)', fontWeight: 700 }}>{sar(margin(detail.sellPost, detail.costPost))}</td></tr>
-                    <tr><td>تغطية</td><td>{sar(detail.costCoverage)}</td><td>{sar(detail.sellCoverage)}</td><td style={{ color: 'var(--ih-success-700, #067647)', fontWeight: 700 }}>{sar(margin(detail.sellCoverage, detail.costCoverage))}</td></tr>
-                  </tbody>
-                </table>
-              </div>
-
-              {/* التواصل والموقع */}
-              <div className="ih-dsec">
-                <div className="ih-dsec__title">التواصل والموقع</div>
-                <div className="ih-dfacts">
-                  <div><span className="ih-dfacts__l">الجوّال</span><span className="ih-dfacts__v" style={{ direction: 'ltr' }}>{detail.phone ?? '—'}</span></div>
-                  <div><span className="ih-dfacts__l">جهة الحجز</span><span className="ih-dfacts__v">{detail.store ?? '—'}</span></div>
-                  <div><span className="ih-dfacts__l">المدينة</span><span className="ih-dfacts__v">{detail.city ?? '—'}</span></div>
-                  <div><span className="ih-dfacts__l">المنطقة</span><span className="ih-dfacts__v">{detail.region ?? '—'}</span></div>
-                </div>
-                {detail.accountUrl && (
-                  <a href={detail.accountUrl} target="_blank" rel="noopener noreferrer" className="btn btn-sm btn-outline" style={{ marginTop: '.7rem' }}>
-                    <Icon name="external-link" size={14} /> فتح الحساب
-                  </a>
-                )}
-              </div>
-            </div>
-
-            <div className="ih-drawer__foot">
-              <button className="btn btn-primary" style={{ flex: 1 }} onClick={() => openTransfer([detail.id])}><Icon name="share" size={15} /> تحويل إلى عميل</button>
-              <a href={u(`/creator-pool?q=${encodeURIComponent(detail.name)}`)} className="btn btn-outline">في القاعدة</a>
-            </div>
-          </aside>
-        </>
+        <CreatorDetailModal creator={detail} onClose={() => setDetail(null)} onTransfer={(id) => openTransfer([id])} />
       )}
 
-      {/* نافذة التحويل */}
+      {/* نافذة التحويل — مركزيّة */}
       {transferOpen && (
-        <div className="ih-modal-backdrop" role="dialog" aria-modal="true" aria-label="تحويل إلى عميل">
-          <div className="ih-modal" style={{ maxWidth: 460 }}>
+        <div className="modal-backdrop" role="dialog" aria-modal="true" aria-label="تحويل إلى عميل"
+          onClick={(e) => { if (e.target === e.currentTarget) setTransferOpen(false) }}>
+          <div className="modal" style={{ width: 'min(440px, 100%)', padding: '1.3rem' }}>
             <h3 style={{ margin: '0 0 .3rem' }}>تحويل {selected.size} مرشّحًا إلى عميل</h3>
             <p style={{ fontSize: '.8rem', color: 'var(--ih-text-muted)', marginBlockEnd: '1rem' }}>
               تُنشأ توصية للعميل بنسخة مستقلّة عن القاعدة — بلا الجوّال. يبقى للعميل قرار القبول أو الرفض.
