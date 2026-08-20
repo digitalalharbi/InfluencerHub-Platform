@@ -14,6 +14,17 @@ class AppServiceProvider extends ServiceProvider
 {
     public function register(): void
     {
+        // مساعد الترشيح: يختار السائق من الإعداد، ويرتدّ إلى القواعد إن لم يُربَط OpenAI
+        $this->app->bind(\App\Domain\AdminPool\Assistant\ShortlistAssistant::class, function () {
+            $rule = new \App\Domain\AdminPool\Assistant\RuleBasedAssistant;
+            if (config('services.pool_assistant.driver') === 'openai') {
+                return new \App\Domain\AdminPool\Assistant\OpenAiAssistant(
+                    config('services.pool_assistant.openai_key'), $rule,
+                );
+            }
+            return $rule;
+        });
+
         // قنوات OTP: بريد فعلي في الإنتاج، تسجيل محلي بلا SMTP؛ SMS بلا مزوّد → waiting_for_credentials
         $this->app->bind(\App\Domain\Creators\Contracts\OtpMailer::class, fn ($app) =>
             $app->environment('production')

@@ -2,6 +2,12 @@
 
 return [
 
+    // مساعد ترشيح المؤثرين: 'rule' اليوم، 'openai' عند توفّر المفتاح
+    'pool_assistant' => [
+        'driver' => env('POOL_ASSISTANT_DRIVER', 'rule'),
+        'openai_key' => env('OPENAI_API_KEY'),
+    ],
+
     /*
     |--------------------------------------------------------------------------
     | Third Party Services

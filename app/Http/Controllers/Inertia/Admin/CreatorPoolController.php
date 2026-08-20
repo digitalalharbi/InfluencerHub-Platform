@@ -79,38 +79,9 @@ class CreatorPoolController extends Controller
         ]);
     }
 
-    /** @return array<string,mixed> صفّ ببيانات الحجز الكاملة (لمدير النظام). */
     private function row(PoolCreator $c, ?array $match = null): array
     {
-        $riyals = fn (?int $m) => $m ? intdiv($m, 100) : null;
-
-        return [
-            'id' => $c->id,
-            'name' => $c->name,
-            'platform' => $c->platform,
-            'platformLabel' => PoolCreator::PLATFORM_LABELS[$c->platform] ?? $c->platform,
-            'accountUrl' => $c->account_url,
-            // بيانات التواصل والحجز — كاملة لمدير النظام
-            'phone' => $c->phone,
-            'followers' => $c->followers,
-            'tier' => $c->tier,
-            'gender' => $c->gender,
-            'categories' => $c->categories ?? [],
-            'costPost' => $riyals($c->cost_post_minor),
-            'costCoverage' => $riyals($c->cost_coverage_minor),
-            'sellPost' => $riyals($c->price_post_minor),
-            'sellCoverage' => $riyals($c->price_coverage_minor),
-            'showsFace' => $c->shows_face,
-            'region' => $c->region,
-            'city' => $c->city,
-            'rating' => $c->rating,
-            'likes' => $c->likes,
-            'store' => $c->store,
-            'sourceType' => $c->source_type,
-            'matchScore' => $match['score'] ?? null,
-            'matchReasons' => $match['reasons'] ?? [],
-            'matchFlags' => $match['flags'] ?? [],
-        ];
+        return $c->toBookingArray($match);
     }
 
     /**

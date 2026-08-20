@@ -32,6 +32,39 @@ class PoolCreator extends Model
         'imported_at' => 'datetime',
     ];
 
+    /** @return array<string,mixed> صفّ ببيانات الحجز الكاملة (لمدير النظام). */
+    public function toBookingArray(?array $match = null): array
+    {
+        $riyals = fn (?int $m) => $m ? intdiv($m, 100) : null;
+
+        return [
+            'id' => $this->id,
+            'name' => $this->name,
+            'platform' => $this->platform,
+            'platformLabel' => self::PLATFORM_LABELS[$this->platform] ?? $this->platform,
+            'accountUrl' => $this->account_url,
+            'phone' => $this->phone,
+            'followers' => $this->followers,
+            'tier' => $this->tier,
+            'gender' => $this->gender,
+            'categories' => $this->categories ?? [],
+            'costPost' => $riyals($this->cost_post_minor),
+            'costCoverage' => $riyals($this->cost_coverage_minor),
+            'sellPost' => $riyals($this->price_post_minor),
+            'sellCoverage' => $riyals($this->price_coverage_minor),
+            'showsFace' => $this->shows_face,
+            'region' => $this->region,
+            'city' => $this->city,
+            'rating' => $this->rating,
+            'likes' => $this->likes,
+            'store' => $this->store,
+            'sourceType' => $this->source_type,
+            'matchScore' => $match['score'] ?? null,
+            'matchReasons' => $match['reasons'] ?? [],
+            'matchFlags' => $match['flags'] ?? [],
+        ];
+    }
+
     public const PLATFORM_LABELS = [
         'snapchat' => 'سناب شات', 'tiktok' => 'تيك توك',
         'linkedin' => 'لينكدإن', 'x' => 'إكس',

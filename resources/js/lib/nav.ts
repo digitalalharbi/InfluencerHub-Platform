@@ -229,7 +229,10 @@ export const brandNav: NavGroup[] = [
 ];
 
 export const adminNav: NavGroup[] = [
-  { key: 'pool', label: 'قاعدة المبدعين', items: [{ key: 'creator-pool', label: 'قاعدة المبدعين', route: '/creator-pool', icon: 'users' }] },
+  { key: 'pool', label: 'المؤثرون', items: [
+    { key: 'shortlisting', label: 'ترشيح المؤثرين', route: '/shortlisting', icon: 'clipboard-check' },
+    { key: 'creator-pool', label: 'قاعدة المبدعين', route: '/creator-pool', icon: 'users' },
+  ] },
   {
     key: 'overview',
     items: [{ key: 'dashboard', label: 'لوحة التحكم', route: '', icon: 'layout-dashboard', match: '' }],
