@@ -877,11 +877,17 @@ a.ih-kpi:hover, .ih-kpi--link:hover { box-shadow: var(--ih-shadow); transform: t
 .ih-dfacts__l { font-size: .72rem; font-weight: 600; color: var(--ih-text-muted); flex-shrink: 0; }
 .ih-dfacts__v { font-size: .84rem; font-weight: 700; color: var(--ih-text); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; text-align: end; }
 .ih-dfacts__v.ltr { direction: ltr; }
-.ih-ptable { width: 100%; border-collapse: collapse; font-size: .8rem; }
-.ih-ptable th { text-align: start; font-size: .66rem; font-weight: 700; color: var(--ih-text-muted); padding: .3rem .4rem; border-bottom: 1px solid var(--ih-border); }
-.ih-ptable td { padding: .4rem .4rem; border-bottom: 1px solid var(--ih-border); direction: ltr; text-align: start; font-variant-numeric: tabular-nums; }
-.ih-ptable td:first-child { direction: rtl; font-weight: 600; color: var(--ih-text-secondary); }
+.ih-ptable { width: 100%; border-collapse: collapse; font-size: .8rem; table-layout: fixed; }
+/* الأعمدة الرقمية: العنوان والقيمة كلاهما موسّطان في العمود فيتوازيان تمامًا مهما اختلف اتجاه النص */
+.ih-ptable th, .ih-ptable td { text-align: center; padding: .35rem .5rem; border-bottom: 1px solid var(--ih-border); font-variant-numeric: tabular-nums; }
+.ih-ptable th { font-size: .66rem; font-weight: 700; color: var(--ih-text-muted); }
+.ih-ptable td { direction: ltr; }
+.ih-ptable th:first-child, .ih-ptable td:first-child { text-align: start; direction: rtl; font-weight: 600; color: var(--ih-text-secondary); width: 26%; }
 .ih-ptable tr:last-child td { border-bottom: 0; }
+
+/* زرّ واتساب لحجز إعلان */
+.ih-wa { background: #25D366; border-color: #25D366; color: #fff; }
+.ih-wa:hover { background: #1FB855; border-color: #1FB855; color: #fff; }
 
 /* ---- Quick preview drawer ---- */
 .ih-drawer__scrim { position: fixed; inset: 0; z-index: var(--ih-z-drawer); background: rgba(8,13,26,.5); backdrop-filter: blur(2px); animation: ih-fade var(--ih-motion) var(--ih-ease); }

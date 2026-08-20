@@ -25,6 +25,21 @@ export const sar = (n: number | null): string => (n == null ? '—' : n.toLocale
 export const margin = (sell: number | null, cost: number | null): number | null =>
   sell != null && cost != null ? sell - cost : null
 
+/**
+ * رابط واتساب لحجز إعلان — يطبّع الرقم السعودي إلى صيغة دولية (966…) ويُرفق رسالة
+ * حجز جاهزة. الأرقام المحلّية 05… تُحوَّل بإسقاط الصفر ووضع 966، وما بدأ بـ5 وطوله
+ * تسعة يُسبَق بـ966. يُفتَح في تبويب جديد (واجهة واتساب ويب/التطبيق).
+ */
+export const waLink = (phone: string, name: string): string => {
+  let d = phone.replace(/\D/g, '')
+  if (d.startsWith('00')) d = d.slice(2)
+  if (d.startsWith('966')) { /* دولي جاهز */ }
+  else if (d.startsWith('0')) d = '966' + d.slice(1)
+  else if (d.length === 9 && d.startsWith('5')) d = '966' + d
+  const msg = `السلام عليكم، أرغب في حجز إعلان مع ${name}. هل تفاصيل الباقات والتوفّر متاحة؟`
+  return `https://wa.me/${d}?text=${encodeURIComponent(msg)}`
+}
+
 export const TIER_COLOR: Record<string, string> = { A: 'var(--ih-primary)', B: 'var(--ih-accent-600)', C: 'var(--ih-gray-500)' }
 export const PLATFORM_TONE: Record<string, string> = {
   snapchat: '#F5C518', tiktok: '#EE1D52', instagram: '#C13584', youtube: '#FF0000', x: '#1DA1F2', linkedin: '#0A66C2',
@@ -109,7 +124,7 @@ export function CreatorDetailModal({
               </a>
             )}
             {c.phone
-              ? <a href={`tel:${c.phone}`} className="btn btn-xs btn-outline" style={{ direction: 'ltr' }}><Icon name="phone" size={13} /> {c.phone}</a>
+              ? <a href={waLink(c.phone, c.name)} target="_blank" rel="noopener noreferrer" className="btn btn-xs ih-wa" title="حجز إعلان عبر واتساب"><Icon name="message-circle" size={13} /> <span style={{ direction: 'ltr' }}>{c.phone}</span></a>
               : <span className="btn btn-xs btn-outline" style={{ opacity: .55, pointerEvents: 'none' }}><Icon name="phone" size={13} /> لا جوّال</span>}
             {c.store && <span className="ih-tag" style={{ alignSelf: 'center' }}>عبر {c.store}</span>}
           </div>

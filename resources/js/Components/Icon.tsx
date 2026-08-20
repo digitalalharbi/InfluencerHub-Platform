@@ -4,7 +4,7 @@ import {
   Wallet, BarChart3, Plug, Settings, Search, LogOut, Rocket, Plus, Menu,
   ChevronLeft, Circle, Gauge, Activity, Radar, CalendarDays, ListChecks,
   TrendingUp, Receipt, Sparkles, Tag, Phone, Share2, AlertTriangle,
-  LayoutGrid, Rows3, Table2, X, Star, Heart, MapPin, ExternalLink,
+  LayoutGrid, Rows3, Table2, X, Star, Heart, MapPin, ExternalLink, MessageCircle,
   type LucideProps,
 } from 'lucide-react';
 
@@ -54,6 +54,7 @@ const MAP = {
   heart: Heart,
   'map-pin': MapPin,
   'external-link': ExternalLink,
+  'message-circle': MessageCircle,
 } as const;
 
 export type IconName = keyof typeof MAP;
