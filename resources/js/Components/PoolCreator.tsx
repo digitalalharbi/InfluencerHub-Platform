@@ -85,25 +85,39 @@ export function CreatorDetailModal({
       onClick={(e) => { if (e.target === e.currentTarget) onClose() }}>
       <div className="modal ih-detailmodal">
         <div className="ih-detailmodal__head">
-          {hasMatch && <ScoreRing score={c.matchScore ?? 0} size={44} />}
-          <div style={{ flex: 1, minWidth: 0 }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '.4rem', flexWrap: 'wrap' }}>
-              <b style={{ fontSize: '1rem' }}>{c.name}</b>
-              <TierBadge tier={c.tier} />
-              <UgcBadge source={c.sourceType} />
+          <div className="ih-detailmodal__id">
+            {hasMatch && <ScoreRing score={c.matchScore ?? 0} size={44} />}
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '.4rem', flexWrap: 'wrap' }}>
+                <b style={{ fontSize: '1rem' }}>{c.name}</b>
+                <TierBadge tier={c.tier} />
+                <UgcBadge source={c.sourceType} />
+              </div>
+              <div style={{ fontSize: '.76rem', color: 'var(--ih-text-secondary)', display: 'flex', gap: '.5rem', flexWrap: 'wrap', marginTop: '.15rem' }}>
+                <span style={{ color: platColor(c.platformLabel) }}>{c.platformLabel}</span>
+                <span style={{ direction: 'ltr' }}>{fnum(c.followers)} متابع</span>
+                {c.rating && <span>★ {c.rating}</span>}
+              </div>
             </div>
-            <div style={{ fontSize: '.76rem', color: 'var(--ih-text-secondary)', display: 'flex', gap: '.5rem', flexWrap: 'wrap', marginTop: '.15rem' }}>
-              <span style={{ color: platColor(c.platformLabel) }}>{c.platformLabel}</span>
-              <span style={{ direction: 'ltr' }}>{fnum(c.followers)} متابع</span>
-              {c.rating && <span>★ {c.rating}</span>}
-            </div>
+            <button className="btn btn-xs btn-ghost" onClick={onClose} aria-label="إغلاق"><Icon name="x" size={16} /></button>
           </div>
-          <button className="btn btn-xs btn-ghost" onClick={onClose} aria-label="إغلاق"><Icon name="x" size={16} /></button>
+          {/* إجراءات علوية: الحساب والجوّال ظاهران فورًا بلا تمرير */}
+          <div className="ih-detailmodal__actions">
+            {c.accountUrl && (
+              <a href={c.accountUrl} target="_blank" rel="noopener noreferrer" className="btn btn-xs btn-primary">
+                <Icon name="external-link" size={14} /> فتح الحساب
+              </a>
+            )}
+            {c.phone
+              ? <a href={`tel:${c.phone}`} className="btn btn-xs btn-outline" style={{ direction: 'ltr' }}><Icon name="phone" size={13} /> {c.phone}</a>
+              : <span className="btn btn-xs btn-outline" style={{ opacity: .55, pointerEvents: 'none' }}><Icon name="phone" size={13} /> لا جوّال</span>}
+            {c.store && <span className="ih-tag" style={{ alignSelf: 'center' }}>عبر {c.store}</span>}
+          </div>
         </div>
 
         <div className="ih-detailmodal__body">
           {hasMatch && (
-            <div className="ih-dsec">
+            <div className="ih-dsec ih-dsec--full">
               <div className="ih-dsec__title">تحليل الملاءمة</div>
               <div style={{ display: 'flex', gap: '.3rem', flexWrap: 'wrap' }}>
                 {c.matchReasons.map((r, i) => (
@@ -116,51 +130,44 @@ export function CreatorDetailModal({
             </div>
           )}
 
-          <div className="ih-dsec">
-            <div className="ih-dsec__title">نظرة سريعة</div>
-            <div className="ih-dfacts">
-              <div><span className="ih-dfacts__l">المتابعون</span><span className="ih-dfacts__v" style={{ direction: 'ltr' }}>{fnum(c.followers)}</span></div>
-              <div><span className="ih-dfacts__l">الإعجابات</span><span className="ih-dfacts__v" style={{ direction: 'ltr' }}>{fnum(c.likes)}</span></div>
-              <div><span className="ih-dfacts__l">الفئة</span><span className="ih-dfacts__v">{c.tier ?? '—'}</span></div>
-              <div><span className="ih-dfacts__l">التقييم</span><span className="ih-dfacts__v">{c.rating ? `★ ${c.rating}` : '—'}</span></div>
-              <div><span className="ih-dfacts__l">المصدر</span><span className="ih-dfacts__v">{c.sourceType === 'ugc' ? 'UGC' : 'مشاهير'}</span></div>
-              <div><span className="ih-dfacts__l">يظهر وجهه</span><span className="ih-dfacts__v">{c.showsFace == null ? '—' : c.showsFace ? 'نعم' : 'لا'}</span></div>
-            </div>
-          </div>
-
-          {c.categories.length > 0 && (
+          <div className="ih-dcol">
             <div className="ih-dsec">
-              <div className="ih-dsec__title">المجالات</div>
-              <div style={{ display: 'flex', gap: '.3rem', flexWrap: 'wrap' }}>
-                {c.categories.map((cat, i) => <span key={i} className="ih-tag">{cat}</span>)}
+              <div className="ih-dsec__title">نظرة سريعة</div>
+              <div className="ih-dfacts">
+                <div><span className="ih-dfacts__l">المتابعون</span><span className="ih-dfacts__v ltr">{fnum(c.followers)}</span></div>
+                <div><span className="ih-dfacts__l">الإعجابات</span><span className="ih-dfacts__v ltr">{fnum(c.likes)}</span></div>
+                <div><span className="ih-dfacts__l">المصدر</span><span className="ih-dfacts__v">{c.sourceType === 'ugc' ? 'UGC' : 'مشاهير'}</span></div>
+                <div><span className="ih-dfacts__l">يظهر وجهه</span><span className="ih-dfacts__v">{c.showsFace == null ? '—' : c.showsFace ? 'نعم' : 'لا'}</span></div>
               </div>
             </div>
-          )}
-
-          <div className="ih-dsec">
-            <div className="ih-dsec__title">التسعير والهامش (ر.س)</div>
-            <table className="ih-ptable">
-              <thead><tr><th></th><th>التكلفة</th><th>البيع</th><th>الهامش</th></tr></thead>
-              <tbody>
-                <tr><td>منشور</td><td>{sar(c.costPost)}</td><td>{sar(c.sellPost)}</td><td style={{ color: 'var(--ih-success-700, #067647)', fontWeight: 700 }}>{sar(margin(c.sellPost, c.costPost))}</td></tr>
-                <tr><td>تغطية</td><td>{sar(c.costCoverage)}</td><td>{sar(c.sellCoverage)}</td><td style={{ color: 'var(--ih-success-700, #067647)', fontWeight: 700 }}>{sar(margin(c.sellCoverage, c.costCoverage))}</td></tr>
-              </tbody>
-            </table>
+            {c.categories.length > 0 && (
+              <div className="ih-dsec">
+                <div className="ih-dsec__title">المجالات</div>
+                <div style={{ display: 'flex', gap: '.3rem', flexWrap: 'wrap' }}>
+                  {c.categories.map((cat, i) => <span key={i} className="ih-tag">{cat}</span>)}
+                </div>
+              </div>
+            )}
           </div>
 
-          <div className="ih-dsec">
-            <div className="ih-dsec__title">التواصل والموقع</div>
-            <div className="ih-dfacts">
-              <div><span className="ih-dfacts__l">الجوّال</span><span className="ih-dfacts__v" style={{ direction: 'ltr' }}>{c.phone ?? '—'}</span></div>
-              <div><span className="ih-dfacts__l">جهة الحجز</span><span className="ih-dfacts__v">{c.store ?? '—'}</span></div>
-              <div><span className="ih-dfacts__l">المدينة</span><span className="ih-dfacts__v">{c.city ?? '—'}</span></div>
-              <div><span className="ih-dfacts__l">المنطقة</span><span className="ih-dfacts__v">{c.region ?? '—'}</span></div>
+          <div className="ih-dcol">
+            <div className="ih-dsec">
+              <div className="ih-dsec__title">التسعير والهامش (ر.س)</div>
+              <table className="ih-ptable">
+                <thead><tr><th></th><th>التكلفة</th><th>البيع</th><th>الهامش</th></tr></thead>
+                <tbody>
+                  <tr><td>منشور</td><td>{sar(c.costPost)}</td><td>{sar(c.sellPost)}</td><td style={{ color: 'var(--ih-success-700, #067647)', fontWeight: 700 }}>{sar(margin(c.sellPost, c.costPost))}</td></tr>
+                  <tr><td>تغطية</td><td>{sar(c.costCoverage)}</td><td>{sar(c.sellCoverage)}</td><td style={{ color: 'var(--ih-success-700, #067647)', fontWeight: 700 }}>{sar(margin(c.sellCoverage, c.costCoverage))}</td></tr>
+                </tbody>
+              </table>
             </div>
-            {c.accountUrl && (
-              <a href={c.accountUrl} target="_blank" rel="noopener noreferrer" className="btn btn-sm btn-outline" style={{ marginTop: '.7rem' }}>
-                <Icon name="external-link" size={14} /> فتح الحساب
-              </a>
-            )}
+            <div className="ih-dsec">
+              <div className="ih-dsec__title">الموقع</div>
+              <div className="ih-dfacts">
+                <div><span className="ih-dfacts__l">المدينة</span><span className="ih-dfacts__v">{c.city ?? '—'}</span></div>
+                <div><span className="ih-dfacts__l">المنطقة</span><span className="ih-dfacts__v">{c.region ?? '—'}</span></div>
+              </div>
+            </div>
           </div>
         </div>
 
