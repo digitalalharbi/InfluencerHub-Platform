@@ -423,6 +423,9 @@ Route::redirect('/admin', '/beta/admin');
 
 Route::middleware(['auth', 'system_admin', 'inertia'])->prefix('beta/admin')->group(function () {
     // مراجعة طلبات فتح الحساب — استثناء مقصود عن كون اللوحة للقراءة فقط
+    // قاعدة مبدعي مدير النظام — للترشيح والتحويل، وزرّ حذف كامل
+    Route::get('/creator-pool', [\App\Http\Controllers\Inertia\Admin\CreatorPoolController::class, 'index']);
+    Route::post('/creator-pool/purge', [\App\Http\Controllers\Inertia\Admin\CreatorPoolController::class, 'purge']);
     Route::get('/signup-requests', [\App\Http\Controllers\Inertia\Admin\SignupReviewController::class, 'index']);
     Route::post('/signup-requests/{signupRequest}/contacted', [\App\Http\Controllers\Inertia\Admin\SignupReviewController::class, 'markContacted']);
     Route::post('/signup-requests/{signupRequest}/approve', [\App\Http\Controllers\Inertia\Admin\SignupReviewController::class, 'approve']);
