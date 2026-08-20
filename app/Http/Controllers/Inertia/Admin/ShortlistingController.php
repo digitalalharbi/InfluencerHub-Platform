@@ -5,6 +5,8 @@ namespace App\Http\Controllers\Inertia\Admin;
 use App\Domain\AdminPool\Assistant\ShortlistAssistant;
 use App\Domain\AdminPool\Models\PoolCreator;
 use App\Domain\AdminPool\Services\PoolMatchService;
+use App\Domain\CRM\Models\Client;
+use App\Domain\Tenancy\Support\TenantContext;
 use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use Inertia\{Inertia, Response};
@@ -45,19 +47,25 @@ class ShortlistingController extends Controller
             $matchCriteria['budget_minor'] = (int) $criteria['budget_riyals'] * 100;
         }
 
-        $results = [];
+        $results = collect();
+        $analytics = null;
         $hasSearch = $query !== '' || $matcher->hasCriteria($matchCriteria);
 
         if ($hasSearch) {
-            $q = PoolCreator::query();
-            if (! empty($criteria['platform'])) $q->where('platform', $criteria['platform']);
-            if (! empty($criteria['min_followers'])) $q->where('followers', '>=', $criteria['min_followers']);
+            $base = PoolCreator::query();
+            if (! empty($criteria['platform'])) $base->where('platform', $criteria['platform']);
+            if (! empty($criteria['min_followers'])) $base->where('followers', '>=', $criteria['min_followers']);
 
-            $results = $q->orderByDesc('followers')->limit(400)->get()
+            // عدد المطابقين للمعايير الصارمة (قبل الاقتصار) — سياق للتحليلات
+            $candidates = (clone $base)->count();
+
+            $results = $base->orderByDesc('followers')->limit(400)->get()
                 ->map(fn (PoolCreator $c) => $c->toBookingArray($matcher->score($matchCriteria, $c)))
                 ->sortByDesc('matchScore')
                 ->take(30)
                 ->values();
+
+            $analytics = $this->analyze($results, $candidates);
         }
 
         return Inertia::render('Admin/Shortlisting', [
@@ -65,7 +73,9 @@ class ShortlistingController extends Controller
             'criteria' => $criteria,
             'understood' => $understood,
             'results' => $results,
+            'analytics' => $analytics,
             'hasSearch' => $hasSearch,
+            'clients' => $this->clientsForTransfer(),
             'assistant' => [
                 'driver' => $driver,
                 // شفافية: هل OpenAI مربوط فعلًا؟
@@ -73,5 +83,47 @@ class ShortlistingController extends Controller
             ],
             'poolSize' => PoolCreator::count(),
         ]);
+    }
+
+    /**
+     * تحليل مجموعة النتائج المعروضة — أرقام موجزة قابلة للقراءة الفورية.
+     *
+     * تُحسب على النتائج الظاهرة (لا على القاعدة كلها) كي تطابق ما يراه المدير،
+     * مع تمرير عدد المطابقين الكلّي كسياق. الأسعار بالريال (وحدة كبرى).
+     */
+    private function analyze(\Illuminate\Support\Collection $results, int $candidates): array
+    {
+        $scores = $results->pluck('matchScore')->filter(fn ($s) => $s !== null);
+        $cover = $results->pluck('sellCoverage')->filter(fn ($v) => $v !== null && $v > 0);
+
+        return [
+            'shown' => $results->count(),
+            'candidates' => $candidates,
+            'avgScore' => (int) round($scores->avg() ?? 0),
+            'topScore' => (int) ($scores->max() ?? 0),
+            'reach' => (int) $results->sum('followers'),
+            'contactable' => $results->filter(fn ($r) => ! empty($r['phone']))->count(),
+            'pricedCount' => $cover->count(),
+            'avgCoverage' => $cover->isNotEmpty() ? (int) round($cover->avg()) : null,
+            'minCoverage' => $cover->isNotEmpty() ? (int) $cover->min() : null,
+            'maxCoverage' => $cover->isNotEmpty() ? (int) $cover->max() : null,
+            // توزيعات للرسوم المصغّرة
+            'platforms' => $results->groupBy('platformLabel')->map->count()->sortDesc(),
+            'tiers' => $results->groupBy(fn ($r) => $r['tier'] ?? '—')->map->count(),
+        ];
+    }
+
+    /**
+     * العملاء المتاحون للتحويل — المدير عابر للمستأجرين فيراهم جميعًا.
+     * @return \Illuminate\Support\Collection
+     */
+    private function clientsForTransfer()
+    {
+        $prev = TenantContext::bypassing();
+        TenantContext::bypass(true);
+        $clients = Client::query()->orderBy('display_name')->get(['id', 'display_name']);
+        TenantContext::bypass($prev);
+
+        return $clients->map(fn ($c) => ['id' => $c->id, 'name' => $c->display_name]);
     }
 }
