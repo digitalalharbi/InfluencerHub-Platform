@@ -21,7 +21,7 @@ class ImportCreatorPool extends Command
 
     private const ALLOWED = [
         'name', 'phone', 'platform', 'account_url', 'followers', 'tier', 'gender',
-        'categories', 'price_post_minor', 'price_coverage_minor', 'shows_face',
+        'categories', 'price_post_minor', 'price_coverage_minor', 'cost_post_minor', 'cost_coverage_minor', 'shows_face',
         'region', 'city', 'rating', 'likes', 'store', 'source_type',
     ];
 
@@ -75,7 +75,7 @@ class ImportCreatorPool extends Command
                     $payload,
                     ['platform', 'account_url'],
                     ['name', 'phone', 'followers', 'tier', 'gender', 'categories',
-                        'price_post_minor', 'price_coverage_minor', 'shows_face',
+                        'price_post_minor', 'price_coverage_minor', 'cost_post_minor', 'cost_coverage_minor', 'shows_face',
                         'region', 'city', 'rating', 'likes', 'store', 'source_type', 'imported_at', 'updated_at'],
                 );
                 $imported += count($payload);

@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Inertia\Admin;
 
 use App\Domain\AdminPool\Models\{PoolCreator, PoolRecommendation};
+use App\Domain\AdminPool\Services\PoolMatchService;
 use App\Domain\CRM\Models\Client;
 use App\Domain\Tenancy\Support\TenantContext;
 use Illuminate\Support\Facades\DB;
@@ -19,9 +20,9 @@ use Inertia\{Inertia, Response};
  */
 class CreatorPoolController extends Controller
 {
-    public function index(Request $r): Response
+    public function index(Request $r, PoolMatchService $matcher): Response
     {
-        $q = PoolCreator::query()->orderByDesc('followers');
+        $q = PoolCreator::query();
 
         if ($p = $r->query('platform')) $q->where('platform', $p);
         if ($s = $r->query('source')) $q->where('source_type', $s);
@@ -34,28 +35,38 @@ class CreatorPoolController extends Controller
                 ->orWhere('city', 'ilike', "%{$term}%"));
         }
 
+        // معايير محرّك الترشيح
+        $criteria = [
+            'platform' => $r->query('platform') ?: null,
+            'categories' => array_filter(explode(',', (string) $r->query('match_categories'))),
+            'min_followers' => (int) $r->query('min_followers') ?: null,
+            'budget_minor' => ($b = (int) $r->query('budget_riyals')) ? $b * 100 : null,
+        ];
+        $matching = $matcher->hasCriteria($criteria);
+
+        // في وضع الترشيح: نسجّل ونرتّب بالدرجة. وإلا نرتّب بالمتابعين.
+        if ($matching) {
+            $q->orderByDesc('followers');
+            $ranked = $q->limit(300)->get()
+                ->map(function (PoolCreator $c) use ($matcher, $criteria) {
+                    $m = $matcher->score($criteria, $c);
+
+                    return [$c, $m];
+                })
+                ->sortByDesc(fn ($pair) => $pair[1]['score'])
+                ->values();
+            $page = new \Illuminate\Pagination\LengthAwarePaginator(
+                $ranked->take(24), $ranked->count(), 24, 1,
+                ['path' => $r->url(), 'query' => $r->query()],
+            );
+            $rows = $page->through(fn ($pair) => $this->row($pair[0], $pair[1]));
+        } else {
+            $rows = $q->orderByDesc('followers')->paginate(24)->through(fn (PoolCreator $c) => $this->row($c));
+        }
+
         return Inertia::render('Admin/CreatorPool', [
-            'pool' => $q->paginate(24)->through(fn (PoolCreator $c) => [
-                'id' => $c->id,
-                'name' => $c->name,
-                'platform' => $c->platform,
-                'platformLabel' => PoolCreator::PLATFORM_LABELS[$c->platform] ?? $c->platform,
-                'accountUrl' => $c->account_url,
-                'phone' => $c->phone,
-                'followers' => $c->followers,
-                'tier' => $c->tier,
-                'gender' => $c->gender,
-                'categories' => $c->categories ?? [],
-                'pricePost' => $c->price_post_minor ? intdiv($c->price_post_minor, 100) : null,
-                'priceCoverage' => $c->price_coverage_minor ? intdiv($c->price_coverage_minor, 100) : null,
-                'showsFace' => $c->shows_face,
-                'region' => $c->region,
-                'city' => $c->city,
-                'rating' => $c->rating,
-                'likes' => $c->likes,
-                'store' => $c->store,
-                'sourceType' => $c->source_type,
-            ]),
+            'matching' => $matching,
+            'pool' => $rows,
             'filters' => $r->only('platform', 'source', 'tier', 'region', 'min_followers', 'q'),
             // العملاء المتاحون للتحويل — المدير يتجاوز نطاق المستأجر ليراهم جميعًا
             'clients' => $this->clientsForTransfer(),
@@ -66,6 +77,40 @@ class CreatorPoolController extends Controller
                 'regions' => PoolCreator::whereNotNull('region')->distinct()->orderBy('region')->pluck('region')->take(30),
             ],
         ]);
+    }
+
+    /** @return array<string,mixed> صفّ ببيانات الحجز الكاملة (لمدير النظام). */
+    private function row(PoolCreator $c, ?array $match = null): array
+    {
+        $riyals = fn (?int $m) => $m ? intdiv($m, 100) : null;
+
+        return [
+            'id' => $c->id,
+            'name' => $c->name,
+            'platform' => $c->platform,
+            'platformLabel' => PoolCreator::PLATFORM_LABELS[$c->platform] ?? $c->platform,
+            'accountUrl' => $c->account_url,
+            // بيانات التواصل والحجز — كاملة لمدير النظام
+            'phone' => $c->phone,
+            'followers' => $c->followers,
+            'tier' => $c->tier,
+            'gender' => $c->gender,
+            'categories' => $c->categories ?? [],
+            'costPost' => $riyals($c->cost_post_minor),
+            'costCoverage' => $riyals($c->cost_coverage_minor),
+            'sellPost' => $riyals($c->price_post_minor),
+            'sellCoverage' => $riyals($c->price_coverage_minor),
+            'showsFace' => $c->shows_face,
+            'region' => $c->region,
+            'city' => $c->city,
+            'rating' => $c->rating,
+            'likes' => $c->likes,
+            'store' => $c->store,
+            'sourceType' => $c->source_type,
+            'matchScore' => $match['score'] ?? null,
+            'matchReasons' => $match['reasons'] ?? [],
+            'matchFlags' => $match['flags'] ?? [],
+        ];
     }
 
     /**

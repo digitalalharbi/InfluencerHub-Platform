@@ -16,7 +16,7 @@ class PoolCreator extends Model
 
     protected $fillable = [
         'name', 'phone', 'platform', 'account_url', 'followers', 'tier', 'gender',
-        'categories', 'price_post_minor', 'price_coverage_minor', 'shows_face',
+        'categories', 'price_post_minor', 'price_coverage_minor', 'cost_post_minor', 'cost_coverage_minor', 'shows_face',
         'region', 'city', 'rating', 'likes', 'store', 'source_type', 'imported_at',
     ];
 
@@ -27,6 +27,8 @@ class PoolCreator extends Model
         'likes' => 'int',
         'price_post_minor' => 'int',
         'price_coverage_minor' => 'int',
+        'cost_post_minor' => 'int',
+        'cost_coverage_minor' => 'int',
         'imported_at' => 'datetime',
     ];
 

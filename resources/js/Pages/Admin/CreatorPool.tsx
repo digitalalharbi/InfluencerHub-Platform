@@ -10,9 +10,12 @@ interface Row {
   id: number; name: string; platform: string; platformLabel: string
   accountUrl: string | null; phone: string | null; followers: number | null
   tier: string | null; gender: string | null; categories: string[]
-  pricePost: number | null; priceCoverage: number | null; showsFace: boolean | null
+  costPost: number | null; costCoverage: number | null
+  sellPost: number | null; sellCoverage: number | null
+  showsFace: boolean | null
   region: string | null; city: string | null; rating: string | null
   likes: number | null; store: string | null; sourceType: string
+  matchScore: number | null; matchReasons: string[]; matchFlags: string[]
 }
 interface Facets {
   total: number
@@ -22,9 +25,10 @@ interface Facets {
 }
 interface ClientOption { id: number; name: string }
 interface Props {
+  matching: boolean
   pool: Paginated<Row>
   clients: ClientOption[]
-  filters: { platform?: string; source?: string; tier?: string; region?: string; min_followers?: string; q?: string }
+  filters: { platform?: string; source?: string; tier?: string; region?: string; min_followers?: string; q?: string; match_categories?: string; budget_riyals?: string }
   facets: Facets
 }
 
@@ -35,7 +39,7 @@ const fmt = (n: number | null) =>
  * قاعدة مبدعي مدير النظام — لمدير النظام وحده (محميّة بوسيط system_admin).
  * للاستخدام الشخصي للترشيح والتحويل، مع زرّ حذف كامل قبل أي استعراض للنظام.
  */
-export default function CreatorPool({ pool, filters, facets, clients }: Props) {
+export default function CreatorPool({ matching, pool, filters, facets, clients }: Props) {
   const { errors } = usePage().props as { errors?: Record<string, string> }
   const [q, setQ] = useState(filters.q ?? '')
   const [confirm, setConfirm] = useState('')
@@ -100,6 +104,21 @@ export default function CreatorPool({ pool, filters, facets, clients }: Props) {
         )}
       </div>
 
+      {/* محرّك الترشيح: معايير الحملة → ترتيب بالملاءمة */}
+      <div style={{ display: 'flex', gap: '.5rem', flexWrap: 'wrap', alignItems: 'center', marginBottom: '1rem',
+        padding: '.7rem 1rem', border: '1px solid var(--ih-border)', borderRadius: 10, background: 'var(--ih-surface-sunken)' }}>
+        <b style={{ fontSize: '.82rem' }}>محرّك الترشيح</b>
+        <input className="field" style={{ minWidth: 160 }} placeholder="مجالات (بفواصل): رياضة,عناية"
+          defaultValue={filters.match_categories ?? ''}
+          onKeyDown={(e) => e.key === 'Enter' && apply({ match_categories: (e.target as HTMLInputElement).value || undefined })} />
+        <input className="field" type="number" style={{ maxWidth: 130 }} placeholder="الميزانية ر.س"
+          defaultValue={filters.budget_riyals ?? ''}
+          onKeyDown={(e) => e.key === 'Enter' && apply({ budget_riyals: (e.target as HTMLInputElement).value || undefined })} />
+        <span style={{ fontSize: '.74rem', color: 'var(--ih-text-muted)' }}>
+          {matching ? 'مُرتَّب بالملاءمة — اضغط Enter لتحديث المعايير' : 'أدخِل مجالًا أو ميزانية (أو اختر منصّة/متابعين) للترتيب بالملاءمة'}
+        </span>
+      </div>
+
       {/* شريط التحويل — يظهر عند الاختيار */}
       {selected.size > 0 && (
         <div style={{ display: 'flex', alignItems: 'center', gap: '.75rem', flexWrap: 'wrap',
@@ -161,9 +180,29 @@ export default function CreatorPool({ pool, filters, facets, clients }: Props) {
                   ))}
                 </div>
               )}
+              {c.matchScore != null && (
+                <div style={{ display: 'flex', alignItems: 'center', gap: '.4rem', flexWrap: 'wrap' }}>
+                  <span className="badge" style={{ background: c.matchScore >= 60 ? 'var(--ih-success-soft, #ECFDF3)' : 'var(--ih-warning-soft, #FFFAEB)',
+                    color: c.matchScore >= 60 ? 'var(--ih-success-700, #067647)' : 'var(--ih-warning-ink, #B54708)', fontWeight: 700 }}>
+                    ملاءمة {c.matchScore}٪
+                  </span>
+                  {c.matchReasons.slice(0, 2).map((r, i) => (
+                    <span key={i} style={{ fontSize: '.68rem', color: 'var(--ih-text-muted)' }}>{r}</span>
+                  ))}
+                </div>
+              )}
               <div style={{ fontSize: '.75rem', color: 'var(--ih-text-muted)' }}>
                 {[c.city, c.region].filter(Boolean).join(' · ') || '—'}
-                {c.pricePost ? ` · منشور ${c.pricePost.toLocaleString('en-US')} ر.س` : ''}
+              </div>
+              {/* بيانات الحجز والتواصل — لمدير النظام */}
+              <div style={{ display: 'grid', gap: '.2rem', fontSize: '.74rem', borderTop: '1px solid var(--ih-border)', paddingTop: '.4rem' }}>
+                {c.phone && <div>📞 <span style={{ direction: 'ltr' }}>{c.phone}</span></div>}
+                {(c.costPost || c.sellPost) && (
+                  <div>منشور — تكلفة {c.costPost?.toLocaleString('en-US') ?? '—'} · بيع {c.sellPost?.toLocaleString('en-US') ?? '—'} ر.س</div>
+                )}
+                {(c.costCoverage || c.sellCoverage) && (
+                  <div>تغطية — تكلفة {c.costCoverage?.toLocaleString('en-US') ?? '—'} · بيع {c.sellCoverage?.toLocaleString('en-US') ?? '—'} ر.س</div>
+                )}
               </div>
               {c.accountUrl && (
                 <a href={c.accountUrl} target="_blank" rel="noopener noreferrer"
