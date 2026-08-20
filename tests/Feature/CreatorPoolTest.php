@@ -2,7 +2,10 @@
 
 namespace Tests\Feature;
 
-use App\Domain\AdminPool\Models\PoolCreator;
+use App\Domain\AdminPool\Models\{PoolCreator, PoolRecommendation};
+use App\Domain\CRM\Models\Client;
+use App\Domain\Tenancy\Models\{Organization, OrganizationMembership, Tenant};
+use App\Domain\Tenancy\Support\TenantContext;
 use App\Domain\Identity\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\{DB, Storage};
@@ -121,4 +124,79 @@ class CreatorPoolTest extends TestCase
         // يمسح ملفّ الاستيراد أيضًا فلا يبقى أثر على القرص
         $this->assertFalse(Storage::disk('local')->exists('pool/pool.json'));
     }
+
+    // ===== التحويل إلى العميل =====
+
+    private function client(): Client
+    {
+        $t = Tenant::create(['name' => 'و', 'slug' => \Illuminate\Support\Str::random(8), 'deployment_mode' => 'saas', 'status' => 'active']);
+        TenantContext::bypass(true);
+        $c = Client::create(['tenant_id' => $t->id, 'client_number' => 'CL-1', 'display_name' => 'عميل', 'status' => 'active']);
+        TenantContext::reset();
+
+        return $c;
+    }
+
+    /** التحويل يأخذ نسخة بلا جوّال: التواصل شأن المدير لا العميل. */
+    public function test_transfer_snapshots_without_the_phone(): void
+    {
+        $client = $this->client();
+        $p = PoolCreator::create(['name' => 'مبدع', 'platform' => 'tiktok',
+            'account_url' => 'https://t/@a', 'phone' => '0500000000', 'followers' => 5000]);
+
+        $this->actingAs($this->admin())->post('/beta/admin/creator-pool/transfer', [
+            'client_id' => $client->id, 'pool_ids' => [$p->id],
+        ])->assertRedirect();
+
+        TenantContext::bypass(true);
+        $rec = PoolRecommendation::where('client_id', $client->id)->firstOrFail();
+        TenantContext::reset();
+
+        $this->assertSame('مبدع', $rec->name);
+        $this->assertArrayNotHasKey('phone', $rec->getAttributes(), 'تسرّب الجوّال إلى توصية العميل');
+        $json = json_encode($rec->getAttributes(), JSON_UNESCAPED_UNICODE);
+        $this->assertStringNotContainsString('0500000000', $json);
+    }
+
+    /** الأهمّ: التوصية تبقى وإن حُذفت القاعدة كلها (كِلّ سويتش). */
+    public function test_recommendation_survives_pool_purge(): void
+    {
+        $client = $this->client();
+        $p = PoolCreator::create(['name' => 'باقٍ', 'platform' => 'x', 'account_url' => 'https://x/1']);
+        $this->actingAs($this->admin())->post('/beta/admin/creator-pool/transfer', [
+            'client_id' => $client->id, 'pool_ids' => [$p->id],
+        ]);
+
+        PoolCreator::query()->delete(); // حذف القاعدة بالكامل
+
+        TenantContext::bypass(true);
+        $survived = PoolRecommendation::where('client_id', $client->id)->count();
+        TenantContext::reset();
+        $this->assertSame(1, $survived, 'ضاعت التوصية بحذف القاعدة');
+    }
+
+    public function test_transfer_does_not_duplicate_the_same_creator_to_the_same_client(): void
+    {
+        $client = $this->client();
+        $p = PoolCreator::create(['name' => 'مبدع', 'platform' => 'tiktok', 'account_url' => 'https://t/@a']);
+        $admin = $this->admin();
+        $this->actingAs($admin)->post('/beta/admin/creator-pool/transfer', ['client_id' => $client->id, 'pool_ids' => [$p->id]]);
+        $this->actingAs($admin)->post('/beta/admin/creator-pool/transfer', ['client_id' => $client->id, 'pool_ids' => [$p->id]]);
+
+        TenantContext::bypass(true);
+        $this->assertSame(1, PoolRecommendation::where('client_id', $client->id)->count(), 'كُرّرت التوصية');
+        TenantContext::reset();
+    }
+
+    public function test_only_system_admin_can_transfer(): void
+    {
+        $client = $this->client();
+        $p = PoolCreator::create(['name' => 'م', 'platform' => 'x', 'account_url' => 'https://x/2']);
+        $plain = User::create(['name' => 'عادي', 'email' => 'q@ex.com', 'password' => bcrypt('x'), 'is_active' => true]);
+
+        $this->actingAs($plain)->post('/beta/admin/creator-pool/transfer', [
+            'client_id' => $client->id, 'pool_ids' => [$p->id],
+        ])->assertForbidden();
+    }
+
 }

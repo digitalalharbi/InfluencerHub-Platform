@@ -20,8 +20,10 @@ interface Facets {
   sources: Record<string, number>
   regions: string[]
 }
+interface ClientOption { id: number; name: string }
 interface Props {
   pool: Paginated<Row>
+  clients: ClientOption[]
   filters: { platform?: string; source?: string; tier?: string; region?: string; min_followers?: string; q?: string }
   facets: Facets
 }
@@ -33,11 +35,24 @@ const fmt = (n: number | null) =>
  * قاعدة مبدعي مدير النظام — لمدير النظام وحده (محميّة بوسيط system_admin).
  * للاستخدام الشخصي للترشيح والتحويل، مع زرّ حذف كامل قبل أي استعراض للنظام.
  */
-export default function CreatorPool({ pool, filters, facets }: Props) {
+export default function CreatorPool({ pool, filters, facets, clients }: Props) {
   const { errors } = usePage().props as { errors?: Record<string, string> }
   const [q, setQ] = useState(filters.q ?? '')
   const [confirm, setConfirm] = useState('')
   const [danger, setDanger] = useState(false)
+  const [selected, setSelected] = useState<Set<number>>(new Set())
+  const [transferOpen, setTransferOpen] = useState(false)
+  const [clientId, setClientId] = useState('')
+
+  const toggle = (id: number) => setSelected((prev) => {
+    const n = new Set(prev); n.has(id) ? n.delete(id) : n.add(id); return n
+  })
+  const transfer = () => {
+    if (!clientId || selected.size === 0) return
+    router.post(u('/creator-pool/transfer'),
+      { client_id: clientId, pool_ids: [...selected] },
+      { onSuccess: () => { setSelected(new Set()); setTransferOpen(false); setClientId('') } })
+  }
 
   const apply = (patch: Record<string, string | undefined>) =>
     router.get(u('/creator-pool'), { ...filters, ...patch }, { preserveState: true, replace: true })
@@ -85,6 +100,39 @@ export default function CreatorPool({ pool, filters, facets }: Props) {
         )}
       </div>
 
+      {/* شريط التحويل — يظهر عند الاختيار */}
+      {selected.size > 0 && (
+        <div style={{ display: 'flex', alignItems: 'center', gap: '.75rem', flexWrap: 'wrap',
+          background: 'var(--ih-primary-soft)', border: '1px solid var(--ih-primary-300)',
+          borderRadius: 10, padding: '.7rem 1rem', marginBottom: '1rem' }}>
+          <b style={{ color: 'var(--ih-primary-700)' }}>{selected.size} مختار</b>
+          <button className="btn btn-sm" onClick={() => setTransferOpen(true)}>تحويل إلى عميل…</button>
+          <button className="btn btn-sm btn-ghost" onClick={() => setSelected(new Set())}>إلغاء الاختيار</button>
+        </div>
+      )}
+
+      {transferOpen && (
+        <div className="ih-modal-backdrop" role="dialog" aria-modal="true" aria-label="تحويل إلى عميل">
+          <div className="ih-modal" style={{ maxWidth: 460 }}>
+            <h3 style={{ margin: '0 0 .3rem' }}>تحويل {selected.size} مبدعًا إلى عميل</h3>
+            <p style={{ fontSize: '.8rem', color: 'var(--ih-text-muted)', marginBlockEnd: '1rem' }}>
+              تُنشأ توصية للعميل بنسخة مستقلّة عن القاعدة — بلا الجوّال. يبقى للعميل قرار قبول أو رفض.
+            </p>
+            <label className="pub-field" style={{ display: 'grid', gap: '.3rem' }}>
+              <span style={{ fontSize: '.82rem', fontWeight: 600 }}>العميل</span>
+              <select className="field" value={clientId} onChange={(e) => setClientId(e.target.value)} autoFocus>
+                <option value="">اختر عميلًا…</option>
+                {clients.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
+              </select>
+            </label>
+            <div style={{ display: 'flex', gap: '.5rem', marginTop: '1.1rem', justifyContent: 'flex-end' }}>
+              <button className="btn btn-sm btn-ghost" onClick={() => setTransferOpen(false)}>إلغاء</button>
+              <button className="btn btn-sm" disabled={!clientId} onClick={transfer}>تأكيد التحويل</button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {pool.data.length === 0 ? (
         <Sec title="لا نتائج"><p style={{ color: 'var(--ih-text-secondary)' }}>
           {facets.total === 0 ? 'القاعدة فارغة (حُذفت أو لم تُستورَد بعد).' : 'لا مبدعين مطابقين للفلاتر.'}
@@ -94,7 +142,11 @@ export default function CreatorPool({ pool, filters, facets }: Props) {
           {pool.data.map((c) => (
             <div key={c.id} className="card" style={{ padding: '.9rem 1rem', display: 'grid', gap: '.4rem' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '.5rem' }}>
-                <b style={{ fontSize: '.95rem' }}>{c.name}</b>
+                <label style={{ display: 'flex', alignItems: 'center', gap: '.4rem', cursor: 'pointer' }}>
+                  <input type="checkbox" checked={selected.has(c.id)} onChange={() => toggle(c.id)}
+                    aria-label={`اختيار ${c.name}`} />
+                  <b style={{ fontSize: '.95rem' }}>{c.name}</b>
+                </label>
                 {c.tier && <span className="badge">{c.tier}</span>}
               </div>
               <div style={{ display: 'flex', gap: '.5rem', flexWrap: 'wrap', fontSize: '.78rem', color: 'var(--ih-text-secondary)' }}>

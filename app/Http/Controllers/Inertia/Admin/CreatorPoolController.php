@@ -2,7 +2,10 @@
 
 namespace App\Http\Controllers\Inertia\Admin;
 
-use App\Domain\AdminPool\Models\PoolCreator;
+use App\Domain\AdminPool\Models\{PoolCreator, PoolRecommendation};
+use App\Domain\CRM\Models\Client;
+use App\Domain\Tenancy\Support\TenantContext;
+use Illuminate\Support\Facades\DB;
 use App\Http\Controllers\Controller;
 use Illuminate\Http\{RedirectResponse, Request};
 use Illuminate\Support\Facades\Storage;
@@ -54,6 +57,8 @@ class CreatorPoolController extends Controller
                 'sourceType' => $c->source_type,
             ]),
             'filters' => $r->only('platform', 'source', 'tier', 'region', 'min_followers', 'q'),
+            // العملاء المتاحون للتحويل — المدير يتجاوز نطاق المستأجر ليراهم جميعًا
+            'clients' => $this->clientsForTransfer(),
             'facets' => [
                 'total' => PoolCreator::count(),
                 'platforms' => PoolCreator::selectRaw('platform, count(*) c')->groupBy('platform')->pluck('c', 'platform'),
@@ -61,6 +66,81 @@ class CreatorPoolController extends Controller
                 'regions' => PoolCreator::whereNotNull('region')->distinct()->orderBy('region')->pluck('region')->take(30),
             ],
         ]);
+    }
+
+    /**
+     * تحويل مبدعين مختارين إلى عميل — نسخة مستقلّة عن القاعدة.
+     *
+     * تأخذ snapshot لا مرجعًا: لو حُذفت القاعدة لاحقًا تبقى توصية العميل. ولا
+     * تنقل الجوّال: التواصل شأن المدير، لا يُكشَف للعميل.
+     */
+    public function transfer(Request $r): RedirectResponse
+    {
+        $data = $r->validate([
+            'client_id' => 'required|integer',
+            'campaign_id' => 'nullable|integer',
+            'pool_ids' => 'required|array|min:1',
+            'pool_ids.*' => 'integer',
+        ], [], ['client_id' => 'العميل', 'pool_ids' => 'المبدعون']);
+
+        // العميل يُقرأ بتجاوز النطاق (المدير عابر للمستأجرين)
+        $prev = TenantContext::bypassing();
+        TenantContext::bypass(true);
+        $client = Client::find($data['client_id']);
+        TenantContext::bypass($prev);
+        abort_unless($client, 404, 'العميل غير موجود.');
+
+        $creators = PoolCreator::whereIn('id', $data['pool_ids'])->get();
+        $now = now();
+        $made = 0;
+
+        foreach ($creators as $c) {
+            // منع التكرار: نفس المبدع لنفس العميل والحملة لا يُوصى مرّتين
+            $exists = PoolRecommendation::withoutGlobalScopes()
+                ->where('tenant_id', $client->tenant_id)
+                ->where('client_id', $client->id)
+                ->where('campaign_id', $data['campaign_id'] ?? null)
+                ->where('platform', $c->platform)
+                ->where('account_url', $c->account_url)
+                ->exists();
+            if ($exists) {
+                continue;
+            }
+
+            PoolRecommendation::withoutGlobalScopes()->create([
+                'tenant_id' => $client->tenant_id,
+                'client_id' => $client->id,
+                'campaign_id' => $data['campaign_id'] ?? null,
+                // نسخة الحقول التي يراها العميل — بلا جوّال
+                'name' => $c->name,
+                'platform' => $c->platform,
+                'account_url' => $c->account_url,
+                'followers' => $c->followers,
+                'categories' => $c->categories,
+                'price_minor' => $c->price_coverage_minor ?? $c->price_post_minor,
+                'region' => $c->region,
+                'city' => $c->city,
+                'source_type' => $c->source_type,
+                'status' => 'recommended',
+                'recommended_by' => $r->user()->id,
+                'created_at' => $now,
+                'updated_at' => $now,
+            ]);
+            $made++;
+        }
+
+        return back()->with('ok', "حُوِّل {$made} مبدعًا إلى العميل «{$client->display_name}» كتوصية.");
+    }
+
+    /** @return \Illuminate\Support\Collection */
+    private function clientsForTransfer()
+    {
+        $prev = TenantContext::bypassing();
+        TenantContext::bypass(true);
+        $clients = Client::query()->orderBy('display_name')->get(['id', 'display_name', 'tenant_id']);
+        TenantContext::bypass($prev);
+
+        return $clients->map(fn ($c) => ['id' => $c->id, 'name' => $c->display_name]);
     }
 
     /**
