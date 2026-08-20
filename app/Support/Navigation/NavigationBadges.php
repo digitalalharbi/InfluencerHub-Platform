@@ -2,6 +2,7 @@
 
 namespace App\Support\Navigation;
 
+use App\Domain\AdminPool\Models\PoolRecommendation;
 use App\Domain\Requests\Models\ServiceRequest;
 use App\Domain\Creators\Models\CreatorApplication;
 use App\Domain\Content\Models\ContentItem;
@@ -33,6 +34,9 @@ class NavigationBadges
             'brand_reviews'        => self::safe(fn () => Brand::whereIn('status', ['submitted', 'under_review'])->count()),
             'client_reviews'       => self::safe(fn () => ClientProfileChangeRequest::whereIn('status', ['submitted', 'under_review'])->count()
                                                         + ClientDocument::where('status', 'pending')->count()),
+            // خاصّ ببوابة العميل: ترشيحات معلّقة تنتظر قراره (للعميل النشِط فقط)
+            'client_recommendations' => self::safe(fn () => ($cl = request()?->attributes->get('activeClient'))
+                                                        ? PoolRecommendation::where('client_id', $cl->id)->where('status', 'recommended')->count() : 0),
         ];
 
         // احذف الأصفار — الشارة تظهر فقط عند وجود عمل معلّق فعليًا.

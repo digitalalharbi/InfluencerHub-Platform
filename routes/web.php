@@ -462,6 +462,9 @@ Route::middleware(['auth', 'client_member', 'inertia'])->prefix('beta/client')->
     Route::get('/contracts', [\App\Http\Controllers\Inertia\Client\ContractController::class, 'index']);
     Route::get('/contracts/{contract}', [\App\Http\Controllers\Inertia\Client\ContractController::class, 'show']);
     Route::post('/contracts/{contract}/sign', [\App\Http\Controllers\Inertia\Client\ContractController::class, 'sign']);
+    // ترشيحات المؤثرين المحوّلة من مدير النظام — قرار العميل (قبول/رفض)
+    Route::get('/recommendations', [\App\Http\Controllers\Inertia\Client\RecommendationController::class, 'index']);
+    Route::post('/recommendations/{recommendation}/decision', [\App\Http\Controllers\Inertia\Client\RecommendationController::class, 'decision']);
     Route::get('/requests', [\App\Http\Controllers\Inertia\Client\RequestController::class, 'index']);
     Route::post('/requests', [\App\Http\Controllers\Inertia\Client\RequestController::class, 'store']);
     Route::get('/requests/{request}', [\App\Http\Controllers\Inertia\Client\RequestController::class, 'show']);
