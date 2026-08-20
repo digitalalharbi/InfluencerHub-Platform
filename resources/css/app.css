@@ -775,6 +775,25 @@ a.ih-kpi:hover, .ih-kpi--link:hover { box-shadow: var(--ih-shadow); transform: t
 .ih-mcard { display: block; padding: .9rem 1rem; background: var(--ih-surface); border: 1px solid var(--ih-border); border-radius: var(--ih-radius-lg); box-shadow: var(--ih-shadow-xs); text-decoration: none; color: var(--ih-text); }
 .ih-mcard__top { display: flex; align-items: center; gap: .6rem; }
 .ih-mcard__grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: .5rem; margin-top: .8rem; padding-top: .7rem; border-top: 1px dashed var(--ih-border); }
+.ih-mcard__grid > div { display: flex; flex-direction: column; gap: .2rem; min-width: 0; }
+.ih-mcard__lbl { font-size: .62rem; font-weight: 700; letter-spacing: .02em; text-transform: uppercase; color: var(--ih-text-muted); }
+.ih-mcard__val { font-size: .78rem; font-weight: 600; color: var(--ih-text); overflow: hidden; text-overflow: ellipsis; }
+
+/* ---- Creator-pool: match engine bar + selection bar ---- */
+.ih-matchbar {
+  display: flex; align-items: center; gap: .55rem; flex-wrap: wrap; margin-bottom: 1rem;
+  padding: .7rem .9rem; border: 1px solid var(--ih-border); border-radius: var(--ih-radius-lg);
+  background: linear-gradient(135deg, var(--ih-primary-50, #F5F8FF), var(--ih-surface-sunken));
+}
+.ih-matchbar__label { display: inline-flex; align-items: center; gap: .35rem; font-size: .82rem; font-weight: 800; color: var(--ih-primary-700); white-space: nowrap; }
+.ih-matchbar__hint { font-size: .74rem; color: var(--ih-text-muted); }
+.ih-selbar {
+  position: sticky; top: .5rem; z-index: 5;
+  display: flex; align-items: center; gap: .7rem; flex-wrap: wrap; margin-bottom: 1rem;
+  padding: .6rem .9rem; border-radius: var(--ih-radius-lg);
+  background: var(--ih-primary-soft); border: 1px solid var(--ih-primary-300); box-shadow: var(--ih-shadow-xs);
+}
+.ih-dt tr.is-selected { background: var(--ih-primary-50, #F5F8FF); }
 
 /* ---- Quick preview drawer ---- */
 .ih-drawer__scrim { position: fixed; inset: 0; z-index: var(--ih-z-drawer); background: rgba(8,13,26,.5); backdrop-filter: blur(2px); animation: ih-fade var(--ih-motion) var(--ih-ease); }

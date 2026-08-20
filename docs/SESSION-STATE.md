@@ -32,6 +32,7 @@
 | متحكّم الترشيح | `Inertia/Admin/ShortlistingController.php` | ✅ |
 | توصيات العميل | جدول `admin_pool_recommendations` + `PoolRecommendation.php` | ✅ |
 | صفحتان React | `Admin/CreatorPool.tsx` · `Admin/Shortlisting.tsx` | ✅ |
+| عرض احترافي لقاعدة المبدعين | KPIs + شرائح (منصّة/مصدر/فئة) + بحث موحّد + جدول/بطاقات جوال، على نظام تصميم النظام (`ih-kpis`/`ih-chips`/`ih-dt`/`ih-mcard`). النمط مستوحى من نموذج مرجعي — تصميمًا فقط، بلا أي بيانات/علامة سمارت كود | ✅ محقّق حيًّا |
 | الاختبارات | CreatorPoolTest · PoolMatchTest · ShortlistAssistantTest (٢٣) | ✅ |
 
 **المسارات (كلها تحت `system_admin`):**

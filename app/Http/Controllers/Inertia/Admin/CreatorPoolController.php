@@ -67,14 +67,19 @@ class CreatorPoolController extends Controller
         return Inertia::render('Admin/CreatorPool', [
             'matching' => $matching,
             'pool' => $rows,
-            'filters' => $r->only('platform', 'source', 'tier', 'region', 'min_followers', 'q'),
+            'filters' => $r->only('platform', 'source', 'tier', 'region', 'min_followers', 'q', 'match_categories', 'budget_riyals'),
             // العملاء المتاحون للتحويل — المدير يتجاوز نطاق المستأجر ليراهم جميعًا
             'clients' => $this->clientsForTransfer(),
             'facets' => [
                 'total' => PoolCreator::count(),
                 'platforms' => PoolCreator::selectRaw('platform, count(*) c')->groupBy('platform')->pluck('c', 'platform'),
                 'sources' => PoolCreator::selectRaw('source_type, count(*) c')->groupBy('source_type')->pluck('c', 'source_type'),
-                'regions' => PoolCreator::whereNotNull('region')->distinct()->orderBy('region')->pluck('region')->take(30),
+                'tiers' => PoolCreator::whereNotNull('tier')->selectRaw('tier, count(*) c')->groupBy('tier')->pluck('c', 'tier'),
+                'regions' => PoolCreator::whereNotNull('region')->distinct()->orderBy('region')->pluck('region')->take(30)->values(),
+                // مؤشّرات موجزة للبطاقات العلوية
+                'reach' => (int) PoolCreator::sum('followers'),
+                'priced' => PoolCreator::where(fn ($w) => $w->whereNotNull('price_coverage_minor')->orWhereNotNull('price_post_minor'))->count(),
+                'contactable' => PoolCreator::whereNotNull('phone')->count(),
             ],
         ]);
     }
