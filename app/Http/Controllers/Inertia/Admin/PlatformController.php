@@ -2,6 +2,8 @@
 
 namespace App\Http\Controllers\Inertia\Admin;
 
+use App\Domain\AdminPool\Models\PoolCreator;
+use App\Domain\AdminPool\Models\PoolRecommendation;
 use App\Domain\Audit\Models\AuditLog;
 use App\Domain\Billing\Models\Plan;
 use App\Domain\Billing\Models\Subscription;
@@ -69,12 +71,21 @@ class PlatformController extends Controller
 
     public function dashboard(): Response
     {
-        [$tenants, $orgs, $users, $activeSubs, $plans, $byStatus, $recent, $audit] = TenantContext::withBypass(function () {
+        [$tenants, $orgs, $users, $activeSubs, $plans, $byStatus, $recent, $audit, $pool] = TenantContext::withBypass(function () {
             $tenants = Tenant::count();
             $orgs = Organization::withoutGlobalScopes()->count();
             $users = User::withoutGlobalScopes()->count();
             $activeSubs = Subscription::withoutGlobalScopes()->whereIn('status', ['trialing', 'active'])->count();
             $plans = Plan::where('is_active', true)->count();
+
+            // قاعدة المؤثرين — الميزة الرئيسية (نموذج عالميّ بلا نطاق مستأجر)
+            $pool = [
+                'total' => PoolCreator::count(),
+                'reach' => (int) PoolCreator::sum('followers'),
+                'priced' => PoolCreator::where(fn ($w) => $w->whereNotNull('price_coverage_minor')->orWhereNotNull('price_post_minor'))->count(),
+                'ugc' => PoolCreator::where('source_type', 'ugc')->count(),
+                'recommendations' => PoolRecommendation::withoutGlobalScopes()->where('status', 'recommended')->count(),
+            ];
 
             // تسميات عربية من القاموس المركزي — لا تُعرض مفاتيح خام
             $byStatus = Tenant::selectRaw('status, count(*) c')->groupBy('status')->get()
@@ -89,11 +100,12 @@ class PlatformController extends Controller
                 'action' => $this->auditLabel($a->action), 'actor' => $a->actor_name, 'at' => $a->occurred_at?->format('Y-m-d H:i'),
             ]);
 
-            return [$tenants, $orgs, $users, $activeSubs, $plans, $byStatus, $recent, $audit];
+            return [$tenants, $orgs, $users, $activeSubs, $plans, $byStatus, $recent, $audit, $pool];
         });
 
         return Inertia::render('Admin/Dashboard', [
             'stats' => ['tenants' => $tenants, 'orgs' => $orgs, 'users' => $users, 'activeSubs' => $activeSubs, 'plans' => $plans],
+            'pool' => $pool,
             'tenantsByStatus' => $byStatus,
             'recentTenants' => $recent,
             'recentAudit' => $audit,
