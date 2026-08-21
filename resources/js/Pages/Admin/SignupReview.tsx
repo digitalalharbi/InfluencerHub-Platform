@@ -2,7 +2,7 @@ import { Head, router, usePage } from '@inertiajs/react'
 import { useState } from 'react'
 import AppShell from '@/Layouts/AppShell'
 import { adminNav } from '@/lib/nav'
-import { ListHead, Sec, StatusBadge } from '@/Components/ui'
+import { ListHead, Sec, StatusBadge, Kpi, numFmt } from '@/Components/ui'
 import { Pagination, type Paginated } from '@/Components/Pagination'
 import { u } from '@/lib/href'
 
@@ -76,28 +76,26 @@ export default function SignupReview({ requests, filters, counts, statusLabels }
     >
       <Head title="طلبات فتح الحساب" />
       <ListHead
-        eyebrow="المنصّة"
+        eyebrow="المنصّة · الانضمام"
         title="طلبات فتح الحساب"
-        sub={`${requests.total.toLocaleString('en-US')} طلب`}
+        sub="طلبات المنشآت الراغبة في الانضمام للمنصّة — راجِعها وتواصَل واعتمِد أو ارفُض."
       />
 
-      <div className="ih-filterbar" style={{ marginBottom: '1rem', gap: '.5rem', flexWrap: 'wrap' }}>
+      <div className="ih-kpis">
+        <Kpi label="جديدة" icon="inbox" tone={counts.submitted ? 'warning' : 'success'}
+          value={numFmt(counts.submitted ?? 0)} sub={counts.submitted ? 'بانتظار المراجعة' : 'لا جديد'} />
+        <Kpi label="جرى التواصل" icon="phone" tone="accent" value={numFmt(counts.contacted ?? 0)} sub="قيد المتابعة" />
+        <Kpi label="معتمَدة" icon="shield-check" tone="success" value={numFmt(counts.approved ?? 0)} sub="حُوّلت لحساب" />
+        <Kpi label="إجمالي الطلبات" icon="clipboard-check" value={numFmt(counts.total ?? 0)} sub={`${counts.rejected ?? 0} مرفوضة`} />
+      </div>
+
+      <div className="ih-chips" style={{ marginBottom: '.9rem', overflowX: 'auto', paddingBottom: '.2rem', flexWrap: 'nowrap' }}>
+        <button onClick={() => setStatus('all')} className={`ih-chip${filters.status === 'all' ? ' active' : ''}`}>الكل <span className="ih-chip__count">{counts.total ?? 0}</span></button>
         {Object.entries(statusLabels).map(([key, label]) => (
-          <button
-            key={key}
-            onClick={() => setStatus(key)}
-            className={`btn btn-sm${filters.status === key ? '' : ' btn-outline'}`}
-          >
-            {label}
-            {counts[key] !== undefined ? ` (${counts[key]})` : ''}
+          <button key={key} onClick={() => setStatus(key)} className={`ih-chip${filters.status === key ? ' active' : ''}`}>
+            {label}{counts[key] !== undefined ? <span className="ih-chip__count">{counts[key]}</span> : null}
           </button>
         ))}
-        <button
-          onClick={() => setStatus('all')}
-          className={`btn btn-sm${filters.status === 'all' ? '' : ' btn-outline'}`}
-        >
-          الكل
-        </button>
       </div>
 
       {errors?.review && (

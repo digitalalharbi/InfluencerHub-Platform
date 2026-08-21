@@ -102,7 +102,7 @@ class PlatformController extends Controller
 
     public function tenants(Request $r): Response
     {
-        $tenants = TenantContext::withBypass(function () use ($r) {
+        [$tenants, $summary] = TenantContext::withBypass(function () use ($r) {
             $q = Tenant::query();
             if ($s = trim((string) $r->query('q'))) {
                 $q->where(fn ($w) => $w->where('name', 'ilike', "%{$s}%")->orWhere('slug', 'ilike', "%{$s}%"));
@@ -117,11 +117,23 @@ class PlatformController extends Controller
                 'sub' => Subscription::withoutGlobalScopes()->where('tenant_id', $t->id)->whereIn('status', ['trialing', 'active'])->exists(),
             ]);
 
-            return $tenants;
+            // ملخّص علوي: مؤشّرات + شرائح حسب الحالة (تسميات عربية)
+            $byStatus = Tenant::selectRaw('status, count(*) c')->groupBy('status')->get()
+                ->mapWithKeys(fn ($x) => [$x->status => (int) $x->c]);
+            $summary = [
+                'total' => (int) $byStatus->sum(),
+                'active' => (int) ($byStatus['active'] ?? 0),
+                'saas' => Tenant::where('deployment_mode', 'saas')->count(),
+                'withSub' => Subscription::withoutGlobalScopes()->whereIn('status', ['trialing', 'active'])->distinct('tenant_id')->count('tenant_id'),
+                'byStatus' => $byStatus->map(fn ($c, $s) => ['status' => $s, 'label' => __("statuses.{$s}"), 'count' => $c])->values(),
+            ];
+
+            return [$tenants, $summary];
         });
 
         return Inertia::render('Admin/Tenants', [
             'tenants' => $tenants,
+            'summary' => $summary,
             'filters' => ['q' => $r->query('q'), 'status' => $r->query('status')],
         ]);
     }
@@ -139,12 +151,19 @@ class PlatformController extends Controller
                 ])->values(),
             ]));
 
-        return Inertia::render('Admin/Plans', ['plans' => $plans]);
+        $summary = [
+            'total' => $plans->count(),
+            'active' => $plans->where('active', true)->count(),
+            'versions' => (int) $plans->sum(fn ($p) => count($p['versions'])),
+            'liveVersions' => (int) $plans->sum(fn ($p) => collect($p['versions'])->where('active', true)->count()),
+        ];
+
+        return Inertia::render('Admin/Plans', ['plans' => $plans, 'summary' => $summary]);
     }
 
     public function subscriptions(Request $r): Response
     {
-        $subs = TenantContext::withBypass(function () use ($r) {
+        [$subs, $summary] = TenantContext::withBypass(function () use ($r) {
             $q = Subscription::withoutGlobalScopes()->with('planVersion.plan');
             if ($st = $r->query('status')) {
                 $q->where('status', $st);
@@ -158,23 +177,45 @@ class PlatformController extends Controller
                 'periodEnd' => $s->current_period_end?->format('Y-m-d'),
             ]);
 
-            return $subs;
+            $byStatus = Subscription::withoutGlobalScopes()->selectRaw('status, count(*) c')->groupBy('status')->get()
+                ->mapWithKeys(fn ($x) => [$x->status => (int) $x->c]);
+            $summary = [
+                'total' => (int) $byStatus->sum(),
+                'active' => (int) ($byStatus['active'] ?? 0),
+                'trialing' => (int) ($byStatus['trialing'] ?? 0),
+                'attention' => (int) (($byStatus['past_due'] ?? 0) + ($byStatus['expired'] ?? 0)),
+                'byStatus' => $byStatus->map(fn ($c, $s) => ['status' => $s, 'label' => __("statuses.{$s}"), 'count' => $c])->values(),
+            ];
+
+            return [$subs, $summary];
         });
 
         return Inertia::render('Admin/Subscriptions', [
             'subs' => $subs,
+            'summary' => $summary,
             'filters' => ['status' => $r->query('status')],
         ]);
     }
 
     public function audit(Request $r): Response
     {
-        $logs = TenantContext::withBypass(fn () => AuditLog::withoutGlobalScopes()->latest('occurred_at')->paginate(40)->through(fn ($a) => [
-            'id' => $a->id, 'action' => $this->auditLabel($a->action), 'actor' => $a->actor_name ?? '—',
-            'type' => $this->subjectLabel($a->auditable_type), 'auditableId' => $a->auditable_id,
-            'tenantId' => $a->tenant_id, 'ip' => $a->ip, 'at' => $a->occurred_at?->format('Y-m-d H:i:s'),
-        ]));
+        [$logs, $summary] = TenantContext::withBypass(function () {
+            $logs = AuditLog::withoutGlobalScopes()->latest('occurred_at')->paginate(40)->through(fn ($a) => [
+                'id' => $a->id, 'action' => $this->auditLabel($a->action), 'actor' => $a->actor_name ?? '—',
+                'type' => $this->subjectLabel($a->auditable_type), 'auditableId' => $a->auditable_id,
+                'tenantId' => $a->tenant_id, 'ip' => $a->ip, 'at' => $a->occurred_at?->format('Y-m-d H:i:s'),
+            ]);
 
-        return Inertia::render('Admin/Audit', ['logs' => $logs]);
+            $summary = [
+                'total' => AuditLog::withoutGlobalScopes()->count(),
+                'today' => AuditLog::withoutGlobalScopes()->where('occurred_at', '>=', now()->startOfDay())->count(),
+                'week' => AuditLog::withoutGlobalScopes()->where('occurred_at', '>=', now()->subDays(7))->count(),
+                'actors' => (int) AuditLog::withoutGlobalScopes()->distinct('actor_name')->count('actor_name'),
+            ];
+
+            return [$logs, $summary];
+        });
+
+        return Inertia::render('Admin/Audit', ['logs' => $logs, 'summary' => $summary]);
     }
 }

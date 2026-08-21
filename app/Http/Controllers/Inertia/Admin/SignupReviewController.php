@@ -72,8 +72,10 @@ class SignupReviewController extends Controller
             'filters' => ['status' => $status, 'type' => $type],
             'counts' => [
                 'submitted' => SignupRequest::where('status', 'submitted')->count(),
+                'contacted' => SignupRequest::where('status', 'contacted')->count(),
                 'approved' => SignupRequest::where('status', 'approved')->count(),
                 'rejected' => SignupRequest::where('status', 'rejected')->count(),
+                'total' => SignupRequest::count(),
             ],
             'statusLabels' => self::STATUS_LABEL,
         ]);
