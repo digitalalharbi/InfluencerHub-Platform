@@ -69,7 +69,7 @@
 
 ## 5. ما لم يُنفَّذ بعد (قرار المالك)
 
-1. **منطق OpenAI الفعلي** في `OpenAiAssistant::interpret()` — البنية جاهزة، يُفعَّل بـ`OPENAI_API_KEY` + `POOL_ASSISTANT_DRIVER=openai`.
+1. ✅ **منطق OpenAI الفعلي** — أُنجز: `OpenAiAssistant::interpret()` يستدعي Chat Completions (وضع JSON) لاستخراج المعايير (platform/categories/min_followers/budget_riyals) مع `sanitize` وتحقّق، وارتداد صادق للقواعد عند أي تعذّر (سائق موسوم بصدق)، وشبكة أمان بالقواعد عند استخراج فارغ. يُفعَّل بـ`POOL_ASSISTANT_DRIVER=openai` + `OPENAI_API_KEY` (والموديل/الرابط/المهلة قابلة للضبط في `config/services.php`). ٥ اختبارات تُحاكي HTTP (تحليل، تنقية، ارتداد الخطأ، شبكة الأمان، تكامل الصفحة). لا يتغيّر المتحكّم ولا الصفحة.
 2. ✅ **واجهة قبول/رفض التوصية في بوابة العميل** — أُنجزت: `Inertia/Client/RecommendationController` + `ClientPortal/Recommendations/Index.tsx` + مساران تحت `/beta/client/recommendations` + عنصر تنقّل بشارة حيّة (`client_recommendations` في `NavigationBadges`، للعميل النشِط فقط). ٦ اختبارات (تشمل حارس عدم تسريب الجوّال). محقّق حيًّا: اعتماد/رفض يحدّثان الحالة والشارة.
 3. **الدفع إلى `main` والنشر** — لم يحدث. البيانات لن تصل الحيّ عبر Claude (لا PII في git)؛ تُشغَّل `pool:import` على الخادم بملفّ يضعه المالك.
 4. **رحلة الوكالة الأساسية** موقوفة عند قرار العميل على ترشيح الحملة (سياق أقدم — انظر أقسام CONTINUATION-STATE السابقة).

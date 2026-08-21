@@ -20,6 +20,9 @@ class AppServiceProvider extends ServiceProvider
             if (config('services.pool_assistant.driver') === 'openai') {
                 return new \App\Domain\AdminPool\Assistant\OpenAiAssistant(
                     config('services.pool_assistant.openai_key'), $rule,
+                    config('services.pool_assistant.openai_model'),
+                    config('services.pool_assistant.openai_base_url'),
+                    (int) config('services.pool_assistant.openai_timeout'),
                 );
             }
             return $rule;
