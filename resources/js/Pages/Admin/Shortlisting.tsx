@@ -92,25 +92,29 @@ export default function Shortlisting({ query, understood, results, analytics, cl
         sub={`ابحث في ${poolSize.toLocaleString('en-US')} مؤثرًا بالوصف الطبيعي — المساعد يفهم طلبك، يحلّل النتائج، ويحوّلها إلى عميل.`}
         actions={<a href={u('/creator-pool')} className="btn btn-sm btn-outline"><Icon name="users" size={15} /> القاعدة الكاملة</a>} />
 
-      {/* صندوق البحث/المساعد */}
+      {/* صندوق البحث/المساعد — كبير واحترافيّ */}
       <div className="ih-searchhero">
-        <div style={{ display: 'flex', gap: '.5rem', alignItems: 'center', flexWrap: 'wrap' }}>
-          <label className="ih-search" style={{ flex: 1, minWidth: 260 }}>
-            <Icon name="sparkles" size={17} />
-            <input placeholder="صِف من تبحث عنه… مثال: مؤثرة عناية في الرياض بميزانية 20000"
+        <div style={{ fontSize: '.92rem', fontWeight: 700, marginBottom: '.7rem', display: 'flex', alignItems: 'center', gap: '.4rem' }}>
+          <Icon name="sparkles" size={16} style={{ color: 'var(--ih-primary-600)' }} />
+          صِف من تبحث عنه بالعربية الطبيعية
+        </div>
+        <div className="ih-searchhero__row">
+          <label className="ih-search">
+            <Icon name="search" size={20} />
+            <input placeholder="مثال: مؤثرة عناية في الرياض بمتابعين فوق 500 ألف وميزانية 20000"
               value={text} onChange={(e) => setText(e.target.value)}
               onKeyDown={(e) => e.key === 'Enter' && search(text)} autoFocus />
+            {text && <button type="button" className="btn btn-xs btn-ghost" style={{ flexShrink: 0 }} onClick={() => search('')} aria-label="مسح"><Icon name="x" size={16} /></button>}
           </label>
-          <button className="btn btn-primary" onClick={() => search(text)}><Icon name="search" size={15} /> ترشيح</button>
-          {text && <button className="btn btn-ghost btn-sm" onClick={() => search('')}>مسح</button>}
+          <button className="btn btn-primary ih-searchhero__go" onClick={() => search(text)}><Icon name="sparkles" size={17} /> ترشيح</button>
         </div>
-        <div style={{ display: 'flex', gap: '.4rem', flexWrap: 'wrap', marginTop: '.7rem', alignItems: 'center' }}>
-          <span style={{ fontSize: '.74rem', color: 'var(--ih-text-muted)' }}>جرّب:</span>
+        <div className="ih-searchhero__ex">
+          <span style={{ fontSize: '.78rem', color: 'var(--ih-text-muted)', fontWeight: 600 }}>جرّب:</span>
           {EXAMPLES.map((ex) => (
             <button key={ex} className="btn btn-xs btn-outline" onClick={() => search(ex)}>{ex}</button>
           ))}
         </div>
-        <div style={{ marginTop: '.7rem', fontSize: '.72rem', color: 'var(--ih-text-muted)', display: 'flex', alignItems: 'center', gap: '.35rem' }}>
+        <div style={{ marginTop: '.8rem', fontSize: '.74rem', color: 'var(--ih-text-muted)', display: 'flex', alignItems: 'center', gap: '.35rem' }}>
           <Icon name="shield-check" size={13} />
           {assistant.openaiReady ? 'المساعد: OpenAI (مربوط)' : 'المساعد: قواعد لغوية · مساعد OpenAI جاهز للربط لاحقًا (يحتاج مفتاحًا)'}
         </div>
