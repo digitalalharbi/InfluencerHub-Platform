@@ -47,6 +47,13 @@ class ShortlistingController extends Controller
             $matchCriteria['budget_minor'] = (int) $criteria['budget_riyals'] * 100;
         }
 
+        // عدد النتائج المعروضة — قابل للتغيير (المستخدم يتحكّم في طول القائمة)
+        $allowedLimits = [30, 60, 120, 240];
+        $limit = (int) $r->query('limit', 30);
+        if (! in_array($limit, $allowedLimits, true)) {
+            $limit = 30;
+        }
+
         $results = collect();
         $analytics = null;
         $hasSearch = $query !== '' || $matcher->hasCriteria($matchCriteria);
@@ -59,10 +66,12 @@ class ShortlistingController extends Controller
             // عدد المطابقين للمعايير الصارمة (قبل الاقتصار) — سياق للتحليلات
             $candidates = (clone $base)->count();
 
-            $results = $base->orderByRaw('followers DESC NULLS LAST')->limit(400)->get()
+            // نُرتّب بالمتابعين ثم نسجّل ونرتّب بالملاءمة، ونعرض حسب الحدّ المختار.
+            // نجلب مجموعة ترشيح أوسع (حتى ١٠٠٠) لضمان صحّة «الأفضل N» حتى عند الحدود الكبيرة.
+            $results = $base->orderByRaw('followers DESC NULLS LAST')->limit(1000)->get()
                 ->map(fn (PoolCreator $c) => $c->toBookingArray($matcher->score($matchCriteria, $c)))
                 ->sortByDesc('matchScore')
-                ->take(30)
+                ->take($limit)
                 ->values();
 
             $analytics = $this->analyze($results, $candidates);
@@ -75,6 +84,8 @@ class ShortlistingController extends Controller
             'results' => $results,
             'analytics' => $analytics,
             'hasSearch' => $hasSearch,
+            'limit' => $limit,
+            'limitOptions' => $allowedLimits,
             'clients' => $this->clientsForTransfer(),
             'assistant' => [
                 'driver' => $driver,

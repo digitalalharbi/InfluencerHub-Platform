@@ -2,7 +2,7 @@ import { Head, router } from '@inertiajs/react'
 import { useState } from 'react'
 import AppShell from '@/Layouts/AppShell'
 import { adminNav } from '@/lib/nav'
-import { ListHead } from '@/Components/ui'
+import { ListHead, Kpi, numFmt } from '@/Components/ui'
 import { Icon, type IconName } from '@/Components/Icon'
 import {
   CreatorDetailModal, ScoreRing, TierBadge, PlatformTag, UgcBadge,
@@ -26,6 +26,8 @@ interface Props {
   analytics: Analytics | null
   clients: ClientOption[]
   hasSearch: boolean
+  limit: number
+  limitOptions: number[]
   assistant: { driver: string; openaiReady: boolean }
   poolSize: number
 }
@@ -36,19 +38,6 @@ const EXAMPLES = [
   'تيك توك تغطيات جدة',
 ]
 
-function DistBar({ label, count, total, color }: { label: string; count: number; total: number; color?: string }) {
-  const pct = total ? Math.round((count / total) * 100) : 0
-  return (
-    <div style={{ display: 'flex', alignItems: 'center', gap: '.5rem', fontSize: '.74rem' }}>
-      <span style={{ minWidth: 68, color: 'var(--ih-text-secondary)' }}>{label}</span>
-      <div style={{ flex: 1, height: 7, background: 'var(--ih-surface-sunken)', borderRadius: 4, overflow: 'hidden' }}>
-        <span style={{ display: 'block', height: '100%', width: `${pct}%`, background: color ?? 'var(--ih-primary)', borderRadius: 4 }} />
-      </div>
-      <span style={{ minWidth: 30, textAlign: 'end', fontWeight: 700, fontVariantNumeric: 'tabular-nums' }}>{count}</span>
-    </div>
-  )
-}
-
 type ViewMode = 'grid' | 'list' | 'table'
 const VIEWS: [ViewMode, IconName, string][] = [['grid', 'grid', 'بطاقات'], ['list', 'rows', 'قائمة'], ['table', 'table', 'جدول']]
 
@@ -57,7 +46,7 @@ const VIEWS: [ViewMode, IconName, string][] = [['grid', 'grid', 'بطاقات'],
  * تطوير متكامل: ٣ أوضاع عرض (بطاقات مربّعة افتراضيًّا/قائمة/جدول)، نافذة تفاصيل
  * مركزيّة عند النقر (مكوّن مشترك)، واختيار وتحويل مباشر إلى عميل (دمج).
  */
-export default function Shortlisting({ query, understood, results, analytics, clients, hasSearch, assistant, poolSize }: Props) {
+export default function Shortlisting({ query, understood, results, analytics, clients, hasSearch, limit, limitOptions, assistant, poolSize }: Props) {
   const [text, setText] = useState(query)
   const [selected, setSelected] = useState<Set<number>>(new Set())
   const [transferOpen, setTransferOpen] = useState(false)
@@ -65,10 +54,14 @@ export default function Shortlisting({ query, understood, results, analytics, cl
   const [view, setView] = useState<ViewMode>('grid')
   const [detail, setDetail] = useState<Result | null>(null)
 
-  const search = (q: string) => {
+  const search = (q: string, lim?: number) => {
     setText(q); setSelected(new Set()); setDetail(null)
-    router.get(u('/shortlisting'), q ? { query: q } : {}, { preserveState: true })
+    const params: Record<string, string | number> = {}
+    if (q) params.query = q
+    if (lim && lim !== 30) params.limit = lim
+    router.get(u('/shortlisting'), params, { preserveState: true, preserveScroll: !!lim })
   }
+  const changeLimit = (lim: number) => search(query, lim)
   const toggle = (id: number) => setSelected((prev) => {
     const n = new Set(prev); n.has(id) ? n.delete(id) : n.add(id); return n
   })
@@ -82,7 +75,6 @@ export default function Shortlisting({ query, understood, results, analytics, cl
   }
 
   const platEntries = analytics ? Object.entries(analytics.platforms) : []
-  const platMax = platEntries.reduce((m, [, c]) => Math.max(m, c), 0)
 
   return (
     <AppShell heading="ترشيح المؤثرين" nav={adminNav} portal="admin"
@@ -130,29 +122,44 @@ export default function Shortlisting({ query, understood, results, analytics, cl
         </div>
       )}
 
-      {/* لوحة التحليلات */}
+      {/* لوحة التحليلات — بطاقات مؤشّرات احترافية + شريط توزيع */}
       {analytics && results.length > 0 && (
-        <div className="ih-analytics">
-          <div className="ih-analytics__stats">
-            <div className="ih-stat"><span className="ih-stat__v" style={{ color: 'var(--ih-primary-700)' }}>{analytics.avgScore}٪</span><span className="ih-stat__l">متوسط الملاءمة</span></div>
-            <div className="ih-stat"><span className="ih-stat__v">{fnum(analytics.reach)}</span><span className="ih-stat__l">إجمالي الوصول</span></div>
-            <div className="ih-stat"><span className="ih-stat__v">{analytics.avgCoverage != null ? sar(analytics.avgCoverage) : '—'}</span><span className="ih-stat__l">متوسط سعر التغطية (ر.س)</span></div>
-            <div className="ih-stat"><span className="ih-stat__v" style={{ fontSize: '.95rem' }}>{analytics.minCoverage != null ? `${sar(analytics.minCoverage)}–${sar(analytics.maxCoverage)}` : '—'}</span><span className="ih-stat__l">نطاق التغطية (ر.س)</span></div>
-            <div className="ih-stat"><span className="ih-stat__v">{analytics.contactable}/{analytics.shown}</span><span className="ih-stat__l">قابلون للتواصل</span></div>
+        <>
+          <div className="ih-kpis">
+            <Kpi label="المرشّحون المعروضون" icon="users" value={numFmt(analytics.shown)}
+              sub={analytics.candidates > analytics.shown ? `من ${analytics.candidates.toLocaleString('en-US')} مطابقًا` : 'كل المطابقين'} />
+            <Kpi label="متوسط الملاءمة" icon="sparkles" tone="accent" value={`${analytics.avgScore}٪`}
+              sub={`الأعلى ${analytics.topScore}٪`} />
+            <Kpi label="إجمالي الوصول" icon="trending-up" tone="success" value={fnum(analytics.reach)}
+              sub="مجموع المتابعين" />
+            <Kpi label="سعر التغطية" icon="tag" tone="warning"
+              value={analytics.avgCoverage != null ? `${sar(analytics.avgCoverage)}` : '—'}
+              sub={analytics.minCoverage != null ? `${sar(analytics.minCoverage)}–${sar(analytics.maxCoverage)} ر.س` : `${analytics.pricedCount} مسعّر`} />
           </div>
-          {platEntries.length > 0 && (
-            <div className="ih-analytics__dist">
-              <div className="ih-analytics__dist-title">توزيع المنصّات</div>
-              {platEntries.map(([p, c]) => <DistBar key={p} label={p} count={c} total={platMax} color={platColor(p)} />)}
-              <div className="ih-analytics__dist-title" style={{ marginTop: '.6rem' }}>حسب الفئة</div>
-              <div style={{ display: 'flex', gap: '.4rem', flexWrap: 'wrap' }}>
+
+          {(platEntries.length > 0 || Object.keys(analytics.tiers).length > 0) && (
+            <div className="ih-distrow">
+              {platEntries.length > 0 && (
+                <div className="ih-distrow__group">
+                  <span className="ih-distrow__lbl">المنصّات</span>
+                  {platEntries.map(([p, c]) => (
+                    <span key={p} className="ih-tag" style={{ color: platColor(p) }}>{p} <b style={{ fontVariantNumeric: 'tabular-nums' }}>{c}</b></span>
+                  ))}
+                </div>
+              )}
+              <div className="ih-distrow__group">
+                <span className="ih-distrow__lbl">الفئات</span>
                 {Object.entries(analytics.tiers).map(([t, c]) => (
-                  <span key={t} className="badge" style={{ background: (TIER_COLOR[t] ?? 'var(--ih-gray-400)') + '1f', color: TIER_COLOR[t] ?? 'var(--ih-gray-600)', fontWeight: 700 }}>{t === '—' ? 'بلا فئة' : `فئة ${t}`}: {c}</span>
+                  <span key={t} className="badge" style={{ background: (TIER_COLOR[t] ?? 'var(--ih-gray-400)') + '1f', color: TIER_COLOR[t] ?? 'var(--ih-gray-600)', fontWeight: 700 }}>{t === '—' ? 'بلا فئة' : `فئة ${t}`} {c}</span>
                 ))}
+              </div>
+              <div className="ih-distrow__group" style={{ marginInlineStart: 'auto' }}>
+                <span className="ih-distrow__lbl">قابلون للتواصل</span>
+                <b style={{ color: 'var(--ih-text)' }}>{analytics.contactable}/{analytics.shown}</b>
               </div>
             </div>
           )}
-        </div>
+        </>
       )}
 
       {/* شريط الاختيار والتحويل */}
@@ -183,7 +190,14 @@ export default function Shortlisting({ query, understood, results, analytics, cl
             <span style={{ fontSize: '.82rem', color: 'var(--ih-text-secondary)' }}>
               أفضل {results.length} ترشيحًا — مرتّبة بالملاءمة{analytics && analytics.candidates > results.length ? ` · من ${analytics.candidates.toLocaleString('en-US')} مطابقًا` : ''}
             </span>
-            <div style={{ display: 'flex', gap: '.5rem', alignItems: 'center' }}>
+            <div style={{ display: 'flex', gap: '.5rem', alignItems: 'center', flexWrap: 'wrap' }}>
+              {/* مُحدِّد عدد النتائج المعروضة */}
+              <div className="ih-viewtoggle" role="group" aria-label="عدد النتائج">
+                {limitOptions.map((n) => (
+                  <button key={n} className={`ih-viewbtn${limit === n ? ' active' : ''}`} style={{ width: 'auto', padding: '0 .6rem', fontSize: '.78rem', fontWeight: 700 }}
+                    onClick={() => changeLimit(n)} aria-pressed={limit === n}>{n}</button>
+                ))}
+              </div>
               <button className="btn btn-xs btn-outline" onClick={selectAll}>اختيار الكل</button>
               <div className="ih-viewtoggle">
                 {VIEWS.map(([v, icon, label]) => (

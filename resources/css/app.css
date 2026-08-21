@@ -834,6 +834,14 @@ a.ih-kpi:hover, .ih-kpi--link:hover { box-shadow: var(--ih-shadow); transform: t
 }
 .ih-searchhero__ex { display: flex; gap: .45rem; flex-wrap: wrap; margin-top: .9rem; align-items: center; }
 .ih-searchhero__ex .btn { border-radius: 999px; }
+/* شريط توزيع مصغّر أسفل بطاقات التحليلات */
+.ih-distrow {
+  display: flex; gap: 1.2rem; flex-wrap: wrap; align-items: center; margin-bottom: 1.1rem;
+  padding: .6rem .9rem; border: 1px solid var(--ih-border); border-radius: var(--ih-radius-lg);
+  background: var(--ih-surface); font-size: .78rem;
+}
+.ih-distrow__group { display: flex; align-items: center; gap: .4rem; flex-wrap: wrap; }
+.ih-distrow__lbl { font-size: .68rem; font-weight: 700; letter-spacing: .02em; text-transform: uppercase; color: var(--ih-text-muted); }
 .ih-analytics {
   display: grid; grid-template-columns: 1.6fr 1fr; gap: .9rem; margin-bottom: .85rem;
   background: var(--ih-surface); border: 1px solid var(--ih-border); border-radius: var(--ih-radius-lg); padding: .75rem .9rem;
