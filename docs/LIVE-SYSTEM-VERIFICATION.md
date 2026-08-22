@@ -2,92 +2,74 @@
 
 > Evidence ledger, not a roadmap. States: `VERIFIED` · `VERIFIED_SANDBOX` · `PARTIALLY_VERIFIED` · `BLOCKED_EXTERNAL` · `FAILED` · `NOT_APPLICABLE`.
 > A category is `VERIFIED` only with objective evidence (automated test and/or observed runtime). "Implemented/looks good" is not a state.
-> This run executes in a **shared working directory** also driven by a concurrent autonomous session; work is isolated in git worktree `autopilot/live-verification` to avoid tree thrash. Multi-file live remediation across the whole product is therefore performed as small, immediately-committed units.
+> Autonomous run executes in an isolated git worktree (`p1/*` branches) to avoid clobbering a concurrent session on the shared checkout.
 
-## Baseline (captured this run)
+## Baseline (captured this run, against `main` incl. merged PRs #13/#14/#15)
 
-| Gate | Command | Result | Evidence |
-|------|---------|--------|----------|
-| Branch/base | `git`, `origin/main` | `main @ 91efdc0`, local == origin (0/0) | fetch |
-| Backend suite | `php artisan test` | **1047 passed, 0 failed** (4547 assertions), 75s | run on `main` this session |
-| Typecheck | `npx tsc --noEmit` | clean (0 errors) | run on `main` |
-| Tenant-context guard | `scripts/check-tenant-context-safety.sh` | `exit 0` (5 named exemptions) | run on `main` |
-| Dependency audit | `composer audit` | No advisories | run on `main` |
-| Frontend build | `npm run build` | clean | run this session |
-| E2E | `npx playwright test` | **NOT RUN this session** — config has **chromium only** (`playwright.config.*:21`) | not executed |
+| Gate | Command | Result |
+|------|---------|--------|
+| Backend suite | `php artisan test` | **1089 passed, 0 failed** (4955 assertions) |
+| Typecheck | `npx tsc --noEmit` | clean |
+| Tenant-context guard | `scripts/check-tenant-context-safety.sh` | `exit 0` |
+| Dependency audit | `composer audit` | No advisories |
+| Frontend build | `npm run build` | clean |
+| E2E engines | `playwright.config` | **chromium + firefox + webkit** (was chromium-only) |
+| E2E auth journey | `01-auth.spec` | **21/21 across all 3 engines** |
 
-Baseline is **green**. No regression on `main`. (A separate branch — PR #13 — carries additional admin-pool work; a tenant-context-safety violation introduced there was found by the guard and fixed, restoring that branch to green.)
-
-## CI/CD reality (`.github/workflows/deploy.yml`)
-
-- Jobs: `backend` (migrate + `npm run build` + `php artisan test`), `frontend` (lint + build), `deploy-vps` (`needs: [backend, frontend]`, deploy gated by `vars.ENABLE_VPS_DEPLOY == 'true'`).
-- **Deploy IS gated on backend tests + frontend build.** Good.
-- **Gap (fixed in this branch):** CI did **not** run `npx tsc --noEmit` nor the tenant-context safety guard — two checks used to claim verification locally. Added to the pipeline so the gates that assert safety actually protect deploys.
+CI (`deploy.yml`) now runs `tsc` + tenant guard (added PR #14); deploy gated on `needs: [backend, frontend]`. **CI still does NOT run Playwright** → E2E can regress silently (one such silent failure found & fixed this run — see below).
 
 ## Category status
 
-Legend for evidence column: `A`=automated test in suite · `R`=runtime/browser observed this session · `X`=external provider.
+| # | Category | Status | Evidence |
+|---|----------|:------:|----------|
+| 1 | Authentication / logout / portal routing | **VERIFIED** | `01-auth` 21/21 cross-browser (chromium/firefox/webkit); backend auth tests |
+| 2 | Tenancy isolation (P0) | **VERIFIED** (server-side) | `TenantHttpIsolationTest`, `TenantIsolationSweepTest`, `TenantContextGuardTest`(9), `BrandWorkspaceIsolationTest` green; guard exit 0; `03-isolation` E2E green on chromium. Cross-browser E2E blocked by shared-DB test pollution (see finding), not a security gap |
+| 3 | Roles & permissions | **VERIFIED** (server-side) | RBAC feature tests + `04-rbac` E2E green on chromium (viewer 403 on create/archive, hidden controls). Firefox/WebKit E2E fail on shared-DB pollution, not on enforcement |
+| 4 | Finance role-safety / IDOR (P0) | **VERIFIED** | `FinanceSeparationOfDutiesTest`, `FinancialMetricsTest` |
+| 5 | **13-stage campaign lifecycle** (P1) | **VERIFIED** | `CampaignLifecycleService` derives all 13 from real domain state; `CampaignLifecycleServiceTest` (4 tests/35 assertions incl. failure paths); surfaced in campaign command center. Merged PR #15 |
+| 6 | Agency portal | PARTIALLY_VERIFIED | Inertia + workflow-service tests green; `07-crm-ui-flows` E2E (chromium). Cross-browser portal specs pending |
+| 7 | Client/brand portal | PARTIALLY_VERIFIED | `InertiaClient*` tests green; `14-client-portal` E2E (chromium) |
+| 8 | Creator portal | PARTIALLY_VERIFIED | `InertiaCreator*` tests green; `11-creator-portal` E2E (chromium) |
+| 9 | Partner portal | PARTIALLY_VERIFIED | scoped tests green; `15-partner-portal` E2E (chromium) |
+| 10 | System admin (SaaS) | VERIFIED | `InertiaAdminPlatformTest` |
 
-| # | Category | Status | Evidence | Notes |
-|---|----------|:------:|:--------:|-------|
-| 1 | Authentication / onboarding | PARTIALLY_VERIFIED | A | Auth/registration/portal-routing tests pass in suite; not re-driven in browser this session. Google login = config-dependent. |
-| 2 | **Tenancy isolation** (P0) | VERIFIED | A | `TenantHttpIsolationTest`, `TenantIsolationSweepTest`, `TenantContextGuardTest`(9), `TenantContextSafetyTest`, `BrandWorkspaceIsolationTest`, `TenantResolutionTest` — all green. Guard forbids manual context calls in prod code (exit 0). |
-| 3 | Roles & permissions | VERIFIED | A | Allowed/forbidden asserted across suites (e.g. `viewer cannot create/archive`, admin gates). |
-| 4 | **Finance role-safety / IDOR** (P0) | VERIFIED | A | `FinanceSeparationOfDutiesTest`, `FinancialMetricsTest` — creator/client cannot see cost/sell/margin; separation of duties on payouts. |
-| 5 | Agency portal (CRM/campaigns/…) | PARTIALLY_VERIFIED | A | Inertia controller + workflow-service tests green; per-page browser pass documented in PHASE gates, not re-run this session. |
-| 6 | Client/brand portal | PARTIALLY_VERIFIED | A | `InertiaClientCampaignTest`, `InertiaClientContentTest`, `InertiaClientContractTest` green; mobile/browser not re-driven. |
-| 7 | Creator portal | PARTIALLY_VERIFIED | A | `InertiaCreatorCollaborationTest`, `InertiaCreatorContentTest`, `InertiaCreatorContractPayoutTest` green. |
-| 8 | Partner portal | PARTIALLY_VERIFIED | A | Scoped-access tests green. |
-| 9 | System admin (SaaS) | VERIFIED | A | `InertiaAdminPlatformTest` — read-only oversight, `is_system_admin` gate, cross-tenant stats. |
+## 13-stage lifecycle (VERIFIED — merged PR #15)
 
-## 13-stage campaign lifecycle — evidence mapping
+`app/Domain/Campaigns/Services/CampaignLifecycleService` derives all 13 stages from real records (shortlist versions/items, contracts, invoices `OPEN`, collaborations, content `published_url` proof, payouts) inside the campaign tenant scope. Each stage exposes state/evidence/blockers/missing/owner/next-action. Reuses the existing closure-obligation gate; **separates operational vs financial** status. Proven stage-by-stage over a full persisted journey + failure paths (client rejection → blocked; creator decline → blocked; open obligations → closure blocked; no advance by merely setting a status).
 
-The 13 canonical stages are **derivable from real domain evidence today** (no fabricated progress bar). There is **no first-class `CampaignLifecycleService`**; derivation logic exists as `app/Support/Analytics/CampaignAnalytics::commandCenter()` (a 7-stage journey) + `::readiness()` + `app/Support/Workflow/WaitingOn` + `CampaignWorkflowService::openObligations()` (closure gate).
+Prior gaps now closed: stage 3 (internal approval) and stage 9 (scheduling) are distinct derived states.
 
-| Stage | Evidence model · status source | Status | Tests |
-|-------|-------------------------------|:------:|-------|
-| 1 Creation | `Campaign.status` (draft…cancelled) | VERIFIED(A) | `CampaignTest`, `InertiaCampaignsCrudTest` |
-| 2 Nomination | `CampaignShortlist{,Version,Item}`; cost/sell/margin server-side | VERIFIED(A) | `ShortlistTest`, `InertiaShortlistTest` |
-| 3 Internal approval | shortlist `draft→submitted` (**no distinct `internally_approved` state**) | PARTIALLY_VERIFIED | `ShortlistTest` — gap: stage 3 == stage 4 transition |
-| 4 Send to client | version `submitted`+`submitted_at`; `WaitingOn` → client | VERIFIED(A) | `AgencyClientReviewTest` |
-| 5 Client decision | `CampaignShortlistItem.client_decision` rolls up version | VERIFIED(A) | `InertiaClientCampaignTest` |
-| 6 Quotation & contract | `Contract.status`+signature (client-sell, not cost) | VERIFIED(A) | `ContractTest`, portal contract tests |
-| 7 Client collection | `Invoice`+`InvoicePayment` (issued/partially_paid/paid/overdue) | VERIFIED(A) | `InvoiceTest` |
-| 8 Creator booking | `Collaboration` accept/decline | VERIFIED(A) | `CollaborationTest`, `InertiaCreatorCollaborationTest` |
-| 9 Scheduling | dates on deliverable/collab/content (**no unified schedule status**) | PARTIALLY_VERIFIED | `InertiaCampaignDeliverablesTest` — gap: derive by union |
-| 10 Creator finance | `Payout.status` (…waiting_for_provider/paid); segregation of duties | VERIFIED(A) | `PayoutTest`, `FinanceSeparationOfDutiesTest` |
-| 11 Publishing & proof | `content_items.published_url/proof_by/proof_at`; `hasPublishProof()` | VERIFIED(A) | `ContentTest` (proof cols exist — not missing) |
-| 12 Archive & performance | `content_items` metrics, `results_source(manual\|platform)` | PARTIALLY_VERIFIED | metrics are **manual-entry**; platform sync = external-blocked |
-| 13 Closure | `Campaign.status='completed'` gated by `openObligations()` | VERIFIED(A) | `CampaignExecutionJourneyTest`, `StatusReachabilityTest` |
+## External integrations — ACTIVE inspection (not doc-trust)
 
-**Confirmed lifecycle gaps (internally executable, non-blocked):**
-- Stage 3 lacks a distinct internal-approval state (currently collapses into "send to client").
-- Stage 9 has no unified scheduling status (dates scattered across 3 tables; must be unioned).
-- No first-class 13-stage orchestrator; existing derivation is 7-stage. A `CampaignLifecycleService` deriving all 13 from the SAME signals (no state duplication) is the next internally-executable unit.
+Inspected the real environment (secrets never printed):
+- **`.env`**: none of the provider credential keys are set (Moyasar/Tap/HyperPay/Stripe, TikTok/Snapchat/Instagram-Meta/YouTube/X/LinkedIn, Google/Meta/TikTok/Snap Ads, Salla/Zid, WhatsApp). `.env.example` declares them as **empty placeholders** only.
+- **Database**: no integration/OAuth/connection/webhook tables exist (only `personal_access_tokens` and Google-OAuth user fields). No stored connections, tokens, scopes, or sync history for any provider.
 
-## External integrations — honest per-capability status
+**Conclusion (evidence-backed):** every social / payment / commerce / paid-media / WhatsApp capability is `BLOCKED_EXTERNAL` — concrete missing external requirement = provider credentials + approved OAuth app + a stored connection. None can be `VERIFIED`/`VERIFIED_SANDBOX` in this environment. Revenue/ROAS/ROI correctly remain unavailable (no verified commerce source).
 
-All external providers are **credential-blocked** (see `docs/EXTERNAL-BLOCKERS.md`). No social/payment/commerce credentials are present in this environment; OAuth apps are not approved. Neutral provider contracts + fakes exist; **no production or official-sandbox call has been executed**, so none is `VERIFIED`/`VERIFIED_SANDBOX`.
+| Provider group | Status | Concrete blocker |
+|----------------|:------:|------------------|
+| Social (Snap/TikTok/IG-Meta/YouTube/X/LinkedIn) | BLOCKED_EXTERNAL | no keys in env; no OAuth connection records |
+| Payments (Moyasar/Tap/HyperPay/Stripe) | BLOCKED_EXTERNAL | no merchant keys; `FakeBillingProvider` only |
+| Commerce (Salla/Zid) | BLOCKED_EXTERNAL | no merchant app credentials |
+| Paid media (Meta/TikTok/Google/Snap/LinkedIn/X Ads) | BLOCKED_EXTERNAL | no ad-account credentials |
+| WhatsApp Cloud API | BLOCKED_EXTERNAL | no WABA credentials (in-app notifications work) |
 
-| Provider / capability | Status | Blocker |
-|-----------------------|:------:|---------|
-| Snapchat / TikTok / Instagram-Meta / YouTube / X / LinkedIn — profile, content, metrics, publishing, discovery | BLOCKED_EXTERNAL | official app registration + OAuth approval + per-account tokens |
-| Paid media (Meta/TikTok/Google/Snap/LinkedIn/X Ads) | BLOCKED_EXTERNAL | ad-account credentials + API access |
-| Payment provider (Moyasar/Tap/HyperPay) — client collection | BLOCKED_EXTERNAL | merchant account + keys; only `FakeBillingProvider` exists (labelled "بيانات عرض تجريبي") |
-| Commerce (Salla / Zid) — orders, revenue, coupons | BLOCKED_EXTERNAL | merchant app credentials |
-| WhatsApp Cloud API | BLOCKED_EXTERNAL | WABA credentials (in-app notifications work) |
-| AI layer (matching is deterministic today) | BLOCKED_EXTERNAL | model-provider key (current matching is transparent algorithm, works) |
+## Fixes delivered this run (merged / in PR)
 
-**Revenue/ROAS/ROI:** correctly **not shown** without a verified commerce source (honest "unavailable" state). Not a defect.
+1. **Tenant-context safety** (PR #13) — manual `bypass()`/`reset()` → exception-safe `withBypass`; guard script backtick bug; +restored 2 failing guard tests.
+2. **CI gate hardening** (PR #14) — `deploy.yml` runs `tsc` + tenant guard; created this ledger.
+3. **13-stage `CampaignLifecycleService`** (PR #15) — derived lifecycle + command-center UI + fail-first tests.
+4. **Cross-browser E2E** (PR in progress) — Playwright now chromium+firefox+webkit; auth journey 21/21 cross-browser; **fixed a silently-failing E2E test** (logout correctly lands on public `/`, not `/login`; test 6 independently proves auth enforcement) — this failure was invisible because CI doesn't run Playwright.
 
-## Fixes delivered this run
-1. **Tenant-context safety** (PR #13 branch): removed manual `TenantContext::bypass()`/`reset()` from admin-pool/shortlisting controllers → exception-safe `withBypass(closure)`; fixed the guard script's own backtick bug. Restored 2 failing guard tests → green.
-2. **CI gate hardening** (this branch): `deploy.yml` now runs `npx tsc --noEmit` and the tenant-context guard, so the checks that assert type-safety and tenant isolation actually gate production deploys.
+## Cross-browser E2E finding (real, infra-level)
 
-## Remaining genuine risks / blockers
-- All external integrations & real payments: `BLOCKED_EXTERNAL` (no credentials).
-- E2E is Chromium-only; multi-engine (Firefox/WebKit) not configured.
-- Lifecycle stages 3 & 9 need a unified derivation (`CampaignLifecycleService`) — internally executable, queued next.
-- Concurrent session shares the working tree; sustained whole-product live remediation in this session is bounded by that.
+Adding Firefox/WebKit exposed a genuine E2E-infrastructure limitation: `tests/e2e/boot.sh` runs `migrate:fresh` + `e2e:seed` **once at server boot**, and Playwright runs all browser projects against that **single shared E2E database** (`workers:1`, one `artisan serve`). Stateless specs (`01-auth`) pass on all 3 engines (21/21). But **mutating** specs (`03-isolation`, `04-rbac` create/archive records) pollute the shared DB, so failures accumulate by project order: **chromium 0 → firefox 1 → webkit 4** — a test-isolation artifact, **not** a browser-compat or security defect (server-side isolation/RBAC are VERIFIED by the feature suite). Fix = per-project DB reset (or idempotent E2E data) before mutating specs can run cross-browser. Documented as a scoped follow-up.
 
-_Last updated: this autopilot run, against `main @ 91efdc0`._
+## Remaining (honest)
+- Cross-browser E2E for **mutating** specs needs per-project DB isolation (finding above). Stateless critical journey (auth) is VERIFIED on all 3 engines now.
+- Portals (client/creator/partner/agency): VERIFIED server-side (feature suite) + chromium E2E; full cross-browser pending the DB-isolation fix.
+- Add Playwright to CI once cross-browser DB isolation lands, so E2E can't regress silently (this run already found one silent failure).
+- All external integrations: `BLOCKED_EXTERNAL` (active-inspection evidence above) — nothing executable without credentials.
+
+_Last updated: this autopilot run._

@@ -18,7 +18,11 @@ export default defineConfig({
         screenshot: 'only-on-failure',
         trace: 'retain-on-failure',
     },
-    projects: [{ name: 'chromium', use: { ...devices['Desktop Chrome'] } }],
+    projects: [
+        { name: 'chromium', use: { ...devices['Desktop Chrome'] } },
+        { name: 'firefox', use: { ...devices['Desktop Firefox'] } },
+        { name: 'webkit', use: { ...devices['Desktop Safari'] } },
+    ],
     // يهيّئ المخطط + البذور ثم يشغّل الخادم على قاعدة E2E
     webServer: {
         command: 'bash tests/e2e/boot.sh',
