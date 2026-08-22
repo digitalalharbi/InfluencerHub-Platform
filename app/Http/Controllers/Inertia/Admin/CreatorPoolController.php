@@ -104,6 +104,36 @@ class CreatorPoolController extends Controller
     }
 
     /**
+     * تعديل أسعار التكلفة والبيع لمؤثر القاعدة — أسعار ثابتة قابلة للتعديل والاعتماد.
+     *
+     * القيم تُدخَل بالريال وتُخزَّن بالهللة (×100). أي حقل فارغ يُمسح (يصبح بلا سعر).
+     * لمدير النظام وحده (المجموعة محميّة بـsystem_admin).
+     */
+    public function updatePricing(Request $r, PoolCreator $poolCreator): RedirectResponse
+    {
+        $data = $r->validate([
+            'cost_post' => 'nullable|numeric|min:0|max:100000000',
+            'sell_post' => 'nullable|numeric|min:0|max:100000000',
+            'cost_coverage' => 'nullable|numeric|min:0|max:100000000',
+            'sell_coverage' => 'nullable|numeric|min:0|max:100000000',
+        ], [], [
+            'cost_post' => 'تكلفة المنشور', 'sell_post' => 'بيع المنشور',
+            'cost_coverage' => 'تكلفة التغطية', 'sell_coverage' => 'بيع التغطية',
+        ]);
+
+        $toMinor = fn ($v) => ($v === null || $v === '') ? null : (int) round(((float) $v) * 100);
+
+        $poolCreator->update([
+            'cost_post_minor' => $toMinor($data['cost_post'] ?? null),
+            'price_post_minor' => $toMinor($data['sell_post'] ?? null),
+            'cost_coverage_minor' => $toMinor($data['cost_coverage'] ?? null),
+            'price_coverage_minor' => $toMinor($data['sell_coverage'] ?? null),
+        ]);
+
+        return back()->with('ok', "حُدّثت أسعار «{$poolCreator->name}» واعتُمدت.");
+    }
+
+    /**
      * تحويل مبدعين مختارين إلى عميل — نسخة مستقلّة عن القاعدة.
      *
      * تأخذ snapshot لا مرجعًا: لو حُذفت القاعدة لاحقًا تبقى توصية العميل. ولا

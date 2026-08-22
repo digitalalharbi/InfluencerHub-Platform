@@ -32,10 +32,31 @@ function Fact({ label, value, ltr }: { label: string; value: React.ReactNode; lt
  * الملفّ الكامل لمؤثر القاعدة — صفحة تبويبات احترافية لمدير النظام.
  * تعرض بيانات حقيقية فقط (سورسنغ/تسعير/تواصل)، بلا بيانات بنكية أو سجلّ حملات مُلفّق.
  */
+const numOr = (v: string | number | null): number | null =>
+  v === '' || v == null ? null : Number(v)
+
 export default function CreatorProfile({ creator: c, clients }: Props) {
   const [tab, setTab] = useState('overview')
   const [transferOpen, setTransferOpen] = useState(false)
   const [clientId, setClientId] = useState('')
+
+  // تعديل الأسعار — قيم بالريال، فارغ = بلا سعر
+  const initPrices = () => ({
+    cost_post: c.costPost ?? '', sell_post: c.sellPost ?? '',
+    cost_coverage: c.costCoverage ?? '', sell_coverage: c.sellCoverage ?? '',
+  })
+  const [editPrice, setEditPrice] = useState(false)
+  const [pf, setPf] = useState<Record<string, string | number>>(initPrices())
+  const [saving, setSaving] = useState(false)
+  const setP = (k: string, v: string) => setPf((p) => ({ ...p, [k]: v }))
+  const savePricing = () => {
+    setSaving(true)
+    router.post(u(`/creator-pool/${c.id}/pricing`), pf, {
+      preserveScroll: true,
+      onFinish: () => setSaving(false),
+      onSuccess: () => setEditPrice(false),
+    })
+  }
 
   const transfer = () => {
     if (!clientId) return
@@ -128,24 +149,54 @@ export default function CreatorProfile({ creator: c, clients }: Props) {
         </div>
       )}
 
-      {/* المنصّة والتسعير */}
+      {/* المنصّة والتسعير — قابل للتعديل والاعتماد */}
       {tab === 'pricing' && (
         <div className="ih-sec">
-          <div className="ih-sec__head"><span className="ih-sec__title" style={{ color: platColor(c.platformLabel) }}><Icon name="wallet" size={16} /> {c.platformLabel}</span>
-            {c.accountUrl && <a href={c.accountUrl} target="_blank" rel="noopener noreferrer" className="ih-sec__link">فتح الحساب ↗</a>}</div>
-          <div className="ih-prof-price">
-            {[['منشور', c.costPost, c.sellPost], ['تغطية', c.costCoverage, c.sellCoverage]].map(([label, cost, sell]) => (
-              <div key={label as string} className="ih-prof-price__card">
-                <div className="ih-prof-price__t">{label as string}</div>
-                <div className="ih-prof-price__row"><span className="ih-prof-fact__l">التكلفة (شراء)</span><b style={{ direction: 'ltr' }}>{sar(cost as number | null)} ر.س</b></div>
-                <div className="ih-prof-price__row"><span className="ih-prof-fact__l">البيع</span><b style={{ direction: 'ltr', color: 'var(--ih-success-700, #067647)' }}>{sar(sell as number | null)} ر.س</b></div>
-                <div className="ih-prof-price__row" style={{ borderTop: '1px dashed var(--ih-border)', marginTop: '.3rem', paddingTop: '.4rem' }}>
-                  <span className="ih-prof-fact__l">الهامش (الشركة)</span>
-                  <b style={{ direction: 'ltr', color: 'var(--ih-primary-700)' }}>{sar(margin(sell as number | null, cost as number | null))} ر.س</b>
-                </div>
-              </div>
-            ))}
+          <div className="ih-sec__head">
+            <span className="ih-sec__title" style={{ color: platColor(c.platformLabel) }}><Icon name="wallet" size={16} /> {c.platformLabel} — التسعير</span>
+            {!editPrice ? (
+              <button className="btn btn-xs btn-outline" onClick={() => { setPf(initPrices()); setEditPrice(true) }}><Icon name="pencil" size={13} /> تعديل الأسعار</button>
+            ) : (
+              <span style={{ display: 'flex', gap: '.4rem' }}>
+                <button className="btn btn-xs btn-ghost" onClick={() => { setEditPrice(false); setPf(initPrices()) }}>إلغاء</button>
+                <button className="btn btn-xs btn-primary" disabled={saving} onClick={savePricing}><Icon name="check" size={13} /> {saving ? 'جارٍ الحفظ…' : 'حفظ واعتماد'}</button>
+              </span>
+            )}
           </div>
+
+          <div className="ih-prof-price">
+            {([['منشور', 'cost_post', 'sell_post', c.costPost, c.sellPost],
+              ['تغطية', 'cost_coverage', 'sell_coverage', c.costCoverage, c.sellCoverage]] as const).map(([label, ck, sk, vcost, vsell]) => {
+              const cost = editPrice ? numOr(pf[ck]) : vcost
+              const sell = editPrice ? numOr(pf[sk]) : vsell
+              return (
+                <div key={label} className="ih-prof-price__card">
+                  <div className="ih-prof-price__t">{label}</div>
+                  <div className="ih-prof-price__row">
+                    <span className="ih-prof-fact__l">التكلفة (شراء)</span>
+                    {editPrice
+                      ? <input className="field ih-price-input" type="number" min="0" inputMode="numeric" value={pf[ck]} onChange={(e) => setP(ck, e.target.value)} placeholder="—" />
+                      : <b style={{ direction: 'ltr' }}>{sar(cost)} ر.س</b>}
+                  </div>
+                  <div className="ih-prof-price__row">
+                    <span className="ih-prof-fact__l">البيع</span>
+                    {editPrice
+                      ? <input className="field ih-price-input" type="number" min="0" inputMode="numeric" value={pf[sk]} onChange={(e) => setP(sk, e.target.value)} placeholder="—" />
+                      : <b style={{ direction: 'ltr', color: 'var(--ih-success-700, #067647)' }}>{sar(sell)} ر.س</b>}
+                  </div>
+                  <div className="ih-prof-price__row" style={{ borderTop: '1px dashed var(--ih-border)', marginTop: '.3rem', paddingTop: '.4rem' }}>
+                    <span className="ih-prof-fact__l">الهامش (الشركة)</span>
+                    <b style={{ direction: 'ltr', color: margin(sell, cost) != null && (margin(sell, cost) as number) < 0 ? 'var(--ih-danger-ink)' : 'var(--ih-primary-700)' }}>{sar(margin(sell, cost))} ر.س</b>
+                  </div>
+                </div>
+              )
+            })}
+          </div>
+          {editPrice && (
+            <p style={{ fontSize: '.74rem', color: 'var(--ih-text-muted)', marginTop: '.7rem' }}>
+              القيم بالريال. اترك الحقل فارغًا لإزالة السعر. الهامش يُحسب تلقائيًّا (البيع − التكلفة).
+            </p>
+          )}
         </div>
       )}
 

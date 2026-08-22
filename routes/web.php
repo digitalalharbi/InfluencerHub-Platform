@@ -429,6 +429,7 @@ Route::middleware(['auth', 'system_admin', 'inertia'])->prefix('beta/admin')->gr
     Route::post('/creator-pool/transfer', [\App\Http\Controllers\Inertia\Admin\CreatorPoolController::class, 'transfer']);
     Route::post('/creator-pool/purge', [\App\Http\Controllers\Inertia\Admin\CreatorPoolController::class, 'purge']);
     Route::get('/creator-pool/{poolCreator}', [\App\Http\Controllers\Inertia\Admin\CreatorPoolController::class, 'show'])->whereNumber('poolCreator');
+    Route::post('/creator-pool/{poolCreator}/pricing', [\App\Http\Controllers\Inertia\Admin\CreatorPoolController::class, 'updatePricing'])->whereNumber('poolCreator');
     Route::get('/signup-requests', [\App\Http\Controllers\Inertia\Admin\SignupReviewController::class, 'index']);
     Route::post('/signup-requests/{signupRequest}/contacted', [\App\Http\Controllers\Inertia\Admin\SignupReviewController::class, 'markContacted']);
     Route::post('/signup-requests/{signupRequest}/approve', [\App\Http\Controllers\Inertia\Admin\SignupReviewController::class, 'approve']);

@@ -114,6 +114,30 @@ class CreatorPoolTest extends TestCase
                 ->where('creator.tier', 'A'));
     }
 
+    /** تعديل الأسعار: يُدخل بالريال ويُخزَّن بالهللة (×100)؛ الفارغ يمسح السعر. لمدير النظام وحده. */
+    public function test_admin_can_edit_and_approve_pricing(): void
+    {
+        $plain = User::create(['name' => 'عادي', 'email' => 'pr@ex.com', 'password' => bcrypt('x'), 'is_active' => true]);
+        $p = PoolCreator::create(['name' => 'مسعّر', 'platform' => 'snapchat', 'account_url' => 'https://s/@p',
+            'followers' => 100000, 'cost_post_minor' => 100000, 'price_post_minor' => 200000]);
+
+        // غير المدير ممنوع
+        $this->actingAs($plain)->post("/beta/admin/creator-pool/{$p->id}/pricing", ['sell_post' => 999])->assertForbidden();
+
+        // المدير يعدّل: بالريال → تُخزَّن بالهللة، والفارغ يمسح
+        $this->actingAs($this->admin())->from("/beta/admin/creator-pool/{$p->id}")
+            ->post("/beta/admin/creator-pool/{$p->id}/pricing", [
+                'cost_post' => 52000, 'sell_post' => 60000,
+                'cost_coverage' => 62000, 'sell_coverage' => '',
+            ])->assertRedirect("/beta/admin/creator-pool/{$p->id}");
+
+        $p->refresh();
+        $this->assertSame(5200000, $p->cost_post_minor);      // 52000 × 100
+        $this->assertSame(6000000, $p->price_post_minor);     // 60000 × 100
+        $this->assertSame(6200000, $p->cost_coverage_minor);  // 62000 × 100
+        $this->assertNull($p->price_coverage_minor);          // فارغ → مسح
+    }
+
     // ===== الحذف (كِلّ سويتش) =====
 
     public function test_purge_requires_typed_confirmation(): void
