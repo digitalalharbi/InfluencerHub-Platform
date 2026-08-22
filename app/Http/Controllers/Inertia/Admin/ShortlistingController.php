@@ -130,10 +130,9 @@ class ShortlistingController extends Controller
      */
     private function clientsForTransfer()
     {
-        $prev = TenantContext::bypassing();
-        TenantContext::bypass(true);
-        $clients = Client::query()->orderBy('display_name')->get(['id', 'display_name']);
-        TenantContext::bypass($prev);
+        $clients = TenantContext::withBypass(
+            fn () => Client::query()->orderBy('display_name')->get(['id', 'display_name'])
+        );
 
         return $clients->map(fn ($c) => ['id' => $c->id, 'name' => $c->display_name]);
     }

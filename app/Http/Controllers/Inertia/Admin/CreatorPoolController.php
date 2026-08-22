@@ -182,11 +182,8 @@ class CreatorPoolController extends Controller
             'pool_ids.*' => 'integer',
         ], [], ['client_id' => 'العميل', 'pool_ids' => 'المبدعون']);
 
-        // العميل يُقرأ بتجاوز النطاق (المدير عابر للمستأجرين)
-        $prev = TenantContext::bypassing();
-        TenantContext::bypass(true);
-        $client = Client::find($data['client_id']);
-        TenantContext::bypass($prev);
+        // العميل يُقرأ بتجاوز النطاق (المدير عابر للمستأجرين) — closure يستعيد السياق حتى عند استثناء
+        $client = TenantContext::withBypass(fn () => Client::find($data['client_id']));
         abort_unless($client, 404, 'العميل غير موجود.');
 
         $creators = PoolCreator::whereIn('id', $data['pool_ids'])->get();
@@ -234,10 +231,9 @@ class CreatorPoolController extends Controller
     /** @return \Illuminate\Support\Collection */
     private function clientsForTransfer()
     {
-        $prev = TenantContext::bypassing();
-        TenantContext::bypass(true);
-        $clients = Client::query()->orderBy('display_name')->get(['id', 'display_name', 'tenant_id']);
-        TenantContext::bypass($prev);
+        $clients = TenantContext::withBypass(
+            fn () => Client::query()->orderBy('display_name')->get(['id', 'display_name', 'tenant_id'])
+        );
 
         return $clients->map(fn ($c) => ['id' => $c->id, 'name' => $c->display_name]);
     }
