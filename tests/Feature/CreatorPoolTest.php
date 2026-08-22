@@ -98,6 +98,22 @@ class CreatorPoolTest extends TestCase
         $this->actingAs($this->admin())->get('/beta/admin/creator-pool')->assertOk();
     }
 
+    /** الملفّ الكامل يُعرض لمدير النظام وحده ويحمل بيانات المؤثر الحقيقية. */
+    public function test_creator_profile_page_renders_for_admin_only(): void
+    {
+        $plain = User::create(['name' => 'عادي', 'email' => 'pp@ex.com', 'password' => bcrypt('x'), 'is_active' => true]);
+        $p = PoolCreator::create(['name' => 'مبدع الملفّ', 'platform' => 'snapchat',
+            'account_url' => 'https://s/@x', 'phone' => '0511112222', 'followers' => 900000, 'tier' => 'A']);
+
+        $this->actingAs($plain)->get("/beta/admin/creator-pool/{$p->id}")->assertForbidden();
+        $this->actingAs($this->admin())->get("/beta/admin/creator-pool/{$p->id}")
+            ->assertOk()
+            ->assertInertia(fn ($page) => $page
+                ->component('Admin/CreatorProfile')
+                ->where('creator.name', 'مبدع الملفّ')
+                ->where('creator.tier', 'A'));
+    }
+
     // ===== الحذف (كِلّ سويتش) =====
 
     public function test_purge_requires_typed_confirmation(): void

@@ -90,6 +90,20 @@ class CreatorPoolController extends Controller
     }
 
     /**
+     * الملفّ الكامل لمؤثر القاعدة — صفحة تبويبات احترافية لمدير النظام.
+     *
+     * تعرض بيانات السورسنغ والتسعير والتواصل الحقيقية فقط (لا سجلّ حملات مُلفّق:
+     * مؤثرو القاعدة مستوردون للترشيح، لا يملكون تاريخ تنفيذ حتى يُحجزوا عبر عميل).
+     */
+    public function show(PoolCreator $poolCreator): Response
+    {
+        return Inertia::render('Admin/CreatorProfile', [
+            'creator' => $poolCreator->toBookingArray(),
+            'clients' => $this->clientsForTransfer(),
+        ]);
+    }
+
+    /**
      * تحويل مبدعين مختارين إلى عميل — نسخة مستقلّة عن القاعدة.
      *
      * تأخذ snapshot لا مرجعًا: لو حُذفت القاعدة لاحقًا تبقى توصية العميل. ولا

@@ -188,7 +188,7 @@ export function CreatorDetailModal({
 
         <div className="ih-detailmodal__foot">
           <button className="btn btn-primary" style={{ flex: 1 }} onClick={() => onTransfer(c.id)}><Icon name="share" size={15} /> تحويل إلى عميل</button>
-          <a href={u(`/creator-pool?q=${encodeURIComponent(c.name)}`)} className="btn btn-outline">في القاعدة</a>
+          <a href={u(`/creator-pool/${c.id}`)} className="btn btn-outline"><Icon name="external-link" size={14} /> الملفّ الكامل</a>
         </div>
       </div>
     </div>
