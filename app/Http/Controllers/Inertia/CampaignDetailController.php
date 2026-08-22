@@ -35,6 +35,8 @@ class CampaignDetailController extends Controller
         $metrics = CampaignAnalytics::forPage(collect([$campaign]))[$campaign->id] ?? [];
         $command = CampaignAnalytics::commandCenter($campaign, $metrics);
         $readiness = CampaignAnalytics::readiness($campaign, $metrics);
+        // مراحل الحملة الـ13 — مشتقّة من الحالة الحقيقية للنطاقات (لا حقل زخرفيّ)
+        $lifecycle = (new \App\Domain\Campaigns\Services\CampaignLifecycleService)->forCampaign($campaign);
         $timeline = collect(CampaignAnalytics::timeline($campaign))->map(fn ($e) => [
             'at' => $e['at']?->format('Y-m-d H:i'),
             'icon' => $e['icon'],
@@ -93,6 +95,7 @@ class CampaignDetailController extends Controller
                 'isLate' => (bool) ($metrics['is_late'] ?? false),
             ],
             'command' => $command,
+            'lifecycle' => $lifecycle,
             'readiness' => $readiness,
             'timeline' => $timeline,
             'canManage' => request()->user()->can('update', $campaign),

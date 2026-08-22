@@ -12,6 +12,18 @@ interface Command {
 }
 interface ReadyItem { label: string; done: boolean; hint: string; link: string | null }
 interface Readiness { items: ReadyItem[]; done: number; total: number; percent: number }
+interface LifeStage {
+  key: string; label: string; label_en: string; owner: string;
+  state: 'complete' | 'in_progress' | 'blocked' | 'not_started';
+  evidence: string | null; blockers: string[]; missing: string[];
+  next_action: { title: string; link: string } | null; entities: Record<string, number>;
+}
+interface Lifecycle {
+  stages: LifeStage[]; current: string | null; current_label: string;
+  completed: number; total: number; progress: number;
+  operational: { state: string; label: string };
+  financial: { collection: string; payout: string; settled: boolean; label: string };
+}
 interface TL { at: string | null; icon: string; tone: string; text: string; meta: string }
 interface Row { id: number; status: string; statusLabel: string; statusTone: string }
 type Deliverable = Row & { type: string; typeLabel: string; platform: string | null; quantity: number; creator: string | null };
@@ -32,7 +44,7 @@ interface CampaignInvoice {
   totalMinor: number; balanceMinor: number; dueDate: string | null;
 }
 interface Props {
-  campaign: Campaign; metrics: Metrics; command: Command; readiness: Readiness; timeline: TL[];
+  campaign: Campaign; metrics: Metrics; command: Command; lifecycle: Lifecycle; readiness: Readiness; timeline: TL[];
   deliverables: Deliverable[]; collaborations: Collab[]; content: Content[];
   canManage: boolean; deliverableTypes: Option[]; actions: CampaignAction[];
   invoices: CampaignInvoice[]; canInvoice: boolean;
@@ -57,7 +69,7 @@ function EmptyRow({ span, text }: { span: number; text: string }) {
   return <tr><td colSpan={span} style={{ textAlign: 'center', color: 'var(--ih-text-muted)', padding: '1.6rem' }}>{text}</td></tr>;
 }
 
-export default function CampaignShow({ campaign, metrics, command, readiness, timeline, deliverables, collaborations, content, canManage, deliverableTypes, actions, invoices, canInvoice }: Props) {
+export default function CampaignShow({ campaign, metrics, command, lifecycle, readiness, timeline, deliverables, collaborations, content, canManage, deliverableTypes, actions, invoices, canInvoice }: Props) {
   const [actionFor, setActionFor] = useState<CampaignAction | null>(null);
   const [actionReason, setActionReason] = useState('');
   const runAction = (a: CampaignAction) => {
@@ -179,21 +191,47 @@ export default function CampaignShow({ campaign, metrics, command, readiness, ti
         </div>
       )}
 
-      {/* رحلة الحملة */}
-      <div className="card" style={{ padding: '1rem 1.2rem', marginBottom: '1.1rem' }}>
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '.6rem' }}>
-          <span style={{ fontWeight: 700, fontSize: '.9rem' }}>رحلة الحملة</span>
-          <span style={{ fontSize: '.78rem', color: 'var(--ih-text-muted)' }}>{command.progress}% · {command.current_label}{command.is_late && <> · <span style={{ color: 'var(--ih-danger-ink)' }}>متأخرة</span></>}</span>
-        </div>
-        <div className="ih-journey">
-          {command.stages.map((st, i) => (
-            <div key={st.key} className={`ih-journey__step ${st.state}`}>
-              <span className="ih-journey__dot">{st.state === 'done' ? '✓' : i + 1}</span>
-              <span className="ih-journey__label">{st.label}</span>
+      {/* مركز قيادة الحملة — 13 مرحلة مشتقّة من الحالة الحقيقية */}
+      {(() => {
+        const TONE: Record<string, { bg: string; fg: string; dot: string }> = {
+          complete: { bg: 'var(--ih-success-soft)', fg: 'var(--ih-success-700, #067647)', dot: 'var(--ih-success-700, #067647)' },
+          in_progress: { bg: 'var(--ih-primary-soft)', fg: 'var(--ih-primary-700)', dot: 'var(--ih-primary)' },
+          blocked: { bg: 'var(--ih-danger-soft, #FEF3F2)', fg: 'var(--ih-danger-ink, #B42318)', dot: 'var(--ih-danger-ink, #B42318)' },
+          not_started: { bg: 'var(--ih-surface-sunken)', fg: 'var(--ih-text-muted)', dot: 'var(--ih-gray-400)' },
+        };
+        return (
+          <div className="card" style={{ padding: '1rem 1.2rem', marginBottom: '1.1rem' }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '.7rem', flexWrap: 'wrap', gap: '.5rem' }}>
+              <span style={{ fontWeight: 800, fontSize: '.95rem' }}>مركز قيادة الحملة — {lifecycle.total} مراحل</span>
+              <span style={{ display: 'flex', gap: '.5rem', alignItems: 'center', flexWrap: 'wrap', fontSize: '.74rem' }}>
+                <b style={{ color: 'var(--ih-primary-700)' }}>{lifecycle.progress}%</b>
+                <span style={{ color: 'var(--ih-text-muted)' }}>{lifecycle.completed}/{lifecycle.total} · المرحلة: {lifecycle.current_label}</span>
+                <span className="badge" style={{ background: 'var(--ih-surface-sunken)', color: 'var(--ih-text-secondary)' }}>تشغيليًّا: {lifecycle.operational.label}</span>
+                <span className="badge" style={{ background: lifecycle.financial.settled ? 'var(--ih-success-soft)' : 'var(--ih-warning-soft, #FFFAEB)', color: lifecycle.financial.settled ? 'var(--ih-success-700, #067647)' : 'var(--ih-warning-ink, #B54708)' }}>ماليًّا: {lifecycle.financial.label}</span>
+              </span>
             </div>
-          ))}
-        </div>
-      </div>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(260px, 1fr))', gap: '.5rem' }}>
+              {lifecycle.stages.map((st, i) => {
+                const t = TONE[st.state];
+                return (
+                  <div key={st.key} style={{ border: `1px solid var(--ih-border)`, borderInlineStart: `3px solid ${t.dot}`, borderRadius: 8, padding: '.55rem .7rem', background: st.key === lifecycle.current ? 'var(--ih-primary-50, #F5F8FF)' : 'var(--ih-surface)' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '.45rem' }}>
+                      <span style={{ width: 20, height: 20, borderRadius: 6, background: t.bg, color: t.fg, display: 'grid', placeItems: 'center', fontSize: '.66rem', fontWeight: 800, flexShrink: 0 }}>{st.state === 'complete' ? '✓' : st.state === 'blocked' ? '!' : i + 1}</span>
+                      <span style={{ fontWeight: 700, fontSize: '.82rem', flex: 1, minWidth: 0 }}>{st.label}</span>
+                      <span style={{ fontSize: '.62rem', color: 'var(--ih-text-muted)' }}>{st.owner}</span>
+                    </div>
+                    {st.blockers.length > 0 && <div style={{ fontSize: '.68rem', color: 'var(--ih-danger-ink, #B42318)', marginTop: '.3rem' }}>⚠ {st.blockers.join(' · ')}</div>}
+                    {st.state !== 'blocked' && st.evidence && <div style={{ fontSize: '.68rem', color: 'var(--ih-text-muted)', marginTop: '.3rem' }}>{st.evidence}</div>}
+                    {st.state !== 'complete' && st.next_action && (
+                      <a href={st.next_action.link} style={{ fontSize: '.68rem', color: 'var(--ih-primary-700)', textDecoration: 'none', marginTop: '.3rem', display: 'inline-block', fontWeight: 600 }}>{st.next_action.title} ←</a>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        );
+      })()}
 
       <SummaryStrip items={[
         { label: 'الميزانية', value: money(campaign.budgetMinor, campaign.currency) },
