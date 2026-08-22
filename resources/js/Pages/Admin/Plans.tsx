@@ -1,8 +1,10 @@
-import { Head } from '@inertiajs/react';
+import { Head, router } from '@inertiajs/react';
+import { useState } from 'react';
 import AppShell from '@/Layouts/AppShell';
 import { adminNav } from '@/lib/nav';
 import { ListHead, Kpi, numFmt } from '@/Components/ui';
 import { Icon } from '@/Components/Icon';
+import { u } from '@/lib/href';
 
 interface Entitlement { key: string; value: string }
 interface Version { version: number; active: boolean; locked: boolean; entitlements: Entitlement[] }
@@ -11,6 +13,15 @@ interface Summary { total: number; active: number; versions: number; liveVersion
 interface Props { plans: Plan[]; summary: Summary }
 
 export default function AdminPlans({ plans, summary }: Props) {
+  const [edit, setEdit] = useState<Plan | null>(null);
+  const [ef, setEf] = useState({ name: '', is_active: true });
+  const [saving, setSaving] = useState(false);
+  const openEdit = (p: Plan) => { setEf({ name: p.name, is_active: p.active }); setEdit(p); };
+  const save = () => {
+    if (!edit) return;
+    setSaving(true);
+    router.post(u(`/plans/${edit.id}`), { name: ef.name, is_active: ef.is_active }, { preserveScroll: true, onFinish: () => setSaving(false), onSuccess: () => setEdit(null) });
+  };
   return (
     <AppShell heading="الخطط" nav={adminNav} portal="admin" wsName="إدارة المنصّة" wsPlan="مدير النظام" brand="InfluencerHub">
       <Head title="الخطط" />
@@ -45,6 +56,7 @@ export default function AdminPlans({ plans, summary }: Props) {
                   <div style={{ fontSize: '.72rem', color: 'var(--ih-text-muted)', direction: 'ltr', textAlign: 'start' }}>{p.key}</div>
                 </div>
                 <span style={{ fontSize: '.74rem', color: 'var(--ih-text-muted)' }}>{p.versions.length} إصدار</span>
+                <button className="btn btn-xs btn-outline" onClick={() => openEdit(p)}><Icon name="pencil" size={12} /> تعديل</button>
               </div>
 
               {p.versions.length === 0 ? (
@@ -76,6 +88,30 @@ export default function AdminPlans({ plans, summary }: Props) {
               )}
             </div>
           ))}
+        </div>
+      )}
+
+      {edit && (
+        <div className="modal-backdrop" role="dialog" aria-modal="true" aria-label="تعديل خطة"
+          onClick={(e) => { if (e.target === e.currentTarget) setEdit(null); }}>
+          <div className="modal" style={{ width: 'min(420px, 100%)', padding: '1.3rem' }}>
+            <h3 style={{ margin: '0 0 .2rem' }}>تعديل الخطة</h3>
+            <p style={{ fontSize: '.74rem', color: 'var(--ih-text-muted)', margin: '0 0 1rem', direction: 'ltr', textAlign: 'start' }}>{edit.key}</p>
+            <div style={{ display: 'grid', gap: '.9rem' }}>
+              <label style={{ display: 'grid', gap: '.3rem' }}>
+                <span style={{ fontSize: '.8rem', fontWeight: 600 }}>اسم الخطة</span>
+                <input className="field" value={ef.name} onChange={(e) => setEf({ ...ef, name: e.target.value })} autoFocus />
+              </label>
+              <label style={{ display: 'flex', alignItems: 'center', gap: '.5rem', cursor: 'pointer' }}>
+                <input type="checkbox" checked={ef.is_active} onChange={(e) => setEf({ ...ef, is_active: e.target.checked })} />
+                <span style={{ fontSize: '.85rem', fontWeight: 600 }}>خطة نشطة (متاحة للاشتراك)</span>
+              </label>
+            </div>
+            <div style={{ display: 'flex', gap: '.5rem', marginTop: '1.2rem', justifyContent: 'flex-end' }}>
+              <button className="btn btn-sm btn-ghost" onClick={() => setEdit(null)}>إلغاء</button>
+              <button className="btn btn-sm btn-primary" disabled={saving || !ef.name.trim()} onClick={save}><Icon name="check" size={14} /> {saving ? 'جارٍ الحفظ…' : 'حفظ واعتماد'}</button>
+            </div>
+          </div>
         </div>
       )}
     </AppShell>

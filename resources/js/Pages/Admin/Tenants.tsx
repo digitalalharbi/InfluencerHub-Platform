@@ -15,10 +15,21 @@ interface Summary {
 interface Props { tenants: Paginated<Row>; summary: Summary; filters: { q: string | null; status: string | null } }
 
 const MODE_LABEL: Record<string, string> = { saas: 'سحابي (SaaS)', dedicated: 'مخصّص', self_hosted: 'استضافة ذاتية' };
+const STATUSES: [string, string][] = [['active', 'نشط'], ['suspended', 'معلّق'], ['pending', 'قيد الانتظار'], ['archived', 'مؤرشف']];
+const MODES: [string, string][] = [['saas', 'سحابي (SaaS)'], ['dedicated', 'مخصّص'], ['self_hosted', 'استضافة ذاتية']];
 
 export default function AdminTenants({ tenants, summary, filters }: Props) {
   const [q, setQ] = useState(filters.q ?? '');
   const first = useRef(true);
+  const [edit, setEdit] = useState<Row | null>(null);
+  const [ef, setEf] = useState({ name: '', status: '', deployment_mode: '' });
+  const [saving, setSaving] = useState(false);
+  const openEdit = (t: Row) => { setEf({ name: t.name, status: t.status, deployment_mode: t.mode }); setEdit(t); };
+  const save = () => {
+    if (!edit) return;
+    setSaving(true);
+    router.post(u(`/tenants/${edit.id}`), ef, { preserveScroll: true, onFinish: () => setSaving(false), onSuccess: () => setEdit(null) });
+  };
 
   const apply = (patch: Record<string, string | undefined>) =>
     router.get(u('/tenants'), clean({ q: q || undefined, status: filters.status || undefined, ...patch }), { preserveState: true, replace: true, preserveScroll: true });
@@ -69,7 +80,7 @@ export default function AdminTenants({ tenants, summary, filters }: Props) {
           <div className="ih-only-desktop">
             <div className="ih-dt-wrap"><div className="ih-dt-scroll">
               <table className="ih-dt">
-                <thead><tr><th>المستأجر</th><th>النمط</th><th>المؤسسات</th><th>الأعضاء</th><th>اشتراك</th><th>الحالة</th></tr></thead>
+                <thead><tr><th>المستأجر</th><th>النمط</th><th>المؤسسات</th><th>الأعضاء</th><th>اشتراك</th><th>الحالة</th><th></th></tr></thead>
                 <tbody>
                   {tenants.data.map((t) => (
                     <tr key={t.id}>
@@ -87,6 +98,7 @@ export default function AdminTenants({ tenants, summary, filters }: Props) {
                       <td className="ih-dt__num" style={{ direction: 'ltr', textAlign: 'right' }}>{t.members.toLocaleString('en-US')}</td>
                       <td>{t.sub ? <span className="badge" style={{ background: 'var(--ih-success-soft)', color: 'var(--ih-success-ink)' }}>نشط</span> : <span style={{ color: 'var(--ih-text-muted)' }}>—</span>}</td>
                       <td><StatusBadge tone={t.statusTone} label={t.statusLabel} /></td>
+                      <td style={{ textAlign: 'end' }}><button className="btn btn-xs btn-outline" onClick={() => openEdit(t)}><Icon name="pencil" size={12} /> تعديل</button></td>
                     </tr>
                   ))}
                 </tbody>
@@ -112,12 +124,44 @@ export default function AdminTenants({ tenants, summary, filters }: Props) {
                     <div><span className="ih-mcard__lbl">المؤسسات</span><span className="ih-mcard__val">{t.orgs}</span></div>
                     <div><span className="ih-mcard__lbl">الأعضاء</span><span className="ih-mcard__val">{t.members}</span></div>
                   </div>
+                  <button className="btn btn-xs btn-outline" style={{ marginTop: '.6rem' }} onClick={() => openEdit(t)}><Icon name="pencil" size={12} /> تعديل</button>
                 </div>
               ))}
             </div>
             <Pagination links={tenants.links} />
           </div>
         </>
+      )}
+
+      {edit && (
+        <div className="modal-backdrop" role="dialog" aria-modal="true" aria-label="تعديل مستأجر"
+          onClick={(e) => { if (e.target === e.currentTarget) setEdit(null); }}>
+          <div className="modal" style={{ width: 'min(440px, 100%)', padding: '1.3rem' }}>
+            <h3 style={{ margin: '0 0 1rem' }}>تعديل المستأجر</h3>
+            <div style={{ display: 'grid', gap: '.8rem' }}>
+              <label style={{ display: 'grid', gap: '.3rem' }}>
+                <span style={{ fontSize: '.8rem', fontWeight: 600 }}>الاسم</span>
+                <input className="field" value={ef.name} onChange={(e) => setEf({ ...ef, name: e.target.value })} autoFocus />
+              </label>
+              <label style={{ display: 'grid', gap: '.3rem' }}>
+                <span style={{ fontSize: '.8rem', fontWeight: 600 }}>الحالة</span>
+                <select className="field" value={ef.status} onChange={(e) => setEf({ ...ef, status: e.target.value })}>
+                  {STATUSES.map(([v, l]) => <option key={v} value={v}>{l}</option>)}
+                </select>
+              </label>
+              <label style={{ display: 'grid', gap: '.3rem' }}>
+                <span style={{ fontSize: '.8rem', fontWeight: 600 }}>نمط الاستضافة</span>
+                <select className="field" value={ef.deployment_mode} onChange={(e) => setEf({ ...ef, deployment_mode: e.target.value })}>
+                  {MODES.map(([v, l]) => <option key={v} value={v}>{l}</option>)}
+                </select>
+              </label>
+            </div>
+            <div style={{ display: 'flex', gap: '.5rem', marginTop: '1.2rem', justifyContent: 'flex-end' }}>
+              <button className="btn btn-sm btn-ghost" onClick={() => setEdit(null)}>إلغاء</button>
+              <button className="btn btn-sm btn-primary" disabled={saving || !ef.name.trim()} onClick={save}><Icon name="check" size={14} /> {saving ? 'جارٍ الحفظ…' : 'حفظ واعتماد'}</button>
+            </div>
+          </div>
+        </div>
       )}
     </AppShell>
   );

@@ -85,4 +85,42 @@ class InertiaAdminPlatformTest extends TestCase
         $this->actingAs($u)->get('/beta/admin/subscriptions')->assertOk()->assertInertia(fn (Assert $page) => $page->component('Admin/Subscriptions')->has('subs.data', 1));
         $this->actingAs($u)->get('/beta/admin/audit')->assertOk()->assertInertia(fn (Assert $page) => $page->component('Admin/Audit')->has('logs'));
     }
+
+    /** التعديل والاعتماد: مستأجر/خطة/اشتراك — لمدير النظام وحده، ويثبت في القاعدة. */
+    public function test_admin_can_edit_tenant_plan_and_subscription(): void
+    {
+        $t = $this->seedTenant();
+        $u = $this->admin();
+
+        TenantContext::bypass(true);
+        $plan = Plan::firstOrFail();
+        $sub = \App\Domain\Billing\Models\Subscription::withoutGlobalScopes()->where('tenant_id', $t->id)->firstOrFail();
+        TenantContext::reset();
+
+        // مستأجر
+        $this->actingAs($u)->from('/beta/admin/tenants')
+            ->post("/beta/admin/tenants/{$t->id}", ['name' => 'وكالة معدّلة', 'status' => 'suspended', 'deployment_mode' => 'dedicated'])
+            ->assertRedirect();
+        TenantContext::bypass(true); $t->refresh(); TenantContext::reset();
+        $this->assertSame('وكالة معدّلة', $t->name);
+        $this->assertSame('suspended', $t->status);
+
+        // خطة
+        $this->actingAs($u)->post("/beta/admin/plans/{$plan->id}", ['name' => 'خطة مطوّرة', 'is_active' => false])->assertRedirect();
+        TenantContext::bypass(true); $plan->refresh(); TenantContext::reset();
+        $this->assertSame('خطة مطوّرة', $plan->name);
+        $this->assertFalse((bool) $plan->is_active);
+
+        // اشتراك
+        $this->actingAs($u)->post("/beta/admin/subscriptions/{$sub->id}", ['status' => 'active', 'billing_provider' => 'moyasar'])->assertRedirect();
+        TenantContext::bypass(true); $sub->refresh(); TenantContext::reset();
+        $this->assertSame('active', $sub->status);
+        $this->assertSame('moyasar', $sub->billing_provider);
+
+        // غير المدير ممنوع
+        TenantContext::bypass(true);
+        $plain = User::create(['name' => 'x', 'email' => Str::random(5) . '@ex.com', 'password' => bcrypt('x'), 'is_active' => true]);
+        TenantContext::reset();
+        $this->actingAs($plain)->post("/beta/admin/tenants/{$t->id}", ['name' => 'y', 'status' => 'active', 'deployment_mode' => 'saas'])->assertForbidden();
+    }
 }

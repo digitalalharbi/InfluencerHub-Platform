@@ -437,8 +437,11 @@ Route::middleware(['auth', 'system_admin', 'inertia'])->prefix('beta/admin')->gr
     Route::post('/signup-requests/{signupRequest}/reject', [\App\Http\Controllers\Inertia\Admin\SignupReviewController::class, 'reject']);
     Route::get('/', [\App\Http\Controllers\Inertia\Admin\PlatformController::class, 'dashboard']);
     Route::get('/tenants', [\App\Http\Controllers\Inertia\Admin\PlatformController::class, 'tenants']);
+    Route::post('/tenants/{tenant}', [\App\Http\Controllers\Inertia\Admin\PlatformController::class, 'updateTenant'])->whereNumber('tenant');
     Route::get('/plans', [\App\Http\Controllers\Inertia\Admin\PlatformController::class, 'plans']);
+    Route::post('/plans/{plan}', [\App\Http\Controllers\Inertia\Admin\PlatformController::class, 'updatePlan'])->whereNumber('plan');
     Route::get('/subscriptions', [\App\Http\Controllers\Inertia\Admin\PlatformController::class, 'subscriptions']);
+    Route::post('/subscriptions/{subscription}', [\App\Http\Controllers\Inertia\Admin\PlatformController::class, 'updateSubscription'])->whereNumber('subscription');
     Route::get('/audit', [\App\Http\Controllers\Inertia\Admin\PlatformController::class, 'audit']);
 });
 

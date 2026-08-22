@@ -185,6 +185,7 @@ class PlatformController extends Controller
                 'org' => Organization::withoutGlobalScopes()->where('id', $s->organization_id)->value('name') ?? '—',
                 'plan' => $s->planVersion?->plan?->name ?? '—', 'version' => (int) ($s->planVersion?->version ?? 0),
                 'status' => $s->status, 'statusLabel' => __("statuses.{$s->status}"), 'statusTone' => __("statuses.tone.{$s->status}"), 'provider' => self::PROVIDER_LABEL[$s->billing_provider] ?? ($s->billing_provider ?? 'يدوي'),
+                'providerRaw' => $s->billing_provider ?? 'manual',
                 'trialEndsAt' => $s->trial_ends_at?->format('Y-m-d'),
                 'periodEnd' => $s->current_period_end?->format('Y-m-d'),
             ]);
@@ -229,5 +230,67 @@ class PlatformController extends Controller
         });
 
         return Inertia::render('Admin/Audit', ['logs' => $logs, 'summary' => $summary]);
+    }
+
+    /* ================= التعديل والاعتماد (لمدير النظام) ================= */
+
+    /** تعديل بيانات المستأجر: الاسم/الحالة/نمط الاستضافة. */
+    public function updateTenant(Request $r, int $tenant): \Illuminate\Http\RedirectResponse
+    {
+        $data = $r->validate([
+            'name' => 'required|string|max:190',
+            'status' => 'required|in:active,suspended,pending,archived',
+            'deployment_mode' => 'required|in:saas,dedicated,self_hosted',
+        ], [], ['name' => 'الاسم', 'status' => 'الحالة', 'deployment_mode' => 'نمط الاستضافة']);
+
+        $name = TenantContext::withBypass(function () use ($tenant, $data) {
+            $t = Tenant::findOrFail($tenant);
+            $t->update($data);
+
+            return $t->name;
+        });
+
+        return back()->with('ok', "حُدّث المستأجر «{$name}» واعتُمد.");
+    }
+
+    /** تعديل الاشتراك: الحالة/المزوّد/تواريخ التجربة والدورة. */
+    public function updateSubscription(Request $r, int $subscription): \Illuminate\Http\RedirectResponse
+    {
+        $data = $r->validate([
+            'status' => 'required|in:active,trialing,past_due,canceled,expired',
+            'billing_provider' => 'nullable|in:manual,fake,moyasar,stripe',
+            'trial_ends_at' => 'nullable|date',
+            'current_period_end' => 'nullable|date',
+        ], [], ['status' => 'الحالة', 'billing_provider' => 'المزوّد']);
+
+        TenantContext::withBypass(function () use ($subscription, $data) {
+            $s = Subscription::withoutGlobalScopes()->findOrFail($subscription);
+            $s->update([
+                'status' => $data['status'],
+                'billing_provider' => $data['billing_provider'] ?? $s->billing_provider,
+                'trial_ends_at' => ($data['trial_ends_at'] ?? null) ?: null,
+                'current_period_end' => ($data['current_period_end'] ?? null) ?: null,
+            ]);
+        });
+
+        return back()->with('ok', 'حُدّث الاشتراك واعتُمد.');
+    }
+
+    /** تعديل الخطة: الاسم وحالة التفعيل (عرض/إخفاء للاشتراك). */
+    public function updatePlan(Request $r, int $plan): \Illuminate\Http\RedirectResponse
+    {
+        $data = $r->validate([
+            'name' => 'required|string|max:120',
+            'is_active' => 'required|boolean',
+        ], [], ['name' => 'الاسم']);
+
+        $name = TenantContext::withBypass(function () use ($plan, $data) {
+            $p = Plan::findOrFail($plan);
+            $p->update($data);
+
+            return $p->name;
+        });
+
+        return back()->with('ok', "حُدّثت الخطة «{$name}» واعتُمدت.");
     }
 }
