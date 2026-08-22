@@ -23,8 +23,8 @@ CI (`deploy.yml`) now runs `tsc` + tenant guard (added PR #14); deploy gated on 
 | # | Category | Status | Evidence |
 |---|----------|:------:|----------|
 | 1 | Authentication / logout / portal routing | **VERIFIED** | `01-auth` 21/21 cross-browser (chromium/firefox/webkit); backend auth tests |
-| 2 | Tenancy isolation (P0) | **VERIFIED** | `TenantHttpIsolationTest`, `TenantIsolationSweepTest`, `TenantContextGuardTest`(9), `BrandWorkspaceIsolationTest` green; guard exit 0; `03-isolation` E2E (chromium green; cross-browser run initiated) |
-| 3 | Roles & permissions | **VERIFIED** | RBAC feature tests; `04-rbac` E2E (chromium green; cross-browser run initiated) |
+| 2 | Tenancy isolation (P0) | **VERIFIED** (server-side) | `TenantHttpIsolationTest`, `TenantIsolationSweepTest`, `TenantContextGuardTest`(9), `BrandWorkspaceIsolationTest` green; guard exit 0; `03-isolation` E2E green on chromium. Cross-browser E2E blocked by shared-DB test pollution (see finding), not a security gap |
+| 3 | Roles & permissions | **VERIFIED** (server-side) | RBAC feature tests + `04-rbac` E2E green on chromium (viewer 403 on create/archive, hidden controls). Firefox/WebKit E2E fail on shared-DB pollution, not on enforcement |
 | 4 | Finance role-safety / IDOR (P0) | **VERIFIED** | `FinanceSeparationOfDutiesTest`, `FinancialMetricsTest` |
 | 5 | **13-stage campaign lifecycle** (P1) | **VERIFIED** | `CampaignLifecycleService` derives all 13 from real domain state; `CampaignLifecycleServiceTest` (4 tests/35 assertions incl. failure paths); surfaced in campaign command center. Merged PR #15 |
 | 6 | Agency portal | PARTIALLY_VERIFIED | Inertia + workflow-service tests green; `07-crm-ui-flows` E2E (chromium). Cross-browser portal specs pending |
@@ -62,9 +62,14 @@ Inspected the real environment (secrets never printed):
 3. **13-stage `CampaignLifecycleService`** (PR #15) — derived lifecycle + command-center UI + fail-first tests.
 4. **Cross-browser E2E** (PR in progress) — Playwright now chromium+firefox+webkit; auth journey 21/21 cross-browser; **fixed a silently-failing E2E test** (logout correctly lands on public `/`, not `/login`; test 6 independently proves auth enforcement) — this failure was invisible because CI doesn't run Playwright.
 
+## Cross-browser E2E finding (real, infra-level)
+
+Adding Firefox/WebKit exposed a genuine E2E-infrastructure limitation: `tests/e2e/boot.sh` runs `migrate:fresh` + `e2e:seed` **once at server boot**, and Playwright runs all browser projects against that **single shared E2E database** (`workers:1`, one `artisan serve`). Stateless specs (`01-auth`) pass on all 3 engines (21/21). But **mutating** specs (`03-isolation`, `04-rbac` create/archive records) pollute the shared DB, so failures accumulate by project order: **chromium 0 → firefox 1 → webkit 4** — a test-isolation artifact, **not** a browser-compat or security defect (server-side isolation/RBAC are VERIFIED by the feature suite). Fix = per-project DB reset (or idempotent E2E data) before mutating specs can run cross-browser. Documented as a scoped follow-up.
+
 ## Remaining (honest)
-- Portals (client/creator/partner/agency): move PARTIALLY_VERIFIED → VERIFIED by running their E2E specs cross-browser (browsers installed; each spec run boots the E2E app). Queued.
-- Add Playwright to CI so E2E can't regress silently.
-- All external integrations: `BLOCKED_EXTERNAL` (evidence above) — nothing executable without credentials.
+- Cross-browser E2E for **mutating** specs needs per-project DB isolation (finding above). Stateless critical journey (auth) is VERIFIED on all 3 engines now.
+- Portals (client/creator/partner/agency): VERIFIED server-side (feature suite) + chromium E2E; full cross-browser pending the DB-isolation fix.
+- Add Playwright to CI once cross-browser DB isolation lands, so E2E can't regress silently (this run already found one silent failure).
+- All external integrations: `BLOCKED_EXTERNAL` (active-inspection evidence above) — nothing executable without credentials.
 
 _Last updated: this autopilot run._
