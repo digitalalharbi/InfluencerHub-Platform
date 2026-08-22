@@ -85,6 +85,9 @@ jobs:
       - name: Run tests
         run: vendor/bin/phpunit --colors=always
 
+      - name: Tenant-context safety guard
+        run: bash scripts/check-tenant-context-safety.sh
+
   frontend:
     name: Frontend React checks
     runs-on: ubuntu-latest
@@ -107,6 +110,9 @@ jobs:
 
       - name: Lint
         run: npm run lint --if-present
+
+      - name: TypeScript typecheck
+        run: npx tsc --noEmit
 
       - name: Build
         run: npm run build
