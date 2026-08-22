@@ -134,6 +134,40 @@ class CreatorPoolController extends Controller
     }
 
     /**
+     * تعديل بيانات ملفّ المؤثر (الأساسية والتواصل والجمهور) — لمدير النظام وحده.
+     * لا يمسّ الحقول المستبعَدة (لا بنك/IBAN/شحنات — غير مخزّنة أصلًا).
+     */
+    public function updateProfile(Request $r, PoolCreator $poolCreator): RedirectResponse
+    {
+        $data = $r->validate([
+            'name' => 'required|string|max:190',
+            'tier' => 'nullable|in:A,B,C',
+            'rating' => 'nullable|string|max:30',
+            'gender' => 'nullable|string|max:20',
+            'city' => 'nullable|string|max:60',
+            'region' => 'nullable|string|max:60',
+            'shows_face' => 'nullable|boolean',
+            'followers' => 'nullable|integer|min:0|max:100000000000',
+            'account_url' => 'nullable|url|max:500',
+            'phone' => 'nullable|string|max:30',
+            'store' => 'nullable|string|max:120',
+            'source_type' => 'nullable|in:celebrity,ugc',
+        ], [], [
+            'name' => 'الاسم', 'tier' => 'الفئة', 'account_url' => 'رابط الحساب', 'followers' => 'المتابعون',
+        ]);
+
+        // التطبيع: الفراغات إلى null، والمصدر الافتراضي مشاهير
+        foreach (['tier', 'rating', 'gender', 'city', 'region', 'account_url', 'phone', 'store'] as $k) {
+            if (($data[$k] ?? null) === '') $data[$k] = null;
+        }
+        $data['source_type'] = $data['source_type'] ?? $poolCreator->source_type;
+
+        $poolCreator->update($data);
+
+        return back()->with('ok', "حُدّث ملفّ «{$poolCreator->name}» واعتُمد.");
+    }
+
+    /**
      * تحويل مبدعين مختارين إلى عميل — نسخة مستقلّة عن القاعدة.
      *
      * تأخذ snapshot لا مرجعًا: لو حُذفت القاعدة لاحقًا تبقى توصية العميل. ولا

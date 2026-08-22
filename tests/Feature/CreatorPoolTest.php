@@ -138,6 +138,32 @@ class CreatorPoolTest extends TestCase
         $this->assertNull($p->price_coverage_minor);          // فارغ → مسح
     }
 
+    /** تعديل بيانات الملفّ العامّة: يُحدّث الحقول ويُطبّع الفراغ إلى null، لمدير النظام وحده. */
+    public function test_admin_can_edit_profile_fields(): void
+    {
+        $plain = User::create(['name' => 'عادي', 'email' => 'pf2@ex.com', 'password' => bcrypt('x'), 'is_active' => true]);
+        $p = PoolCreator::create(['name' => 'قديم', 'platform' => 'snapchat', 'account_url' => 'https://s/@o',
+            'followers' => 100000, 'tier' => 'C', 'gender' => 'female', 'city' => 'الرياض', 'shows_face' => false]);
+
+        $this->actingAs($plain)->post("/beta/admin/creator-pool/{$p->id}/profile", ['name' => 'x'])->assertForbidden();
+
+        $this->actingAs($this->admin())->from("/beta/admin/creator-pool/{$p->id}")
+            ->post("/beta/admin/creator-pool/{$p->id}/profile", [
+                'name' => 'جديد', 'tier' => 'A', 'gender' => 'male', 'city' => 'جدة', 'region' => '',
+                'followers' => 7000000, 'shows_face' => true, 'source_type' => 'ugc', 'rating' => 'ممتاز',
+            ])->assertRedirect("/beta/admin/creator-pool/{$p->id}");
+
+        $p->refresh();
+        $this->assertSame('جديد', $p->name);
+        $this->assertSame('A', $p->tier);
+        $this->assertSame('male', $p->gender);
+        $this->assertSame('جدة', $p->city);
+        $this->assertNull($p->region);           // فارغ → null
+        $this->assertSame(7000000, $p->followers);
+        $this->assertTrue((bool) $p->shows_face);
+        $this->assertSame('ugc', $p->source_type);
+    }
+
     // ===== الحذف (كِلّ سويتش) =====
 
     public function test_purge_requires_typed_confirmation(): void

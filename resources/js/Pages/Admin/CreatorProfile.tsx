@@ -19,11 +19,13 @@ const handleOf = (url: string | null): string | null => {
   try { return decodeURIComponent(url.replace(/\/+$/, '').split('/').pop() || '') || null } catch { return null }
 }
 
-function Fact({ label, value, ltr }: { label: string; value: React.ReactNode; ltr?: boolean }) {
+function Fact({ label, value, ltr, edit }: { label: string; value: React.ReactNode; ltr?: boolean; edit?: React.ReactNode }) {
   return (
     <div className="ih-prof-fact">
       <span className="ih-prof-fact__l">{label}</span>
-      <span className="ih-prof-fact__v" style={ltr ? { direction: 'ltr', textAlign: 'end' } : undefined}>{value}</span>
+      {edit !== undefined
+        ? <span className="ih-prof-fact__edit">{edit}</span>
+        : <span className="ih-prof-fact__v" style={ltr ? { direction: 'ltr', textAlign: 'end' } : undefined}>{value}</span>}
     </div>
   )
 }
@@ -58,6 +60,27 @@ export default function CreatorProfile({ creator: c, clients }: Props) {
     })
   }
 
+  // تعديل بيانات الملفّ العامّة
+  const initProfile = () => ({
+    name: c.name, tier: c.tier ?? '', rating: c.rating ?? '', gender: c.gender ?? '',
+    city: c.city ?? '', region: c.region ?? '', shows_face: c.showsFace,
+    followers: c.followers ?? '', account_url: c.accountUrl ?? '', phone: c.phone ?? '',
+    store: c.store ?? '', source_type: c.sourceType,
+  })
+  const [editProfile, setEditProfile] = useState(false)
+  const [ef, setEf] = useState<Record<string, string | number | boolean | null>>(initProfile())
+  const [savingP, setSavingP] = useState(false)
+  const setE = (k: string, v: string | boolean | null) => setEf((p) => ({ ...p, [k]: v }))
+  const startEdit = () => { setEf(initProfile()); setEditProfile(true); setTab('overview') }
+  const saveProfile = () => {
+    setSavingP(true)
+    router.post(u(`/creator-pool/${c.id}/profile`), ef as Record<string, string>, {
+      preserveScroll: true,
+      onFinish: () => setSavingP(false),
+      onSuccess: () => setEditProfile(false),
+    })
+  }
+
   const transfer = () => {
     if (!clientId) return
     router.post(u('/creator-pool/transfer'), { client_id: clientId, pool_ids: [c.id] },
@@ -66,6 +89,27 @@ export default function CreatorProfile({ creator: c, clients }: Props) {
 
   const tierC = c.tier ? (TIER_COLOR[c.tier] ?? TIER_COLOR.C) : 'var(--ih-gray-400)'
   const handle = handleOf(c.accountUrl)
+
+  // مُدخلات التعديل (تظهر فقط في وضع التعديل)
+  const iTxt = (k: string, ltr?: boolean) => (
+    <input className="field ih-edit-input" value={String(ef[k] ?? '')} onChange={(e) => setE(k, e.target.value)}
+      style={ltr ? { direction: 'ltr' } : undefined} />
+  )
+  const iNum = (k: string) => (
+    <input className="field ih-edit-input" type="number" min="0" inputMode="numeric" value={String(ef[k] ?? '')}
+      onChange={(e) => setE(k, e.target.value)} style={{ direction: 'ltr' }} />
+  )
+  const iSel = (k: string, opts: [string, string][]) => (
+    <select className="field ih-edit-input" value={String(ef[k] ?? '')} onChange={(e) => setE(k, e.target.value)}>
+      {opts.map(([v, l]) => <option key={v} value={v}>{l}</option>)}
+    </select>
+  )
+  const iFace = (
+    <select className="field ih-edit-input" value={ef.shows_face === true ? '1' : ef.shows_face === false ? '0' : ''}
+      onChange={(e) => setE('shows_face', e.target.value === '1' ? true : e.target.value === '0' ? false : null)}>
+      <option value="">—</option><option value="1">نعم</option><option value="0">لا</option>
+    </select>
+  )
 
   const tabs = [
     { key: 'overview', label: 'نظرة عامة', icon: 'layout-dashboard' as const },
@@ -97,8 +141,18 @@ export default function CreatorProfile({ creator: c, clients }: Props) {
             </div>
           </div>
           <div className="ih-prof-hero__actions">
-            <button className="btn btn-sm btn-primary" onClick={() => setTransferOpen(true)}><Icon name="share" size={14} /> تحويل إلى عميل</button>
-            {c.accountUrl && <a href={c.accountUrl} target="_blank" rel="noopener noreferrer" className="btn btn-sm btn-outline"><Icon name="external-link" size={14} /> الحساب</a>}
+            {editProfile ? (
+              <>
+                <button className="btn btn-sm btn-ghost" onClick={() => setEditProfile(false)}>إلغاء</button>
+                <button className="btn btn-sm btn-primary" disabled={savingP} onClick={saveProfile}><Icon name="check" size={14} /> {savingP ? 'جارٍ الحفظ…' : 'حفظ التعديلات'}</button>
+              </>
+            ) : (
+              <>
+                <button className="btn btn-sm btn-outline" onClick={startEdit}><Icon name="pencil" size={14} /> تعديل</button>
+                <button className="btn btn-sm btn-primary" onClick={() => setTransferOpen(true)}><Icon name="share" size={14} /> تحويل إلى عميل</button>
+                {c.accountUrl && <a href={c.accountUrl} target="_blank" rel="noopener noreferrer" className="btn btn-sm btn-outline"><Icon name="external-link" size={14} /> الحساب</a>}
+              </>
+            )}
           </div>
         </div>
         <div className="ih-prof-hero__kpis">
@@ -117,15 +171,15 @@ export default function CreatorProfile({ creator: c, clients }: Props) {
           <div className="ih-sec">
             <div className="ih-sec__head"><span className="ih-sec__title"><Icon name="clipboard-check" size={16} /> البيانات الأساسية</span></div>
             <div className="ih-prof-facts">
-              <Fact label="الاسم الكامل" value={c.name} />
-              <Fact label="الحساب" value={handle ?? '—'} ltr />
+              <Fact label="الاسم الكامل" value={c.name} edit={editProfile ? iTxt('name') : undefined} />
+              <Fact label="الحساب" value={handle ?? '—'} ltr edit={editProfile ? iTxt('account_url', true) : undefined} />
               <Fact label="المنصّة" value={<PlatformTag label={c.platformLabel} />} />
-              <Fact label="الفئة" value={c.tier ? `${c.tier}${c.tier === 'A' ? ' (VIP)' : ''}` : '—'} />
-              <Fact label="الجنس" value={c.gender ? (GENDER[c.gender] ?? c.gender) : '—'} />
-              <Fact label="المصدر" value={c.sourceType === 'ugc' ? 'UGC' : 'مشاهير'} />
-              <Fact label="المدينة" value={c.city ?? '—'} />
-              <Fact label="المنطقة" value={c.region ?? '—'} />
-              <Fact label="يظهر وجهه؟" value={c.showsFace == null ? '—' : c.showsFace ? 'نعم' : 'لا'} />
+              <Fact label="الفئة" value={c.tier ? `${c.tier}${c.tier === 'A' ? ' (VIP)' : ''}` : '—'} edit={editProfile ? iSel('tier', [['', '—'], ['A', 'A'], ['B', 'B'], ['C', 'C']]) : undefined} />
+              <Fact label="الجنس" value={c.gender ? (GENDER[c.gender] ?? c.gender) : '—'} edit={editProfile ? iSel('gender', [['', '—'], ['female', 'أنثى'], ['male', 'ذكر']]) : undefined} />
+              <Fact label="المصدر" value={c.sourceType === 'ugc' ? 'UGC' : 'مشاهير'} edit={editProfile ? iSel('source_type', [['celebrity', 'مشاهير'], ['ugc', 'UGC']]) : undefined} />
+              <Fact label="المدينة" value={c.city ?? '—'} edit={editProfile ? iTxt('city') : undefined} />
+              <Fact label="المنطقة" value={c.region ?? '—'} edit={editProfile ? iTxt('region') : undefined} />
+              <Fact label="يظهر وجهه؟" value={c.showsFace == null ? '—' : c.showsFace ? 'نعم' : 'لا'} edit={editProfile ? iFace : undefined} />
             </div>
             {c.categories.length > 0 && (
               <div style={{ marginTop: '.8rem' }}>
@@ -140,9 +194,9 @@ export default function CreatorProfile({ creator: c, clients }: Props) {
           <div className="ih-sec">
             <div className="ih-sec__head"><span className="ih-sec__title"><Icon name="users" size={16} /> الجمهور والأداء</span></div>
             <div className="ih-prof-facts">
-              <Fact label="إجمالي المتابعين" value={fnum(c.followers)} ltr />
+              <Fact label="إجمالي المتابعين" value={fnum(c.followers)} ltr edit={editProfile ? iNum('followers') : undefined} />
               <Fact label="الإعجابات" value={fnum(c.likes)} ltr />
-              <Fact label="التقييم" value={c.rating ? `★ ${c.rating}` : '—'} />
+              <Fact label="التقييم" value={c.rating ? `★ ${c.rating}` : '—'} edit={editProfile ? iTxt('rating') : undefined} />
               <Fact label="الفئة" value={c.tier ?? '—'} />
             </div>
           </div>
@@ -205,8 +259,8 @@ export default function CreatorProfile({ creator: c, clients }: Props) {
         <div className="ih-sec">
           <div className="ih-sec__head"><span className="ih-sec__title"><Icon name="phone" size={16} /> التواصل والموقع</span></div>
           <div className="ih-prof-facts">
-            <Fact label="الجوّال" value={c.phone ?? '—'} ltr />
-            <Fact label="جهة الحجز" value={c.store ?? '—'} />
+            <Fact label="الجوّال" value={c.phone ?? '—'} ltr edit={editProfile ? iTxt('phone', true) : undefined} />
+            <Fact label="جهة الحجز" value={c.store ?? '—'} edit={editProfile ? iTxt('store') : undefined} />
             <Fact label="المدينة" value={c.city ?? '—'} />
             <Fact label="المنطقة" value={c.region ?? '—'} />
           </div>
