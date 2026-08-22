@@ -29,10 +29,12 @@ test.describe('المصادقة', () => {
         await login(page);
         await expect(page.locator('body')).toContainText('لوحة التحكم');
     });
-    test('5- تسجيل الخروج يعيد لصفحة الدخول', async ({ page }) => {
+    test('5- تسجيل الخروج يعيد للصفحة العامة ويُظهر رابط الدخول', async ({ page }) => {
         await login(page);
         await page.click('button:has-text("تسجيل الخروج")');
-        await expect(page).toHaveURL(/\/login/);
+        // الخروج يعيد للصفحة العامة (لا لوحة التطبيق)؛ وأمنيًّا يُثبته الاختبار 6 بمنع /app
+        await page.waitForURL(/8020\/$/);
+        await expect(page.locator('a[href="/login"]').first()).toBeVisible();
     });
     test('6- بعد الخروج لا وصول للتطبيق', async ({ page }) => {
         await login(page);
