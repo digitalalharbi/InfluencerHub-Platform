@@ -1,21 +1,28 @@
 import { Head, Link } from '@inertiajs/react';
 import AppShell from '@/Layouts/AppShell';
 import { adminNav } from '@/lib/nav';
-import { DonutChart, Kpi, Sec, StatusBadge } from '@/Components/ui';
+import { DonutChart, Kpi, Sec, StatusBadge, numFmt } from '@/Components/ui';
 import { Icon } from '@/Components/Icon';
 import { u } from '@/lib/href';
 
 interface Tenant { id: number; name: string; slug: string; mode: string; status: string; statusLabel: string; statusTone: string; orgs: number }
 interface Audit { action: string; actor: string | null; at: string | null }
+interface Pool { total: number; reach: number; priced: number; ugc: number; recommendations: number }
 interface Props {
   stats: { tenants: number; orgs: number; users: number; activeSubs: number; plans: number };
+  pool: Pool;
   tenantsByStatus: { status: string; label: string; tone: string; count: number }[];
   recentTenants: Tenant[];
   recentAudit: Audit[];
 }
 
+const fnum = (n: number): string => {
+  if (n >= 1_000_000) return (n / 1_000_000).toFixed(1).replace('.0', '') + 'M';
+  if (n >= 1000) return Math.round(n / 1000) + 'K';
+  return n.toLocaleString('en-US');
+};
 
-export default function AdminDashboard({ stats, tenantsByStatus, recentTenants, recentAudit }: Props) {
+export default function AdminDashboard({ stats, pool, tenantsByStatus, recentTenants, recentAudit }: Props) {
   return (
     <AppShell heading="لوحة التحكم" nav={adminNav} portal="admin" wsName="إدارة المنصّة" wsPlan="مدير النظام" brand="InfluencerHub">
       <Head title="إدارة المنصّة" />
@@ -28,6 +35,26 @@ export default function AdminDashboard({ stats, tenantsByStatus, recentTenants, 
         </div>
       </div>
 
+      {/* الميزة الرئيسية: قاعدة المؤثرين */}
+      <div className="ih-pooolbanner">
+        <div className="ih-pooolbanner__head">
+          <span className="ih-pooolbanner__icon"><Icon name="sparkles" size={20} /></span>
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <div className="ih-pooolbanner__title">قاعدة المؤثرين</div>
+            <div className="ih-pooolbanner__sub">محرّك الترشيح الذكيّ عبر {numFmt(pool.total)} مؤثرًا — مرئيّ لمدير النظام وحده.</div>
+          </div>
+          <a href={u('/shortlisting')} className="btn btn-sm btn-primary"><Icon name="clipboard-check" size={15} /> ترشيح ذكيّ</a>
+        </div>
+        <div className="ih-pooolbanner__stats">
+          <div><span className="ih-pb__v">{numFmt(pool.total)}</span><span className="ih-pb__l">إجمالي المؤثرين</span></div>
+          <div><span className="ih-pb__v">{fnum(pool.reach)}</span><span className="ih-pb__l">الوصول الإجمالي</span></div>
+          <div><span className="ih-pb__v">{numFmt(pool.priced)}</span><span className="ih-pb__l">بأسعار حجز</span></div>
+          <div><span className="ih-pb__v">{numFmt(pool.ugc)}</span><span className="ih-pb__l">صنّاع UGC</span></div>
+          <div><span className="ih-pb__v">{numFmt(pool.recommendations)}</span><span className="ih-pb__l">توصيات معلّقة</span></div>
+        </div>
+      </div>
+
+      <div className="ih-sec__title" style={{ margin: '0 0 .6rem', fontSize: '.8rem', color: 'var(--ih-text-muted)', fontWeight: 700 }}>المنصّة (SaaS)</div>
       <div className="ih-kpis">
         <Kpi label="المستأجرون" icon="building-2" value={stats.tenants.toLocaleString('en-US')} sub="إجمالي" href={u("/tenants")} />
         <Kpi label="المؤسسات" icon="building-2" value={stats.orgs.toLocaleString('en-US')} sub="وكالات/عملاء" />

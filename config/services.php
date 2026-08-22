@@ -2,6 +2,15 @@
 
 return [
 
+    // مساعد ترشيح المؤثرين: 'rule' اليوم، 'openai' عند توفّر المفتاح
+    'pool_assistant' => [
+        'driver' => env('POOL_ASSISTANT_DRIVER', 'rule'),
+        'openai_key' => env('OPENAI_API_KEY'),
+        'openai_model' => env('POOL_ASSISTANT_OPENAI_MODEL', 'gpt-4o-mini'),
+        'openai_base_url' => rtrim(env('POOL_ASSISTANT_OPENAI_BASE_URL', 'https://api.openai.com/v1'), '/'),
+        'openai_timeout' => (int) env('POOL_ASSISTANT_OPENAI_TIMEOUT', 12),
+    ],
+
     /*
     |--------------------------------------------------------------------------
     | Third Party Services

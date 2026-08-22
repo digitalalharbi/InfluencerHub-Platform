@@ -117,6 +117,7 @@ export const clientNav: NavGroup[] = [
     items: [
       { key: 'requests', label: 'الطلبات', route: '/requests', icon: 'inbox' },
       { key: 'campaigns', label: 'الحملات', route: '/campaigns', icon: 'megaphone' },
+      { key: 'recommendations', label: 'ترشيحات المؤثرين', route: '/recommendations', icon: 'star', badge: 'client_recommendations' },
       { key: 'approvals', label: 'المحتوى', route: '/content', icon: 'image', badge: 'client_approvals' },
       { key: 'contracts', label: 'العقود', route: '/contracts', icon: 'file-text' },
     ],
@@ -229,6 +230,10 @@ export const brandNav: NavGroup[] = [
 ];
 
 export const adminNav: NavGroup[] = [
+  { key: 'pool', label: 'المؤثرون', items: [
+    { key: 'shortlisting', label: 'ترشيح المؤثرين', route: '/shortlisting', icon: 'clipboard-check' },
+    { key: 'creator-pool', label: 'قاعدة المبدعين', route: '/creator-pool', icon: 'users' },
+  ] },
   {
     key: 'overview',
     items: [{ key: 'dashboard', label: 'لوحة التحكم', route: '', icon: 'layout-dashboard', match: '' }],

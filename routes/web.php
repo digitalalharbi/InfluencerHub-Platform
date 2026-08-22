@@ -423,14 +423,25 @@ Route::redirect('/admin', '/beta/admin');
 
 Route::middleware(['auth', 'system_admin', 'inertia'])->prefix('beta/admin')->group(function () {
     // مراجعة طلبات فتح الحساب — استثناء مقصود عن كون اللوحة للقراءة فقط
+    // قاعدة مبدعي مدير النظام — للترشيح والتحويل، وزرّ حذف كامل
+    Route::get('/shortlisting', [\App\Http\Controllers\Inertia\Admin\ShortlistingController::class, 'index']);
+    Route::get('/creator-pool', [\App\Http\Controllers\Inertia\Admin\CreatorPoolController::class, 'index']);
+    Route::post('/creator-pool/transfer', [\App\Http\Controllers\Inertia\Admin\CreatorPoolController::class, 'transfer']);
+    Route::post('/creator-pool/purge', [\App\Http\Controllers\Inertia\Admin\CreatorPoolController::class, 'purge']);
+    Route::get('/creator-pool/{poolCreator}', [\App\Http\Controllers\Inertia\Admin\CreatorPoolController::class, 'show'])->whereNumber('poolCreator');
+    Route::post('/creator-pool/{poolCreator}/pricing', [\App\Http\Controllers\Inertia\Admin\CreatorPoolController::class, 'updatePricing'])->whereNumber('poolCreator');
+    Route::post('/creator-pool/{poolCreator}/profile', [\App\Http\Controllers\Inertia\Admin\CreatorPoolController::class, 'updateProfile'])->whereNumber('poolCreator');
     Route::get('/signup-requests', [\App\Http\Controllers\Inertia\Admin\SignupReviewController::class, 'index']);
     Route::post('/signup-requests/{signupRequest}/contacted', [\App\Http\Controllers\Inertia\Admin\SignupReviewController::class, 'markContacted']);
     Route::post('/signup-requests/{signupRequest}/approve', [\App\Http\Controllers\Inertia\Admin\SignupReviewController::class, 'approve']);
     Route::post('/signup-requests/{signupRequest}/reject', [\App\Http\Controllers\Inertia\Admin\SignupReviewController::class, 'reject']);
     Route::get('/', [\App\Http\Controllers\Inertia\Admin\PlatformController::class, 'dashboard']);
     Route::get('/tenants', [\App\Http\Controllers\Inertia\Admin\PlatformController::class, 'tenants']);
+    Route::post('/tenants/{tenant}', [\App\Http\Controllers\Inertia\Admin\PlatformController::class, 'updateTenant'])->whereNumber('tenant');
     Route::get('/plans', [\App\Http\Controllers\Inertia\Admin\PlatformController::class, 'plans']);
+    Route::post('/plans/{plan}', [\App\Http\Controllers\Inertia\Admin\PlatformController::class, 'updatePlan'])->whereNumber('plan');
     Route::get('/subscriptions', [\App\Http\Controllers\Inertia\Admin\PlatformController::class, 'subscriptions']);
+    Route::post('/subscriptions/{subscription}', [\App\Http\Controllers\Inertia\Admin\PlatformController::class, 'updateSubscription'])->whereNumber('subscription');
     Route::get('/audit', [\App\Http\Controllers\Inertia\Admin\PlatformController::class, 'audit']);
 });
 
@@ -457,6 +468,9 @@ Route::middleware(['auth', 'client_member', 'inertia'])->prefix('beta/client')->
     Route::get('/contracts', [\App\Http\Controllers\Inertia\Client\ContractController::class, 'index']);
     Route::get('/contracts/{contract}', [\App\Http\Controllers\Inertia\Client\ContractController::class, 'show']);
     Route::post('/contracts/{contract}/sign', [\App\Http\Controllers\Inertia\Client\ContractController::class, 'sign']);
+    // ترشيحات المؤثرين المحوّلة من مدير النظام — قرار العميل (قبول/رفض)
+    Route::get('/recommendations', [\App\Http\Controllers\Inertia\Client\RecommendationController::class, 'index']);
+    Route::post('/recommendations/{recommendation}/decision', [\App\Http\Controllers\Inertia\Client\RecommendationController::class, 'decision']);
     Route::get('/requests', [\App\Http\Controllers\Inertia\Client\RequestController::class, 'index']);
     Route::post('/requests', [\App\Http\Controllers\Inertia\Client\RequestController::class, 'store']);
     Route::get('/requests/{request}', [\App\Http\Controllers\Inertia\Client\RequestController::class, 'show']);

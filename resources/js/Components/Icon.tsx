@@ -3,7 +3,10 @@ import {
   Inbox, Megaphone, GitMerge, Image, FileText, ShieldCheck, ClipboardCheck,
   Wallet, BarChart3, Plug, Settings, Search, LogOut, Rocket, Plus, Menu,
   ChevronLeft, Circle, Gauge, Activity, Radar, CalendarDays, ListChecks,
-  TrendingUp, Receipt, type LucideProps,
+  TrendingUp, Receipt, Sparkles, Tag, Phone, Share2, AlertTriangle,
+  LayoutGrid, Rows3, Table2, X, Star, Heart, MapPin, ExternalLink, MessageCircle,
+  Pencil, Check,
+  type LucideProps,
 } from 'lucide-react';
 
 const MAP = {
@@ -39,6 +42,22 @@ const MAP = {
   'list-checks': ListChecks,
   'trending-up': TrendingUp,
   receipt: Receipt,
+  sparkles: Sparkles,
+  tag: Tag,
+  phone: Phone,
+  share: Share2,
+  'alert-triangle': AlertTriangle,
+  grid: LayoutGrid,
+  rows: Rows3,
+  table: Table2,
+  x: X,
+  star: Star,
+  heart: Heart,
+  'map-pin': MapPin,
+  'external-link': ExternalLink,
+  'message-circle': MessageCircle,
+  pencil: Pencil,
+  check: Check,
 } as const;
 
 export type IconName = keyof typeof MAP;
