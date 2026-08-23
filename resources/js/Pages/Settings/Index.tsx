@@ -102,7 +102,7 @@ export default function SettingsIndex({ org, subscription, entitlements, teamPre
             </div>
           )}
           <div className="card" style={{ marginTop: '1rem', padding: '.7rem .9rem', borderInlineStart: '3px solid var(--ih-info)', background: 'var(--ih-info-soft)', color: 'var(--ih-info-ink)', fontSize: '.8rem' }}>
-            <Icon name="shield-check" size={14} /> تغيير الخطة أو الفوترة يُدار من فريق الحساب — عند تفعيل مزوّد الدفع تُتاح الترقية الذاتية (راجع docs/EXTERNAL-BLOCKERS.md).
+            <Icon name="shield-check" size={14} /> تغيير الخطة أو الفوترة يُدار من فريق الحساب — عند تفعيل مزوّد الدفع تُتاح الترقية الذاتية.
           </div>
         </Sec>
 
