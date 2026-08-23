@@ -306,6 +306,8 @@ Route::middleware(['auth', 'tenant', 'agency_member', 'inertia'])->prefix('beta'
     // قاعدة المؤثرين (منتج مميّز) — محكومة بالاستحقاق + RBAC داخل المتحكّم
     Route::get('/creator-database', [\App\Http\Controllers\Inertia\CreatorDatabaseController::class, 'index']);
     Route::get('/creator-database/{poolCreator}', [\App\Http\Controllers\Inertia\CreatorDatabaseController::class, 'show']);
+    Route::post('/creator-database/{poolCreator}/overlay', [\App\Http\Controllers\Inertia\CreatorDatabaseController::class, 'overlay']);
+    Route::post('/creator-database/{poolCreator}/nominate', [\App\Http\Controllers\Inertia\CreatorDatabaseController::class, 'nominate']);
     Route::get('/creators', [\App\Http\Controllers\Inertia\CreatorsController::class, 'index']);
     Route::post('/creators', [\App\Http\Controllers\Inertia\CreatorsController::class, 'store']);
     Route::get('/creators/{creator}', [\App\Http\Controllers\Inertia\CreatorDetailController::class, 'show']);
@@ -655,6 +657,8 @@ Route::middleware(['auth', 'tenant', 'agency_member'])->prefix('app')->group(fun
         // قاعدة المؤثرين (منتج مميّز) — محكومة بالاستحقاق + RBAC داخل المتحكّم
         Route::get('/creator-database', [\App\Http\Controllers\Inertia\CreatorDatabaseController::class, 'index']);
         Route::get('/creator-database/{poolCreator}', [\App\Http\Controllers\Inertia\CreatorDatabaseController::class, 'show']);
+        Route::post('/creator-database/{poolCreator}/overlay', [\App\Http\Controllers\Inertia\CreatorDatabaseController::class, 'overlay']);
+        Route::post('/creator-database/{poolCreator}/nominate', [\App\Http\Controllers\Inertia\CreatorDatabaseController::class, 'nominate']);
         // المبدعون — قُصّوا من Blade؛ الإضافة تعيد استخدام CreateCreator نفسه
         Route::get('/creators', [\App\Http\Controllers\Inertia\CreatorsController::class, 'index']);
         Route::post('/creators/{creator}/update', [\App\Http\Controllers\Inertia\CreatorsController::class, 'update']);

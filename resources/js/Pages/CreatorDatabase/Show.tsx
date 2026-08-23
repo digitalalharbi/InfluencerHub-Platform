@@ -1,17 +1,19 @@
-import { Head } from '@inertiajs/react';
+import { Head, router } from '@inertiajs/react';
+import { useState } from 'react';
 import AppShell from '@/Layouts/AppShell';
 import { u } from '@/lib/href';
 
 interface Contact { phone: string | null; phoneDisplay: string | null; whatsapp: string | null; hasPhone: boolean }
+interface Overlay { favorite: boolean; tags: string[]; notes: string | null; negotiatedRate: number | null; relationshipStatus: string | null; tenantRating: string | null; lastContactedAt: string | null }
 interface Creator {
   id: number; name: string; platform: string; platformLabel: string; accountUrl: string | null;
   followers: number | null; likes: number | null; tier: string | null; gender: string | null;
   categories: string[]; showsFace: boolean | null; region: string | null; city: string | null;
   rating: string | null; creatorType: string; creatorTypeLabel: string;
   referenceRate: number | null; referenceRateNote: string; dataFreshness: string; lastImportedAt: string | null;
-  contact?: Contact;
+  contact?: Contact; overlay?: Overlay | null;
 }
-interface Props { base: string; creator: Creator; canContact: boolean; canUseInCampaign: boolean }
+interface Props { base: string; creator: Creator; canContact: boolean; canUseInCampaign: boolean; campaigns: { id: number; name: string }[] }
 
 function kfmt(n: number | null): string {
   if (n === null) return '—';
@@ -20,13 +22,26 @@ function kfmt(n: number | null): string {
   return String(n);
 }
 
-export default function CreatorDatabaseShow({ creator: c, canContact, canUseInCampaign }: Props) {
+export default function CreatorDatabaseShow({ creator: c, canContact, canUseInCampaign, campaigns }: Props) {
   const waLink = (p: string) => `https://wa.me/${p}`;
+  const [busy, setBusy] = useState(false);
+  const [notes, setNotes] = useState(c.overlay?.notes ?? '');
+  const [campaignId, setCampaignId] = useState(campaigns[0]?.id ? String(campaigns[0].id) : '');
+
+  const toggleFav = () => { setBusy(true); router.post(u(`/creator-database/${c.id}/overlay`), { favorite: !(c.overlay?.favorite) }, { preserveScroll: true, onFinish: () => setBusy(false) }); };
+  const saveNotes = () => { setBusy(true); router.post(u(`/creator-database/${c.id}/overlay`), { notes }, { preserveScroll: true, onFinish: () => setBusy(false) }); };
+  const nominate = () => { if (!campaignId) return; setBusy(true); router.post(u(`/creator-database/${c.id}/nominate`), { campaign_id: campaignId }, { preserveScroll: true, onFinish: () => setBusy(false) }); };
+
   return (
     <AppShell heading="قاعدة المؤثرين">
       <Head title={c.name} />
 
-      <a href={u('/creator-database')} className="btn btn-xs btn-ghost" style={{ marginBottom: '.8rem' }}>← كل المبدعين</a>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '.8rem' }}>
+        <a href={u('/creator-database')} className="btn btn-xs btn-ghost">← كل المبدعين</a>
+        <button onClick={toggleFav} disabled={busy} className={`btn btn-xs ${c.overlay?.favorite ? 'btn-primary' : 'btn-outline'}`}>
+          {c.overlay?.favorite ? '★ مفضّل' : '☆ إضافة للمفضّلة'}
+        </button>
+      </div>
 
       <div className="card" style={{ padding: '1.3rem' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '.9rem' }}>
@@ -82,11 +97,27 @@ export default function CreatorDatabaseShow({ creator: c, canContact, canUseInCa
         </div>
       )}
 
+      {/* ملاحظات المؤسسة الخاصّة (لا تراها مؤسسة أخرى) */}
+      <div className="card" style={{ padding: '1.1rem', marginTop: '1rem' }}>
+        <h3 style={{ fontWeight: 700, margin: '0 0 .5rem' }}>ملاحظاتك الخاصّة</h3>
+        <textarea value={notes} onChange={(e) => setNotes(e.target.value)} className="field" rows={3} style={{ width: '100%' }} placeholder="ملاحظات خاصّة بمؤسستك عن هذا المبدع…" />
+        <div style={{ marginTop: '.5rem' }}><button onClick={saveNotes} disabled={busy} className="btn btn-sm btn-outline">حفظ الملاحظات</button></div>
+      </div>
+
       {canUseInCampaign && (
         <div className="card" style={{ padding: '1.1rem', marginTop: '1rem' }}>
-          <h3 style={{ fontWeight: 700, margin: '0 0 .5rem' }}>الحملات</h3>
-          <p style={{ color: 'var(--ih-text-muted)', fontSize: '.82rem', margin: '0 0 .6rem' }}>أضِف هذا المبدع إلى قاعدة علاقاتك ورشّحه لحملة.</p>
-          <button className="btn btn-sm btn-primary" disabled title="يُفعَّل مع تكامل الترشيح">إضافة وترشيح لحملة</button>
+          <h3 style={{ fontWeight: 700, margin: '0 0 .5rem' }}>ترشيح لحملة</h3>
+          <p style={{ color: 'var(--ih-text-muted)', fontSize: '.82rem', margin: '0 0 .6rem' }}>يُضاف المبدع إلى قاعدة علاقاتك ويُرشَّح مباشرةً — يتقدّم بذلك المرحلة الثانية للحملة.</p>
+          {campaigns.length === 0 ? (
+            <div style={{ color: 'var(--ih-text-muted)', fontSize: '.82rem' }}>لا حملات متاحة للترشيح.</div>
+          ) : (
+            <div style={{ display: 'flex', gap: '.5rem', alignItems: 'center', flexWrap: 'wrap' }}>
+              <select value={campaignId} onChange={(e) => setCampaignId(e.target.value)} className="field" style={{ maxWidth: 240 }}>
+                {campaigns.map((c2) => <option key={c2.id} value={c2.id}>{c2.name}</option>)}
+              </select>
+              <button onClick={nominate} disabled={busy || !campaignId} className="btn btn-sm btn-primary">إضافة وترشيح</button>
+            </div>
+          )}
         </div>
       )}
     </AppShell>
