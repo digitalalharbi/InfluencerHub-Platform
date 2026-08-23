@@ -1,11 +1,13 @@
-import { Head } from '@inertiajs/react';
+import { Head, Link, router } from '@inertiajs/react';
 import AppShell from '@/Layouts/AppShell';
 import { Kpi, ListHead, StatusBadge } from '@/Components/ui';
 import { Icon } from '@/Components/Icon';
+import { u } from '@/lib/href';
 
+interface Connection { status: string; environment: string; health: string; healthLabel: string; lastSync: string | null; lastAttempt: string | null; lastError: string | null; connected: boolean }
 interface Platform {
   key: string; name: string; nameEn: string; status: string; statusLabel: string; statusTone: string;
-  statusNote: string; available: boolean; capabilities: string[];
+  statusNote: string; available: boolean; capabilities: string[]; connection: Connection | null;
 }
 interface MatrixRow { key: string; label: string; platforms: string[]; count: number }
 interface Props { platforms: Platform[]; summary: { total: number; available: number; soon: number }; matrix: MatrixRow[] }
@@ -70,6 +72,29 @@ export default function IntegrationsIndex({ platforms, summary, matrix }: Props)
                 </div>
               ) : (
                 <div style={{ fontSize: '.78rem', color: 'var(--ih-text-muted)' }}>لا قدرات مفعّلة بعد.</div>
+              )}
+
+              {/* حالة الاتّصال الفعلية — أو إعداد صادق إن لم يُهيّأ بعد */}
+              {p.connection ? (
+                <div style={{ marginTop: '.8rem', paddingTop: '.7rem', borderTop: '1px solid var(--ih-border)', fontSize: '.76rem' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', color: 'var(--ih-text-muted)' }}>
+                    <span>الصحّة: <b style={{ color: 'var(--ih-text)' }}>{p.connection.healthLabel}</b></span>
+                    <span>آخر مزامنة: <span style={{ direction: 'ltr', display: 'inline-block' }}>{p.connection.lastSync ?? '—'}</span></span>
+                  </div>
+                  {p.connection.lastError && <div style={{ color: 'var(--ih-danger-ink)', marginTop: '.3rem' }}>{p.connection.lastError}</div>}
+                  <div style={{ display: 'flex', gap: '.4rem', marginTop: '.55rem' }}>
+                    <Link href={u(`/integrations/${p.key}`)} className="btn btn-xs btn-outline">التفاصيل والسجلّ</Link>
+                    {p.connection.connected && (
+                      <button className="btn btn-xs btn-primary" onClick={() => router.post(u(`/integrations/${p.key}/sync`), {}, { preserveScroll: true })}>
+                        <Icon name="activity" size={12} /> زامِن الآن
+                      </button>
+                    )}
+                  </div>
+                </div>
+              ) : (
+                <div style={{ marginTop: '.8rem', paddingTop: '.7rem', borderTop: '1px solid var(--ih-border)', fontSize: '.74rem', color: 'var(--ih-text-muted)' }}>
+                  لم يُهيّأ اتّصال بعد — يتطلّب بيانات اعتماد المزوّد.
+                </div>
               )}
             </div>
           </div>
