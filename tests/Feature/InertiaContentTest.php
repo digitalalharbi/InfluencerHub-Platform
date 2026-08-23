@@ -156,4 +156,68 @@ class InertiaContentTest extends TestCase
     {
         $this->get('/app/content')->assertRedirect('/login');
     }
+
+    /* ===== تصليب مراجعة المحتوى: إعادة الجدولة + السجل الموحّد + روابط السياق ===== */
+
+    /** إعادة جدولة المحتوى المجدول — كان مستحيلًا (آلة الحالات ترفض scheduled→scheduled). */
+    public function test_scheduled_content_can_be_rescheduled(): void
+    {
+        [$t, , $u] = $this->agency(['scheduled']);
+        $c = $this->item($t->id);
+        TenantContext::bypass(true);
+        $c->update(['scheduled_at' => now()->addDays(2)]);
+        TenantContext::reset();
+
+        $new = now()->addDays(5)->format('Y-m-d H:i:00');
+        $this->actingAs($u)->post("/app/content/{$c->id}/reschedule", ['scheduled_at' => $new])
+            ->assertRedirect()->assertSessionHas('ok');
+
+        TenantContext::bypass(true);
+        $fresh = ContentItem::find($c->id);
+        $this->assertSame('scheduled', $fresh->status, 'يبقى مجدولًا');
+        $this->assertSame($new, $fresh->scheduled_at->format('Y-m-d H:i:00'));
+        TenantContext::reset();
+    }
+
+    public function test_reschedule_requires_a_date(): void
+    {
+        [$t, , $u] = $this->agency(['scheduled']);
+        $c = $this->item($t->id);
+        $this->actingAs($u)->post("/app/content/{$c->id}/reschedule", [])->assertSessionHasErrors('scheduled_at');
+    }
+
+    /** إعادة الجدولة ممنوعة على غير المجدول. */
+    public function test_reschedule_rejected_when_not_scheduled(): void
+    {
+        [$t, , $u] = $this->agency(['approved']);
+        $c = $this->item($t->id);
+        $this->actingAs($u)->post("/app/content/{$c->id}/reschedule", ['scheduled_at' => now()->addDay()->format('Y-m-d H:i:00')])
+            ->assertRedirect()->assertSessionHasErrors('wf');
+    }
+
+    /** السجل الموحّد يجمع انتقالات الحالة وقرارات المراجعة، بفاعليها. */
+    public function test_show_exposes_unified_timeline(): void
+    {
+        [$t, , $u] = $this->agency(['agency_review']);
+        $c = $this->item($t->id);
+        // فعل حقيقي يُنتج قرار مراجعة + انتقال حالة
+        $this->actingAs($u)->post("/app/content/{$c->id}/request-changes", ['reason' => 'حسّن العنوان'])->assertRedirect();
+
+        $this->actingAs($u)->get("/app/content/{$c->id}")->assertOk()
+            ->assertInertia(fn (Assert $page) => $page
+                ->component('Content/Show')
+                ->has('timeline')
+                ->where('content.creatorId', fn ($v) => $v !== null)
+                ->where('content.clientId', fn ($v) => $v !== null));
+    }
+
+    /** زر «تغيير الموعد» يظهر للمراجع على المحتوى المجدول. */
+    public function test_scheduled_offers_reschedule_action(): void
+    {
+        [$t, , $u] = $this->agency(['scheduled']);
+        $c = $this->item($t->id);
+        $this->actingAs($u)->get("/app/content/{$c->id}")->assertOk()
+            ->assertInertia(fn (Assert $page) => $page->where('actions', fn ($actions) =>
+                collect($actions)->contains(fn ($a) => $a[0] === 'reschedule')));
+    }
 }

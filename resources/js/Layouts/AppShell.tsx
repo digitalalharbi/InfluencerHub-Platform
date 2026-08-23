@@ -133,7 +133,6 @@ export default function AppShell({
           <div className="ih-topbar__title">{heading ?? 'لوحة التحكم'}</div>
           <div className="ih-topbar__spacer" />
           {showcase && <span className="ih-showcase-badge" title="بيئة عرض تجريبية">● بيانات تجريبية</span>}
-          <span className="ih-tag" style={{ fontSize: '.68rem' }}>React · معاينة</span>
           <div className="ih-topbar__user">
             <span className="ih-topbar__user-name ih-only-desktop">{auth.user?.name}</span>
             <span className="ih-topbar__avatar">{(auth.user?.name ?? '؟').slice(0, 1)}</span>

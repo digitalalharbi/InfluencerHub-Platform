@@ -1,4 +1,4 @@
-import { Head, router, usePage } from '@inertiajs/react';
+import { Head, Link, router, usePage } from '@inertiajs/react';
 import { useState } from 'react';
 import AppShell from '@/Layouts/AppShell';
 import { Sec, SummaryStrip, WorkspaceHeader , WaitingNotice } from '@/Components/ui';
@@ -8,19 +8,21 @@ import { u } from '@/lib/href';
 interface Content {
   id: number; number: string; title: string; type: string; platform: string | null;
   caption: string | null; mediaUrl: string | null; version: number;
-  creator: string | null; client: string | null; campaign: string | null; campaignId: number | null;
+  creator: string | null; creatorId: number | null; client: string | null; clientId: number | null;
+  campaign: string | null; campaignId: number | null;
   status: string; statusLabel: string; statusTone: string; scheduledAt: string | null; publishedAt: string | null;
   publishedUrl: string | null; proofNote: string | null; proofAt: string | null;
   results: { reach: number | null; impressions: number | null; engagements: number | null; clicks: number | null; source: string; at: string } | null;
 }
 type Action = [string, string, string, 'none' | 'reason' | 'schedule'];
 interface Approval { stage: string; decision: string; note: string | null; version: number; at: string | null }
+interface TimelineEntry { kind: 'status' | 'decision'; label: string; actor: string | null; role: string; note: string | null; version: number | null; at: string | null; decision?: string; toStatus?: string | null }
 interface WaitingInfo { party: string; expects: string; canRemind: boolean }
-interface Props { content: Content; canReview: boolean; actions: Action[]; approvals: Approval[]; waitingOn: WaitingInfo | null; }
+interface Props { content: Content; canReview: boolean; actions: Action[]; approvals: Approval[]; timeline: TimelineEntry[]; waitingOn: WaitingInfo | null; }
 
 const BTN: Record<string, string> = { primary: 'btn-primary', danger: 'btn-danger', ghost: 'btn-ghost' };
 
-export default function ContentShow({ content, canReview, actions, approvals, waitingOn}: Props) {
+export default function ContentShow({ content, canReview, actions, approvals, timeline, waitingOn}: Props) {
   const { props } = usePage<SharedProps>();
   const [modalFor, setModalFor] = useState<Action | null>(null);
   const [reason, setReason] = useState('');
@@ -47,7 +49,9 @@ export default function ContentShow({ content, canReview, actions, approvals, wa
 
   const runAction = (a: Action) => {
     if (a[3] === 'none') { router.post(u(`/content/${content.id}/${a[0]}`), {}, { preserveScroll: true }); return; }
-    setModalFor(a); setReason(''); setScheduledAt('');
+    setModalFor(a); setReason('');
+    // إعادة الجدولة تبدأ من الموعد الحالي بدل حقل فارغ
+    setScheduledAt(a[0] === 'reschedule' && content.scheduledAt ? content.scheduledAt.replace(' ', 'T') : '');
   };
   const submitModal = () => {
     if (!modalFor) return;
@@ -95,6 +99,22 @@ export default function ContentShow({ content, canReview, actions, approvals, wa
               {content.mediaUrl && <div><div style={{ fontSize: '.74rem', color: 'var(--ih-text-muted)' }}>رابط المحتوى</div><a href={content.mediaUrl} target="_blank" rel="noopener" style={{ color: 'var(--ih-primary)', direction: 'ltr', display: 'inline-block' }}>{content.mediaUrl}</a></div>}
               {content.caption && <div><div style={{ fontSize: '.74rem', color: 'var(--ih-text-muted)' }}>النص</div><p style={{ margin: '.3rem 0 0', lineHeight: 1.7, whiteSpace: 'pre-wrap' }}>{content.caption}</p></div>}
               {!content.mediaUrl && !content.caption && <div style={{ color: 'var(--ih-text-muted)', fontSize: '.85rem' }}>لا رابط ولا نص بعد.</div>}
+            </div>
+          </Sec>
+
+          {/* السياق والروابط — تنقّل فعلي عبر الوحدات (حملة/مبدع/عميل/منشور حيّ) */}
+          <Sec title="السياق والروابط" icon="external-link">
+            <div className="ih-sec__body" style={{ display: 'grid', gap: '.55rem', fontSize: '.85rem' }}>
+              <CtxRow label="الحملة" value={content.campaign} href={content.campaignId ? u(`/campaigns/${content.campaignId}`) : null} hint="مراحل الحملة الـ13" />
+              <CtxRow label="المبدع" value={content.creator} href={content.creatorId ? u(`/creators/${content.creatorId}`) : null} />
+              <CtxRow label="العميل" value={content.client} href={content.clientId ? u(`/clients/${content.clientId}`) : null} />
+              <CtxRow label="المنصّة" value={content.platform} />
+              {content.publishedUrl && (
+                <div style={{ display: 'flex', justifyContent: 'space-between', gap: '1rem' }}>
+                  <span style={{ color: 'var(--ih-text-muted)' }}>المنشور الحيّ</span>
+                  <a href={content.publishedUrl} target="_blank" rel="noopener" style={{ color: 'var(--ih-primary)', direction: 'ltr', fontWeight: 600, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: '60%' }}>{content.publishedUrl}</a>
+                </div>
+              )}
             </div>
           </Sec>
         </div>
@@ -146,14 +166,18 @@ export default function ContentShow({ content, canReview, actions, approvals, wa
           </Sec>
         )}
 
-        <Sec title={approvals.length ? `قرارات المراجعة (${approvals.length})` : 'قرارات المراجعة'} icon="clipboard-check">
+        {/* سجل موحّد: كل قرار مراجعة + كل انتقال حالة، بفاعله ودوره ووقته وإصداره */}
+        <Sec title={timeline.length ? `سجل المراجعة والحالة (${timeline.length})` : 'سجل المراجعة والحالة'} icon="clipboard-check">
           <div className="ih-sec__body">
-            {approvals.length === 0 ? <div style={{ color: 'var(--ih-text-muted)', fontSize: '.85rem' }}>لا قرارات بعد.</div> :
+            {timeline.length === 0 ? <div style={{ color: 'var(--ih-text-muted)', fontSize: '.85rem' }}>لا سجل بعد.</div> :
               <div className="ih-tl">
-                {approvals.map((a, i) => (
-                  <div key={i} className="ih-tl__item"><span className="ih-tl__dot" />
-                    <div className="ih-tl__text">{a.stage}: {a.decision} · v{a.version}</div>
-                    <div className="ih-tl__meta">{[a.at, a.note].filter(Boolean).join(' · ')}</div>
+                {timeline.map((e, i) => (
+                  <div key={i} className="ih-tl__item">
+                    <span className="ih-tl__dot" style={e.kind === 'decision' ? { background: e.decision === 'approved' ? 'var(--ih-success)' : e.decision === 'rejected' ? 'var(--ih-danger)' : 'var(--ih-warning)' } : undefined} />
+                    <div className="ih-tl__text">
+                      {e.label}{e.version ? <span style={{ color: 'var(--ih-text-muted)', fontWeight: 400 }}> · v{e.version}</span> : null}
+                    </div>
+                    <div className="ih-tl__meta">{[e.at, [e.actor, e.role].filter(Boolean).join(' · '), e.note].filter(Boolean).join(' · ')}</div>
                   </div>
                 ))}
               </div>}
@@ -222,5 +246,24 @@ export default function ContentShow({ content, canReview, actions, approvals, wa
         </div>
       )}
     </AppShell>
+  );
+}
+
+function CtxRow({ label, value, href, hint }: { label: string; value: string | null; href?: string | null; hint?: string }) {
+  return (
+    <div style={{ display: 'flex', justifyContent: 'space-between', gap: '1rem', alignItems: 'baseline' }}>
+      <span style={{ color: 'var(--ih-text-muted)' }}>{label}</span>
+      {value ? (
+        href ? (
+          <Link href={href} style={{ color: 'var(--ih-primary)', fontWeight: 600, textAlign: 'end' }}>
+            {value}{hint ? <span style={{ color: 'var(--ih-text-muted)', fontWeight: 400, fontSize: '.75rem' }}> · {hint}</span> : null}
+          </Link>
+        ) : (
+          <span style={{ fontWeight: 600, textAlign: 'end' }}>{value}</span>
+        )
+      ) : (
+        <span style={{ color: 'var(--ih-text-muted)' }}>—</span>
+      )}
+    </div>
   );
 }
