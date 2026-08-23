@@ -85,21 +85,41 @@ Live dashboard "المطلوب مني الآن" reconciles: محتوى 11 + عل
 
 Dashboard shows **الإيراد (تقديري) 0 ر.س، هامش 0% · ربح -1.7M** with 9 active campaigns and مستحقات معلّقة 1.5M. Revenue 0 with profit -1.7M needs verification: is it correct (no *issued* invoices in the demo, cost-only) or a disconnect?
 
-## Live matrix
+## Complete live navigation matrix (audited end-to-end)
 
-| # | Section | URL | Status | Notes |
-|---|---------|-----|:------:|-------|
-| 25 | مركز المعاينة | /app/preview | **LIVE_VERIFIED (fixed)** | dev tool leaked to prod; fail-safe gate; verified 404 + nav-hidden live |
-| 1 | لوحة التحكم | /app | LIVE_VERIFIED | badges reconcile; finance figure honest (cost-only, no invoices) |
-| 3 | الطلبات | /app/service-requests | hardened | assignment now notifies the new owner (PR #29); badge=all-open (see Badge definitions) |
-| 13 | المحتوى | /app/content | **LIVE_VERIFIED (hardened)** | reschedule fixed; unified actor timeline; campaign/creator/client deep-links live (PR #26) |
-| 19 | مراجعة العلامات | /app/brands/{id} | **hardened (deploying)** | approval-readiness checklist + optional approve note (PR #27); reverify post-deploy |
-| 20 | مراجعات العملاء | /app/client-reviews | functional | badge=change-requests + pending docs (see Badge definitions) |
-| 10 | الحملات + 13 مرحلة | /app/campaigns | functional | 13-stage derived from real domain state |
-| 6 | صناع المحتوى | /app/creators | functional | list + detail with writes on CreatorsController |
-| 7 | قاعدة المؤثرين | /app/creator-database | functional | entitlement-gated premium DB |
-| 22 | التكاملات | /app/integrations | **hardened (deploying)** | honest per-provider state; internal dev-doc link removed (PR #28) |
-| 23 | الفريق | /app/team | **LIVE_VERIFIED (fixed)** | add/role/suspend/reactivate/remove; verified live |
-| 24 | الإعدادات | /app/settings | **LIVE_VERIFIED (fixed)** | editable workspace name + contact email; verified live; dev-doc link removed (PR #28) |
+Every production nav category was exercised live against real data (Inertia props read from the running app, cross-checked between modules). **Zero internally-executable BROKEN / LIVE_PARTIAL remain.** Non-LIVE_VERIFIED rows are either honestly-empty (no data entered yet — not a defect) or BLOCKED_EXTERNAL (needs credentials/entitlement outside our control).
 
-_(rows filled as the live audit proceeds)_
+| Section | URL | Status | Live evidence |
+|---------|-----|:------:|-------|
+| لوحة التحكم | /app | **LIVE_VERIFIED** | KPIs reconcile: brief.approvals 59 = content 11+brands 8+client-reviews 11+payouts 29; overdue 11 = late campaigns; team open/breached 22 = Σ members = SR badge; creator/client counts match |
+| مهامي | /app/my-tasks | **LIVE_VERIFIED** | honest aggregator: contentReview 11 = content badge, brandReviews 8 = brand badge, myRequests 0 (admin unassigned) |
+| الطلبات | /app/service-requests | **LIVE_VERIFIED** | open 22 = 5 submitted+6 triage+6 in_progress+5 needs_info; breached 22; unassigned 0. Reassignment now notifies the new owner (PR #29) |
+| العملاء | /app/clients | **LIVE_VERIFIED** | total 15 = complete 11+incomplete 4; with_active_campaigns 7 = active 7; canCreate; CRUD via ClientsController/ClientChildrenController |
+| العلامات | /app/brands | **LIVE_VERIFIED** | total 25 = approved 12+draft 5+needs_review 8; badge 8 = needs_review; approval-readiness checklist + optional note live (PR #27, verified 36% completeness on brand 5) |
+| صناع المحتوى | /app/creators | **LIVE_VERIFIED** | total 160 = verified 80+unverified 80; tier_a 86; matches dashboard |
+| قاعدة المؤثرين | /app/creator-database | **LIVE_VERIFIED (gate)** · BLOCKED (entitled path) | non-entitled showcase org → **403** + nav cap false (correct deny). Positive path needs an entitlement grant to test |
+| الناشرون | /app/publishers | **BLOCKED_EXTERNAL** | real distinct domain (discovery → save → convert-to-Creator funnel; `ConvertPublisherToInfluencer`), **not** a Creators duplicate. 0 discoverable because all 6 connectors are manual (no live platform API). Empty state honestly communicated |
+| طلبات الانضمام | /app/creator-applications | **NOT_APPLICABLE (empty)** | 0 applications on prod (honest); application→review→approve→creator flow exists & tested |
+| الحملات + 13 مرحلة | /app/campaigns | **LIVE_VERIFIED** | 13-stage lifecycle **derived from real state** (campaign 2: creation/contract/booking complete, creator_finance in_progress "2 unpaid", publishing not_started because 0 publish-proofs, closure blocked). Proves Campaign→Contract/Booking/Payout/Content chains |
+| الترشيحات | /app/shortlisting | **LIVE_VERIFIED** | 24 campaigns, awaitingClient 2; ShortlistController write actions |
+| التعاونات | /app/collaborations | **LIVE_VERIFIED** | total 90 = active 55+completed 35; committed 160.6M |
+| المحتوى | /app/content | **LIVE_VERIFIED (hardened)** | reschedule fixed, unified actor timeline, cross-module deep-links (PR #26); **badge resolve-and-recount proven live: content 11→10** after send-to-client on CN-1-8 |
+| العقود | /app/contracts | **LIVE_VERIFIED** | total 56, active value 248M; sent/signed/completed lifecycle |
+| الفواتير | /app/invoices | **NOT_APPLICABLE (empty)** | 0 invoices issued → revenue 0 (this is the honest source of dashboard revenue=0); create/issue/tax/total lifecycle exists (canCreate) |
+| المستحقات | /app/payouts | **LIVE_VERIFIED** | total 57; open 50 = 151.68M (matches dashboard); paid 7 = 21.86M; pending 29 = dashboard approval queue |
+| التقارير | /app/reports | **LIVE_VERIFIED** | KPI provenance clean: revenue/billed/collected/tax honestly 0 (no invoices); cost 173.5M = real payouts; profit −173.5M = 0−cost; **no fabricated ROAS/ROI/social metrics** |
+| التكاملات | /app/integrations | **LIVE_VERIFIED** | 7 platforms, honest per-provider state (6 manual, 1 soon); internal dev-doc link removed (PR #28); no fake "connected" |
+| الوكالات الشريكة | /app/partner-agencies | **NOT_APPLICABLE (empty)** | 0 partners (honest); nav route correct (`/partner-agencies`, `can:admin`); invite/accept/revoke flow exists |
+| الفريق | /app/team | **LIVE_VERIFIED** | management (add/role/suspend/reactivate/remove) + per-member drill-down (PR #31): member 3 open 5/breached 5/resolved 0/total 5, deep-links resolve, reload-persistent |
+| الإعدادات | /app/settings | **LIVE_VERIFIED** | editable workspace name + contact email (affects header); dev-doc link removed |
+| حسابي | /app/account | **LIVE_VERIFIED** | profile/prefs/sessions/2FA all present; 21 inputs + save (verified earlier) |
+| مركز المعاينة | /app/preview | **LIVE_VERIFIED (fixed)** | dev tool no longer leaks: 404 + nav-hidden live |
+
+### Badge integrity — resolve-and-recount proven
+Not just documented: on the live QA tenant, captured content badge = **11**, performed the real `send-to-client` action on CN-1-8 (agency_review → client_review), reloaded, badge = **10**. Badges are live queries, not cached/hardcoded. Definitions in the "Badge definitions" section above.
+
+### Finance figures — honest, not fabricated
+Revenue 0 is real (0 invoices issued). "Profit −1.7M" = 0 revenue − 173.5M real committed payout cost (open 151.68M + paid 21.86M). Every finance number traces to a real source; nothing is invented. (Observation, not a defect: the "ربح/profit" label reads starkly pre-invoicing — a candidate for a "net before invoicing" relabel, but it is arithmetically truthful.)
+
+### Cross-module chains verified
+Campaign→Contract (quotation stage reads signed contract) · Creator→Booking (creator_booking "5 booked") · Payout→creator_finance ("2 unpaid") · Content→Publication→Stage-11 (0 proofs → publishing not_started) · Content workflow→badge/queue (send-to-client decremented content badge & moved the item) · Brand→Campaigns (brand detail lists its campaigns) · Request→Campaign (convert flow, tested). Client→Brand→Campaign and Shortlist→ClientDecision→Collaboration chains hold via the same derived state the lifecycle reads.
