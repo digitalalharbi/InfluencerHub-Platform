@@ -91,6 +91,87 @@ class ShortlistController extends Controller
         ]);
     }
 
+    /** بنود الإصدار الحالي (مع المبدع) — مصدر واحد للعرض والتصدير. */
+    private function currentItems(Campaign $campaign, Request $r)
+    {
+        $version = $this->svc->getOrCreate($campaign, $r->user()->id)->currentVersion();
+        return [$version, $version->items()->with('creator')->orderByDesc('is_backup')->get()];
+    }
+
+    /**
+     * تصدير الترشيحات (داخلي — XLSX/CSV): يتضمّن درجة المطابقة وأسبابها والتكلفة
+     * والقرار. للاستخدام الداخلي فقط. Policy(view). مُدقَّق.
+     */
+    public function export(Request $r, Campaign $campaign, \App\Domain\Exports\ExportService $svc): \Symfony\Component\HttpFoundation\Response
+    {
+        $this->authorize('view', $campaign);
+        [$version, $items] = $this->currentItems($campaign, $r);
+
+        $data = new \App\Domain\Exports\TabularData(
+            title: 'ترشيحات حملة ' . $campaign->campaign_number,
+            columns: [
+                'creator' => 'المبدع', 'handle' => 'الحساب', 'platform' => 'المنصّة',
+                'followers' => 'المتابعون', 'kind' => 'النوع', 'fee' => 'السعر المقترح',
+                'score' => 'درجة المطابقة', 'decision' => 'قرار العميل',
+            ],
+            rows: $items->map(fn (CampaignShortlistItem $it) => [
+                'creator' => $it->creator?->display_name ?? '—',
+                'handle' => $it->creator?->handle ?? '—',
+                'platform' => $it->creator?->primary_platform ?? '—',
+                'followers' => number_format((int) ($it->creator?->followers_count ?? 0)),
+                'kind' => $it->is_backup ? 'احتياطي' : 'أساسي',
+                'fee' => number_format(($it->proposed_fee_minor ?? 0) / 100, 2) . ' SAR',
+                'score' => (int) $it->match_score,
+                'decision' => $this->decisionLabel($it->client_decision),
+            ]),
+            meta: array_filter(['الحملة' => $campaign->name, 'الإصدار' => (int) $version->version]),
+            workspace: \App\Domain\Tenancy\Models\Organization::find(\App\Domain\Tenancy\Support\TenantContext::organizationId())?->name,
+            generatedAt: now()->format('Y-m-d H:i'),
+        );
+
+        return $svc->download($data, (string) $r->query('format', 'xlsx'), 'shortlist-' . $campaign->campaign_number,
+            'shortlist', $items->count(), \App\Domain\Tenancy\Support\TenantContext::tenantId(), $r->user()->id);
+    }
+
+    /**
+     * مقترح الترشيحات (PDF) آمن للعميل — يُشارَك مع العميل. يعرض المبدع وحسابه
+     * ومنصّته وجمهوره والسعر المقترح والقرار، ويستبعد صراحةً: تكلفة المبدع،
+     * درجة المطابقة الداخلية وأسبابها، وأي بيانات تواصل خاصّة أو مصدر داخلي.
+     * Policy(view). مُدقَّق.
+     */
+    public function exportClientPdf(Request $r, Campaign $campaign, \App\Domain\Exports\Writers\PdfWriter $pdf): \Symfony\Component\HttpFoundation\Response
+    {
+        $this->authorize('view', $campaign);
+        $campaign->load('client', 'brand');
+        [$version, $items] = $this->currentItems($campaign, $r);
+
+        $data = [
+            'workspace' => \App\Domain\Tenancy\Models\Organization::find(\App\Domain\Tenancy\Support\TenantContext::organizationId())?->name ?? 'الوكالة',
+            'campaign' => $campaign->name,
+            'number' => $campaign->campaign_number,
+            'client' => $campaign->client?->display_name ?? '—',
+            'brand' => $campaign->brand?->name,
+            'versionNo' => (int) $version->version,
+            // بنود آمنة للعميل — بلا score/reasons/تكلفة مبدع/تواصل خاص
+            'items' => $items->map(fn (CampaignShortlistItem $it) => [
+                'creator' => $it->creator?->display_name ?? '—',
+                'handle' => $it->creator?->handle,
+                'platform' => $it->creator?->primary_platform ?? '—',
+                'followers' => number_format((int) ($it->creator?->followers_count ?? 0)),
+                'backup' => (bool) $it->is_backup,
+                'fee' => number_format(($it->proposed_fee_minor ?? 0) / 100, 0) . ' SAR',
+                'decision' => $this->decisionLabel($it->client_decision),
+            ])->values()->all(),
+            'generatedAt' => now()->format('Y-m-d H:i'),
+        ];
+
+        \App\Domain\Audit\Services\AuditLogger::log('export.generated', $campaign, [
+            'type' => 'shortlist_client_proposal', 'format' => 'pdf', 'campaign' => $campaign->campaign_number,
+        ], \App\Domain\Tenancy\Support\TenantContext::tenantId(), $r->user()?->id);
+
+        return $pdf->downloadView('exports.shortlist-proposal', $data, 'shortlist-' . $campaign->campaign_number);
+    }
+
     public function add(Request $r, Campaign $campaign)
     {
         $this->authorize('update', $campaign);

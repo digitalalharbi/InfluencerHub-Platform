@@ -4,6 +4,7 @@ import AppShell from '@/Layouts/AppShell';
 import { Bar, Field, Kpi, ListHead, StatusBadge } from '@/Components/ui';
 import { Icon } from '@/Components/Icon';
 import { Pagination, type Paginated } from '@/Components/Pagination';
+import { ExportButtons } from '@/Components/ExportButtons';
 import { u } from '@/lib/href';
 
 interface CampaignRow {
@@ -72,7 +73,10 @@ export default function CampaignsIndex({ campaigns, summary, filters, canCreate,
 
       <ListHead eyebrow="التشغيل" title="الحملات"
         sub="حملات المؤثرين ومخرجاتها وميزانياتها وتقدّمها ومخاطرها في لوحة واحدة"
-        actions={canCreate ? <button onClick={() => setCreateOpen(true)} className="btn btn-sm btn-primary"><Icon name="plus" size={15} /> حملة جديدة</button> : undefined} />
+        actions={<span style={{ display: 'inline-flex', gap: '.5rem', alignItems: 'center' }}>
+          <ExportButtons path="/campaigns/export" filters={filters as Record<string, string>} />
+          {canCreate && <button onClick={() => setCreateOpen(true)} className="btn btn-sm btn-primary"><Icon name="plus" size={15} /> حملة جديدة</button>}
+        </span>} />
 
       <div className="ih-kpis">
         <Kpi label="إجمالي الحملات" icon="megaphone" value={summary.total.toLocaleString('en-US')} sub={`${summary.planning} قيد الترشيح · ${summary.draft} مسودة`} />
