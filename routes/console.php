@@ -10,3 +10,6 @@ Artisan::command('inspire', function () {
 // محرّك SLA — يعمل كل ساعة (تذكيرات + رصد تجاوزات طلبات الخدمة)
 use Illuminate\Support\Facades\Schedule;
 Schedule::command('sla:scan')->hourly()->withoutOverlapping();
+
+// نبضة المجدول كل دقيقة — تُثبت لصفحة صحّة النظام أنّ المجدول يعمل فعلًا.
+Schedule::command('ops:scheduler-heartbeat')->everyMinute()->withoutOverlapping();
