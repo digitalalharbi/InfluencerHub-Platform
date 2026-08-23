@@ -14,6 +14,16 @@ class AppServiceProvider extends ServiceProvider
 {
     public function register(): void
     {
+        // سجلّ قنوات التسليم — الترتيب مقصود (in_app أوّلًا). القنوات الخارجية
+        // متاحة فقط حين تُفعَّل بيانات اعتمادها؛ افتراضها غير مهيّأ.
+        $this->app->singleton(\App\Domain\Communications\Channels\ChannelRegistry::class, fn ($app) =>
+            new \App\Domain\Communications\Channels\ChannelRegistry([
+                $app->make(\App\Domain\Communications\Channels\InAppChannel::class),
+                $app->make(\App\Domain\Communications\Channels\EmailChannel::class),
+                $app->make(\App\Domain\Communications\Channels\WhatsAppChannel::class),
+                $app->make(\App\Domain\Communications\Channels\SmsChannel::class),
+            ]));
+
         // مساعد الترشيح: يختار السائق من الإعداد، ويرتدّ إلى القواعد إن لم يُربَط OpenAI
         $this->app->bind(\App\Domain\AdminPool\Assistant\ShortlistAssistant::class, function () {
             $rule = new \App\Domain\AdminPool\Assistant\RuleBasedAssistant;
