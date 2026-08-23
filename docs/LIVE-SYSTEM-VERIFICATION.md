@@ -29,11 +29,12 @@ CI (`deploy.yml`) now runs `tsc` + tenant guard (PR #14) **and the full Playwrig
 | 5 | Plan entitlements (quota enforcement) | **VERIFIED** | `05-entitlement` E2E **6/6 cross-browser** (tenant at `customers.max=1` rejected on a *counting* status; original client intact). Confirmed the quota model: only `qualified`/`active` consume `customers.max` — leads are free by design (`ClientStatus::countingValues`). Two fixes this run: create-modal now **surfaces** the rejection (was silently swallowed); stale test used non-counting `lead` |
 | 6 | Core CRUD + design/responsive (React) | **VERIFIED** | `02-clients` **30/30** + `06-ui` **12/12** cross-browser after repairing stale Alpine-era specs to the real React UI (search/filter/create-modal/tabs; brand-token & mobile-card assertions). Surfaced & fixed a product gap: **client archive** had backend support (`ArchiveClient`) but **no UI control** — added a policy-gated أرشفة button |
 | 7 | **13-stage campaign lifecycle** (P1) | **VERIFIED** | `CampaignLifecycleService` derives all 13 from real domain state; `CampaignLifecycleServiceTest` (4 tests/35 assertions incl. failure paths); surfaced in campaign command center. Merged PR #15 |
-| 8 | Agency portal | PARTIALLY_VERIFIED | Inertia + workflow-service tests green server-side; `07-crm-ui-flows` E2E stale (Alpine-era) — cross-browser repair in progress |
-| 9 | Client/brand portal | PARTIALLY_VERIFIED | `InertiaClient*` tests green server-side; `14-client-portal` E2E stale — repair in progress |
-| 10 | Creator portal | PARTIALLY_VERIFIED | `InertiaCreator*` tests green server-side; `11-creator-portal` E2E stale — repair in progress |
-| 11 | Partner portal | PARTIALLY_VERIFIED | scoped tests green server-side; `15-partner-portal` E2E stale — repair in progress |
+| 8 | Agency portal | **VERIFIED** | `07-crm-ui-flows` + `08-creators` + `10-application-review` E2E repaired to real React UI, cross-browser (PR #18). Found+fixed product gap (client-archive UI) |
+| 9 | Client/brand portal | **VERIFIED** | `14-client-portal` E2E cross-browser after fixing the login-portal helper (was using agency `/login` for a client role) + stale selectors/texts |
+| 10 | Creator portal | **VERIFIED** | `11-creator-portal` + `13-portal-crud` E2E cross-browser. Found+fixed a real 500 bug (`tenantStorageBytes` returned a closure-scoped `$b`) + the followers-count NOT-NULL crash |
+| 11 | Partner portal | **VERIFIED** | `15-partner-portal` E2E cross-browser (whole-card link + stale dashboard text) |
 | 12 | System admin (SaaS) | VERIFIED | `InertiaAdminPlatformTest` |
+| 13 | Command palette (⌘K) | **NOT_IMPLEMENTED** | `17-command-palette` describes a feature with no code (`.ih-cmdk*`, ⌘K listener, quick-search all absent). Spec `describe.skip`ped with a reason — not fabricated to pass |
 
 ## 13-stage lifecycle (VERIFIED — merged PR #15)
 
@@ -78,7 +79,7 @@ The earlier hypothesis (mutating specs polluting a shared E2E DB) was **disprove
 - Added `tests/Feature/LoginPortalAccessTest` — exercises the **real** `POST /login` per role (not `actingAs`): every agency-portal role (incl. viewer) reaches `/app`, a non-agency role is rejected. This is the product-level lock the `actingAs`-based suite structurally could not provide.
 - Verified: `04-rbac` now **12/12 across chromium/firefox/webkit**; backend `LoginPortalAccessTest` green.
 
-No per-project DB isolation was needed because there was no real pollution — the failing specs were read-only and blocked solely by the login defect.
+For the **critical** tier no per-project DB isolation was needed — those failing specs were read-only and blocked solely by the login defect. Per-project isolation **did** turn out to be needed for the **portal** tier's genuinely-mutating specs (submit-brand, accept single-use-invite, accept-application) — see the isolation section below.
 
 ## E2E suite was substantially stale against the React migration (finding + repair plan)
 
@@ -88,9 +89,23 @@ Classification is per-test, and this run has already resolved the **critical** t
 - **Test defects** (stale selectors → real React UI, assertions preserved): `02-clients` 9–15, `05-entitlement` 25 (also wrong quota premise), `06-ui` 27/29/30.
 - **Product gaps** (additive fixes wiring existing backend capability): client **archive** button (backend `ArchiveClient` had no UI control); create-modal **error feedback** (validation/entitlement rejections were silently swallowed).
 
-**CI gate scope (honest):** the new `e2e` job gates deploy on the **critical, cross-browser-green** specs only — `01-auth 02-clients 03-isolation 04-rbac 05-entitlement 06-ui`. Gating on the not-yet-repaired portal specs would block every deploy on known-stale tests. The list is a literal in `deploy.yml` and **expands as each portal spec is repaired** — the full suite still exists and is run locally. This is scoping the *gate* to what is deterministic, not reducing coverage.
+**CI gate scope:** initially the `e2e` job gated on the critical specs only (while portal specs were being repaired); with the portal tier now green cross-browser and per-project isolation in place (PR #18), the gate runs the **full suite cross-browser** (`npx playwright test`), all engines, `deploy-vps` blocked on it. `17-command-palette` runs as `describe.skip` (feature not implemented) — skipped, not failing.
 
-**Remaining repairable (portal/UI, PARTIALLY_VERIFIED):** `07-crm-ui-flows`, `08-creators`, `10-application-review`, `11-creator-portal`, `12-application-files-wizard`, `13-portal-crud`, `14-client-portal`, `15-partner-portal`, `17-command-palette` — same stale-selector class; each to be repaired to the real React UI and added to the CI gate. All server-side behavior for these is already VERIFIED by the backend feature suite.
+## Portal tier repaired + real per-project isolation (PR #18)
+
+All 9 portal specs were taken green cross-browser. The mega-run's apparent 113 failures were mostly environment amplification: on a quiet machine only ~27 (chromium) were real, and repairing them at the correct layer surfaced genuine defects, not just stale selectors.
+
+**Product bugs found by the E2E and fixed (app code):**
+- `tenantStorageBytes` returned `$b` defined *inside* a `withBypass` closure → "Undefined variable $b" → **500 on every creator-storage check**. Fixed to return the closure value; regression test added. (Caught by `12-application-files-wizard` 57, the disguised-executable security test.)
+- Adding a creator platform without a followers count → **500** (`creator_platforms.followers_count` NOT NULL, no default, field optional in UI+validation). Coalesce to 0; regression test added. (Caught by `13-portal-crud` 61.)
+- Client **archive** and create-modal **error feedback** (above).
+- Dev Preview Center had no nav entry; added a **dev-gated, non-Inertia** nav link (`dev_tools` cap = non-production; the page 404s in production so no prod dead link).
+
+**Test defects repaired (real React UI, assertions preserved):** stale `form[action]`/`input[name]`/`.modal`/tab-label selectors → role/label/text selectors; drifted flash/status texts → the real strings (e.g. brand submit → "أُرسلت العلامة للمراجعة"/"مُرسل"; 2FA → "التحقّق بخطوتين"); **wrong login portal** in `14-client-portal` (client role was logging into the agency portal); whole-card row links (no "فتح" sub-link).
+
+**Not fabricated:** `17-command-palette` (⌘K) has no implementation anywhere in the React app — `describe.skip`ped with a reason rather than building a speculative feature to satisfy a stale spec.
+
+**Real per-project DB isolation (the user's P1).** With `workers:1` and one `migrate:fresh` at boot, all browser projects shared one seeded DB, so chromium's *mutating* tests polluted firefox/webkit (submit-brand, accept single-use-invite, accept-application → 6 cross-browser failures). Fix (least-complex reliable): `tests/e2e/reset.setup.js` re-runs `migrate:fresh + e2e:seed` before each browser via a **dependency chain** `reset→chromium→reset→firefox→reset→webkit` in `playwright.config.js`. No coverage reduced, no mutation test converted to read-only — each engine now starts from a clean, deterministic seed.
 
 ## Integrations-absent behavior — verified truthful (this run)
 Active code inspection (not doc-trust):

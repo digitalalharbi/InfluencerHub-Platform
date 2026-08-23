@@ -9,6 +9,7 @@ export interface NavItem {
   match?: string; // path prefix for active state (defaults to route)
   can?: string;   // key into shared nav.can — item hidden unless true (undefined = always shown)
   abs?: boolean;  // مسار مطلق (ما زال على Blade) — لا تُضاف إليه بادئة التركيب
+  external?: boolean; // وجهة خارج Inertia (صفحة Blade) — تُعرَض كرابط تحميل كامل لا زيارة Inertia
 }
 
 export interface NavGroup {
@@ -84,6 +85,8 @@ export const agencyNav: NavGroup[] = [
       { key: 'team', label: 'الفريق', route: '/team', icon: 'users', can: 'admin' },
       { key: 'settings', label: 'الإعدادات', route: '/settings', icon: 'settings', can: 'admin' },
       { key: 'account', label: 'حسابي', route: '/account', icon: 'users' },
+      // مركز المعاينة صفحة غير إنتاجية (dev_tools) — يظهر خارج الإنتاج فقط.
+      { key: 'preview', label: 'مركز المعاينة', route: '/preview', icon: 'radar', can: 'dev_tools', external: true },
     ],
   },
 ];

@@ -22,14 +22,12 @@ test.describe('المبدعون', () => {
     test('40- إنشاء مبدع عبر النافذة يظهر في القائمة', async ({ page }) => {
         await login(page, 'admin@a.test');
         await page.goto('/app/creators');
-        await page.click('button:has-text("+ مبدع جديد")');
+        // React/Inertia: النافذة بلا <form>؛ الحقول بلا سمة name؛ القدرة «مؤثرون»
+        // مُحدّدة افتراضيًا (النوع صار قدرات لا حقلًا مفردًا)؛ زر «حفظ المبدع».
+        await page.getByRole('button', { name: 'مبدع جديد' }).first().click();
         await expect(page.locator('.modal')).toBeVisible();
-        const f = page.locator('.modal form');
-        await f.locator('input[name="display_name"]').fill('سلمى الرشيد');
-        await f.locator('select[name="type"]').selectOption('influencer');
-        await f.locator('input[name="handle"]').fill('salma_r');
-        await f.locator('button:has-text("حفظ")').click();
-        await page.waitForURL('**/app/creators**');
+        await page.locator('.modal input').first().fill('سلمى الرشيد');
+        await page.locator('.modal').getByRole('button', { name: 'حفظ المبدع' }).click();
         await expect(page.locator('body')).toContainText('سلمى الرشيد');
     });
 
@@ -41,11 +39,13 @@ test.describe('المبدعون', () => {
         await expect(page.locator('body')).toContainText('CR-1-');
     });
 
-    test('42- القائمة الجانبية فيها روابط المبدعين وتعمل', async ({ page }) => {
+    test('42- القائمة الجانبية فيها رابط صناع المحتوى ويعمل', async ({ page }) => {
+        // وُحِّدت وجهتا «المؤثرون»/«صناع المحتوى» في رابط واحد «صناع المحتوى» →
+        // /app/creators (الفلترة بالقدرة صارت داخل الصفحة).
         await login(page, 'admin@a.test');
         await page.goto('/app');
-        await page.click('a:has-text("المؤثرون")');
-        await expect(page).toHaveURL(/type=influencer/);
+        await page.locator('aside').getByRole('link', { name: 'صناع المحتوى' }).first().click();
+        await expect(page).toHaveURL(/\/app\/creators/);
         await expect(page.locator('body')).toContainText('نورة القحطاني');
     });
 

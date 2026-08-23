@@ -132,6 +132,9 @@ class AccountController extends Controller
             'url' => 'nullable|url|max:255',
             'followers_count' => 'nullable|integer|min:0',
         ]);
+        // العمود NOT NULL بلا قيمة افتراضية، والحقل اختياري في الواجهة والتحقق —
+        // فإدخال null كان يرمي 500 على المسار السعيد «أضِف منصّة بمعرّف فقط».
+        $data['followers_count'] ??= 0;
         CreatorPlatform::create($data + ['tenant_id' => $c->tenant_id, 'creator_id' => $c->id]);
 
         return back()->with('ok', 'أُضيفت المنصة.');

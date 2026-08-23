@@ -73,21 +73,35 @@ export default function AppShell({
                 const href = item.abs ? item.route : u(item.route);
                 const active = isActive(url, href, item.match === undefined ? undefined : u(item.match), home);
                 const count = item.badge ? badges[item.badge] ?? 0 : 0;
-                return (
-                  <Link
-                    key={item.key}
-                    href={href}
-                    className={`nav-link ih-nav__link${active ? ' active' : ''}`}
-                    style={{ display: 'flex', alignItems: 'center', gap: '.6rem', justifyContent: 'space-between' }}
-                    aria-current={active ? 'page' : undefined}
-                    data-label={item.label}
-                    title={rail ? item.label : undefined}
-                  >
+                const inner = (
+                  <>
                     <span style={{ display: 'flex', alignItems: 'center', gap: '.6rem', minWidth: 0 }}>
                       <Icon name={item.icon} size={18} className="ih-icon" />
                       <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{item.label}</span>
                     </span>
                     {count > 0 && <span className="ih-nav__badge">{count > 99 ? '99+' : count}</span>}
+                  </>
+                );
+                const linkStyle = { display: 'flex', alignItems: 'center', gap: '.6rem', justifyContent: 'space-between' } as const;
+                const linkClass = `nav-link ih-nav__link${active ? ' active' : ''}`;
+                // وجهات خارج Inertia (صفحات Blade مثل مركز المعاينة) تحتاج تحميلًا كاملًا
+                // لا زيارة Inertia — وإلا لا يتنقّل الرابط. تُعرَّف بـ external.
+                return item.external ? (
+                  <a key={item.key} href={href} className={linkClass} style={linkStyle}
+                    aria-current={active ? 'page' : undefined} data-label={item.label} title={rail ? item.label : undefined}>
+                    {inner}
+                  </a>
+                ) : (
+                  <Link
+                    key={item.key}
+                    href={href}
+                    className={linkClass}
+                    style={linkStyle}
+                    aria-current={active ? 'page' : undefined}
+                    data-label={item.label}
+                    title={rail ? item.label : undefined}
+                  >
+                    {inner}
                   </Link>
                 );
               })}

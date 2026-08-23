@@ -178,18 +178,11 @@ jobs:
       - name: Install Playwright browsers + OS deps
         run: npx playwright install --with-deps chromium firefox webkit
 
-      # بوابة النشر تعمل على المسارات الحرجة المُتحقَّقة عبر المتصفّحات الثلاثة
-      # (مصادقة/عملاء/عزل مستأجرين/صلاحيات/حدود الخطة/الواجهة). تُوسَّع القائمة
-      # كلما أُصلح مواصفة بوّابة قديمة (كانت مكتوبة على واجهة Alpine قبل التحويل إلى React).
-      - name: Run Playwright critical suite (boots migrate:fresh + e2e:seed via webServer)
-        run: >-
-          npx playwright test --reporter=line
-          tests/e2e/01-auth.spec.js
-          tests/e2e/02-clients.spec.js
-          tests/e2e/03-isolation.spec.js
-          tests/e2e/04-rbac.spec.js
-          tests/e2e/05-entitlement.spec.js
-          tests/e2e/06-ui.spec.js
+      # البوابة تُشغّل السويت الكامل عبر المتصفّحات الثلاثة. العزل بين المتصفّحات
+      # مضمون بسلسلة reset في playwright.config (migrate:fresh + e2e:seed قبل كل
+      # متصفّح)، فلا تلوّث اختبارات الطفرة المشروع التالي. (⌘K متخطّاة: غير مُنفَّذة.)
+      - name: Run Playwright suite cross-browser (webServer boots the app; reset chain isolates each engine)
+        run: npx playwright test --reporter=line
         env:
           E2E_PASSWORD: e2e-ci-secret
 

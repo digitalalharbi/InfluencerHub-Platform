@@ -7,13 +7,17 @@ test.describe('تدفقات واجهة CRM', () => {
 
     test('31- إضافة علامة من ملف العميل تظهر فورًا', async ({ page }) => {
         await page.goto('/app/clients/1');
-        await page.click('button:has-text("العلامات")');
-        const f = page.locator('form[action$="/brands"]');
-        await f.locator('input[name="name"]').fill('Air Max');
-        await f.locator('input[name="sector"]').fill('أحذية');
-        await f.locator('button').click();
-        await expect(page.locator('body')).toContainText('تمت إضافة العلامة');
-        await page.click('button:has-text("العلامات")');
+        // مُهاجَر من Alpine: التبويب زرّ role=tab بعنوانه، ولوح الإضافة AddPanel يُفتح بزرّ نصّه التسمية
+        await page.getByRole('tab', { name: 'العلامات' }).click();
+        await page.getByRole('button', { name: 'إضافة علامة' }).click();
+        // الحقول بلا name — تُملأ عبر الربط label→input داخل مكوّن Field
+        await page.getByLabel('اسم العلامة').fill('Air Max');
+        await page.getByLabel('القطاع').fill('أحذية');
+        const panel = page.locator('.card').filter({ has: page.getByLabel('اسم العلامة') });
+        await panel.getByRole('button', { name: 'حفظ' }).click();
+        // النص الحالي للفلاش (تُنشأ العلامة كمسوّدة في مسار الاعتماد)
+        await expect(page.locator('body')).toContainText('أُضيفت العلامة كمسوّدة');
+        // النتيجة الفعلية: بطاقة العلامة تظهر في تبويب العلامات
         await expect(page.locator('body')).toContainText('Air Max');
     });
 
@@ -24,37 +28,44 @@ test.describe('تدفقات واجهة CRM', () => {
 
     test('33- دعوة عضو بوابة تُظهر الرمز مرة واحدة', async ({ page }) => {
         await page.goto('/app/clients/1');
-        await page.click('button:has-text("أعضاء الفريق")');
-        const f = page.locator('form[action$="/members/invite"]');
-        await f.locator('input[name="email"]').fill('partner@nike.test');
-        await f.locator('select[name="role"]').selectOption('client_admin');
-        await f.locator('button').click();
+        // مُهاجَر من Alpine: التبويب الحقيقي «الفريق» لا «أعضاء الفريق»
+        await page.getByRole('tab', { name: 'الفريق' }).click();
+        await page.getByRole('button', { name: 'دعوة عضو بوابة' }).click();
+        await page.getByLabel('البريد').fill('partner@nike.test');
+        await page.getByLabel('الدور').selectOption('client_admin');
+        const panel = page.locator('.card').filter({ has: page.getByLabel('البريد') });
+        await panel.getByRole('button', { name: 'حفظ' }).click();
+        // كتلة الرمز «رمز الدعوة — يُعرض مرة واحدة» تُعرض عند وصول inviteToken
         await expect(page.locator('body')).toContainText('رمز الدعوة');
     });
 
     test('34- تعريف حقل مخصّص ثم ضبط قيمته', async ({ page }) => {
         await page.goto('/app/clients/1');
-        await page.click('button:has-text("حقول مخصّصة")');
-        const def = page.locator('form[action$="/custom-fields"]');
-        await def.locator('input[name="key"]').fill('tier');
-        await def.locator('input[name="label"]').fill('مستوى الحساب');
-        await def.locator('button').click();
-        await expect(page.locator('body')).toContainText('مستوى الحساب');
-        // اضبط القيمة
-        await page.click('button:has-text("حقول مخصّصة")');
-        const setForm = page.locator('form[action$="/set"]').first();
-        await setForm.locator('input[name="value"]').fill('ذهبي');
-        await setForm.locator('button').click();
+        // مُهاجَر من Alpine: تبويب + لوح AddPanel «تعريف حقل» بحقول Field بلا name
+        await page.getByRole('tab', { name: 'حقول مخصّصة' }).click();
+        await page.getByRole('button', { name: 'تعريف حقل' }).click();
+        await page.getByLabel('المفتاح').fill('tier');
+        await page.getByLabel('التسمية').fill('مستوى الحساب');
+        const defPanel = page.locator('.card').filter({ has: page.getByLabel('المفتاح') });
+        await defPanel.getByRole('button', { name: 'حفظ' }).click();
+        await expect(page.locator('body')).toContainText('تم تعريف الحقل المخصّص');
+        // اضبط القيمة — بطاقة «ضبط القيم» تظهر بعد وجود تعريف، وزرّها «حفظ» بجوار الحقل
+        const setCard = page.locator('.card').filter({ hasText: 'ضبط القيم' });
+        await setCard.getByRole('textbox').first().fill('ذهبي');
+        await setCard.getByRole('button', { name: 'حفظ' }).first().click();
         await expect(page.locator('body')).toContainText('تم حفظ القيمة');
     });
 
     test('35- إضافة جهة اتصال من الواجهة', async ({ page }) => {
         await page.goto('/app/clients/1');
-        await page.click('button:has-text("جهات الاتصال")');
-        const f = page.locator('form[action$="/contacts"]');
-        await f.locator('input[name="name"]').fill('سارة أحمد');
-        await f.locator('input[name="job_title"]').fill('مديرة تسويق');
-        await f.locator('button').click();
+        // مُهاجَر من Alpine: تبويب + لوح AddPanel «إضافة جهة اتصال»
+        await page.getByRole('tab', { name: 'جهات الاتصال' }).click();
+        await page.getByRole('button', { name: 'إضافة جهة اتصال' }).click();
+        await page.getByLabel('الاسم').fill('سارة أحمد');
+        await page.getByLabel('المسمّى').fill('مديرة تسويق');
+        const panel = page.locator('.card').filter({ has: page.getByLabel('الاسم') });
+        await panel.getByRole('button', { name: 'حفظ' }).click();
+        // النتيجة الفعلية: بطاقة جهة الاتصال الجديدة تظهر في التبويب
         await expect(page.locator('body')).toContainText('سارة أحمد');
     });
 
