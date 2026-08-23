@@ -4,7 +4,7 @@ use App\Http\Controllers\Controller;
 class PreviewCenterController extends Controller {
     /** مركز معاينة التطوير — يعرض حالة كل وحدة. محجوب في الإنتاج. */
     public function index() {
-        abort_if(app()->environment('production'), 404);
+        abort_unless(config('app.dev_tools'), 404);
         // تجاوز مؤقّت لقراءة حالة بيئة العرض، ثم يعود سياق الطلب كما كان
         // (حتى تعمل شارة «بيانات تجريبية» العامة التي تعتمد على TenantContext).
         $showcase = \App\Domain\Tenancy\Support\TenantContext::withBypass(function () {
@@ -27,13 +27,13 @@ class PreviewCenterController extends Controller {
 
     /** معرض نظام التصميم (ih-) — مرجع بصري للـ tokens والمكوّنات. محجوب في الإنتاج. */
     public function designSystem() {
-        abort_if(app()->environment('production'), 404);
+        abort_unless(config('app.dev_tools'), 404);
         return view('dev.design-system');
     }
 
     /** توليد/إعادة توليد بيئة العرض التجريبية (Showcase). محجوب في الإنتاج. */
     public function seedShowcase() {
-        abort_if(app()->environment('production'), 404);
+        abort_unless(config('app.dev_tools'), 404);
         $summary = (new \App\Support\Showcase\ShowcaseBuilder())->build();
         $msg = 'تم توليد بيئة العرض: ' . collect($summary)->except('tenant')
             ->map(fn ($v, $k) => "$k=$v")->implode(' · ');
@@ -42,7 +42,7 @@ class PreviewCenterController extends Controller {
 
     /** حذف بيئة العرض التجريبية بالكامل. محجوب في الإنتاج. */
     public function resetShowcase() {
-        abort_if(app()->environment('production'), 404);
+        abort_unless(config('app.dev_tools'), 404);
         (new \App\Support\Showcase\ShowcaseBuilder())->reset();
         return redirect('/app/preview')->with('ok', 'تم حذف بيئة العرض التجريبية.');
     }

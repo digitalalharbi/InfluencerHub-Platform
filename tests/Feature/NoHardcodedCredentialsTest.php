@@ -49,18 +49,17 @@ class NoHardcodedCredentialsTest extends TestCase
         $this->app->detectEnvironment(fn () => 'testing');
     }
 
-    public function test_preview_center_404_in_production(): void
+    public function test_preview_center_404_when_dev_tools_off(): void
     {
-        $this->app->detectEnvironment(fn () => 'production');
-        // Preview Center يعيد 404 في الإنتاج (نتحقق من الـController مباشرة عبر الطريق)
+        // البوابة صارت بعَلَم صريح config('app.dev_tools') لا بـAPP_ENV — يُحجَب في
+        // الإنتاج (بلا العَلَم) حتى لو أُسيء ضبط APP_ENV.
+        config(['app.dev_tools' => false]);
         $ctrl = new \App\Http\Controllers\Web\PreviewCenterController();
         try {
             $ctrl->index();
-            $this->fail('كان يجب 404 في الإنتاج');
+            $this->fail('كان يجب 404 حين تُعطَّل أدوات المطوّر');
         } catch (\Symfony\Component\HttpKernel\Exception\NotFoundHttpException $e) {
             $this->assertTrue(true);
-        } finally {
-            $this->app->detectEnvironment(fn () => 'testing');
         }
     }
 }

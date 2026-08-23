@@ -7,6 +7,7 @@ cd "$(dirname "$0")/../.."
 # فيضمن ذلك أن كل العمليات (migrate/seed/serve) تستهدف قاعدة E2E فعليًا.
 export APP_ENV=local
 export APP_DEBUG=true
+export DEV_TOOLS_ENABLED=true
 export DB_CONNECTION=pgsql
 export DB_HOST=127.0.0.1
 export DB_PORT=5432
