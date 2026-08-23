@@ -4,7 +4,6 @@ namespace App\Console\Commands;
 
 use App\Domain\Ops\Services\SystemHealthService;
 use Illuminate\Console\Command;
-use Illuminate\Support\Facades\Cache;
 
 /**
  * نبضة المجدول — تُكتب كل دقيقة عبر المجدول. صفحة صحّة النظام تقرأها فتعرف إن كان
@@ -17,7 +16,11 @@ class SchedulerHeartbeatCommand extends Command
 
     public function handle(): int
     {
-        Cache::put(SystemHealthService::HEARTBEAT_KEY, now()->timestamp, now()->addHours(2));
+        // متجر مشترك (قاعدة البيانات) صراحةً حتى تراها حاوية الويب مهما كان
+        // CACHE_STORE الافتراضي (file لكل حاوية لا يُرى عبرها). [[system-health]]
+        SystemHealthService::heartbeatStore()->put(
+            SystemHealthService::HEARTBEAT_KEY, now()->timestamp, now()->addHours(2)
+        );
 
         return self::SUCCESS;
     }
