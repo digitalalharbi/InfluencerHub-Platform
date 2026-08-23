@@ -17,6 +17,49 @@ Statuses: `LIVE_VERIFIED` · `LIVE_PARTIAL` · `BROKEN` · `BLOCKED_AUTH` · `BL
 - **Regression tests:** `PreviewCenterGatingTest` (blocked 404 + nav hidden when off; 200 + nav shown when on); updated `DesignSystemPreviewTest`, `NoHardcodedCredentialsTest`.
 - **Reverify after deploy:** `curl -sI https://influencerhub.io/app/preview` (authenticated) must be **404**, and the sidebar must not show مركز المعاينة.
 
+## P1 fixed this run (owner-reported: "الإعدادات والفريق واجهة UI بدون تعديل")
+
+The owner reported that **Settings and Team look present but can't be edited** — "many categories with the same idea, UI without edit ability". Live inspection confirmed it at the **backend** level (not a render glitch): agency `TeamController` and `SettingsController` each had **only `index()`** — pure read-only shells. The Team page even told the user "الأدوار تُدار من إعدادات المؤسسة" while Settings had no editable field, a closed dead-end.
+
+### الفريق `/app/team` — read-only shell → **FIXED**
+- **Was:** 0 forms / 0 inputs live; no invite, no role change, no deactivate. Backend had no write methods.
+- **Now:** real management, server-enforced per request (not just hidden buttons):
+  - **Add member** — add an existing platform user by email with a chosen role (honest: no fake one-time token with no acceptance route; unknown email returns a clear message to have them sign up first; a suspended member is reactivated).
+  - **Change role** — inline role select per member.
+  - **Suspend / Reactivate / Remove** — status controls; remove confirms first.
+  - **Guards:** admin-only (`super_admin`/`agency_admin`/`operations_manager`); `super_admin` not assignable from the workspace UI; **last active owner protected** from demotion/suspension/removal (no lock-out); every action audit-logged.
+- **Tests:** `AgencyTeamManagementTest` (10) — add/duplicate/unknown-email, role change + last-owner guard, suspend→reactivate→remove, permission gate, super_admin block.
+
+### الإعدادات `/app/settings` — read-only shell → **FIXED**
+- **Was:** subscription + entitlements + team preview, all read-only; nothing to save.
+- **Now:** editable **"ملف مساحة العمل"** — workspace name + contact email (real `organizations` columns shown across the app), admin-gated, validated, persisted, audit-logged. Subscription/entitlements remain honestly read-only (billing-managed) with the existing "تُدار من فريق الحساب" note, and the team card links to the now-functional Team page.
+- **Tests:** `AgencySettingsUpdateTest` (4) — save name/email, name required, invalid-email rejected, non-admin forbidden.
+
+### Pagination raw i18n keys — **FIXED**
+- Every paginated list (الحملات/العملاء/المحتوى…) showed raw `pagination.previous` / `pagination.next` because `lang/{ar,en}/pagination.php` were missing. Added both. Test: `PaginationLangTest`.
+
+All above: 1144 backend tests green (incl. 18 new). Reverify live after deploy.
+
+## "Many categories, UI-only?" — systematic read-only sweep
+
+The owner worried other sections are also UI-only. Every agency Inertia controller was classified by whether it exposes write actions. Nine had no write methods of their own — but only **two** were genuine editable-capability gaps (Team, Settings, both fixed above). The rest are correct by design:
+
+| Controller | Verdict |
+|---|---|
+| `TeamController` | **was a gap → fixed** (add/role/status) |
+| `SettingsController` | **was a gap → fixed** (workspace profile) |
+| `AccountController` | Functional — writes delegated to shared `Creator\AccountController` (12 write methods; verified live: 21 inputs, حفظ/تحديث كلمة المرور) |
+| `ContentController` (list) | Writes on `ContentDetailController::action` (review/approve on the item page) |
+| `CreatorDetailController` (show) | Writes on `CreatorsController::store/update` |
+| `ClientDetailController` (show) | Writes on `ClientsController` / `ClientChildrenController` (12 routes) |
+| `BrandsController` (list) | Writes on `BrandDetailController` + brand-reviews |
+| `ShortlistingController` (overview) | Writes on `ShortlistController` (8 routes) |
+| `MyTasksController` | Read-only aggregator by design — each task links to its actionable module |
+| `ReportsController` | Analytics — read-only by nature |
+| `IntegrationsController` | Read-only status; connecting a platform is `BLOCKED_EXTERNAL` (needs real platform API credentials), not a broken shell |
+
+Conclusion: list/overview and detail-show pages delegate their writes to sibling controllers that **do** have POST routes; the only true "present but not editable" shells were Team and Settings.
+
 ## Badge audit (owner-reported: 22 / 11 / 8 / 11)
 
 Live dashboard "المطلوب مني الآن" reconciles: محتوى 11 + علامات 8 + مراجعات العملاء 11 + مستحقات 29 = 59 "بانتظار موافقتك" (matches "الملخّص اليومي: 59"). الطلبات badge = 22; SLA breaches = 22. These are computed, not hardcoded (they sum consistently). Each still to be verified against its underlying records + post-action update — see matrix rows 2/3/13/19/20.
@@ -38,5 +81,7 @@ Dashboard shows **الإيراد (تقديري) 0 ر.س، هامش 0% · ربح 
 | 10 | الحملات + 13 مرحلة | /app/campaigns | pending | |
 | 6 | صناع المحتوى | /app/creators | pending | |
 | 7 | قاعدة المؤثرين | /app/creator-database | pending | entitlement for Showcase org? |
+| 23 | الفريق | /app/team | **BROKEN→fixed (pending deploy)** | was read-only shell; add/role/suspend/reactivate/remove added, admin-gated, last-owner guard, audited |
+| 24 | الإعدادات | /app/settings | **BROKEN→fixed (pending deploy)** | was read-only shell; editable workspace name + contact email, admin-gated, validated, audited |
 
 _(rows filled as the live audit proceeds)_

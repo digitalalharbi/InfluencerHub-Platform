@@ -1,16 +1,19 @@
 import type { ReactNode } from 'react';
-import { Head } from '@inertiajs/react';
+import { useState } from 'react';
+import { Head, router, usePage } from '@inertiajs/react';
 import AppShell from '@/Layouts/AppShell';
-import { WorkspaceHeader, SummaryStrip, Sec, Bar, StatusBadge } from '@/Components/ui';
+import { WorkspaceHeader, SummaryStrip, Sec, Bar, StatusBadge, Field } from '@/Components/ui';
 import { Icon } from '@/Components/Icon';
 import { u } from '@/lib/href';
+
+const LBL: React.CSSProperties = { fontSize: '.8rem', fontWeight: 600, display: 'block', marginBottom: '.3rem' };
 
 interface Entitlement {
   key: string; label: string; unlimited: boolean; bool: boolean;
   enabled: boolean | null; limit: number | null; used: number | null; pct: number;
 }
 interface Props {
-  org: { name: string; type: string; team: number; showcase: boolean };
+  org: { name: string; type: string; team: number; showcase: boolean; contactEmail: string | null; canEdit: boolean };
   subscription: null | {
     status: string; statusLabel: string; plan: string; version: number;
     trialEndsAt: string | null; periodStart: string | null; periodEnd: string | null; provider: string | null;
@@ -22,6 +25,16 @@ interface Props {
 
 export default function SettingsIndex({ org, subscription, entitlements, teamPreview, byRole }: Props) {
   const subTone = subscription ? (subscription.status === 'active' ? 'active' : 'submitted') : 'draft';
+  const errors = (usePage().props.errors ?? {}) as Record<string, string>;
+  const [profile, setProfile] = useState({ name: org.name, contact_email: org.contactEmail ?? '' });
+  const [busy, setBusy] = useState(false);
+  const dirty = profile.name !== org.name || profile.contact_email !== (org.contactEmail ?? '');
+
+  const saveProfile = () => {
+    if (!profile.name.trim() || busy) return;
+    setBusy(true);
+    router.post(u('/settings'), profile, { preserveScroll: true, onFinish: () => setBusy(false) });
+  };
 
   return (
     <AppShell heading="الإعدادات">
@@ -48,7 +61,31 @@ export default function SettingsIndex({ org, subscription, entitlements, teamPre
         ]}
       />
 
-      <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) minmax(0, 1.4fr)', gap: '1.2rem', alignItems: 'start' }} className="ih-settings-grid">
+      {/* ملف مساحة العمل — حقول فعلية تُحفظ وتظهر عبر التطبيق */}
+      <Sec title="ملف مساحة العمل" icon="settings">
+        <div style={{ padding: '1rem', display: 'grid', gap: '.9rem', maxWidth: 560 }}>
+          {errors.name && <div className="card" style={{ padding: '.6rem .8rem', borderInlineStart: '3px solid var(--ih-danger)', background: 'var(--ih-danger-soft)', color: 'var(--ih-danger-ink)', fontSize: '.8rem' }}>{errors.name}</div>}
+          {errors.contact_email && <div className="card" style={{ padding: '.6rem .8rem', borderInlineStart: '3px solid var(--ih-danger)', background: 'var(--ih-danger-soft)', color: 'var(--ih-danger-ink)', fontSize: '.8rem' }}>{errors.contact_email}</div>}
+          <Field label="اسم مساحة العمل" labelStyle={LBL}>
+            <input value={profile.name} onChange={(e) => setProfile({ ...profile, name: e.target.value })}
+              disabled={!org.canEdit} className="field" style={{ width: '100%' }} maxLength={120} />
+          </Field>
+          <Field label="بريد التواصل" labelStyle={LBL}>
+            <input value={profile.contact_email} onChange={(e) => setProfile({ ...profile, contact_email: e.target.value })}
+              disabled={!org.canEdit} className="field" style={{ width: '100%', direction: 'ltr' }} placeholder="contact@example.com" type="email" />
+          </Field>
+          {org.canEdit ? (
+            <div style={{ display: 'flex', gap: '.5rem', alignItems: 'center' }}>
+              <button onClick={saveProfile} disabled={busy || !dirty || !profile.name.trim()} className="btn btn-primary btn-sm">حفظ</button>
+              {dirty && <span style={{ fontSize: '.75rem', color: 'var(--ih-text-muted)' }}>تغييرات غير محفوظة</span>}
+            </div>
+          ) : (
+            <div style={{ fontSize: '.78rem', color: 'var(--ih-text-muted)' }}>العرض فقط — التعديل يتطلّب دورًا إداريًا.</div>
+          )}
+        </div>
+      </Sec>
+
+      <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) minmax(0, 1.4fr)', gap: '1.2rem', alignItems: 'start', marginTop: '1.2rem' }} className="ih-settings-grid">
         <Sec title="الاشتراك" icon="shield-check">
           {subscription ? (
             <dl style={{ display: 'grid', gap: '.7rem', margin: 0 }}>

@@ -380,7 +380,11 @@ Route::middleware(['auth', 'tenant', 'agency_member', 'inertia'])->prefix('beta'
     Route::get('/client-reviews/documents/{document}/download', [\App\Http\Controllers\Inertia\ClientReviewsController::class, 'downloadDocument']);
     Route::get('/integrations', [\App\Http\Controllers\Inertia\IntegrationsController::class, 'index']);
     Route::get('/team', [\App\Http\Controllers\Inertia\TeamController::class, 'index']);
+    Route::post('/team/invite', [\App\Http\Controllers\Inertia\TeamController::class, 'invite']);
+    Route::post('/team/{member}/role', [\App\Http\Controllers\Inertia\TeamController::class, 'changeRole']);
+    Route::post('/team/{member}/status', [\App\Http\Controllers\Inertia\TeamController::class, 'changeStatus']);
     Route::get('/settings', [\App\Http\Controllers\Inertia\SettingsController::class, 'index']);
+    Route::post('/settings', [\App\Http\Controllers\Inertia\SettingsController::class, 'update']);
     Route::get('/campaigns/{campaign}/shortlist', [\App\Http\Controllers\Inertia\ShortlistController::class, 'index']);
     Route::post('/campaigns/{campaign}/shortlist/add', [\App\Http\Controllers\Inertia\ShortlistController::class, 'add']);
     Route::post('/campaigns/{campaign}/shortlist/submit', [\App\Http\Controllers\Inertia\ShortlistController::class, 'submit']);
@@ -697,7 +701,11 @@ Route::middleware(['auth', 'tenant', 'agency_member'])->prefix('app')->group(fun
         Route::get('/shortlisting', [\App\Http\Controllers\Inertia\ShortlistingController::class, 'index']);
         Route::get('/integrations', [\App\Http\Controllers\Inertia\IntegrationsController::class, 'index']);
         Route::get('/team', [\App\Http\Controllers\Inertia\TeamController::class, 'index']);
+        Route::post('/team/invite', [\App\Http\Controllers\Inertia\TeamController::class, 'invite']);
+        Route::post('/team/{member}/role', [\App\Http\Controllers\Inertia\TeamController::class, 'changeRole']);
+        Route::post('/team/{member}/status', [\App\Http\Controllers\Inertia\TeamController::class, 'changeStatus']);
         Route::get('/settings', [\App\Http\Controllers\Inertia\SettingsController::class, 'index']);
+        Route::post('/settings', [\App\Http\Controllers\Inertia\SettingsController::class, 'update']);
         Route::get('/publishers', [\App\Http\Controllers\Inertia\PublishersController::class, 'index']);
         Route::get('/publishers/{publisher}', [\App\Http\Controllers\Inertia\PublishersController::class, 'show']);
         Route::post('/publishers/{publisher}/save', [\App\Http\Controllers\Inertia\PublishersController::class, 'save']);
