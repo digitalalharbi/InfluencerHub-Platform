@@ -4,6 +4,7 @@ import AppShell from '@/Layouts/AppShell';
 import { Field, Kpi, ListHead, StatusBadge } from '@/Components/ui';
 import { Icon } from '@/Components/Icon';
 import { Pagination, type Paginated } from '@/Components/Pagination';
+import { ExportButtons } from '@/Components/ExportButtons';
 import { u } from '@/lib/href';
 
 interface PayoutRow {
@@ -81,7 +82,10 @@ export default function PayoutsIndex({ payouts, filters, summary, canCreate, cre
 
       <ListHead eyebrow="المالية" title="المستحقات"
         sub="مستحقات المبدعين: اعتماد، جدولة، وتسجيل الصرف — النظام لا ينفّذ تحويلات (تسجيل يدوي)"
-        actions={canCreate ? <button onClick={() => setCreateOpen(true)} className="btn btn-sm btn-primary"><Icon name="plus" size={15} /> مستحق جديد</button> : undefined} />
+        actions={<span style={{ display: 'inline-flex', gap: '.4rem', alignItems: 'center' }}>
+          <ExportButtons path="/payouts/export" filters={filters as Record<string, string>} />
+          {canCreate && <button onClick={() => setCreateOpen(true)} className="btn btn-sm btn-primary"><Icon name="plus" size={15} /> مستحق جديد</button>}
+        </span>} />
 
       <div className="ih-kpis">
         <Kpi label="مستحق مفتوح" icon="wallet" tone="warning" value={<>{kfmt(summary.openMinor)} <small>ر.س</small></>} sub={`${summary.openCount} دفعة`} />

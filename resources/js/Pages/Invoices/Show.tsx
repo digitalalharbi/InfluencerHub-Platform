@@ -65,6 +65,7 @@ export default function InvoiceShow({ invoice, items, payments, history, can, pa
         ]}
         actions={
           <>
+            <a href={u(`/invoices/${invoice.id}/pdf`)} className="btn btn-sm btn-outline" download>تنزيل PDF</a>
             {can.issue && <button onClick={() => act('issue')} className="btn btn-sm" disabled={busy}>إصدار الفاتورة</button>}
             {can.pay && <button onClick={() => setPanel(panel === 'pay' ? null : 'pay')} className="btn btn-sm">تسجيل دفعة</button>}
             {can.cancel && <button onClick={() => setPanel(panel === 'cancel' ? null : 'cancel')} className="btn btn-sm btn-outline">إلغاء</button>}

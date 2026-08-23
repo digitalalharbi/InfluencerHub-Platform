@@ -340,6 +340,7 @@ Route::middleware(['auth', 'tenant', 'agency_member', 'inertia'])->prefix('beta'
     Route::post('/contracts/{contract}', [\App\Http\Controllers\Inertia\ContractDetailController::class, 'update']);
     Route::post('/contracts/{contract}/{action}', [\App\Http\Controllers\Inertia\ContractDetailController::class, 'action']);
     Route::get('/payouts', [\App\Http\Controllers\Inertia\PayoutsController::class, 'index']);
+    Route::get('/payouts/export', [\App\Http\Controllers\Inertia\PayoutsController::class, 'export']);
     Route::post('/payouts', [\App\Http\Controllers\Inertia\PayoutsController::class, 'store']);
     Route::get('/payouts/{payout}', [\App\Http\Controllers\Inertia\PayoutDetailController::class, 'show']);
     Route::post('/payouts/{payout}/{action}', [\App\Http\Controllers\Inertia\PayoutDetailController::class, 'action']);
@@ -658,12 +659,14 @@ Route::middleware(['auth', 'tenant', 'agency_member'])->prefix('app')->group(fun
         Route::get('/invoices', [\App\Http\Controllers\Inertia\InvoicesController::class, 'index']);
         Route::post('/invoices', [\App\Http\Controllers\Inertia\InvoicesController::class, 'store']);
         Route::get('/invoices/{invoice}', [\App\Http\Controllers\Inertia\InvoicesController::class, 'show']);
+    Route::get('/invoices/{invoice}/pdf', [\App\Http\Controllers\Inertia\InvoicesController::class, 'exportPdf']);
         Route::post('/invoices/{invoice}/update', [\App\Http\Controllers\Inertia\InvoicesController::class, 'update']);
         Route::post('/invoices/{invoice}/issue', [\App\Http\Controllers\Inertia\InvoicesController::class, 'issue']);
         Route::post('/invoices/{invoice}/pay', [\App\Http\Controllers\Inertia\InvoicesController::class, 'pay']);
         Route::post('/invoices/{invoice}/cancel', [\App\Http\Controllers\Inertia\InvoicesController::class, 'cancel']);
         Route::get('/campaigns/{campaign}/invoice-items', [\App\Http\Controllers\Inertia\InvoicesController::class, 'suggestItems']);
         Route::get('/payouts', [\App\Http\Controllers\Inertia\PayoutsController::class, 'index']);
+        Route::get('/payouts/export', [\App\Http\Controllers\Inertia\PayoutsController::class, 'export']);
         Route::post('/payouts', [\App\Http\Controllers\Inertia\PayoutsController::class, 'store']);
         Route::get('/payouts/{payout}', [\App\Http\Controllers\Inertia\PayoutDetailController::class, 'show']);
         Route::post('/payouts/{payout}/{action}', [\App\Http\Controllers\Inertia\PayoutDetailController::class, 'action'])
