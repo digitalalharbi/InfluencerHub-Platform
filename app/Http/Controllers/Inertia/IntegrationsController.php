@@ -10,7 +10,7 @@ use Inertia\Response;
 
 /**
  * التكاملات ومنصّات النشر (React/Inertia) — سجل قدرات صادق (لا تكامل وهمي).
- * الحالات صريحة (available_manual/draft/…)؛ راجع docs/EXTERNAL-BLOCKERS.md. عرض فقط.
+ * الحالات صريحة (available_manual/draft/…). عرض فقط.
  */
 class IntegrationsController extends Controller
 {

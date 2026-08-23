@@ -25,7 +25,7 @@ export default function IntegrationsIndex({ platforms, summary, matrix }: Props)
       </div>
 
       <div className="card" style={{ padding: '.8rem 1rem', marginBottom: '1.2rem', borderInlineStart: '3px solid var(--ih-info)', background: 'var(--ih-info-soft)', color: 'var(--ih-info-ink)', fontSize: '.84rem' }}>
-        <Icon name="shield-check" size={15} /> التكاملات الحيّة (API) غير مفعّلة — البيانات تُدخَل يدويًا والتفاعل تقديري. عند توفّر بيانات الاعتماد تُرفَّع الحالة تلقائيًا (راجع docs/EXTERNAL-BLOCKERS.md).
+        <Icon name="shield-check" size={15} /> التكاملات الحيّة (API) غير مفعّلة بعد — تُدخَل البيانات يدويًا وتُوسَم بمصدرها. عند تفعيل اتصال المنصّة تُرفَّع الحالة تلقائيًا.
       </div>
 
       {/* مصفوفة تغطية القدرات — ما تدعمه كل منصّة فعلًا */}
