@@ -19,16 +19,22 @@ class AutomationEngine
     ) {}
 
     /** يُطلق محفّزًا. يعيد عدد القواعد المُنفَّذة. آمن للاستدعاء من أيّ سير عمل. */
-    public function fire(string $trigger, array $context, int $tenantId): int
+    public function fire(string $trigger, array $context, int $tenantId, ?string $eventKey = null): int
     {
-        return TenantContext::withTenant($tenantId, function () use ($trigger, $context, $tenantId) {
+        return TenantContext::withTenant($tenantId, function () use ($trigger, $context, $tenantId, $eventKey) {
             $rules = AutomationRule::where('trigger', $trigger)->where('enabled', true)
                 ->orderBy('priority')->get();
 
             $executed = 0;
             foreach ($rules as $rule) {
+                // مثبّت الحدث: إن نُفِّذت هذه القاعدة لهذا الحدث من قبل، لا تُكرَّر
+                // (حماية من النقر المزدوج/إعادة الطلب/إعادة الطابور/الويبهوك/المجدول).
+                if ($eventKey !== null && AutomationRun::where('tenant_id', $tenantId)->where('rule_id', $rule->id)
+                    ->where('event_key', $eventKey)->where('status', 'executed')->exists()) {
+                    continue;
+                }
                 if (! $this->evaluator->passes($rule->conditions, $context)) {
-                    $this->record($tenantId, $rule->id, $trigger, 'skipped', $context, null);
+                    $this->record($tenantId, $rule->id, $trigger, 'skipped', $context, null, $eventKey);
                     continue;
                 }
 
@@ -49,7 +55,7 @@ class AutomationEngine
                     }
                 }
 
-                $this->record($tenantId, $rule->id, $trigger, $failed ? 'failed' : 'executed', $context, $results);
+                $this->record($tenantId, $rule->id, $trigger, $failed ? 'failed' : 'executed', $context, $results, $eventKey);
                 $executed++;
             }
 
@@ -57,10 +63,10 @@ class AutomationEngine
         });
     }
 
-    private function record(int $tenantId, ?int $ruleId, string $trigger, string $status, array $context, ?array $result): void
+    private function record(int $tenantId, ?int $ruleId, string $trigger, string $status, array $context, ?array $result, ?string $eventKey = null): void
     {
         AutomationRun::create([
-            'tenant_id' => $tenantId, 'rule_id' => $ruleId, 'trigger' => $trigger,
+            'tenant_id' => $tenantId, 'rule_id' => $ruleId, 'trigger' => $trigger, 'event_key' => $eventKey,
             'status' => $status, 'context' => $context ?: null, 'result' => $result,
             'created_at' => now(),
         ]);

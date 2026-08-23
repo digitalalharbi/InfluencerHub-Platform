@@ -161,6 +161,14 @@ class ContentWorkflowService
         $this->recordApproval($item, 'client', 'approved', $actorId, 'client', $note);
         $this->notifyCreator($item, 'اعتُمد محتواك', $item->title);
 
+        // أتمتة: يُخطر صاحب الحملة (مستفيد لا يُخطَر بالإشعار المباشر أعلاه).
+        $ownerId = $this->withinTenant($item, fn () => $item->campaign_id ? Campaign::find($item->campaign_id)?->created_by : null);
+        if ($ownerId) {
+            \App\Domain\Automation\Automation::fire('content.approved', [
+                'campaign_owner_id' => (int) $ownerId, 'content_id' => $item->id, 'title' => $item->title,
+            ], $item->tenant_id, 'content.approved:' . $item->id . ':' . $item->version);
+        }
+
         return $r;
     }
 

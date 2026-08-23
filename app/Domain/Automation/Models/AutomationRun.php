@@ -12,7 +12,7 @@ class AutomationRun extends Model
 
     public $timestamps = false;
 
-    protected $fillable = ['tenant_id', 'rule_id', 'trigger', 'status', 'context', 'result', 'error', 'created_at'];
+    protected $fillable = ['tenant_id', 'rule_id', 'trigger', 'event_key', 'status', 'context', 'result', 'error', 'created_at'];
 
     protected $casts = ['context' => 'array', 'result' => 'array', 'created_at' => 'datetime'];
 }

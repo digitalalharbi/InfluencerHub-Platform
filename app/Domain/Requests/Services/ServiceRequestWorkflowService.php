@@ -47,6 +47,12 @@ class ServiceRequestWorkflowService
                 $this->recordStatus($sr, null, 'submitted', $actorId, 'إنشاء الطلب');
                 AuditLogger::log('service_request.created', $sr, ['type' => $sr->type], $tenantId, $actorId);
 
+                // أتمتة: حدث إنشاء الطلب (بمفتاح ثابت — لا تكرار عند إعادة المحاولة).
+                \App\Domain\Automation\Automation::fire('service_request.created', [
+                    'requested_by' => $actorId, 'id' => $sr->id, 'number' => $sr->request_number,
+                    'title' => $sr->title, 'priority' => $sr->priority,
+                ], $tenantId, 'service_request.created:' . $sr->id);
+
                 return $sr;
             });
         });
