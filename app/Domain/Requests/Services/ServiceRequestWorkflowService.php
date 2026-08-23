@@ -3,6 +3,7 @@
 namespace App\Domain\Requests\Services;
 
 use App\Domain\Audit\Services\AuditLogger;
+use App\Domain\Communications\Services\NotificationService;
 use App\Domain\Requests\Enums\ServiceRequestPriority;
 use App\Domain\Requests\Models\ServiceRequest;
 use App\Domain\Requests\Models\ServiceRequestComment;
@@ -29,6 +30,8 @@ class ServiceRequestWorkflowService
         'cancelled' => [],
     ];
 
+    public function __construct(private NotificationService $notifications) {}
+
     /** ينشئ طلب خدمة جديدًا (submitted) مع رقم وSLA حسب الأولوية. */
     public function create(int $tenantId, array $data, int $actorId): ServiceRequest
     {
@@ -52,8 +55,20 @@ class ServiceRequestWorkflowService
     public function assign(ServiceRequest $sr, int $assigneeId, int $actorId): ServiceRequest
     {
         return TenantContext::withTenant($sr->tenant_id, function () use ($actorId, $assigneeId, $sr) {
+            $previous = $sr->assigned_to;
             $sr->update(['assigned_to' => $assigneeId]);
-            AuditLogger::log('service_request.assigned', $sr, ['assignee' => $assigneeId], $sr->tenant_id, $actorId);
+            AuditLogger::log('service_request.assigned', $sr, ['from' => $previous, 'assignee' => $assigneeId], $sr->tenant_id, $actorId);
+
+            // الإسناد بلا إبلاغ يترك المسؤول الجديد لا يعلم أنّ عليه عملًا — نُخطره.
+            // (لا نُخطر من أسند لنفسه، ولا نُعيد الإخطار إن لم يتغيّر المسؤول.)
+            if ($assigneeId !== $actorId && $assigneeId !== $previous) {
+                $this->notifications->notify(
+                    $sr->tenant_id, $assigneeId, 'service_request.assigned', 'general',
+                    'أُسند إليك طلب خدمة',
+                    $sr->title ?: ($sr->request_number ?? 'طلب خدمة'),
+                    "/app/service-requests/{$sr->id}", ['service_request_id' => $sr->id], $sr,
+                );
+            }
 
             return $sr;
         });

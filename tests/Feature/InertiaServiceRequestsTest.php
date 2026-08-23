@@ -103,6 +103,36 @@ class InertiaServiceRequestsTest extends TestCase
         TenantContext::reset();
     }
 
+    /** إسناد الطلب لعضو آخر يُخطره — الإسناد بلا إبلاغ يترك المسؤول لا يعلم بعمله. */
+    public function test_assign_to_another_member_notifies_them(): void
+    {
+        [$t, $org, $u] = $this->agency(1);
+        $s = $this->firstRequest($t->id);
+        $mate = TenantContext::withBypass(function () use ($t, $org) {
+            $m = User::create(['name' => 'زميل', 'email' => Str::random(6) . '@ex.com', 'password' => bcrypt('x'), 'is_active' => true]);
+            OrganizationMembership::create(['tenant_id' => $t->id, 'organization_id' => $org->id, 'user_id' => $m->id, 'role' => 'agency_employee', 'status' => 'active']);
+            return $m;
+        });
+
+        $this->actingAs($u)->post("/beta/service-requests/{$s->id}/assign", ['assigned_to' => $mate->id])->assertRedirect();
+
+        TenantContext::bypass(true);
+        $this->assertSame($mate->id, $s->fresh()->assigned_to);
+        $this->assertDatabaseHas('notifications', ['user_id' => $mate->id, 'type' => 'service_request.assigned']);
+        TenantContext::reset();
+    }
+
+    /** الإسناد لِلنفس لا يُنتج إخطارًا (لا معنى لإخطار المرء نفسه). */
+    public function test_self_assign_does_not_notify(): void
+    {
+        [$t, , $u] = $this->agency(1);
+        $s = $this->firstRequest($t->id);
+        $this->actingAs($u)->post("/beta/service-requests/{$s->id}/assign", ['assigned_to' => $u->id])->assertRedirect();
+        TenantContext::bypass(true);
+        $this->assertDatabaseMissing('notifications', ['user_id' => $u->id, 'type' => 'service_request.assigned']);
+        TenantContext::reset();
+    }
+
     public function test_viewer_cannot_handle(): void
     {
         [$t, $org, $u] = $this->agency(1);
