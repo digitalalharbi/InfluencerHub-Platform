@@ -694,7 +694,7 @@ Route::middleware(['auth', 'tenant', 'agency_member'])->prefix('app')->group(fun
         Route::get('/content', [\App\Http\Controllers\Inertia\ContentController::class, 'index']);
         Route::get('/content/{content}', [\App\Http\Controllers\Inertia\ContentDetailController::class, 'show']);
         Route::post('/content/{content}/{action}', [\App\Http\Controllers\Inertia\ContentDetailController::class, 'action'])
-            ->whereIn('action', ['start-review', 'send-to-client', 'request-changes', 'reject', 'publish', 'schedule', 'record-proof', 'record-results']);
+            ->whereIn('action', ['start-review', 'send-to-client', 'request-changes', 'reject', 'publish', 'schedule', 'reschedule', 'record-proof', 'record-results']);
 
         // صفحات React لا نسخة Blade لها — كانت متاحة تحت /beta فقط
         Route::get('/my-tasks', [\App\Http\Controllers\Inertia\MyTasksController::class, 'index']);

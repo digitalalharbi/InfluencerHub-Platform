@@ -177,6 +177,28 @@ class ContentWorkflowService
         return $this->transition($item, 'scheduled', $actorId, 'agency', null, fn ($x) => $x->scheduled_at = $at);
     }
 
+    /**
+     * إعادة الجدولة — تغيير موعد النشر لعنصر مجدول دون تحويل حالة.
+     *
+     * آلة الحالات لا تسمح بـ scheduled→scheduled، فكان الموعد يُجمَّد بمجرّد جدولته
+     * ولا سبيل لتعديله. هذه تُحدّث الموعد فقط وتُسجّله في السجل بلا انتقال حالة.
+     */
+    public function reschedule(ContentItem $item, int $actorId, \DateTimeInterface $at): ContentItem
+    {
+        if ($item->status !== 'scheduled') {
+            throw new RuntimeException('إعادة الجدولة متاحة للمحتوى المجدول فقط.');
+        }
+
+        return $this->withinTenant($item, function () use ($item, $at, $actorId) {
+            $from = $item->scheduled_at?->format('Y-m-d H:i');
+            $item->update(['scheduled_at' => $at]);
+            $this->recordStatus($item, 'scheduled', 'scheduled', $actorId, 'agency', 'إعادة جدولة');
+            AuditLogger::log('content.rescheduled', $item, ['from' => $from, 'to' => $at->format('Y-m-d H:i')], $item->tenant_id, $actorId);
+
+            return $item;
+        });
+    }
+
     public function publish(ContentItem $item, int $actorId): ContentItem
     {
         return $this->transition($item, 'published', $actorId, 'agency', null, fn ($x) => $x->published_at = now());
