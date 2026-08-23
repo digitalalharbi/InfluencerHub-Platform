@@ -31,7 +31,7 @@ class SeedE2eCommand extends Command {
         $v = PlanVersion::create(['plan_id' => $plan->id, 'version' => 1, 'is_active' => true]);
         PlanEntitlement::create(['plan_version_id' => $v->id, 'feature_key' => 'customers.max', 'value' => 50]);
         PlanEntitlement::create(['plan_version_id' => $v->id, 'feature_key' => 'creators.max', 'value' => 50]);
-        foreach (['creator_applications.monthly.max' => 50, 'creator_storage.gb' => 10, 'creator_portal.enabled' => 1, 'ugc_creator.enabled' => 1, 'social_integrations.max' => 10] as $fk => $val) {
+        foreach (['creator_applications.monthly.max' => 50, 'creator_storage.gb' => 10, 'creator_portal.enabled' => 1, 'ugc_creator.enabled' => 1, 'social_integrations.max' => 10, 'creator_database.access' => 1] as $fk => $val) {
             PlanEntitlement::create(['plan_version_id' => $v->id, 'feature_key' => $fk, 'value' => $val]);
         }
         (new CreateSubscription)->handle($orgA, $v);
@@ -61,8 +61,28 @@ class SeedE2eCommand extends Command {
         $creatorUser = $this->user('نورة القحطاني', 'creator@a.test');
         $firstCreator->update(['user_id' => $creatorUser->id]);
 
+        // حملة لاختبار ترشيح مبدع من قاعدة المؤثرين (المرحلة 2)
+        \App\Domain\Campaigns\Models\Campaign::create(['tenant_id' => $tA->id, 'campaign_number' => 'CM-' . $tA->id . '-1',
+            'client_id' => $nikeClient->id, 'name' => 'حملة الصيف', 'status' => 'active', 'budget_minor' => 5000000, 'currency' => 'SAR']);
+
         return [$nikeClient, $firstCreator];
         }, $orgA->id);
+
+        // قاعدة المؤثرين (نموذج عالميّ بلا مستأجر) — مبدعون معروفون لاختبار E2E.
+        // تحمل حقولًا حسّاسة عمدًا (store/cost) لإثبات أنّها لا تظهر للمستأجر.
+        foreach ([
+            ['نجم سناب', 'snapchat', 'https://www.snapchat.com/add/e2e_star', 850000, 'A', 'female', ['أسلوب حياة', 'تغطية'], '966501112233', 'وزنة', 'celebrity'],
+            ['مبدع تيك', 'tiktok', 'https://www.tiktok.com/@e2e_creator', 320000, 'B', 'male', ['قهوة', 'مطاعم'], '966502223344', null, 'ugc'],
+            ['نجمة إكس', 'x', 'https://x.com/e2e_x', 410000, 'B', 'female', ['أخبار'], null, null, 'celebrity'],
+        ] as [$name, $platform, $url, $followers, $tier, $gender, $cats, $phone, $store, $type]) {
+            \App\Domain\AdminPool\Models\PoolCreator::create([
+                'name' => $name, 'phone' => $phone, 'platform' => $platform, 'account_url' => $url,
+                'followers' => $followers, 'tier' => $tier, 'gender' => $gender, 'categories' => $cats,
+                'price_coverage_minor' => 700000, 'cost_coverage_minor' => 400000, 'shows_face' => true,
+                'region' => 'الوسطى', 'city' => 'الرياض', 'rating' => 'ممتاز', 'store' => $store,
+                'source_type' => $type, 'imported_at' => now(),
+            ]);
+        }
 
         // طلب انضمام مُرسَل (لاختبار المراجعة والقبول)
         $svc = app(\App\Domain\Creators\Services\CreatorApplicationService::class);
