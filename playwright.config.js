@@ -18,10 +18,18 @@ export default defineConfig({
         screenshot: 'only-on-failure',
         trace: 'retain-on-failure',
     },
+    // عزل الحالة بين المتصفّحات: تُعاد بذور القاعدة قبل كل مشروع متصفّح عبر سلسلة
+    // تبعيات تفرض الترتيب: reset→chromium→reset→firefox→reset→webkit. هكذا يبدأ كل
+    // متصفّح من حالة نظيفة، فلا تلوّث اختبارات الطفرة (إرسال/قبول أحادي) المشروع التالي.
     projects: [
-        { name: 'chromium', use: { ...devices['Desktop Chrome'] } },
-        { name: 'firefox', use: { ...devices['Desktop Firefox'] } },
-        { name: 'webkit', use: { ...devices['Desktop Safari'] } },
+        { name: 'reset-chromium', testMatch: /reset\.setup\.js/ },
+        { name: 'chromium', use: { ...devices['Desktop Chrome'] }, testIgnore: /reset\.setup\.js/, dependencies: ['reset-chromium'] },
+
+        { name: 'reset-firefox', testMatch: /reset\.setup\.js/, dependencies: ['chromium'] },
+        { name: 'firefox', use: { ...devices['Desktop Firefox'] }, testIgnore: /reset\.setup\.js/, dependencies: ['reset-firefox'] },
+
+        { name: 'reset-webkit', testMatch: /reset\.setup\.js/, dependencies: ['firefox'] },
+        { name: 'webkit', use: { ...devices['Desktop Safari'] }, testIgnore: /reset\.setup\.js/, dependencies: ['reset-webkit'] },
     ],
     // يهيّئ المخطط + البذور ثم يشغّل الخادم على قاعدة E2E
     webServer: {

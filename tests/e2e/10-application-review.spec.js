@@ -14,9 +14,10 @@ test.describe('مراجعة طلبات الانضمام', () => {
         await login(page, 'admin@a.test');
         await page.goto('/app/creator-applications');
         await page.click('a:has-text("ريناد الزهراني")');
-        await expect(page.locator('body')).toContainText('مراجعة طلب انضمام');
-        await expect(page.locator('button:has-text("قبول وإنشاء الحساب")')).toBeVisible();
-        await page.click('button:has-text("المنصات")');
+        // النصوص الفعلية في صفحة المراجعة (React): العنوان «طلب انضمام»،
+        // زر «قبول وإنشاء مبدع»، والمنصّات مع الحساب معروضة داخل الصفحة مباشرة.
+        await expect(page.locator('body')).toContainText('طلب انضمام');
+        await expect(page.locator('button:has-text("قبول وإنشاء مبدع")')).toBeVisible();
         await expect(page.locator('body')).toContainText('renad.style');
     });
 

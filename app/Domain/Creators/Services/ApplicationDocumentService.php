@@ -78,9 +78,10 @@ class ApplicationDocumentService {
 
     /** إجمالي حجم ملفات مستأجر (لاستهلاك التخزين). */
     public function tenantStorageBytes(int $tenantId): int {
-        TenantContext::withBypass(function () use ($tenantId) {
-            $b = (int) CreatorApplicationDocument::where('tenant_id', $tenantId)->sum('size_bytes');
+        // كان $b معرَّفًا داخل الإغلاق ويُعاد خارجه → «Undefined variable $b» و500
+        // على كل فحص تخزين. نُعيد قيمة الإغلاق مباشرة (withBypass يُعيدها).
+        return (int) TenantContext::withBypass(function () use ($tenantId) {
+            return (int) CreatorApplicationDocument::where('tenant_id', $tenantId)->sum('size_bytes');
         });
-        return $b;
     }
 }

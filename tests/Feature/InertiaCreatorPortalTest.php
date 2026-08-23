@@ -134,6 +134,29 @@ class InertiaCreatorPortalTest extends TestCase
         TenantContext::reset();
     }
 
+    /** ‎tenantStorageBytes‎ كان يُعيد ‎$b‎ المعرَّف داخل الإغلاق (Undefined variable → 500)
+     *  على كل فحص تخزين. يجب أن يُعيد عددًا (0 بلا مستندات) بلا استثناء. */
+    public function test_tenant_storage_bytes_returns_int_without_error(): void
+    {
+        $svc = app(\App\Domain\Creators\Services\ApplicationDocumentService::class);
+        $this->assertSame(0, $svc->tenantStorageBytes(999999));
+    }
+
+    /** المسار السعيد: إضافة منصّة بمعرّف فقط (بلا عدد متابعين) تنجح وتُخزَّن 0.
+     *  كان العمود NOT NULL بلا افتراضي والحقل اختياري، فكان يرمي 500. */
+    public function test_account_adds_platform_without_followers_defaults_to_zero(): void
+    {
+        [$u, $c] = $this->creatorUser();
+        $this->actingAs($u)->post('/beta/creator/account/platforms', [
+            'platform' => 'instagram', 'handle' => 'just_handle',
+        ])->assertRedirect()->assertSessionHasNoErrors();
+
+        TenantContext::bypass(true);
+        $p = \App\Domain\Creators\Models\CreatorPlatform::where('creator_id', $c->id)->firstOrFail();
+        TenantContext::reset();
+        $this->assertSame(0, (int) $p->followers_count);
+    }
+
     /** منع IDOR: لا يحذف مبدع منصّة مبدع آخر. */
     public function test_account_cannot_delete_another_creators_platform(): void
     {

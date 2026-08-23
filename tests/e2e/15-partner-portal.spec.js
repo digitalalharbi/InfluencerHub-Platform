@@ -21,7 +21,8 @@ test.describe('بوابة الوكالة الخارجية والشريك — Pha
     test('70- تفصيل الوكالة يعرض العضو والرابط المُنطّق وسجل الحالة', async ({ page }) => {
         await agencyLogin(page);
         await page.goto('/app/partner-agencies');
-        await page.click('a:has-text("فتح")');
+        // البطاقة بالكامل رابط لصفحة التفصيل (لا رابط «فتح» فرعي).
+        await page.click('a:has-text("نجمة الإبداع")');
         await expect(page.locator('body')).toContainText('سارة الشريك');
         await expect(page.locator('body')).toContainText('نايك السعودية');
         await expect(page.locator('body')).toContainText('سجل الحالة');
@@ -57,7 +58,8 @@ test.describe('بوابة الوكالة الخارجية والشريك — Pha
         await page.fill('input[name="password_confirmation"]', 'InvitePass2026');
         await page.click('button:has-text("قبول وإنشاء الحساب")');
         await page.waitForURL('**/partner/dashboard');
-        await expect(page.locator('body')).toContainText('لوحة الشريك');
+        // النص الفعلي للوحة الشريك: العنوان «لوحة التحكم» وشارة «بوابة الشريك».
+        await expect(page.locator('body')).toContainText('بوابة الشريك');
         await expect(page.locator('body')).toContainText('نايك السعودية');
     });
 

@@ -63,16 +63,20 @@ class HandleInertiaRequests extends Middleware
     private function navCapabilities(Request $request): array
     {
         try {
+            // أدوات المطوّر (مركز المعاينة) — صفحة غير إنتاجية (تُرجع 404 في الإنتاج)،
+            // فيظهر رابطها في القائمة خارج الإنتاج فقط ولا يصير رابطًا ميتًا في الإنتاج.
+            $dev = ! app()->environment('production');
             $user = $request->user();
             $oid = TenantContext::organizationId();
-            if (! $user || ! $oid) return ['reviews' => false, 'admin' => false];
+            if (! $user || ! $oid) return ['reviews' => false, 'admin' => false, 'dev_tools' => $dev];
             $role = $user->roleIn($oid);
             return [
                 'reviews' => CrmAbilities::can($role, CrmAbilities::WRITE),
                 'admin' => CrmAbilities::can($role, CrmAbilities::MANAGE_PORTAL),
+                'dev_tools' => $dev,
             ];
         } catch (\Throwable) {
-            return ['reviews' => false, 'admin' => false];
+            return ['reviews' => false, 'admin' => false, 'dev_tools' => false];
         }
     }
 
