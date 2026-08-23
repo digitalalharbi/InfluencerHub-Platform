@@ -40,6 +40,10 @@ class HandleInertiaRequests extends Middleware
                 'badges' => $request->user() ? NavigationBadges::all() : [],
                 'can' => $this->navCapabilities($request),
             ],
+            // عدّاد الإشعارات غير المقروءة — لجرس شريط العنوان في كل البوابات
+            'unreadNotifications' => fn () => $request->user()
+                ? \App\Domain\Communications\Models\Notification::where('user_id', $request->user()->id)->whereNull('read_at')->count()
+                : 0,
             'flash' => [
                 'ok' => fn () => $request->session()->get('ok'),
                 'error' => fn () => $request->session()->get('error'),

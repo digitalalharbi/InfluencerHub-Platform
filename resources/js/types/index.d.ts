@@ -11,6 +11,7 @@ export interface SharedProps extends InertiaPageProps {
   workspace: string | null;
   showcase: boolean;
   nav: { badges: Record<string, number>; can?: Record<string, boolean> };
+  unreadNotifications?: number;
   flash: { ok: string | null; error: string | null; inviteToken?: string | null };
   locale: string;
   dir: 'rtl' | 'ltr';

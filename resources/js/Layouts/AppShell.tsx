@@ -28,6 +28,7 @@ export default function AppShell({
 }) {
   const page = usePage<SharedProps>();
   const { auth, workspace, showcase, nav, flash } = page.props;
+  const unread = page.props.unreadNotifications ?? 0;
   const url = page.url;
   const [open, setOpen] = useState(false);
   // طيّ الشريط — تفضيل واجهة غير حسّاس، يُحفظ محليًا فقط
@@ -133,6 +134,15 @@ export default function AppShell({
           <div className="ih-topbar__title">{heading ?? 'لوحة التحكم'}</div>
           <div className="ih-topbar__spacer" />
           {showcase && <span className="ih-showcase-badge" title="بيئة عرض تجريبية">● بيانات تجريبية</span>}
+          <Link href={u('/notifications')} className="ih-bell" title="الإشعارات"
+            style={{ position: 'relative', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: 34, height: 34, borderRadius: 9, color: 'var(--ih-text-muted)', marginInlineEnd: '.4rem' }}>
+            <Icon name="message-circle" size={18} />
+            {unread > 0 && (
+              <span style={{ position: 'absolute', top: 2, insetInlineEnd: 2, minWidth: 16, height: 16, padding: '0 4px', borderRadius: 8, background: 'var(--ih-danger)', color: '#fff', fontSize: '.62rem', fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center', direction: 'ltr' }}>
+                {unread > 99 ? '99+' : unread}
+              </span>
+            )}
+          </Link>
           <div className="ih-topbar__user">
             <span className="ih-topbar__user-name ih-only-desktop">{auth.user?.name}</span>
             <span className="ih-topbar__avatar">{(auth.user?.name ?? '؟').slice(0, 1)}</span>
