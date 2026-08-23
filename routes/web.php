@@ -376,6 +376,7 @@ Route::middleware(['auth', 'tenant', 'agency_member', 'inertia'])->prefix('beta'
     Route::post('/publishers/{publisher}/save', [\App\Http\Controllers\Inertia\PublishersController::class, 'save']);
     Route::post('/publishers/{publisher}/convert', [\App\Http\Controllers\Inertia\PublishersController::class, 'convert']);
     Route::get('/reports', [\App\Http\Controllers\Inertia\ReportsController::class, 'index']);
+    Route::get('/reports/export', [\App\Http\Controllers\Inertia\ReportsController::class, 'export']);
     Route::get('/client-reviews', [\App\Http\Controllers\Inertia\ClientReviewsController::class, 'index']);
     Route::post('/client-reviews/profile/{changeRequest}/approve', [\App\Http\Controllers\Inertia\ClientReviewsController::class, 'approveProfile']);
     Route::post('/client-reviews/profile/{changeRequest}/reject', [\App\Http\Controllers\Inertia\ClientReviewsController::class, 'rejectProfile']);
@@ -565,6 +566,7 @@ Route::middleware(['auth', 'tenant', 'agency_member'])->prefix('app')->group(fun
     Route::middleware('inertia')->group(function () {
         // التقارير (تجميعات حقيقية) — قُصّت من Blade
         Route::get('/reports', [\App\Http\Controllers\Inertia\ReportsController::class, 'index']);
+        Route::get('/reports/export', [\App\Http\Controllers\Inertia\ReportsController::class, 'export']);
 
         // طلبات الانضمام — قُصّت من Blade بكامل إجراءاتها (تعليق/ملاحظة/رسالة/موثوق/مالي/تنزيل)
         Route::get('/creator-applications', [\App\Http\Controllers\Inertia\CreatorApplicationsController::class, 'index']);
