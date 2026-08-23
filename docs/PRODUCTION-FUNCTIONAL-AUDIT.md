@@ -17,6 +17,23 @@ Statuses: `LIVE_VERIFIED` · `LIVE_PARTIAL` · `BROKEN` · `BLOCKED_AUTH` · `BL
 - **Regression tests:** `PreviewCenterGatingTest` (blocked 404 + nav hidden when off; 200 + nav shown when on); updated `DesignSystemPreviewTest`, `NoHardcodedCredentialsTest`.
 - **Reverify after deploy:** `curl -sI https://influencerhub.io/app/preview` (authenticated) must be **404**, and the sidebar must not show مركز المعاينة.
 
+## Badge definitions (authoritative)
+
+Every sidebar badge is computed live in `App\Support\Navigation\NavigationBadges` (memoised per request; a count of 0 hides the badge). **Scope facts that apply to all badges:** each query runs under the global `TenantScope`, so all badges are **tenant-scoped**; none is **role-scoped** — the numbers are identical for every user in the tenant, and a user's role only changes whether the nav *item* is visible (via `navCapabilities`), never the count. These are work-queue totals ("how much open work exists"), deliberately **not** "assigned to me".
+
+| Badge (nav label) | Key | Exact definition | Nav gate |
+|---|---|---|---|
+| الطلبات | `service_requests` | `ServiceRequest` where `status ∈ {submitted, triage, in_progress, needs_info}` (`OPEN_STATUSES`). No assignee/SLA filter. | — |
+| طلبات الانضمام | `creator_applications` | `CreatorApplication` where `status ∈ {submitted, under_review}` | `can: reviews` |
+| المحتوى | `content` | `ContentItem` where `status = agency_review` (awaiting agency review only) | — |
+| مراجعة العلامات | `brand_reviews` | `Brand` where `status ∈ {submitted, under_review}` | `can: reviews` |
+| مراجعات العملاء | `client_reviews` | `ClientProfileChangeRequest {submitted, under_review}` **+** `ClientDocument {pending}` | `can: reviews` |
+| ترشيحات المؤثرين (بوابة العميل) | `client_recommendations` | `PoolRecommendation` for the active client where `status = recommended` | client portal |
+
+**Team page tiles** (`/app/team`, from `ServiceRequest` only): **عمل مفتوح** = open + `assigned_to` set; **تجاوز SLA** = open + assigned + `sla_breached_at` set; **غير مُسنَد** = open + `assigned_to` null.
+
+**On "22 = 22" (الطلبات vs تجاوز SLA):** these come from *different* queries — the badge counts every open request; the tile counts open+assigned+breached. They coincide only because the showcase seeder assigns and SLA-breaches every open row, so on the demo tenant open == assigned == breached. On real data they diverge; it is not a shared query. (Once an item leaves `OPEN_STATUSES` it drops from both — `sla_breached_at` itself is a one-way latch and is never cleared, by design.)
+
 ## P1 fixed this run (owner-reported: "الإعدادات والفريق واجهة UI بدون تعديل")
 
 The owner reported that **Settings and Team look present but can't be edited** — "many categories with the same idea, UI without edit ability". Live inspection confirmed it at the **backend** level (not a render glitch): agency `TeamController` and `SettingsController` each had **only `index()`** — pure read-only shells. The Team page even told the user "الأدوار تُدار من إعدادات المؤسسة" while Settings had no editable field, a closed dead-end.
@@ -72,16 +89,17 @@ Dashboard shows **الإيراد (تقديري) 0 ر.س، هامش 0% · ربح 
 
 | # | Section | URL | Status | Notes |
 |---|---------|-----|:------:|-------|
-| 25 | مركز المعاينة | /app/preview | **BROKEN→fixed (pending deploy)** | dev tool leaked to prod; fail-safe gate added; reverify post-deploy |
-| 1 | لوحة التحكم | /app | auditing | badges reconcile; finance figure suspicious; card links pending |
-| 3 | الطلبات | /app/service-requests | pending | badge=22 |
-| 13 | المحتوى | /app/content | pending | badge=11 |
-| 19 | مراجعة العلامات | /app/brand-reviews | pending | badge=8 |
-| 20 | مراجعات العملاء | /app/client-reviews | pending | badge=11 |
-| 10 | الحملات + 13 مرحلة | /app/campaigns | pending | |
-| 6 | صناع المحتوى | /app/creators | pending | |
-| 7 | قاعدة المؤثرين | /app/creator-database | pending | entitlement for Showcase org? |
-| 23 | الفريق | /app/team | **BROKEN→fixed (pending deploy)** | was read-only shell; add/role/suspend/reactivate/remove added, admin-gated, last-owner guard, audited |
-| 24 | الإعدادات | /app/settings | **BROKEN→fixed (pending deploy)** | was read-only shell; editable workspace name + contact email, admin-gated, validated, audited |
+| 25 | مركز المعاينة | /app/preview | **LIVE_VERIFIED (fixed)** | dev tool leaked to prod; fail-safe gate; verified 404 + nav-hidden live |
+| 1 | لوحة التحكم | /app | LIVE_VERIFIED | badges reconcile; finance figure honest (cost-only, no invoices) |
+| 3 | الطلبات | /app/service-requests | hardened | assignment now notifies the new owner (PR #29); badge=all-open (see Badge definitions) |
+| 13 | المحتوى | /app/content | **LIVE_VERIFIED (hardened)** | reschedule fixed; unified actor timeline; campaign/creator/client deep-links live (PR #26) |
+| 19 | مراجعة العلامات | /app/brands/{id} | **hardened (deploying)** | approval-readiness checklist + optional approve note (PR #27); reverify post-deploy |
+| 20 | مراجعات العملاء | /app/client-reviews | functional | badge=change-requests + pending docs (see Badge definitions) |
+| 10 | الحملات + 13 مرحلة | /app/campaigns | functional | 13-stage derived from real domain state |
+| 6 | صناع المحتوى | /app/creators | functional | list + detail with writes on CreatorsController |
+| 7 | قاعدة المؤثرين | /app/creator-database | functional | entitlement-gated premium DB |
+| 22 | التكاملات | /app/integrations | **hardened (deploying)** | honest per-provider state; internal dev-doc link removed (PR #28) |
+| 23 | الفريق | /app/team | **LIVE_VERIFIED (fixed)** | add/role/suspend/reactivate/remove; verified live |
+| 24 | الإعدادات | /app/settings | **LIVE_VERIFIED (fixed)** | editable workspace name + contact email; verified live; dev-doc link removed (PR #28) |
 
 _(rows filled as the live audit proceeds)_
