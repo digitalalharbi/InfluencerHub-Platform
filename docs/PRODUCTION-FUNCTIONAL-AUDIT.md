@@ -40,6 +40,26 @@ The owner reported that **Settings and Team look present but can't be edited** �
 
 All above: 1144 backend tests green (incl. 18 new). Reverify live after deploy.
 
+## "Many categories, UI-only?" — systematic read-only sweep
+
+The owner worried other sections are also UI-only. Every agency Inertia controller was classified by whether it exposes write actions. Nine had no write methods of their own — but only **two** were genuine editable-capability gaps (Team, Settings, both fixed above). The rest are correct by design:
+
+| Controller | Verdict |
+|---|---|
+| `TeamController` | **was a gap → fixed** (add/role/status) |
+| `SettingsController` | **was a gap → fixed** (workspace profile) |
+| `AccountController` | Functional — writes delegated to shared `Creator\AccountController` (12 write methods; verified live: 21 inputs, حفظ/تحديث كلمة المرور) |
+| `ContentController` (list) | Writes on `ContentDetailController::action` (review/approve on the item page) |
+| `CreatorDetailController` (show) | Writes on `CreatorsController::store/update` |
+| `ClientDetailController` (show) | Writes on `ClientsController` / `ClientChildrenController` (12 routes) |
+| `BrandsController` (list) | Writes on `BrandDetailController` + brand-reviews |
+| `ShortlistingController` (overview) | Writes on `ShortlistController` (8 routes) |
+| `MyTasksController` | Read-only aggregator by design — each task links to its actionable module |
+| `ReportsController` | Analytics — read-only by nature |
+| `IntegrationsController` | Read-only status; connecting a platform is `BLOCKED_EXTERNAL` (needs real platform API credentials), not a broken shell |
+
+Conclusion: list/overview and detail-show pages delegate their writes to sibling controllers that **do** have POST routes; the only true "present but not editable" shells were Team and Settings.
+
 ## Badge audit (owner-reported: 22 / 11 / 8 / 11)
 
 Live dashboard "المطلوب مني الآن" reconciles: محتوى 11 + علامات 8 + مراجعات العملاء 11 + مستحقات 29 = 59 "بانتظار موافقتك" (matches "الملخّص اليومي: 59"). الطلبات badge = 22; SLA breaches = 22. These are computed, not hardcoded (they sum consistently). Each still to be verified against its underlying records + post-action update — see matrix rows 2/3/13/19/20.
