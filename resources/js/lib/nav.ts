@@ -74,6 +74,7 @@ export const agencyNav: NavGroup[] = [
     label: 'الذكاء',
     items: [
       { key: 'reports', label: 'التقارير', route: '/reports', icon: 'bar-chart-3' },
+      { key: 'automation', label: 'الأتمتة', route: '/automation', icon: 'sparkles', can: 'admin' },
       { key: 'integrations', label: 'التكاملات', route: '/integrations', icon: 'plug' },
     ],
   },

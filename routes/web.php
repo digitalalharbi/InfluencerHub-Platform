@@ -395,6 +395,9 @@ Route::middleware(['auth', 'tenant', 'agency_member', 'inertia'])->prefix('beta'
     Route::post('/team/{member}/status', [\App\Http\Controllers\Inertia\TeamController::class, 'changeStatus']);
     Route::get('/settings', [\App\Http\Controllers\Inertia\SettingsController::class, 'index']);
     Route::get('/system-health', [\App\Http\Controllers\Inertia\SystemHealthController::class, 'index']);
+    Route::get('/automation', [\App\Http\Controllers\Inertia\AutomationController::class, 'index']);
+    Route::post('/automation/{rule}/toggle', [\App\Http\Controllers\Inertia\AutomationController::class, 'toggle'])->whereNumber('rule');
+    Route::post('/automation/{rule}', [\App\Http\Controllers\Inertia\AutomationController::class, 'update'])->whereNumber('rule');
     Route::post('/settings', [\App\Http\Controllers\Inertia\SettingsController::class, 'update']);
     Route::get('/campaigns/{campaign}/shortlist', [\App\Http\Controllers\Inertia\ShortlistController::class, 'index']);
     Route::post('/campaigns/{campaign}/shortlist/add', [\App\Http\Controllers\Inertia\ShortlistController::class, 'add']);
@@ -727,6 +730,9 @@ Route::middleware(['auth', 'tenant', 'agency_member'])->prefix('app')->group(fun
         Route::post('/team/{member}/status', [\App\Http\Controllers\Inertia\TeamController::class, 'changeStatus']);
         Route::get('/settings', [\App\Http\Controllers\Inertia\SettingsController::class, 'index']);
         Route::get('/system-health', [\App\Http\Controllers\Inertia\SystemHealthController::class, 'index']);
+        Route::get('/automation', [\App\Http\Controllers\Inertia\AutomationController::class, 'index']);
+        Route::post('/automation/{rule}/toggle', [\App\Http\Controllers\Inertia\AutomationController::class, 'toggle'])->whereNumber('rule');
+        Route::post('/automation/{rule}', [\App\Http\Controllers\Inertia\AutomationController::class, 'update'])->whereNumber('rule');
         Route::post('/settings', [\App\Http\Controllers\Inertia\SettingsController::class, 'update']);
         Route::get('/publishers', [\App\Http\Controllers\Inertia\PublishersController::class, 'index']);
         Route::get('/publishers/{publisher}', [\App\Http\Controllers\Inertia\PublishersController::class, 'show']);
