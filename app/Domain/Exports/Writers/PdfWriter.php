@@ -49,6 +49,32 @@ class PdfWriter
         ]);
     }
 
+    /** يولّد PDF عربي RTL من قالب Blade مخصّص (فاتورة/تقرير حملة/ترشيح…). */
+    public function fromView(string $view, array $data, string $orientation = 'P'): string
+    {
+        $html = view($view, $data)->render();
+        $mpdf = new Mpdf([
+            'mode' => 'utf-8', 'format' => 'A4', 'orientation' => $orientation,
+            'directionality' => 'rtl', 'default_font' => 'dejavusans',
+            'margin_top' => 14, 'margin_bottom' => 16, 'tempDir' => sys_get_temp_dir(),
+        ]);
+        $mpdf->SetDirectionality('rtl');
+        $mpdf->autoScriptToLang = true;
+        $mpdf->autoLangToFont = true;
+        $mpdf->SetHTMLFooter($this->footer());
+        $mpdf->WriteHTML($html);
+
+        return $mpdf->Output('', \Mpdf\Output\Destination::STRING_RETURN);
+    }
+
+    public function downloadView(string $view, array $data, string $filename, string $orientation = 'P'): Response
+    {
+        return new Response($this->fromView($view, $data, $orientation), 200, [
+            'Content-Type' => 'application/pdf',
+            'Content-Disposition' => 'attachment; filename="' . $filename . '.pdf"',
+        ]);
+    }
+
     private function header(TabularData $data): string
     {
         $ws = e($data->workspace ?? 'إنفلونسر هَب');

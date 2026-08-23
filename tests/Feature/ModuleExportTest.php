@@ -109,4 +109,21 @@ class ModuleExportTest extends TestCase
     {
         $this->get('/app/clients/export')->assertRedirect('/login');
     }
+
+    public function test_payouts_export_uses_creator_cost_and_audits(): void
+    {
+        [$t, $u] = $this->agency();
+        TenantContext::withBypass(function () use ($t) {
+            $cr = \App\Domain\Creators\Models\Creator::create(['tenant_id' => $t->id, 'creator_number' => 'CR-1', 'type' => 'influencer', 'display_name' => 'مبدع', 'status' => 'active']);
+            \App\Domain\Finance\Models\Payout::create(['tenant_id' => $t->id, 'payout_number' => 'PO-1', 'creator_id' => $cr->id, 'description' => 'x', 'amount_minor' => 750000, 'currency' => 'SAR', 'status' => 'pending']);
+        });
+        $res = $this->actingAs($u)->get('/app/payouts/export?format=csv');
+        $res->assertOk();
+        $csv = $this->bodyOf($res->baseResponse);
+        $this->assertStringContainsString('PO-1', $csv);
+        $this->assertStringContainsString('7,500.00 SAR', $csv);
+        TenantContext::bypass(true);
+        $this->assertDatabaseHas('audit_logs', ['tenant_id' => $t->id, 'action' => 'export.generated']);
+        TenantContext::reset();
+    }
 }

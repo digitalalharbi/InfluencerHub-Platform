@@ -19,10 +19,9 @@ use Inertia\Response;
  */
 class PayoutsController extends Controller
 {
-    public function index(Request $r): Response
+    /** استعلام المستحقات المُرشَّح — مصدر واحد للعرض والتصدير. */
+    private function filtered(Request $r): \Illuminate\Database\Eloquent\Builder
     {
-        $this->authorize('viewAny', Payout::class);
-
         $q = Payout::query()->with('creator', 'campaign')->latest();
         if ($s = trim((string) $r->query('q'))) {
             $q->where(fn ($w) => $w->where('payout_number', 'ilike', "%{$s}%")
@@ -35,7 +34,38 @@ class PayoutsController extends Controller
             default => null,
         };
 
-        $payouts = $q->paginate(20)->withQueryString();
+        return $q;
+    }
+
+    /** تصدير مالي للمستحقات (تكلفة المبدع لا سعر البيع). مقيّد بصلاحية العرض المالي. */
+    public function export(Request $r, \App\Domain\Exports\ExportService $svc)
+    {
+        $this->authorize('viewAny', Payout::class);
+        $rows = $this->filtered($r)->get();
+        $cur = fn ($p) => number_format(($p->amount_minor ?? 0) / 100, 2) . ' ' . ($p->currency ?: 'SAR');
+
+        $data = new \App\Domain\Exports\TabularData(
+            title: 'المستحقات المالية',
+            columns: ['number' => 'الرقم', 'creator' => 'المبدع', 'campaign' => 'الحملة', 'amount' => 'المبلغ (تكلفة المبدع)', 'status' => 'الحالة', 'due' => 'الاستحقاق', 'paid_at' => 'تاريخ الصرف', 'reference' => 'مرجع الدفع'],
+            rows: $rows->map(fn (Payout $p) => [
+                'number' => $p->payout_number, 'creator' => $p->creator?->display_name ?? '—',
+                'campaign' => $p->campaign?->name ?? '—', 'amount' => $cur($p),
+                'status' => __("statuses.{$p->status}"), 'due' => $p->due_date?->format('Y-m-d') ?? '—',
+                'paid_at' => $p->paid_at?->format('Y-m-d') ?? '—', 'reference' => $p->payment_reference ?? '—',
+            ]),
+            meta: array_filter(['المرشّح' => $r->query('seg'), 'بحث' => $r->query('q')]),
+            workspace: \App\Domain\Tenancy\Support\TenantContext::organizationId() ? \App\Domain\Tenancy\Models\Organization::find(\App\Domain\Tenancy\Support\TenantContext::organizationId())?->name : null,
+            generatedAt: now()->format('Y-m-d H:i'),
+        );
+
+        return $svc->download($data, (string) $r->query('format', 'xlsx'), 'payouts-' . now()->format('Ymd'), 'payouts', $rows->count(), \App\Domain\Tenancy\Support\TenantContext::tenantId(), $r->user()->id);
+    }
+
+    public function index(Request $r): Response
+    {
+        $this->authorize('viewAny', Payout::class);
+
+        $payouts = $this->filtered($r)->paginate(20)->withQueryString();
         $payouts->through(fn (Payout $p) => [
             'id' => $p->id,
             'number' => $p->payout_number,

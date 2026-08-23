@@ -64,6 +64,44 @@ class InvoicesController extends Controller
         ]);
     }
 
+    /** فاتورة PDF عربية RTL احترافية (تنزيل مُوثّق، لا رابط عام). */
+    public function exportPdf(Request $r, Invoice $invoice, \App\Domain\Exports\Writers\PdfWriter $pdf)
+    {
+        $this->authorize('view', $invoice);
+        $invoice->load('client', 'campaign', 'brand', 'items');
+        $cur = $invoice->currency ?: 'SAR';
+        $m = fn (int $minor) => number_format($minor / 100, 2) . ' ' . $cur;
+        $statusMap = [
+            'draft' => ['مسودة', ['#eef2f7', '#475467']], 'issued' => ['صادرة', ['#eff8ff', '#175cd3']],
+            'partially_paid' => ['مدفوعة جزئيًا', ['#fffaeb', '#b54708']], 'paid' => ['مدفوعة', ['#ecfdf3', '#067647']],
+            'overdue' => ['متأخرة', ['#fef3f2', '#b42318']], 'cancelled' => ['ملغاة', ['#f2f4f7', '#475467']],
+        ];
+        [$statusLabel, $statusColor] = $statusMap[$invoice->status] ?? [$invoice->status, ['#eef2f7', '#475467']];
+
+        \App\Domain\Audit\Services\AuditLogger::log('export.generated', $invoice, ['type' => 'invoice_pdf', 'format' => 'pdf'], $invoice->tenant_id, $r->user()->id);
+
+        return $pdf->downloadView('exports.invoice', [
+            'workspace' => \App\Domain\Tenancy\Support\TenantContext::organizationId()
+                ? \App\Domain\Tenancy\Models\Organization::find(\App\Domain\Tenancy\Support\TenantContext::organizationId())?->name : 'إنفلونسر هَب',
+            'inv' => [
+                'number' => $invoice->invoice_number, 'client' => $invoice->client?->display_name ?? '—',
+                'brand' => $invoice->brand?->name, 'campaign' => $invoice->campaign?->name,
+                'statusLabel' => $statusLabel, 'statusColor' => $statusColor,
+                'issueDate' => $invoice->issue_date?->format('Y-m-d'), 'dueDate' => $invoice->due_date?->format('Y-m-d'),
+                'currency' => $cur, 'taxRate' => number_format(($invoice->tax_rate_bp ?? 0) / 100, 2) . '%',
+                'items' => $invoice->items->map(fn ($it) => [
+                    'description' => $it->description, 'quantity' => $it->quantity,
+                    'unitPrice' => $m($it->unit_price_minor), 'lineTotal' => $m($it->line_total_minor),
+                ])->all(),
+                'subtotal' => $m($invoice->subtotal_minor), 'discount' => $invoice->discount_minor ? $m($invoice->discount_minor) : null,
+                'tax' => $m($invoice->tax_minor), 'total' => $m($invoice->total_minor),
+                'paid' => $invoice->paidMinor() ? $m($invoice->paidMinor()) : null,
+                'outstanding' => $invoice->balanceMinor() ? $m($invoice->balanceMinor()) : null,
+                'notes' => $invoice->notes,
+            ],
+        ], 'invoice-' . $invoice->invoice_number);
+    }
+
     public function show(Request $r, Invoice $invoice): Response
     {
         $this->authorize('view', $invoice);
