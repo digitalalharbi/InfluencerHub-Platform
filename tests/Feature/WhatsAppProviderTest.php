@@ -22,7 +22,13 @@ class WhatsAppProviderTest extends TestCase
 {
     use RefreshDatabase;
 
-    protected function tearDown(): void { TenantContext::reset(); parent::tearDown(); }
+    protected function tearDown(): void
+    {
+        // لا تُسرّب تفعيل القناة إلى اختبارات أخرى.
+        config(['channels.whatsapp.enabled' => false, 'channels.whatsapp.phone_number_id' => null, 'channels.whatsapp.access_token' => null]);
+        TenantContext::reset();
+        parent::tearDown();
+    }
 
     public function test_number_normalization(): void
     {
