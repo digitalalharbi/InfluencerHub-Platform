@@ -314,8 +314,12 @@ Route::middleware(['auth', 'tenant', 'agency_member', 'inertia'])->prefix('beta'
     Route::post('/creators', [\App\Http\Controllers\Inertia\CreatorsController::class, 'store']);
     Route::get('/creators/{creator}', [\App\Http\Controllers\Inertia\CreatorDetailController::class, 'show']);
     Route::get('/campaigns', [\App\Http\Controllers\Inertia\CampaignsController::class, 'index']);
+    // تصدير قائمة الحملات (داخلي) — قبل {campaign} حتى لا يُلتقط "export" كمعرّف.
+    Route::get('/campaigns/export', [\App\Http\Controllers\Inertia\CampaignsController::class, 'export']);
     Route::post('/campaigns', [\App\Http\Controllers\Inertia\CampaignsController::class, 'store']);
     Route::get('/campaigns/{campaign}', [\App\Http\Controllers\Inertia\CampaignDetailController::class, 'show']);
+    // ملخّص الحملة (PDF) آمن للعميل — يُشارَك مع العميل.
+    Route::get('/campaigns/{campaign}/client-brief', [\App\Http\Controllers\Inertia\CampaignDetailController::class, 'exportClientPdf']);
     Route::post('/campaigns/{campaign}', [\App\Http\Controllers\Inertia\CampaignDetailController::class, 'update']);
     Route::post('/campaigns/{campaign}/deliverables', [\App\Http\Controllers\Inertia\CampaignDetailController::class, 'addDeliverable']);
     Route::get('/campaigns/{campaign}/deliverables/{deliverable}/suggest', [\App\Http\Controllers\Inertia\DeliverableMatchController::class, 'suggest']);
@@ -401,6 +405,9 @@ Route::middleware(['auth', 'tenant', 'agency_member', 'inertia'])->prefix('beta'
     Route::post('/automation/{rule}', [\App\Http\Controllers\Inertia\AutomationController::class, 'update'])->whereNumber('rule');
     Route::post('/settings', [\App\Http\Controllers\Inertia\SettingsController::class, 'update']);
     Route::get('/campaigns/{campaign}/shortlist', [\App\Http\Controllers\Inertia\ShortlistController::class, 'index']);
+    // تصدير الترشيحات — داخلي (XLSX/CSV) ومقترح PDF آمن للعميل. GET فلا يتعارض مع POST catch-all.
+    Route::get('/campaigns/{campaign}/shortlist/export', [\App\Http\Controllers\Inertia\ShortlistController::class, 'export']);
+    Route::get('/campaigns/{campaign}/shortlist/proposal', [\App\Http\Controllers\Inertia\ShortlistController::class, 'exportClientPdf']);
     Route::post('/campaigns/{campaign}/shortlist/add', [\App\Http\Controllers\Inertia\ShortlistController::class, 'add']);
     Route::post('/campaigns/{campaign}/shortlist/submit', [\App\Http\Controllers\Inertia\ShortlistController::class, 'submit']);
     Route::post('/campaigns/{campaign}/shortlist/revise', [\App\Http\Controllers\Inertia\ShortlistController::class, 'revise']);
@@ -606,8 +613,12 @@ Route::middleware(['auth', 'tenant', 'agency_member'])->prefix('app')->group(fun
 
         // الحملات — قُصّت من Blade بكامل إجراءاتها (انتقالات + مخرجات + ترشيح + مطابقة)
         Route::get('/campaigns', [\App\Http\Controllers\Inertia\CampaignsController::class, 'index']);
+        // تصدير قائمة الحملات (داخلي) — قبل {campaign} حتى لا يُلتقط "export" كمعرّف.
+        Route::get('/campaigns/export', [\App\Http\Controllers\Inertia\CampaignsController::class, 'export']);
         Route::post('/campaigns', [\App\Http\Controllers\Inertia\CampaignsController::class, 'store']);
         Route::get('/campaigns/{campaign}', [\App\Http\Controllers\Inertia\CampaignDetailController::class, 'show']);
+        // ملخّص الحملة (PDF) آمن للعميل — يُشارَك مع العميل.
+        Route::get('/campaigns/{campaign}/client-brief', [\App\Http\Controllers\Inertia\CampaignDetailController::class, 'exportClientPdf']);
         Route::post('/campaigns/{campaign}', [\App\Http\Controllers\Inertia\CampaignDetailController::class, 'update']);
         Route::post('/campaigns/{campaign}/deliverables', [\App\Http\Controllers\Inertia\CampaignDetailController::class, 'addDeliverable']);
         Route::delete('/campaigns/{campaign}/deliverables/{deliverable}', [\App\Http\Controllers\Inertia\CampaignDetailController::class, 'removeDeliverable']);
@@ -616,6 +627,9 @@ Route::middleware(['auth', 'tenant', 'agency_member'])->prefix('app')->group(fun
         Route::post('/campaigns/{campaign}/deliverables/{deliverable}/offer', [\App\Http\Controllers\Inertia\DeliverableMatchController::class, 'offer']);
         // محرّك الترشيح (قبل catch-all الإجراءات)
         Route::get('/campaigns/{campaign}/shortlist', [\App\Http\Controllers\Inertia\ShortlistController::class, 'index']);
+        // تصدير الترشيحات — داخلي (XLSX/CSV) ومقترح PDF آمن للعميل. GET فلا يتعارض مع POST catch-all.
+        Route::get('/campaigns/{campaign}/shortlist/export', [\App\Http\Controllers\Inertia\ShortlistController::class, 'export']);
+        Route::get('/campaigns/{campaign}/shortlist/proposal', [\App\Http\Controllers\Inertia\ShortlistController::class, 'exportClientPdf']);
         Route::post('/campaigns/{campaign}/shortlist/add', [\App\Http\Controllers\Inertia\ShortlistController::class, 'add']);
         Route::post('/campaigns/{campaign}/shortlist/submit', [\App\Http\Controllers\Inertia\ShortlistController::class, 'submit']);
         Route::post('/campaigns/{campaign}/shortlist/revise', [\App\Http\Controllers\Inertia\ShortlistController::class, 'revise']);

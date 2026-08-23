@@ -179,4 +179,47 @@ class CampaignDetailController extends Controller
 
         return back()->with('ok', 'حُدّثت حالة الحملة.');
     }
+
+    /**
+     * ملخّص الحملة (PDF) آمن للعميل — يُشارَك مع العميل. يتضمّن الميزانية المتفَّق
+     * عليها والمخرجات والمخطط الزمني، ويستبعد صراحةً: التكلفة الملتزَمة، أتعاب
+     * المبدعين، والهوامش الداخلية. Policy(view). مُدقَّق.
+     */
+    public function exportClientPdf(Campaign $campaign, \App\Domain\Exports\Writers\PdfWriter $pdf): \Symfony\Component\HttpFoundation\Response
+    {
+        $this->authorize('view', $campaign);
+        $campaign->load('client', 'brand', 'deliverables');
+        $metrics = CampaignAnalytics::forPage(collect([$campaign]))[$campaign->id] ?? [];
+
+        $cur = $campaign->currency ?: 'SAR';
+        $data = [
+            'workspace' => \App\Domain\Tenancy\Models\Organization::find(\App\Domain\Tenancy\Support\TenantContext::organizationId())?->name ?? 'الوكالة',
+            'number' => $campaign->campaign_number,
+            'name' => $campaign->name,
+            'client' => $campaign->client?->display_name ?? '—',
+            'brand' => $campaign->brand?->name,
+            'objective' => $campaign->objective,
+            'brief' => $campaign->brief,
+            'statusLabel' => __('statuses.' . $campaign->status),
+            'budget' => $campaign->budget_minor ? number_format($campaign->budget_minor / 100, 0) . ' ' . $cur : null,
+            'start' => $campaign->start_date?->format('Y-m-d'),
+            'end' => $campaign->end_date?->format('Y-m-d'),
+            'progress' => (int) ($metrics['progress'] ?? 0),
+            // مخرجات آمنة للعميل — بلا أتعاب المبدع (fee_minor مُستبعَد عمدًا)
+            'deliverables' => $campaign->deliverables->map(fn ($d) => [
+                'platform' => $d->platform,
+                'type' => $d->type,
+                'quantity' => (int) $d->quantity,
+                'due' => $d->due_date?->format('Y-m-d') ?? '—',
+                'status' => __('statuses.' . $d->status),
+            ])->values()->all(),
+            'generatedAt' => now()->format('Y-m-d H:i'),
+        ];
+
+        \App\Domain\Audit\Services\AuditLogger::log('export.generated', $campaign, [
+            'type' => 'campaign_client_brief', 'format' => 'pdf', 'campaign' => $campaign->campaign_number,
+        ], \App\Domain\Tenancy\Support\TenantContext::tenantId(), request()->user()?->id);
+
+        return $pdf->downloadView('exports.campaign-brief', $data, 'campaign-' . $campaign->campaign_number);
+    }
 }

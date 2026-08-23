@@ -83,18 +83,22 @@ export default function ShortlistIndex({ campaign, version, items, candidates, f
           ...(version.decidedAt ? [['قرار العميل', version.decidedAt] as [string, string]] : []),
         ]}
         actions={
-          canEdit ? (
-            <>
-              <button disabled={busy || primary.length === 0} onClick={() => post(`${base}/submit`)} className="btn btn-sm">إرسال لاعتماد العميل</button>
-              {primary.length === 0 && (
-                <span style={{ fontSize: '.74rem', color: 'var(--ih-warning-ink)' }}>
-                  أضِف مرشّحًا أساسيًا واحدًا على الأقل ليُصبح الإرسال متاحًا
-                </span>
-              )}
-            </>
-          ) : version.status !== 'draft' ? (
-            <button disabled={busy} onClick={() => post(`${base}/revise`)} className="btn btn-sm btn-outline">إنشاء إصدار جديد</button>
-          ) : undefined
+          <>
+            <a href={u(`${base}/proposal`)} className="btn btn-sm btn-outline" title="مقترح PDF آمن للعميل" download><Icon name="external-link" size={13} /> مقترح للعميل</a>
+            <a href={u(`${base}/export?format=xlsx`)} className="btn btn-sm btn-outline" title="تصدير داخلي (Excel)" download><Icon name="external-link" size={13} /> داخلي</a>
+            {canEdit ? (
+              <>
+                <button disabled={busy || primary.length === 0} onClick={() => post(`${base}/submit`)} className="btn btn-sm">إرسال لاعتماد العميل</button>
+                {primary.length === 0 && (
+                  <span style={{ fontSize: '.74rem', color: 'var(--ih-warning-ink)' }}>
+                    أضِف مرشّحًا أساسيًا واحدًا على الأقل ليُصبح الإرسال متاحًا
+                  </span>
+                )}
+              </>
+            ) : version.status !== 'draft' ? (
+              <button disabled={busy} onClick={() => post(`${base}/revise`)} className="btn btn-sm btn-outline">إنشاء إصدار جديد</button>
+            ) : null}
+          </>
         }
       />
 

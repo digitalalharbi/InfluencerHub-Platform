@@ -147,6 +147,7 @@ export default function CampaignShow({ campaign, metrics, command, lifecycle, re
         actions={
           <>
             {canManage && <button onClick={openEdit} className="btn btn-sm btn-outline"><Icon name="file-text" size={14} /> تعديل</button>}
+            <a href={u(`/campaigns/${campaign.id}/client-brief`)} className="btn btn-sm btn-outline" title="ملخّص PDF آمن للعميل" download><Icon name="external-link" size={14} /> ملخّص للعميل</a>
             <a href={u(`/campaigns/${campaign.id}/shortlist`)} className="btn btn-sm">الترشيحات</a>
             {actions.map((a) => (
               <button key={a[0]} onClick={() => runAction(a)} className={`btn btn-sm ${ABTN[a[2]] ?? 'btn-outline'}`}>{a[1]}</button>
