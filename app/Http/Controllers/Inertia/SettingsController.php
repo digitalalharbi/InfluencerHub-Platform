@@ -2,12 +2,14 @@
 
 namespace App\Http\Controllers\Inertia;
 
+use App\Domain\Audit\Services\AuditLogger;
 use App\Domain\Billing\Models\{PlanEntitlement, Subscription};
 use App\Domain\Billing\Services\UsageMeterService;
 use App\Domain\Identity\Models\User;
 use App\Domain\Tenancy\Models\{Organization, OrganizationMembership};
 use App\Domain\Tenancy\Support\TenantContext;
 use App\Http\Controllers\Controller;
+use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -78,12 +80,18 @@ class SettingsController extends Controller
         ])->values();
         $team = $org ? OrganizationMembership::withoutGlobalScopes()->where('organization_id', $org->id)->where('status', 'active')->count() : 0;
 
+        // من يُدير الفوترة يُدير ملف مساحة العمل — نمرّر العَلَم لبناء نموذج التعديل
+        $canEdit = in_array($user->roleIn($orgId), self::ADMIN_ROLES, true);
+
         return Inertia::render('Settings/Index', [
             'org' => [
                 'name' => $org?->name ?? '—',
                 'type' => $org?->type ?? '—',
                 'team' => $team,
                 'showcase' => $org?->tenant?->slug === 'showcase',
+                // حقول قابلة للتعديل فعليًا (تُحفظ وتظهر عبر التطبيق)
+                'contactEmail' => $org?->contact_email,
+                'canEdit' => $canEdit,
             ],
             'subscription' => $sub ? [
                 'status' => $sub->status,
@@ -99,5 +107,31 @@ class SettingsController extends Controller
             'teamPreview' => $teamPreview,
             'byRole' => $byRole,
         ]);
+    }
+
+    /** حفظ ملف مساحة العمل — الاسم وبريد التواصل (حقول فعلية تظهر عبر التطبيق). */
+    public function update(Request $request)
+    {
+        $orgId = TenantContext::organizationId();
+        /** @var User $user */
+        $user = auth()->user();
+        abort_unless($orgId && in_array($user->roleIn($orgId), self::ADMIN_ROLES, true), 403);
+
+        $data = $request->validate([
+            'name' => 'required|string|min:2|max:120',
+            'contact_email' => 'nullable|email|max:160',
+        ]);
+
+        $org = Organization::findOrFail($orgId);
+        $before = ['name' => $org->name, 'contact_email' => $org->contact_email];
+        $org->update([
+            'name' => $data['name'],
+            'contact_email' => $data['contact_email'] ?? null,
+        ]);
+        AuditLogger::log('organization.settings_updated', $org, ['from' => $before, 'to' => [
+            'name' => $org->name, 'contact_email' => $org->contact_email,
+        ]], $org->tenant_id, $user->id);
+
+        return back()->with('ok', 'حُفظت إعدادات مساحة العمل.');
     }
 }
