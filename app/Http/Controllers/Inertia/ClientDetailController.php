@@ -138,6 +138,7 @@ class ClientDetailController extends Controller
             'update' => $user->can('update', $client),
             'documents' => $user->can('manageDocuments', $client),
             'portal' => $user->can('managePortal', $client),
+            'delete' => $user->can('delete', $client),
         ];
 
         return Inertia::render('Clients/Show', [

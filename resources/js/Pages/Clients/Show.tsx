@@ -64,7 +64,7 @@ interface Props {
   team: { name: string; role: string; status: string; statusTone: string }[]; content: Content[]; contracts: Contract[]; payouts: Payout[];
   requests: ClientRequest[]; creators: ClientCreator[]; documents: Document[]; customFields: CustomField[];
   nextAction: Risk | null; activity: Activity[]; contentStages: Stage[]; finance: Finance;
-  can: { update: boolean; documents: boolean; portal: boolean };
+  can: { update: boolean; documents: boolean; portal: boolean; delete: boolean };
   fieldDefinitions: { id: number; key: string; label: string; type: string }[];
 }
 
@@ -217,24 +217,45 @@ export default function ClientShow({ client, metrics, risks, campaigns, brands, 
           ['المدينة', client.city ?? '—'], ['التصنيف', client.isVip ? 'VIP' : 'عادي'],
         ]}
         actions={
-          <label style={{ display: 'flex', alignItems: 'center', gap: '.4rem', fontSize: '.8rem' }}>
-            <span style={{ color: 'var(--ih-text-muted)' }}>الحالة</span>
-            {/* تغيير الحالة من هنا: كان العميل يُنشأ «مهتمًّا» بلا مسار تحديث،
-                فتبقى الحملة محجوبة بشرط «عميل نشط» لا سبيل إلى رفعه. */}
-            <select
-              className="field"
-              style={{ minWidth: 130 }}
-              value={client.status}
-              onChange={(e) => post('/update', { status: e.target.value }, () => undefined)}
-              disabled={busy}
-            >
-              <option value="lead">مهتم</option>
-              <option value="qualified">مؤهّل</option>
-              <option value="active">نشط</option>
-              <option value="inactive">غير نشط</option>
-              <option value="suspended">موقوف</option>
-            </select>
-          </label>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '.6rem' }}>
+            <label style={{ display: 'flex', alignItems: 'center', gap: '.4rem', fontSize: '.8rem' }}>
+              <span style={{ color: 'var(--ih-text-muted)' }}>الحالة</span>
+              {/* تغيير الحالة من هنا: كان العميل يُنشأ «مهتمًّا» بلا مسار تحديث،
+                  فتبقى الحملة محجوبة بشرط «عميل نشط» لا سبيل إلى رفعه. */}
+              <select
+                className="field"
+                style={{ minWidth: 130 }}
+                value={client.status}
+                onChange={(e) => post('/update', { status: e.target.value }, () => undefined)}
+                disabled={busy}
+              >
+                <option value="lead">مهتم</option>
+                <option value="qualified">مؤهّل</option>
+                <option value="active">نشط</option>
+                <option value="inactive">غير نشط</option>
+                <option value="suspended">موقوف</option>
+              </select>
+            </label>
+            {/* الأرشفة: القدرة كانت موجودة في الخادم (ArchiveClient) بلا منفذ في الواجهة —
+                يظهر الزر لمن يملك صلاحية الحذف فقط (محكوم بالسياسة، مخفيّ عن المُطّلع). */}
+            {can.delete && (
+              <button
+                type="button"
+                className="btn btn-sm btn-ghost"
+                disabled={busy}
+                onClick={() => {
+                  if (!window.confirm(`أرشفة العميل «${client.name}»؟ يمكن استرجاعه بتغيير حالته لاحقًا.`)) return;
+                  setBusy(true);
+                  router.delete(u(`/clients/${client.id}`), {
+                    preserveScroll: true,
+                    onFinish: () => setBusy(false),
+                  });
+                }}
+              >
+                أرشفة
+              </button>
+            )}
+          </div>
         }
       />
 
