@@ -4,6 +4,7 @@ import AppShell from '@/Layouts/AppShell';
 import { Bar, Field, Kpi, ListHead, StatusBadge } from '@/Components/ui';
 import { Icon } from '@/Components/Icon';
 import { Pagination, type Paginated } from '@/Components/Pagination';
+import { ExportButtons } from '@/Components/ExportButtons';
 import { u } from '@/lib/href';
 
 interface ClientRow {
@@ -77,7 +78,10 @@ export default function ClientsIndex({ clients, summary, operational, filters, s
 
       <ListHead eyebrow="إدارة العلاقات" title="العملاء"
         sub="حسابات العملاء وملفاتهم وحملاتهم ومتابعتهم المالية في بيئة تشغيل موحّدة"
-        actions={canCreate ? <button onClick={openCreate} className="btn btn-sm btn-primary"><Icon name="plus" size={15} /> عميل جديد</button> : undefined} />
+        actions={<span style={{ display: 'inline-flex', gap: '.4rem', alignItems: 'center' }}>
+          <ExportButtons path="/clients/export" filters={filters as Record<string, string>} />
+          {canCreate && <button onClick={openCreate} className="btn btn-sm btn-primary"><Icon name="plus" size={15} /> عميل جديد</button>}
+        </span>} />
 
       <div className="ih-kpis">
         <Kpi label="الإيراد الكلي" icon="wallet" tone="success" value={<>{kfmt(operational.revenue_minor)} <small>ر.س</small></>} sub={`${summary.vip} عميل VIP`} />

@@ -26,13 +26,9 @@ class CreatorsController extends Controller
     private const STATUS_LABEL = ['prospect' => 'مبدئي', 'active' => 'نشط', 'paused' => 'موقوف', 'blocked' => 'محظور'];
     private const STATUS_TONE = ['prospect' => 'submitted', 'active' => 'active', 'paused' => 'paused', 'blocked' => 'rejected'];
 
-    public function index(Request $r): Response
+    /** استعلام المبدعين المُرشَّح — مصدر واحد للعرض والتصدير. */
+    private function filtered(Request $r): \Illuminate\Database\Eloquent\Builder
     {
-        $this->authorize('viewAny', Creator::class);
-
-        // الفلتر يقبل مفتاح قدرة (ugc, voiceover…) والنوع القديم في الرابط معًا:
-        // روابط محفوظة ونصوص تنقّل ما تزال تحمل `?type=ugc_creator`، وكسرها بلا
-        // مقابل. CreatorAnalytics::capabilityFor يترجم القديم إلى قدرة.
         $type = $r->query('type');
         $capability = CreatorAnalytics::capabilityFor($type);
         $q = Creator::query()->with('capabilities')->withCount(['platforms'])->latest();
@@ -49,7 +45,47 @@ class CreatorsController extends Controller
         if ($v = $r->query('city')) $q->where('city', $v);
         CreatorAnalytics::applySegment($q, $r->query('seg'));
 
-        $creators = $q->paginate(15)->withQueryString();
+        return $q;
+    }
+
+    /** يصدّر قائمة المبدعين المُرشَّحة. حقول التواصل تُدرَج فقط لمن يملك صلاحية الكتابة. */
+    public function export(Request $r, \App\Domain\Exports\ExportService $svc)
+    {
+        $this->authorize('viewAny', Creator::class);
+        $rows = $this->filtered($r)->get();
+
+        // حماية جهات الاتصال: البريد/الهاتف لا يُصدَّران إلا لمن يملك صلاحية الكتابة.
+        $withContact = $r->user()->can('create', Creator::class);
+        $columns = ['number' => 'الرقم', 'name' => 'المبدع', 'handle' => 'المُعرّف', 'city' => 'المدينة', 'platform' => 'المنصّة', 'status' => 'الحالة'];
+        if ($withContact) {
+            $columns += ['email' => 'البريد', 'phone' => 'الهاتف'];
+        }
+
+        $data = new \App\Domain\Exports\TabularData(
+            title: 'قائمة صنّاع المحتوى',
+            columns: $columns,
+            rows: $rows->map(function (Creator $c) use ($withContact) {
+                $row = ['number' => $c->creator_number, 'name' => $c->display_name, 'handle' => $c->handle ?? '—',
+                    'city' => $c->city ?? '—', 'platform' => $c->primary_platform ?? '—', 'status' => __("statuses.{$c->status}")];
+                if ($withContact) {
+                    $row += ['email' => $c->email ?? '—', 'phone' => $c->phone ?? '—'];
+                }
+                return $row;
+            }),
+            meta: array_filter(['المرشّح' => $r->query('status'), 'بحث' => $r->query('q'), 'جهات الاتصال' => $withContact ? 'مُدرَجة' : 'محجوبة (صلاحية)']),
+            workspace: TenantContext::organizationId() ? \App\Domain\Tenancy\Models\Organization::find(TenantContext::organizationId())?->name : null,
+            generatedAt: now()->format('Y-m-d H:i'),
+        );
+
+        return $svc->download($data, (string) $r->query('format', 'xlsx'), 'creators-' . now()->format('Ymd'), 'creators', $rows->count(), TenantContext::tenantId(), $r->user()->id);
+    }
+
+    public function index(Request $r): Response
+    {
+        $this->authorize('viewAny', Creator::class);
+
+        $type = $r->query('type');
+        $creators = $this->filtered($r)->paginate(15)->withQueryString();
         $metrics = CreatorAnalytics::forPage($creators->getCollection());
 
         $creators->through(fn (Creator $c) => [

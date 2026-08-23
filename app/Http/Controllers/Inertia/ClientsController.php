@@ -21,10 +21,9 @@ use Inertia\Response;
  */
 class ClientsController extends Controller
 {
-    public function index(Request $r): Response
+    /** استعلام العملاء المُرشَّح — مصدر واحد يستعمله العرض والتصدير فيتطابقان. */
+    private function filtered(Request $r): \Illuminate\Database\Eloquent\Builder
     {
-        $this->authorize('viewAny', Client::class);
-
         $q = Client::query()->with('accountManager')->withCount(['brands', 'campaigns'])->latest();
         if ($s = trim((string) $r->query('q'))) {
             $q->where(function ($w) use ($s) {
@@ -40,7 +39,37 @@ class ClientsController extends Controller
         if ($v = $r->query('manager')) $q->where('account_manager_id', $v);
         ClientAnalytics::applySegment($q, $r->query('seg'));
 
-        $clients = $q->paginate(15)->withQueryString();
+        return $q;
+    }
+
+    /** يصدّر قائمة العملاء المُرشَّحة (نفس فلاتر العرض) بصيغة csv/xlsx. */
+    public function export(Request $r, \App\Domain\Exports\ExportService $svc)
+    {
+        $this->authorize('viewAny', Client::class);
+        $rows = $this->filtered($r)->get();
+        $statusLabels = ['lead' => 'مهتم', 'qualified' => 'مؤهّل', 'active' => 'نشط', 'inactive' => 'غير نشط', 'suspended' => 'موقوف', 'archived' => 'مؤرشف'];
+
+        $data = new \App\Domain\Exports\TabularData(
+            title: 'قائمة العملاء',
+            columns: ['number' => 'الرقم', 'name' => 'العميل', 'sector' => 'القطاع', 'manager' => 'مدير الحساب', 'brands' => 'العلامات', 'campaigns' => 'الحملات', 'status' => 'الحالة'],
+            rows: $rows->map(fn (Client $c) => [
+                'number' => $c->client_number, 'name' => $c->display_name, 'sector' => $c->sector ?? '—',
+                'manager' => $c->accountManager?->name ?? '—', 'brands' => (int) $c->brands_count,
+                'campaigns' => (int) $c->campaigns_count, 'status' => $statusLabels[$c->status] ?? $c->status,
+            ]),
+            meta: array_filter(['المرشّح' => $r->query('status') ? ($statusLabels[$r->query('status')] ?? $r->query('status')) : null, 'بحث' => $r->query('q')]),
+            workspace: $this->org()?->name,
+            generatedAt: now()->format('Y-m-d H:i'),
+        );
+
+        return $svc->download($data, (string) $r->query('format', 'xlsx'), 'clients-' . now()->format('Ymd'), 'clients', $rows->count(), TenantContext::tenantId(), $r->user()->id);
+    }
+
+    public function index(Request $r): Response
+    {
+        $this->authorize('viewAny', Client::class);
+
+        $clients = $this->filtered($r)->paginate(15)->withQueryString();
         $metrics = ClientAnalytics::forPage($clients->getCollection());
 
         $statusLabels = ['lead' => 'مهتم', 'qualified' => 'مؤهّل', 'active' => 'نشط', 'inactive' => 'غير نشط', 'suspended' => 'موقوف', 'archived' => 'مؤرشف'];

@@ -4,6 +4,7 @@ import AppShell from '@/Layouts/AppShell';
 import { Field, Kpi, ListHead, numFmt } from '@/Components/ui';
 import { Icon } from '@/Components/Icon';
 import { Pagination, type Paginated } from '@/Components/Pagination';
+import { ExportButtons } from '@/Components/ExportButtons';
 import { u } from '@/lib/href';
 
 interface CreatorRow {
@@ -102,7 +103,10 @@ export default function CreatorsIndex({ creators, summary, type, filters, platfo
 
       <ListHead eyebrow="شبكة المبدعين" title={title}
         sub="قاعدة المؤثرين وصنّاع المحتوى مع التصنيف الآلي والتوثيق والتفاعل والأسعار"
-        actions={<button onClick={() => setCreateOpen(true)} className="btn btn-sm btn-primary"><Icon name="plus" size={15} /> مبدع جديد</button>} />
+        actions={<span style={{ display: 'inline-flex', gap: '.4rem', alignItems: 'center' }}>
+          <ExportButtons path="/creators/export" filters={filters as Record<string, string>} />
+          <button onClick={() => setCreateOpen(true)} className="btn btn-sm btn-primary"><Icon name="plus" size={15} /> مبدع جديد</button>
+        </span>} />
 
       <div className="ih-kpis">
         <Kpi label="إجمالي المبدعين" icon="users" value={numFmt(summary.total)} sub={`${summary.tier_a} فئة A · ${summary.active} نشط`} />

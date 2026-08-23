@@ -294,6 +294,7 @@ Route::middleware(['auth', 'partner_member'])->prefix('partner')->group(function
 Route::middleware(['auth', 'tenant', 'agency_member', 'inertia'])->prefix('beta')->group(function () {
     Route::get('/', \App\Http\Controllers\Inertia\AgencyDashboardController::class);
     Route::get('/clients', [\App\Http\Controllers\Inertia\ClientsController::class, 'index']);
+    Route::get('/clients/export', [\App\Http\Controllers\Inertia\ClientsController::class, 'export']);
     Route::post('/clients', [\App\Http\Controllers\Inertia\ClientsController::class, 'store']);
     Route::get('/clients/{client}', [\App\Http\Controllers\Inertia\ClientDetailController::class, 'show']);
     Route::delete('/clients/{client}', [\App\Http\Controllers\Inertia\ClientsController::class, 'destroy']);
@@ -309,6 +310,7 @@ Route::middleware(['auth', 'tenant', 'agency_member', 'inertia'])->prefix('beta'
     Route::post('/creator-database/{poolCreator}/overlay', [\App\Http\Controllers\Inertia\CreatorDatabaseController::class, 'overlay']);
     Route::post('/creator-database/{poolCreator}/nominate', [\App\Http\Controllers\Inertia\CreatorDatabaseController::class, 'nominate']);
     Route::get('/creators', [\App\Http\Controllers\Inertia\CreatorsController::class, 'index']);
+    Route::get('/creators/export', [\App\Http\Controllers\Inertia\CreatorsController::class, 'export']);
     Route::post('/creators', [\App\Http\Controllers\Inertia\CreatorsController::class, 'store']);
     Route::get('/creators/{creator}', [\App\Http\Controllers\Inertia\CreatorDetailController::class, 'show']);
     Route::get('/campaigns', [\App\Http\Controllers\Inertia\CampaignsController::class, 'index']);
@@ -623,6 +625,7 @@ Route::middleware(['auth', 'tenant', 'agency_member'])->prefix('app')->group(fun
 
         // العملاء وإجراءاتهم الفرعية — قُصّت من Blade
         Route::get('/clients', [\App\Http\Controllers\Inertia\ClientsController::class, 'index']);
+        Route::get('/clients/export', [\App\Http\Controllers\Inertia\ClientsController::class, 'export']);
         Route::post('/clients', [\App\Http\Controllers\Inertia\ClientsController::class, 'store']);
         Route::get('/clients/{client}', [\App\Http\Controllers\Inertia\ClientDetailController::class, 'show']);
         Route::delete('/clients/{client}', [\App\Http\Controllers\Inertia\ClientsController::class, 'destroy']);
@@ -672,6 +675,7 @@ Route::middleware(['auth', 'tenant', 'agency_member'])->prefix('app')->group(fun
         Route::post('/creator-database/{poolCreator}/nominate', [\App\Http\Controllers\Inertia\CreatorDatabaseController::class, 'nominate']);
         // المبدعون — قُصّوا من Blade؛ الإضافة تعيد استخدام CreateCreator نفسه
         Route::get('/creators', [\App\Http\Controllers\Inertia\CreatorsController::class, 'index']);
+        Route::get('/creators/export', [\App\Http\Controllers\Inertia\CreatorsController::class, 'export']);
         Route::post('/creators/{creator}/update', [\App\Http\Controllers\Inertia\CreatorsController::class, 'update']);
         Route::post('/creators/{creator}/invite', [\App\Http\Controllers\Inertia\CreatorInvitationController::class, 'store']);
         Route::post('/creator-invitations/{invitation}/resend', [\App\Http\Controllers\Inertia\CreatorInvitationController::class, 'resend']);
