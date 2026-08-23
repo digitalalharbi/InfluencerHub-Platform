@@ -13,14 +13,16 @@ interface Brand {
   status: string; statusLabel: string; statusTone: string; version: number;
   submittedAt: string | null; reviewedAt: string | null; changesReason: string | null;
 }
-type Action = [string, string, string, boolean];
+type Action = [string, string, string, 'none' | 'reason' | 'note'];
 interface Decision { decision: string; note: string | null; version: number; by: string; at: string | null }
 interface History { from: string; to: string; by: string; reason: string | null; at: string | null }
 interface BrandCampaign { id: number; name: string; deliverables: number; budgetMinor: number; content: number; published: number; progress: number; startDate: string | null; endDate: string | null; status: string; statusLabel: string; statusTone: string }
 interface BrandContent { id: number; title: string; creator: string | null; platform: string | null; mediaUrl: string | null; version: number; type: string; publishedAt: string | null; needsAction: boolean; status: string; statusLabel: string; statusTone: string }
 interface Metrics { campaigns: number; activeCampaigns: number; content: number; awaitingContent: number; budgetMinor: number }
+interface ChecklistItem { key: string; label: string; present: boolean; critical: boolean }
+interface Checklist { items: ChecklistItem[]; completeness: number; ready: boolean; criticalMissing: number }
 interface Props {
-  brand: Brand; canReview: boolean; actions: Action[];
+  brand: Brand; canReview: boolean; actions: Action[]; checklist: Checklist;
   socialAccounts: { platform: string; handle: string | null; url: string | null }[];
   decisions: Decision[]; history: History[];
   metrics: Metrics; campaigns: BrandCampaign[]; content: BrandContent[];
@@ -32,7 +34,7 @@ const B_TABS = ['overview','campaigns','content','accounts','review'] as const;
 const BTN: Record<string, string> = { primary: 'btn-primary', danger: 'btn-danger', ghost: 'btn-ghost' };
 const DECISION_LABEL: Record<string, string> = { approved: 'موافقة', changes_requested: 'طلب تعديل', rejected: 'رفض' };
 
-export default function BrandShow({ brand, canReview, actions, socialAccounts, decisions, history, metrics, campaigns, content }: Props) {
+export default function BrandShow({ brand, canReview, actions, checklist, socialAccounts, decisions, history, metrics, campaigns, content }: Props) {
   const { props } = usePage<SharedProps>();
   const [tab, setTab] = useState('overview');
   useEffect(() => {
@@ -53,13 +55,15 @@ export default function BrandShow({ brand, canReview, actions, socialAccounts, d
   const [reason, setReason] = useState('');
 
   const runAction = (a: Action) => {
-    if (a[3]) { setReasonFor(a); setReason(''); return; }
-    router.post(u(`/brands/${brand.id}/${a[0]}`), {}, { preserveScroll: true });
+    if (a[3] === 'none') { router.post(u(`/brands/${brand.id}/${a[0]}`), {}, { preserveScroll: true }); return; }
+    setReasonFor(a); setReason('');
   };
   const submitReason = () => {
     if (!reasonFor) return;
-    router.post(u(`/brands/${brand.id}/${reasonFor[0]}`), { reason }, { preserveScroll: true, onSuccess: () => setReasonFor(null) });
+    // الملاحظة الاختيارية (note) تُرسَل null إن تُركت فارغة؛ السبب (reason) إلزامي
+    router.post(u(`/brands/${brand.id}/${reasonFor[0]}`), { reason: reason.trim() || null }, { preserveScroll: true, onSuccess: () => setReasonFor(null) });
   };
+  const reasonRequired = reasonFor?.[3] === 'reason';
 
   const facts: [string, string | null][] = [
     ['الموقع', brand.website], ['اللغة المفضّلة', brand.preferredLanguage],
@@ -202,6 +206,34 @@ export default function BrandShow({ brand, canReview, actions, socialAccounts, d
 
         {/* لمحة جانبية في النظرة العامة */}
         <div style={{ display: 'grid', gap: '1.1rem' }}>
+          {/* جاهزية الاعتماد — بنود فعلية تُعلِم قرار المراجِع */}
+          <Sec title="جاهزية الاعتماد" icon="shield-check">
+            <div className="ih-sec__body" style={{ display: 'grid', gap: '.7rem' }}>
+              <div>
+                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '.8rem', marginBottom: '.3rem' }}>
+                  <span style={{ fontWeight: 700, color: checklist.ready ? 'var(--ih-success-ink)' : 'var(--ih-warning-ink)' }}>
+                    {checklist.ready ? 'مكتملة البنود الحرِجة' : `${checklist.criticalMissing} بند حرِج ناقص`}
+                  </span>
+                  <span style={{ color: 'var(--ih-text-muted)', direction: 'ltr' }}>{checklist.completeness}%</span>
+                </div>
+                <Bar pct={checklist.completeness} over={!checklist.ready} />
+              </div>
+              <div style={{ display: 'grid', gap: '.35rem' }}>
+                {checklist.items.map((it) => (
+                  <div key={it.key} style={{ display: 'flex', alignItems: 'center', gap: '.5rem', fontSize: '.82rem' }}>
+                    <span style={{ width: 18, height: 18, borderRadius: '50%', flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center',
+                      background: it.present ? 'var(--ih-success-soft)' : it.critical ? 'var(--ih-danger-soft)' : 'var(--ih-surface-muted)',
+                      color: it.present ? 'var(--ih-success-ink)' : it.critical ? 'var(--ih-danger-ink)' : 'var(--ih-text-muted)' }}>
+                      <Icon name={it.present ? 'shield-check' : 'activity'} size={11} />
+                    </span>
+                    <span style={{ flex: 1, color: it.present ? undefined : 'var(--ih-text-muted)' }}>{it.label}</span>
+                    {it.critical && !it.present && <span className="ih-tag" style={{ fontSize: '.6rem', background: 'var(--ih-danger-soft)', color: 'var(--ih-danger-ink)' }}>حرِج</span>}
+                  </div>
+                ))}
+              </div>
+            </div>
+          </Sec>
+
           <Sec title="آخر قرار" icon="clipboard-check" link={decisions.length ? { href: '#review', label: 'كل القرارات' } : undefined}>
             <div className="ih-sec__body">
               {decisions.length === 0 ? <div style={{ color: 'var(--ih-text-muted)', fontSize: '.85rem' }}>لا قرارات بعد.</div> : (
@@ -292,10 +324,15 @@ export default function BrandShow({ brand, canReview, actions, socialAccounts, d
       {reasonFor && (
         <div className="modal-backdrop" onClick={(e) => e.target === e.currentTarget && setReasonFor(null)}>
           <div className="modal" style={{ padding: '1.3rem' }}>
-            <h3 style={{ fontWeight: 800, margin: '0 0 1rem' }}>{reasonFor[1]}</h3>
-            <textarea className="field" rows={3} value={reason} onChange={(e) => setReason(e.target.value)} placeholder="السبب / الملاحظة" autoFocus />
+            <h3 style={{ fontWeight: 800, margin: '0 0 .6rem' }}>{reasonFor[1]}</h3>
+            {reasonFor[0] === 'approve' && checklist.criticalMissing > 0 && (
+              <div className="card" style={{ padding: '.6rem .8rem', marginBottom: '.7rem', borderInlineStart: '3px solid var(--ih-warning)', background: 'var(--ih-warning-soft)', color: 'var(--ih-warning-ink)', fontSize: '.8rem', lineHeight: 1.6 }}>
+                تنبيه: {checklist.criticalMissing} من البنود الحرِجة ناقصة — راجِع جاهزية الاعتماد قبل المتابعة.
+              </div>
+            )}
+            <textarea className="field" rows={3} value={reason} onChange={(e) => setReason(e.target.value)} placeholder={reasonRequired ? 'السبب (يظهر للعميل) — إلزامي' : 'ملاحظة الاعتماد (اختياري)'} autoFocus />
             <div style={{ marginTop: '1rem', display: 'flex', gap: '.5rem' }}>
-              <button className={`btn ${BTN[reasonFor[2]] ?? 'btn-primary'}`} onClick={submitReason} disabled={!reason.trim()}>تأكيد</button>
+              <button className={`btn ${BTN[reasonFor[2]] ?? 'btn-primary'}`} onClick={submitReason} disabled={reasonRequired && !reason.trim()}>تأكيد</button>
               <button className="btn btn-ghost" onClick={() => setReasonFor(null)}>إلغاء</button>
             </div>
           </div>
