@@ -14,6 +14,11 @@ class AppServiceProvider extends ServiceProvider
 {
     public function register(): void
     {
+        // سجلّ محوّلات التكامل — فارغ افتراضًا؛ يُسجَّل مزوّد حقيقي حين تتوفّر بيانات
+        // اعتماده (BLOCKED_EXTERNAL حتى ذلك). الإطار (تشغيلات/جدولة/معالجة) جاهز.
+        $this->app->singleton(\App\Domain\Integrations\Adapters\AdapterRegistry::class, fn () =>
+            new \App\Domain\Integrations\Adapters\AdapterRegistry([]));
+
         // سجلّ قنوات التسليم — الترتيب مقصود (in_app أوّلًا). القنوات الخارجية
         // متاحة فقط حين تُفعَّل بيانات اعتمادها؛ افتراضها غير مهيّأ.
         $this->app->singleton(\App\Domain\Communications\Channels\ChannelRegistry::class, fn ($app) =>
