@@ -18,6 +18,33 @@ use Inertia\Response;
  */
 class ReportsController extends Controller
 {
+    /** تصدير تقرير أداء العملاء (csv/xlsx/pdf) — من محرك التحليلات نفسه. */
+    public function export(\Illuminate\Http\Request $r, \App\Domain\Exports\ExportService $svc)
+    {
+        $this->authorize('viewAny', Client::class);
+        $clients = Client::query()->get();
+        $metrics = ClientAnalytics::forPage($clients);
+        $sar = fn (int $minor) => number_format($minor / 100, 0) . ' ر.س';
+
+        $rows = $clients->map(fn (Client $c) => [
+            'name' => $c->display_name,
+            'active' => (int) ($metrics[$c->id]['active_campaigns'] ?? 0),
+            'completion' => (int) ($metrics[$c->id]['completion'] ?? 0) . '%',
+            'revenue' => $sar((int) ($metrics[$c->id]['revenue_minor'] ?? 0)),
+        ])->sortByDesc(fn ($x) => $x['active'])->values();
+
+        $data = new \App\Domain\Exports\TabularData(
+            title: 'تقرير أداء العملاء',
+            columns: ['name' => 'العميل', 'active' => 'حملات نشطة', 'completion' => 'اكتمال الملف', 'revenue' => 'الإيراد (مُحصَّل)'],
+            rows: $rows,
+            meta: ['الفترة' => now()->format('Y')],
+            workspace: \App\Domain\Tenancy\Support\TenantContext::organizationId() ? \App\Domain\Tenancy\Models\Organization::find(\App\Domain\Tenancy\Support\TenantContext::organizationId())?->name : null,
+            generatedAt: now()->format('Y-m-d H:i'),
+        );
+
+        return $svc->download($data, (string) $r->query('format', 'xlsx'), 'clients-report-' . now()->format('Ymd'), 'clients_report', $rows->count(), \App\Domain\Tenancy\Support\TenantContext::tenantId(), $r->user()->id);
+    }
+
     public function index(AnalyticsService $analytics): Response
     {
         $this->authorize('viewAny', Client::class);

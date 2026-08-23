@@ -3,6 +3,7 @@ import AppShell from '@/Layouts/AppShell';
 import { BarChart, DonutChart, Kpi, ListHead, Sec, StatusBadge } from '@/Components/ui';
 import type { IconName } from '@/Components/Icon';
 import { u } from '@/lib/href';
+import { ExportButtons } from '@/Components/ExportButtons';
 
 /** كل حدّ معرَّف في FinancialMetrics — الإيراد صافٍ من الضريبة. */
 interface Financial {
@@ -65,7 +66,8 @@ export default function ReportsIndex({ timeline, topClients, financial, kpis, br
       <Head title="التقارير" />
 
       <ListHead eyebrow="البيانات والتقارير" title="التقارير"
-        sub="نظرة تجميعية على الأداء المالي والتشغيلي — مشتقّة من بيانات PostgreSQL الحقيقية" />
+        sub="نظرة تجميعية على الأداء المالي والتشغيلي — مشتقّة من بيانات PostgreSQL الحقيقية"
+        actions={<ExportButtons path="/reports/export" formats={['xlsx', 'csv', 'pdf']} />} />
 
       {/* المالية */}
       <div className="ih-kpis">

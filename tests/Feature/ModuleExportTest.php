@@ -126,4 +126,17 @@ class ModuleExportTest extends TestCase
         $this->assertDatabaseHas('audit_logs', ['tenant_id' => $t->id, 'action' => 'export.generated']);
         TenantContext::reset();
     }
+
+    public function test_reports_export_pdf_and_audited(): void
+    {
+        [$t, $u] = $this->agency();
+        TenantContext::withBypass(fn () => Client::create(['tenant_id' => $t->id, 'client_number' => 'CL-1', 'display_name' => 'عميل تقرير', 'type' => 'company', 'status' => 'active']));
+        $res = $this->actingAs($u)->get('/app/reports/export?format=pdf');
+        $res->assertOk();
+        $res->assertHeader('content-type', 'application/pdf');
+        $this->assertStringStartsWith('%PDF-', $this->bodyOf($res->baseResponse));
+        TenantContext::bypass(true);
+        $this->assertDatabaseHas('audit_logs', ['tenant_id' => $t->id, 'action' => 'export.generated']);
+        TenantContext::reset();
+    }
 }
