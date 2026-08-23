@@ -188,6 +188,8 @@ class PlatformController extends Controller
                 'providerRaw' => $s->billing_provider ?? 'manual',
                 'trialEndsAt' => $s->trial_ends_at?->format('Y-m-d'),
                 'periodEnd' => $s->current_period_end?->format('Y-m-d'),
+                // قاعدة المؤثرين: هل هي ممنوحة لهذه المؤسسة، وكيف (خطة/تجاوز)
+                'creatorDatabase' => $this->creatorDatabaseState($s),
             ]);
 
             $byStatus = Subscription::withoutGlobalScopes()->selectRaw('status, count(*) c')->groupBy('status')->get()
@@ -254,6 +256,45 @@ class PlatformController extends Controller
     }
 
     /** تعديل الاشتراك: الحالة/المزوّد/تواريخ التجربة والدورة. */
+    /** حالة استحقاق قاعدة المؤثرين لاشتراك: ممنوحة؟ ومصدر المنح (خطة/تجاوز). */
+    private function creatorDatabaseState(Subscription $s): array
+    {
+        $key = 'creator_database.access';
+        $org = Organization::withoutGlobalScopes()->find($s->organization_id);
+        $granted = $org ? app(\App\Domain\Billing\Services\EntitlementService::class)->allows($org, $key) : false;
+        $ov = is_array($s->overrides) ? $s->overrides : [];
+        $via = 'none';
+        if ($granted) {
+            $via = array_key_exists($key, $ov) ? 'override' : 'plan';
+        } elseif (array_key_exists($key, $ov)) {
+            $via = 'override'; // تجاوز صريح بالمنع
+        }
+
+        return ['granted' => $granted, 'via' => $via, 'overridden' => array_key_exists($key, $ov)];
+    }
+
+    /**
+     * منح/إلغاء «قاعدة المؤثرين» لمؤسسة عبر تجاوز الاشتراك (يعيد استخدام آلية
+     * overrides القائمة التي يدمجها EntitlementService). لا معرّفات مؤسسات مضمّنة.
+     */
+    public function setCreatorDatabaseAccess(Request $r, int $subscription): \Illuminate\Http\RedirectResponse
+    {
+        $data = $r->validate(['granted' => 'required|boolean']);
+
+        TenantContext::withBypass(function () use ($subscription, $data, $r) {
+            $s = Subscription::withoutGlobalScopes()->findOrFail($subscription);
+            $ov = is_array($s->overrides) ? $s->overrides : [];
+            $ov['creator_database.access'] = (bool) $data['granted']; // true=منح، false=منع صريح
+            $s->update(['overrides' => $ov]);
+            \App\Domain\Audit\Services\AuditLogger::log(
+                $data['granted'] ? 'creator_database.granted' : 'creator_database.revoked',
+                $s, [], $s->tenant_id, $r->user()?->id,
+            );
+        });
+
+        return back()->with('ok', $data['granted'] ? 'مُنحت قاعدة المؤثرين لهذه المؤسسة.' : 'أُلغيت قاعدة المؤثرين لهذه المؤسسة.');
+    }
+
     public function updateSubscription(Request $r, int $subscription): \Illuminate\Http\RedirectResponse
     {
         $data = $r->validate([

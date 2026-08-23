@@ -10,6 +10,7 @@ import { u } from '@/lib/href';
 interface Row {
   id: number; org: string; plan: string; version: number; status: string; statusLabel: string; statusTone: string;
   provider: string | null; providerRaw: string; trialEndsAt: string | null; periodEnd: string | null;
+  creatorDatabase: { granted: boolean; via: string; overridden: boolean };
 }
 const SUB_STATUSES: [string, string][] = [['active', 'نشط'], ['trialing', 'تجريبي'], ['past_due', 'متأخّر'], ['canceled', 'ملغى'], ['expired', 'منتهٍ']];
 const PROVIDERS: [string, string][] = [['manual', 'يدوي'], ['fake', 'تجريبي'], ['moyasar', 'ميسر'], ['stripe', 'Stripe']];
@@ -80,7 +81,14 @@ export default function AdminSubscriptions({ subs, summary, filters }: Props) {
                       <td style={{ direction: 'ltr', textAlign: 'right', fontSize: '.8rem', color: 'var(--ih-text-muted)' }}>{s.trialEndsAt ?? '—'}</td>
                       <td style={{ direction: 'ltr', textAlign: 'right', fontSize: '.8rem', color: 'var(--ih-text-muted)' }}>{s.periodEnd ?? '—'}</td>
                       <td><StatusBadge tone={s.statusTone} label={s.statusLabel} /></td>
-                      <td style={{ textAlign: 'end' }}><button className="btn btn-xs btn-outline" onClick={() => openEdit(s)}><Icon name="pencil" size={12} /> تعديل</button></td>
+                      <td style={{ textAlign: 'end', whiteSpace: 'nowrap' }}>
+                        <button
+                          className={`btn btn-xs ${s.creatorDatabase.granted ? 'btn-primary' : 'btn-outline'}`}
+                          title={s.creatorDatabase.granted ? `قاعدة المؤثرين مُفعّلة (${s.creatorDatabase.via === 'plan' ? 'خطة' : 'تجاوز'})` : 'قاعدة المؤثرين غير مُفعّلة'}
+                          onClick={() => router.post(u(`/subscriptions/${s.id}/creator-database`), { granted: !s.creatorDatabase.granted }, { preserveScroll: true })}
+                        >قاعدة المؤثرين {s.creatorDatabase.granted ? '✓' : '—'}</button>{' '}
+                        <button className="btn btn-xs btn-outline" onClick={() => openEdit(s)}><Icon name="pencil" size={12} /> تعديل</button>
+                      </td>
                     </tr>
                   ))}
                 </tbody>
