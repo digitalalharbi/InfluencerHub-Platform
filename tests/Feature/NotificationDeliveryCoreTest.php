@@ -51,6 +51,8 @@ class NotificationDeliveryCoreTest extends TestCase
 
     public function test_external_channels_wait_for_credentials_when_disabled_by_default(): void
     {
+        // صريح وحصين: القنوات الخارجية غير مهيّأة (كالإنتاج الافتراضي).
+        config(['channels.email.enabled' => false, 'channels.whatsapp.enabled' => false, 'channels.sms.enabled' => false]);
         [$t, $u] = $this->bootup();
         // فعّل كل القنوات لهذا المستخدم/الفئة
         app(NotificationService::class)->setPreference($t->id, $u->id, 'general', true, true, true, true);
@@ -60,9 +62,9 @@ class NotificationDeliveryCoreTest extends TestCase
         $this->assertSame('waiting_for_credentials', $a['email']->status);
         $this->assertSame('waiting_for_credentials', $a['whatsapp']->status);
         $this->assertSame('waiting_for_credentials', $a['sms']->status);
-        // المستلِم مُسجَّل رغم عدم الإرسال (بريد/هاتف المستخدم)
+        // المستلِم مُسجَّل رغم عدم الإرسال — البريد كما هو، والواتساب مُطبَّع لصيغة Cloud API
         $this->assertSame($u->email, $a['email']->recipient);
-        $this->assertSame($u->phone, $a['whatsapp']->recipient);
+        $this->assertSame('966500000000', $a['whatsapp']->recipient);
     }
 
     public function test_available_channel_sends_and_records_provider_message_id(): void

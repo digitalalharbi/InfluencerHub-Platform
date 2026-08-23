@@ -3,6 +3,12 @@
 use App\Http\Controllers\Api\V1\NoteController;
 use Illuminate\Support\Facades\Route;
 
+// ويبهوكات المزوّدين — عامة، بلا مصادقة/CSRF، محميّة بتوقيع/رمز تحقّق المزوّد.
+Route::prefix('webhooks')->group(function () {
+    Route::get('whatsapp', [\App\Http\Controllers\Webhooks\WhatsAppWebhookController::class, 'verify']);
+    Route::post('whatsapp', [\App\Http\Controllers\Webhooks\WhatsAppWebhookController::class, 'receive']);
+});
+
 Route::prefix('v1')->group(function () {
     Route::get('me', fn (\Illuminate\Http\Request $r) => response()->json(['user' => $r->user()]))
         ->middleware('auth:sanctum');
