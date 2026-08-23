@@ -381,6 +381,8 @@ Route::middleware(['auth', 'tenant', 'agency_member', 'inertia'])->prefix('beta'
     Route::post('/client-reviews/documents/{document}/review', [\App\Http\Controllers\Inertia\ClientReviewsController::class, 'reviewDocument']);
     Route::get('/client-reviews/documents/{document}/download', [\App\Http\Controllers\Inertia\ClientReviewsController::class, 'downloadDocument']);
     Route::get('/integrations', [\App\Http\Controllers\Inertia\IntegrationsController::class, 'index']);
+    Route::get('/integrations/{provider}', [\App\Http\Controllers\Inertia\IntegrationsController::class, 'show']);
+    Route::post('/integrations/{provider}/sync', [\App\Http\Controllers\Inertia\IntegrationsController::class, 'syncNow']);
     Route::get('/notifications', [\App\Http\Controllers\Inertia\NotificationController::class, 'index']);
     Route::get('/notifications/preferences', [\App\Http\Controllers\Inertia\NotificationController::class, 'preferences']);
     Route::post('/notifications/preferences', [\App\Http\Controllers\Inertia\NotificationController::class, 'updatePreferences']);
@@ -711,6 +713,8 @@ Route::middleware(['auth', 'tenant', 'agency_member'])->prefix('app')->group(fun
         Route::get('/my-tasks', [\App\Http\Controllers\Inertia\MyTasksController::class, 'index']);
         Route::get('/shortlisting', [\App\Http\Controllers\Inertia\ShortlistingController::class, 'index']);
         Route::get('/integrations', [\App\Http\Controllers\Inertia\IntegrationsController::class, 'index']);
+        Route::get('/integrations/{provider}', [\App\Http\Controllers\Inertia\IntegrationsController::class, 'show']);
+        Route::post('/integrations/{provider}/sync', [\App\Http\Controllers\Inertia\IntegrationsController::class, 'syncNow']);
         Route::get('/notifications', [\App\Http\Controllers\Inertia\NotificationController::class, 'index']);
         Route::get('/notifications/preferences', [\App\Http\Controllers\Inertia\NotificationController::class, 'preferences']);
         Route::post('/notifications/preferences', [\App\Http\Controllers\Inertia\NotificationController::class, 'updatePreferences']);
