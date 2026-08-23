@@ -8,7 +8,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 class Creator extends Model {
     use BelongsToTenant, SoftDeletes;
     protected $fillable = ['tenant_id','creator_number','type','display_name','handle','email','phone','city',
-        'country_code','primary_platform','followers_count','content_categories','status','rate_per_post_minor','bio','created_by','user_id','professional_name','whatsapp','gender','languages','mowthooq_license_number','mowthooq_expires_at','mowthooq_status','beneficiary_name','bank_name','iban_encrypted','iban_last4','financial_verification_status','avatar_path','mowthooq_document_path','iban_document_path','publisher_id'];
+        'country_code','primary_platform','followers_count','content_categories','status','rate_per_post_minor','bio','created_by','user_id','professional_name','whatsapp','gender','languages','mowthooq_license_number','mowthooq_expires_at','mowthooq_status','beneficiary_name','bank_name','iban_encrypted','iban_last4','financial_verification_status','avatar_path','mowthooq_document_path','iban_document_path','publisher_id','pool_creator_id'];
     protected $casts = ['content_categories' => 'array', 'languages' => 'array', 'followers_count' => 'integer', 'rate_per_post_minor' => 'integer', 'mowthooq_expires_at' => 'date'];
     protected $hidden = ['iban_encrypted'];
     public function platforms(): HasMany { return $this->hasMany(CreatorPlatform::class); }
