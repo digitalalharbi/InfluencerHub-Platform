@@ -41,4 +41,32 @@ class ExportService
             default => $this->csv->stream($data, $filename),
         };
     }
+
+    /**
+     * يكتب التصدير إلى قرص خاص (لا رابط عام) ويعيد [disk, path, size].
+     * يُستعمل للتقارير المجدولة/الوظائف الكبيرة — تنزيلها لاحقًا بترخيص.
+     */
+    public function toFile(TabularData $data, string $format, string $basename): array
+    {
+        $format = in_array($format, self::FORMATS, true) ? $format : 'csv';
+        $bytes = match ($format) {
+            'xlsx' => $this->xlsx->toString($data),
+            'pdf' => $this->pdf->render($data),
+            default => $this->csvString($data),
+        };
+        $disk = 'local';
+        $path = 'exports/' . uniqid('exp_', true) . '/' . $basename . '.' . $format;
+        \Illuminate\Support\Facades\Storage::disk($disk)->put($path, $bytes);
+
+        return ['disk' => $disk, 'path' => $path, 'size' => strlen($bytes)];
+    }
+
+    private function csvString(TabularData $data): string
+    {
+        $res = $this->csv->stream($data, 'x');
+        ob_start();
+        $res->sendContent();
+
+        return (string) ob_get_clean();
+    }
 }

@@ -13,3 +13,6 @@ Schedule::command('sla:scan')->hourly()->withoutOverlapping();
 
 // نبضة المجدول كل دقيقة — تُثبت لصفحة صحّة النظام أنّ المجدول يعمل فعلًا.
 Schedule::command('ops:scheduler-heartbeat')->everyMinute()->withoutOverlapping();
+
+// التقارير المجدولة — كل ساعة نفحص المستحقّ منها فنولّده ونُشعر مالكه برابط آمن.
+Schedule::command('reports:run-scheduled')->hourly()->withoutOverlapping();
