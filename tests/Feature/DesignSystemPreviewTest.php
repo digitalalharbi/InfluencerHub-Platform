@@ -42,10 +42,12 @@ class DesignSystemPreviewTest extends TestCase
             ->assertSee('#6252E5');                         // لون الهوية
     }
 
-    public function test_is_blocked_with_404_in_production(): void
+    public function test_is_blocked_when_dev_tools_off(): void
     {
+        // الحجب صار بعَلَم صريح config('app.dev_tools') لا بـAPP_ENV — أكثر أمانًا:
+        // في الإنتاج (بلا العَلَم) يُحجَب حتى لو أُسيء ضبط APP_ENV.
         $u = $this->agencyUser();
-        app()->detectEnvironment(fn () => 'production');
+        config(['app.dev_tools' => false]);
         $this->actingAs($u)->get('/app/preview/design-system')->assertNotFound();
     }
 }

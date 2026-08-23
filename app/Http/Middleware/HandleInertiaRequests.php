@@ -63,9 +63,10 @@ class HandleInertiaRequests extends Middleware
     private function navCapabilities(Request $request): array
     {
         try {
-            // أدوات المطوّر (مركز المعاينة) — صفحة غير إنتاجية (تُرجع 404 في الإنتاج)،
-            // فيظهر رابطها في القائمة خارج الإنتاج فقط ولا يصير رابطًا ميتًا في الإنتاج.
-            $dev = ! app()->environment('production');
+            // أدوات المطوّر (مركز المعاينة) — محكومة بعَلَم صريح config('app.dev_tools')
+            // افتراضه false. لا يعتمد على APP_ENV، فيبقى الرابط محجوبًا في الإنتاج حتى
+            // لو أُسيء ضبط APP_ENV. يُفعَّل صراحةً في التطوير/الاختبار عبر DEV_TOOLS_ENABLED.
+            $dev = (bool) config('app.dev_tools');
             $user = $request->user();
             $oid = TenantContext::organizationId();
             if (! $user || ! $oid) return ['reviews' => false, 'admin' => false, 'dev_tools' => $dev, 'creator_database' => false];
