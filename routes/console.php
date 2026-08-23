@@ -7,12 +7,16 @@ Artisan::command('inspire', function () {
     $this->comment(Inspiring::quote());
 })->purpose('Display an inspiring quote');
 
-// محرّك SLA — يعمل كل ساعة (تذكيرات + رصد تجاوزات طلبات الخدمة)
+// محرّك SLA — يعمل كل ساعة (تذكيرات + رصد تجاوزات طلبات الخدمة).
+// انتهاء صلاحية قصير للقفل (50د) حتى يتعافى قفل عالق قبل الدورة التالية.
 use Illuminate\Support\Facades\Schedule;
-Schedule::command('sla:scan')->hourly()->withoutOverlapping();
+Schedule::command('sla:scan')->hourly()->withoutOverlapping(50);
 
 // نبضة المجدول كل دقيقة — تُثبت لصفحة صحّة النظام أنّ المجدول يعمل فعلًا.
-Schedule::command('ops:scheduler-heartbeat')->everyMinute()->withoutOverlapping();
+// بلا withoutOverlapping عمدًا: النبضة كتابة لحظية عديمة التداخل، وقفل التداخل
+// (صلاحيته 24س افتراضًا) يعلَق إذا قُتِلت العملية أثناء النشر فيتخطّى كلّ نبضة
+// لاحقة يومًا كاملًا — وهو سبب ظهور «المجدول متوقّف» رغم عمل الحاوية.
+Schedule::command('ops:scheduler-heartbeat')->everyMinute();
 
-// التقارير المجدولة — كل ساعة نفحص المستحقّ منها فنولّده ونُشعر مالكه برابط آمن.
-Schedule::command('reports:run-scheduled')->hourly()->withoutOverlapping();
+// التقارير المجدولة — كل ساعة؛ قفل قصير الصلاحية (50د) يتعافى ذاتيًّا.
+Schedule::command('reports:run-scheduled')->hourly()->withoutOverlapping(50);
