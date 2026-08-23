@@ -447,6 +447,7 @@ Route::middleware(['auth', 'system_admin', 'inertia'])->prefix('beta/admin')->gr
     Route::post('/plans/{plan}', [\App\Http\Controllers\Inertia\Admin\PlatformController::class, 'updatePlan'])->whereNumber('plan');
     Route::get('/subscriptions', [\App\Http\Controllers\Inertia\Admin\PlatformController::class, 'subscriptions']);
     Route::post('/subscriptions/{subscription}', [\App\Http\Controllers\Inertia\Admin\PlatformController::class, 'updateSubscription'])->whereNumber('subscription');
+    Route::post('/subscriptions/{subscription}/creator-database', [\App\Http\Controllers\Inertia\Admin\PlatformController::class, 'setCreatorDatabaseAccess'])->whereNumber('subscription');
     Route::get('/audit', [\App\Http\Controllers\Inertia\Admin\PlatformController::class, 'audit']);
 });
 
