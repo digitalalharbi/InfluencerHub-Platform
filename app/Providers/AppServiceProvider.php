@@ -24,6 +24,12 @@ class AppServiceProvider extends ServiceProvider
                 $app->make(\App\Domain\Communications\Channels\SmsChannel::class),
             ]));
 
+        // سجلّ إجراءات الأتمتة — إشعار (وقابل للتوسّع بمهمة/تصعيد). لا إجراء مالي.
+        $this->app->singleton(\App\Domain\Automation\Engine\ActionRegistry::class, fn ($app) =>
+            new \App\Domain\Automation\Engine\ActionRegistry([
+                $app->make(\App\Domain\Automation\Actions\NotifyAction::class),
+            ]));
+
         // مساعد الترشيح: يختار السائق من الإعداد، ويرتدّ إلى القواعد إن لم يُربَط OpenAI
         $this->app->bind(\App\Domain\AdminPool\Assistant\ShortlistAssistant::class, function () {
             $rule = new \App\Domain\AdminPool\Assistant\RuleBasedAssistant;
