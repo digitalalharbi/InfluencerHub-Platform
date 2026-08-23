@@ -26,20 +26,9 @@ class LoginController extends Controller
         }
 
         $user = User::where('email', $cred['email'])->first();
-        $agencyRoles = [
-            Role::SystemAdmin->value,
-            Role::SuperAdmin->value,
-            Role::AgencyAdmin->value,
-            Role::AgencyEmployee->value,
-            Role::OperationsManager->value,
-            Role::CampaignManager->value,
-            Role::CreatorManager->value,
-            Role::Finance->value,
-            Role::ContentReviewer->value,
-        ];
 
         $canUseAgencyPortal = $user && ($user->is_system_admin || TenantContext::withBypass(fn () =>
-            $user->memberships()->where('status', 'active')->whereIn('role', $agencyRoles)->exists()
+            $user->memberships()->where('status', 'active')->whereIn('role', Role::agencyPortalRoleValues())->exists()
         ));
 
         if (! $canUseAgencyPortal) {

@@ -27,6 +27,34 @@ enum Role: string
         return [self::SuperAdmin, self::AgencyAdmin, self::BrandAdmin, self::ExternalAgencyAdmin];
     }
 
+    /**
+     * الأدوار الداخلية للوكالة التي تملك حقّ الدخول إلى بوابة الوكالة (/login → /app).
+     * يشمل «مُطّلع» (Viewer) وهو دور قراءة فقط داخل الوكالة، ممنوح صلاحيات العرض في
+     * CRM والمالية والمبدعين ولوحة العمليات — لذا يجب أن يستطيع الدخول (بلا صلاحيات تعديل).
+     * مصدر الحقيقة الوحيد لبوابة الوكالة؛ تستخدمه بوابتا الدخول العادي وGoogle.
+     */
+    public static function agencyPortalRoles(): array
+    {
+        return [
+            self::SystemAdmin,
+            self::SuperAdmin,
+            self::AgencyAdmin,
+            self::AgencyEmployee,
+            self::OperationsManager,
+            self::CampaignManager,
+            self::CreatorManager,
+            self::Finance,
+            self::ContentReviewer,
+            self::Viewer,
+        ];
+    }
+
+    /** قِيَم أدوار بوابة الوكالة (سلاسل) للاستخدام في استعلامات whereIn. */
+    public static function agencyPortalRoleValues(): array
+    {
+        return array_map(fn (self $r) => $r->value, self::agencyPortalRoles());
+    }
+
     public function isOrgAdmin(): bool
     {
         return in_array($this, self::orgAdminRoles(), true);

@@ -98,20 +98,8 @@ class GoogleAuthController extends Controller
 
     private function canUseAgencyPortal(User $user): bool
     {
-        $agencyRoles = [
-            Role::SystemAdmin->value,
-            Role::SuperAdmin->value,
-            Role::AgencyAdmin->value,
-            Role::AgencyEmployee->value,
-            Role::OperationsManager->value,
-            Role::CampaignManager->value,
-            Role::CreatorManager->value,
-            Role::Finance->value,
-            Role::ContentReviewer->value,
-        ];
-
         return $user->is_system_admin || TenantContext::withBypass(fn () =>
-            $user->memberships()->where('status', 'active')->whereIn('role', $agencyRoles)->exists()
+            $user->memberships()->where('status', 'active')->whereIn('role', Role::agencyPortalRoleValues())->exists()
         );
     }
 

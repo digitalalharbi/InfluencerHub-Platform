@@ -119,7 +119,8 @@ class InertiaClientsTest extends TestCase
         $this->actingAs($u)->get('/app/clients/' . $this->clientId($t->id))->assertOk()
             ->assertInertia(fn (Assert $page) => $page
                 ->component('Clients/Show')->where('base', '/app')
-                ->where('can.update', true)->where('can.documents', true)->where('can.portal', true));
+                ->where('can.update', true)->where('can.documents', true)->where('can.portal', true)
+                ->where('can.delete', true));
     }
 
     /** دور العرض يرى الصفحة بلا أي قدرة على الإجراءات الفرعية. */
@@ -129,6 +130,7 @@ class InertiaClientsTest extends TestCase
         $this->actingAs($u)->get('/app/clients/' . $this->clientId($t->id))->assertOk()
             ->assertInertia(fn (Assert $page) => $page
                 ->where('can.update', false)->where('can.documents', false)->where('can.portal', false)
+                ->where('can.delete', false)
                 ->has('fieldDefinitions', 0));
     }
 

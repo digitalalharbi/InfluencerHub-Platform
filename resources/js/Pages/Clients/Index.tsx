@@ -41,10 +41,18 @@ export default function ClientsIndex({ clients, summary, operational, filters, s
   const [createOpen, setCreateOpen] = useState(false);
   const [busy, setBusy] = useState(false);
   const [form, setForm] = useState({ display_name: '', type: 'company', status: 'lead', sector: '', email: '', phone: '' });
+  const [errs, setErrs] = useState<Record<string, string>>({});
+  const openCreate = () => { setErrs({}); setCreateOpen(true); };
   const submitCreate = () => {
     if (!form.display_name.trim()) return;
     setBusy(true);
-    router.post(u('/clients'), form, { onFinish: () => setBusy(false), onSuccess: () => setCreateOpen(false) });
+    // كانت النافذة تبتلع أخطاء التحقق/الحدود بصمت: عند رفض الإنشاء (مثلًا بلوغ حدّ
+    // الخطة) لا تظهر أي رسالة. نعرض الخطأ الآن كما تفعل صفحة تفصيل العميل.
+    router.post(u('/clients'), form, {
+      onFinish: () => setBusy(false),
+      onError: (e) => setErrs(e as Record<string, string>),
+      onSuccess: () => { setErrs({}); setCreateOpen(false); },
+    });
   };
   const first = useRef(true);
   useEffect(() => {
@@ -69,7 +77,7 @@ export default function ClientsIndex({ clients, summary, operational, filters, s
 
       <ListHead eyebrow="إدارة العلاقات" title="العملاء"
         sub="حسابات العملاء وملفاتهم وحملاتهم ومتابعتهم المالية في بيئة تشغيل موحّدة"
-        actions={canCreate ? <button onClick={() => setCreateOpen(true)} className="btn btn-sm btn-primary"><Icon name="plus" size={15} /> عميل جديد</button> : undefined} />
+        actions={canCreate ? <button onClick={openCreate} className="btn btn-sm btn-primary"><Icon name="plus" size={15} /> عميل جديد</button> : undefined} />
 
       <div className="ih-kpis">
         <Kpi label="الإيراد الكلي" icon="wallet" tone="success" value={<>{kfmt(operational.revenue_minor)} <small>ر.س</small></>} sub={`${summary.vip} عميل VIP`} />
@@ -112,7 +120,7 @@ export default function ClientsIndex({ clients, summary, operational, filters, s
           {hasFilters ? (
             <><div className="ih-empty__title">لا عملاء مطابقون</div><div className="ih-empty__text">لا نتائج للبحث أو الفلاتر الحالية.</div><a href={u("/clients")} className="btn btn-sm btn-outline">مسح الفلاتر</a></>
           ) : (
-            <><div className="ih-empty__title">ابدأ بإضافة أول عميل</div><div className="ih-empty__text">أنشئ ملف عميل لتتابع علاماته وحملاته ومستحقاته من مكان واحد.</div>{canCreate && <button onClick={() => setCreateOpen(true)} className="btn btn-sm btn-primary"><Icon name="plus" size={15} /> عميل جديد</button>}</>
+            <><div className="ih-empty__title">ابدأ بإضافة أول عميل</div><div className="ih-empty__text">أنشئ ملف عميل لتتابع علاماته وحملاته ومستحقاته من مكان واحد.</div>{canCreate && <button onClick={openCreate} className="btn btn-sm btn-primary"><Icon name="plus" size={15} /> عميل جديد</button>}</>
           )}
         </div></div>
       ) : (
@@ -198,6 +206,7 @@ export default function ClientsIndex({ clients, summary, operational, filters, s
             <div style={{ display: 'grid', gap: '.8rem' }}>
               <Field label="اسم العميل" labelStyle={LBL}>
                 <input value={form.display_name} onChange={(e) => setForm({ ...form, display_name: e.target.value })} className="field" style={{ width: '100%' }} autoFocus />
+                {errs.display_name && <div style={{ color: 'var(--ih-danger-ink)', fontSize: '.74rem', marginTop: '.25rem' }}>{errs.display_name}</div>}
               </Field>
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '.8rem' }}>
                 <Field label="النوع" labelStyle={LBL}>
