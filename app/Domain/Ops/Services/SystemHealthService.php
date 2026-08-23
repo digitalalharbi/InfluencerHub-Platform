@@ -15,6 +15,19 @@ class SystemHealthService
 {
     public const HEARTBEAT_KEY = 'ops:scheduler:heartbeat';
 
+    /**
+     * متجر النبضة = قاعدة البيانات صراحةً (Postgres مشترك بين كل الحاويات).
+     * حاوية المجدول وحاوية الويب منفصلتان بأنظمة ملفّات مستقلّة؛ لو استعملنا
+     * المتجر الافتراضي وكان CACHE_STORE=file لكتبت كلٌّ في ملفّها فلا ترى الويب
+     * نبضة المجدول أبدًا ويظهر «المجدول متوقّف» زورًا. القاعدة المشتركة تُصلِح هذا.
+     */
+    public const HEARTBEAT_STORE = 'database';
+
+    public static function heartbeatStore(): \Illuminate\Contracts\Cache\Repository
+    {
+        return Cache::store(self::HEARTBEAT_STORE);
+    }
+
     /** @return array<int,array<string,mixed>> */
     public function checks(?int $tenantId = null): array
     {
@@ -86,7 +99,7 @@ class SystemHealthService
 
     private function scheduler(): array
     {
-        $beat = Cache::get(self::HEARTBEAT_KEY);
+        $beat = self::heartbeatStore()->get(self::HEARTBEAT_KEY);
         if (! $beat) {
             return $this->check('scheduler', 'المجدول', 'down', 'لا نبضة — تحقّق من تشغيل schedule:run', []);
         }

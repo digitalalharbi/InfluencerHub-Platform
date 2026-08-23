@@ -59,6 +59,25 @@ class SystemHealthTest extends TestCase
      * يعلَق إذا قُتِلت العملية أثناء النشر فيتخطّى كلّ نبضة لاحقة يومًا كاملًا،
      * فيظهر «المجدول متوقّف» في الإنتاج رغم عمل الحاوية.
      */
+    /**
+     * انحدار: النبضة تُقرأ من المتجر المشترك (قاعدة البيانات) لا الافتراضي. لو كتب
+     * المجدول في متجره الخاصّ (file لكل حاوية) لما رأته الويب. كتابة في المتجر
+     * الافتراضي وحده يجب ألّا تجعل الحالة «ok»؛ فقط المتجر المشترك يفعل.
+     */
+    public function test_heartbeat_uses_shared_database_store_not_default(): void
+    {
+        \Illuminate\Support\Facades\Cache::store('database')->forget(SystemHealthService::HEARTBEAT_KEY);
+        // نبضة في المتجر الافتراضي فقط (يحاكي حاوية بـCACHE_STORE مختلف) → تبقى down
+        \Illuminate\Support\Facades\Cache::put(SystemHealthService::HEARTBEAT_KEY, now()->timestamp, 120);
+        $sched = collect(app(SystemHealthService::class)->checks())->firstWhere('key', 'scheduler');
+        $this->assertSame('down', $sched['status'], 'المتجر الافتراضي وحده لا يكفي');
+
+        // نبضة في المتجر المشترك (كما يفعل الأمر فعلًا) → ok
+        SystemHealthService::heartbeatStore()->put(SystemHealthService::HEARTBEAT_KEY, now()->timestamp, 120);
+        $sched2 = collect(app(SystemHealthService::class)->checks())->firstWhere('key', 'scheduler');
+        $this->assertSame('ok', $sched2['status']);
+    }
+
     public function test_heartbeat_schedule_has_no_overlap_mutex(): void
     {
         $schedule = app(\Illuminate\Console\Scheduling\Schedule::class);
