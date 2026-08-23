@@ -44,6 +44,8 @@ export const agencyNav: NavGroup[] = [
       // تفتحان الصفحة نفسها بفلتر مختلف، فبدتا وحدتين منفصلتين والتصفية
       // بالقدرة موجودة داخل الصفحة أصلًا. الاسم الموحّد: صناع المحتوى.
       { key: 'creators', label: 'صناع المحتوى', route: '/creators', icon: 'users' },
+      // قاعدة المؤثرين (منتج مميّز) — يظهر فقط للمؤسسات المستحقّة (can: creator_database)
+      { key: 'creator_database', label: 'قاعدة المؤثرين', route: '/creator-database', icon: 'radar', can: 'creator_database' },
       { key: 'publishers', label: 'الناشرون', route: '/publishers', icon: 'radar' },
       { key: 'applications', label: 'طلبات الانضمام', route: '/creator-applications', icon: 'user-plus', badge: 'creator_applications', can: 'reviews' },
     ],

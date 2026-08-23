@@ -2,6 +2,7 @@
 
 namespace App\Domain\AdminPool\Models;
 
+use App\Domain\AdminPool\Support\CreatorNormalizer;
 use Illuminate\Database\Eloquent\Model;
 
 /**
@@ -67,6 +68,68 @@ class PoolCreator extends Model
 
     public const PLATFORM_LABELS = [
         'snapchat' => 'سناب شات', 'tiktok' => 'تيك توك',
-        'linkedin' => 'لينكدإن', 'x' => 'إكس',
+        'linkedin' => 'لينكدإن', 'x' => 'إكس', 'instagram' => 'إنستغرام',
     ];
+
+    /** تصنيف المبدع المعروض للمستأجر (لا «مصدر»): celebrity→مؤثّر، ugc→صانع UGC. */
+    public const CREATOR_TYPE_LABELS = [
+        'celebrity' => 'مؤثّر',
+        'ugc' => 'صانع UGC',
+    ];
+
+    /**
+     * تمثيل «قاعدة المؤثرين» المعروض للمستأجر — منتج اكتشاف المبدعين.
+     *
+     * يُقصى نهائيًّا كلّ ما يكشف المصدر أو الخصوصية: المتجر/المصدر/الموظّف،
+     * التكلفة الداخلية، والبيانات البنكية/العنوان/الشحنات (غير مخزَّنة أصلًا).
+     * `source_type` يُعرَض كـ«نوع المبدع» (تصنيف) لا كمصدر. وسائل التواصل تظهر
+     * فقط عند تمرير `$withContact=true` (محكوم بصلاحية RBAC في المتحكّم).
+     *
+     * @param  array<string,mixed>|null  $match  درجة/أسباب المطابقة (اختياري)
+     * @return array<string,mixed>
+     */
+    public function toSharedArray(bool $withContact = false, ?array $match = null): array
+    {
+        $riyals = fn (?int $m) => $m !== null ? intdiv($m, 100) : null;
+        $type = $this->source_type === 'ugc' ? 'ugc' : 'celebrity';
+
+        $data = [
+            'id' => $this->id,
+            'name' => $this->name,
+            'platform' => $this->platform,
+            'platformLabel' => self::PLATFORM_LABELS[$this->platform] ?? $this->platform,
+            'accountUrl' => $this->account_url,
+            'followers' => $this->followers,
+            'likes' => $this->likes,
+            'tier' => $this->tier,
+            'gender' => $this->gender,
+            'categories' => $this->categories ?? [],
+            'showsFace' => $this->shows_face,
+            'region' => $this->region,
+            'city' => $this->city,
+            'rating' => $this->rating,
+            // تصنيف لا مصدر — الكلمة «مصدر» لا تُستخدم في المنتج
+            'creatorType' => $type,
+            'creatorTypeLabel' => self::CREATOR_TYPE_LABELS[$type],
+            // سعر مرجعي غير مضمون (سعر البيع فقط، لا التكلفة). التفاوض الفعلي في بيانات المستأجر
+            'referenceRate' => $riyals($this->price_coverage_minor ?? $this->price_post_minor),
+            'referenceRateNote' => 'سعر مرجعي مسجّل — غير مضمون؛ يُتفاوَض عليه مع المبدع',
+            'dataFreshness' => 'بيانات مسجّلة',
+            'lastImportedAt' => optional($this->imported_at)?->toDateString(),
+            'matchScore' => $match['score'] ?? null,
+            'matchReasons' => $match['reasons'] ?? [],
+        ];
+
+        if ($withContact) {
+            $phone = $this->phone ? CreatorNormalizer::phone($this->phone) : null;
+            $data['contact'] = [
+                'phone' => $phone,
+                'phoneDisplay' => CreatorNormalizer::phoneDisplay($phone),
+                'whatsapp' => $phone,           // نفس الرقم القانوني إن كان جوّالًا صالحًا
+                'hasPhone' => $phone !== null,
+            ];
+        }
+
+        return $data;
+    }
 }
