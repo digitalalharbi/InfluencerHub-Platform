@@ -2,19 +2,22 @@
 
 namespace App\Domain\Communications\Services;
 
-use App\Domain\Communications\Models\{Notification, NotificationDeliveryAttempt, NotificationPreference};
+use App\Domain\Communications\Models\{Notification, NotificationPreference};
+use App\Domain\Communications\Services\DeliveryDispatcher;
 use App\Domain\Tenancy\Support\TenantContext;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Collection;
 
 /**
- * إنشاء الإشعارات وتوصيلها بشكل محايد للمزوّد.
- * in_app يُسلَّم فورًا؛ email/sms تُسجَّل كمحاولة بحالة صادقة (waiting_for_credentials)
- * حتى تُربط مزوّدات حقيقية لاحقًا — لا ادّعاء تسليم زائف.
+ * إنشاء الإشعارات وتوصيلها بشكل محايد للمزوّد عبر طبقة قنوات (DeliveryDispatcher).
+ * in_app يُسلَّم فورًا؛ القنوات الخارجية (email/whatsapp/sms) تُرسِل فعليًّا إن كانت
+ * مهيّأة، وإلّا تُسجَّل بحالة صادقة (waiting_for_credentials) — لا تسليم وهمي.
  */
 class NotificationService
 {
-    /** ينشئ إشعارًا لمستخدم واحد ويسجّل محاولات التسليم حسب التفضيلات. */
+    public function __construct(private DeliveryDispatcher $dispatcher) {}
+
+    /** ينشئ إشعارًا لمستخدم واحد ويوزّع تسليمه عبر القنوات حسب التفضيلات. */
     public function notify(int $tenantId, int $userId, string $type, string $category, string $title, ?string $body = null, ?string $actionUrl = null, array $data = [], ?Model $subject = null): Notification
     {
         return $this->withTenant($tenantId, function () use ($tenantId, $userId, $type, $category, $title, $body, $actionUrl, $data, $subject) {
@@ -26,11 +29,7 @@ class NotificationService
                 'subject_type' => $subject ? $subject::class : null, 'subject_id' => $subject?->getKey(),
             ]);
 
-            // in_app: الإشعار نفسه هو التسليم داخل التطبيق.
-            $this->recordAttempt($n, 'in_app', $pref->in_app ? 'sent' : 'skipped', $pref->in_app ? null : 'معطّل في التفضيلات');
-            // email/sms: لا مزوّد مربوط بعد — حالة صادقة، لا تسليم وهمي.
-            if ($pref->email) $this->recordAttempt($n, 'email', 'waiting_for_credentials', 'لا مزوّد بريد مربوط');
-            if ($pref->sms)   $this->recordAttempt($n, 'sms', 'waiting_for_credentials', 'لا مزوّد SMS مربوط');
+            $this->dispatcher->dispatch($n, $pref);
 
             return $n;
         });
@@ -75,24 +74,23 @@ class NotificationService
     {
         return $this->withTenant($tenantId, fn () => NotificationPreference::firstOrCreate(
             ['tenant_id' => $tenantId, 'user_id' => $userId, 'category' => $category],
-            ['in_app' => true, 'email' => false, 'sms' => false]
+            ['in_app' => true, 'email' => false, 'whatsapp' => false, 'sms' => false]
         ));
     }
 
-    /** يحدّث تفضيلات فئة (upsert). */
-    public function setPreference(int $tenantId, int $userId, string $category, bool $inApp, bool $email, bool $sms): NotificationPreference
+    /** يحدّث تفضيلات فئة (upsert). القنوات غير المُمرَّرة تبقى كما هي. */
+    public function setPreference(int $tenantId, int $userId, string $category, bool $inApp, bool $email, bool $sms, ?bool $whatsapp = null): NotificationPreference
     {
-        return $this->withTenant($tenantId, fn () => NotificationPreference::updateOrCreate(
-            ['tenant_id' => $tenantId, 'user_id' => $userId, 'category' => $category],
-            ['in_app' => $inApp, 'email' => $email, 'sms' => $sms]
-        ));
-    }
+        return $this->withTenant($tenantId, function () use ($tenantId, $userId, $category, $inApp, $email, $sms, $whatsapp) {
+            $values = ['in_app' => $inApp, 'email' => $email, 'sms' => $sms];
+            if ($whatsapp !== null) {
+                $values['whatsapp'] = $whatsapp;
+            }
 
-    private function recordAttempt(Notification $n, string $channel, string $status, ?string $detail): void
-    {
-        NotificationDeliveryAttempt::create([
-            'tenant_id' => $n->tenant_id, 'notification_id' => $n->id,
-            'channel' => $channel, 'status' => $status, 'detail' => $detail, 'attempted_at' => now(),
-        ]);
+            return NotificationPreference::updateOrCreate(
+                ['tenant_id' => $tenantId, 'user_id' => $userId, 'category' => $category],
+                $values
+            );
+        });
     }
 }
