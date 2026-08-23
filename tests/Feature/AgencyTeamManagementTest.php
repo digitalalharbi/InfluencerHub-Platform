@@ -166,4 +166,53 @@ class AgencyTeamManagementTest extends TestCase
             ->assertSessionHasErrors('team');
         $this->assertSame('viewer', $this->membershipOf($member)->role);
     }
+
+    /* ===== لوحة العضو التشغيلية (drill-down) ===== */
+
+    /** لوحة العضو تعرض عمله المُسنَد الفعلي وملخّصه. */
+    public function test_member_drilldown_shows_assigned_work(): void
+    {
+        $this->boot();
+        $admin = $this->user('agency_admin');
+        $worker = $this->user('agency_employee');
+        $m = $this->membershipOf($worker);
+
+        TenantContext::withBypass(function () use ($worker) {
+            \App\Domain\Requests\Models\ServiceRequest::create([
+                'tenant_id' => $this->tenant->id, 'request_number' => 'SR-'.$this->tenant->id.'-1',
+                'requester_type' => 'agency', 'type' => 'consultation', 'title' => 'مهمة مفتوحة',
+                'priority' => 'high', 'status' => 'in_progress', 'assigned_to' => $worker->id,
+                'due_at' => now()->addDay(),
+            ]);
+            \App\Domain\Requests\Models\ServiceRequest::create([
+                'tenant_id' => $this->tenant->id, 'request_number' => 'SR-'.$this->tenant->id.'-2',
+                'requester_type' => 'agency', 'type' => 'consultation', 'title' => 'مهمة منجزة',
+                'priority' => 'normal', 'status' => 'closed', 'assigned_to' => $worker->id,
+                'due_at' => now()->subDay(), 'closed_at' => now(),
+            ]);
+        });
+
+        $this->actingAs($admin)->get("/app/team/{$m->id}")->assertOk()
+            ->assertInertia(fn ($page) => $page
+                ->component('Team/Member')
+                ->where('member.id', $m->id)
+                ->where('summary.open', 1)
+                ->where('summary.resolved', 1)
+                ->where('summary.total', 2)
+                ->has('work', 1)
+                ->where('work.0.title', 'مهمة مفتوحة'));
+    }
+
+    /** لوحة العضو محظورة على غير الإداريين، وIDOR-safe (رقم صحيح فقط). */
+    public function test_member_drilldown_gated_and_idor_safe(): void
+    {
+        $this->boot();
+        $this->user('agency_admin');
+        $viewer = $this->user('viewer');
+        $target = $this->user('campaign_manager');
+        $m = $this->membershipOf($target);
+
+        $this->actingAs($viewer)->get("/app/team/{$m->id}")->assertForbidden();
+        $this->actingAs($viewer)->get('/app/team/99999')->assertForbidden();
+    }
 }
