@@ -225,4 +225,63 @@ class InertiaBrandsTest extends TestCase
         $this->assertDatabaseHas('notifications', ['user_id' => $member->id, 'type' => 'brand.changes_requested']);
         TenantContext::reset();
     }
+
+    /* ===== تصليب مراجعة العلامة: جاهزية الاعتماد + ملاحظة الاعتماد ===== */
+
+    /** جاهزية الاعتماد تُحسب من حقول فعلية وتُعلَن للمراجِع. */
+    public function test_detail_exposes_readiness_checklist(): void
+    {
+        [$t, , $u] = $this->agency(['under_review']);
+        $b = $this->brand($t->id);
+
+        $this->actingAs($u)->get("/app/brands/{$b->id}")->assertOk()
+            ->assertInertia(fn (Assert $page) => $page
+                ->component('Brands/Show')
+                ->has('checklist.items')
+                ->has('checklist.completeness')
+                ->where('checklist.ready', fn ($v) => is_bool($v))
+                // الاسم موجود دائمًا (بند حرِج) → حاضر
+                ->where('checklist.items', fn ($items) =>
+                    collect($items)->firstWhere('key', 'name')['present'] === true));
+    }
+
+    /** بند حرِج ناقص (لا وصف/قطاع) يجعل الجاهزية غير مكتملة. */
+    public function test_incomplete_brand_is_not_ready(): void
+    {
+        [$t, , $u] = $this->agency(['under_review']);
+        $b = $this->brand($t->id); // بلا sector/description → بنود حرِجة ناقصة
+
+        $this->actingAs($u)->get("/app/brands/{$b->id}")->assertOk()
+            ->assertInertia(fn (Assert $page) => $page
+                ->where('checklist.ready', false)
+                ->where('checklist.criticalMissing', fn ($n) => $n > 0));
+    }
+
+    /** الاعتماد بملاحظة اختيارية يحفظها في قرار المراجعة. */
+    public function test_approve_persists_optional_note(): void
+    {
+        [$t, , $u] = $this->agency(['under_review']);
+        $b = $this->brand($t->id);
+
+        $this->actingAs($u)->post("/app/brands/{$b->id}/approve", ['reason' => 'مطابقة للمعايير'])
+            ->assertRedirect();
+
+        TenantContext::bypass(true);
+        $this->assertSame('approved', Brand::find($b->id)->status);
+        $this->assertDatabaseHas('brand_review_decisions', [
+            'brand_id' => $b->id, 'decision' => 'approved', 'note' => 'مطابقة للمعايير',
+        ]);
+        TenantContext::reset();
+    }
+
+    /** الاعتماد بلا ملاحظة يبقى صالحًا (الملاحظة اختيارية). */
+    public function test_approve_without_note_still_works(): void
+    {
+        [$t, , $u] = $this->agency(['under_review']);
+        $b = $this->brand($t->id);
+        $this->actingAs($u)->post("/app/brands/{$b->id}/approve", ['reason' => null])->assertRedirect();
+        TenantContext::bypass(true);
+        $this->assertSame('approved', Brand::find($b->id)->status);
+        TenantContext::reset();
+    }
 }

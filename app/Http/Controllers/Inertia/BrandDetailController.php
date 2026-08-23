@@ -18,18 +18,46 @@ use Inertia\Response;
  */
 class BrandDetailController extends Controller
 {
-    /** الإجراءات المتاحة لكل حالة → [action, label, tone, needsReason]. */
+    /** الإجراءات المتاحة لكل حالة → [action, label, tone, input(none|reason|note)]. */
     private const ACTIONS = [
-        'submitted' => [['start', 'بدء المراجعة', 'primary', false]],
-        'under_review' => [['approve', 'اعتماد العلامة', 'primary', false], ['request-changes', 'طلب تعديل', 'ghost', true]],
-        'approved' => [['suspend', 'تعليق العلامة', 'danger', true]],
-        'suspended' => [['approve', 'إعادة الاعتماد', 'primary', false]],
+        'submitted' => [['start', 'بدء المراجعة', 'primary', 'none']],
+        // الاعتماد يفتح ملاحظة اختيارية (مبرّر المراجِع)؛ طلب التعديل يتطلّب سببًا.
+        'under_review' => [['approve', 'اعتماد العلامة', 'primary', 'note'], ['request-changes', 'طلب تعديل', 'ghost', 'reason']],
+        'approved' => [['suspend', 'تعليق العلامة', 'danger', 'reason']],
+        'suspended' => [['approve', 'إعادة الاعتماد', 'primary', 'note']],
         // المسوّدة يرسلها العميل من بوابته عادةً، وتُرسلها الوكالة نيابةً عنه
         // حين لا يكون للعميل مستخدم بوابة بعد — وإلا بقيت المسوّدة عالقة أبدًا.
-        'draft' => [['submit', 'إرسال للاعتماد', 'primary', false]],
-        'changes_requested' => [['submit', 'إعادة الإرسال للاعتماد', 'primary', false]],
+        'draft' => [['submit', 'إرسال للاعتماد', 'primary', 'none']],
+        'changes_requested' => [['submit', 'إعادة الإرسال للاعتماد', 'primary', 'none']],
         'archived' => [],
     ];
+
+    /** بنود جاهزية الاعتماد — حقول فعلية على العلامة، حرِجة تمنع الاعتماد المطمئن. */
+    private function checklist(Brand $b, int $socialCount): array
+    {
+        $items = [
+            ['key' => 'name', 'label' => 'اسم العلامة', 'present' => filled($b->name), 'critical' => true],
+            ['key' => 'client', 'label' => 'مِلْكية العميل', 'present' => $b->client_id !== null || $b->isSelfOwned(), 'critical' => true],
+            ['key' => 'sector', 'label' => 'القطاع', 'present' => filled($b->sector), 'critical' => true],
+            ['key' => 'description', 'label' => 'وصف العلامة', 'present' => filled($b->description), 'critical' => true],
+            ['key' => 'logo', 'label' => 'الشعار', 'present' => filled($b->logo_path), 'critical' => false],
+            ['key' => 'website', 'label' => 'الموقع/النطاق', 'present' => filled($b->website) || filled($b->website_domain), 'critical' => false],
+            ['key' => 'cr', 'label' => 'السجل التجاري', 'present' => filled($b->commercial_registration), 'critical' => false],
+            ['key' => 'contact', 'label' => 'بيانات التواصل', 'present' => filled($b->contact_information), 'critical' => false],
+            ['key' => 'guidelines', 'label' => 'إرشادات العلامة', 'present' => filled($b->brand_guidelines_path) || filled($b->visual_guidelines), 'critical' => false],
+            ['key' => 'voice', 'label' => 'نبرة الصوت والجمهور', 'present' => filled($b->tone_of_voice) || filled($b->target_audience), 'critical' => false],
+            ['key' => 'accounts', 'label' => 'حساب اجتماعي واحد على الأقل', 'present' => $socialCount > 0, 'critical' => false],
+        ];
+        $present = collect($items)->where('present', true)->count();
+        $criticalMissing = collect($items)->where('critical', true)->where('present', false)->count();
+
+        return [
+            'items' => $items,
+            'completeness' => (int) round($present / max(1, count($items)) * 100),
+            'ready' => $criticalMissing === 0,
+            'criticalMissing' => $criticalMissing,
+        ];
+    }
 
     public function show(Request $r, Brand $brand): Response
     {
@@ -64,6 +92,8 @@ class BrandDetailController extends Controller
             'canReview' => $canReview,
             'actions' => collect($canReview ? (self::ACTIONS[$b->status] ?? []) : [])
                 ->reject(fn (array $a) => $a[0] === 'suspend' && ! $canSuspend)->values(),
+            // جاهزية الاعتماد — بنود فعلية تُعلِم قرار المراجِع بدل اعتماد على العمياء
+            'checklist' => $this->checklist($b, $b->socialAccounts->count()),
             'metrics' => [
                 'campaigns' => $brandCampaigns->count(),
                 'activeCampaigns' => $activeCampaigns,
