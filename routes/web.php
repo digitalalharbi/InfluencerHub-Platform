@@ -303,6 +303,9 @@ Route::middleware(['auth', 'tenant', 'agency_member', 'inertia'])->prefix('beta'
     Route::post('/clients/{client}/members/invite', [\App\Http\Controllers\Inertia\ClientChildrenController::class, 'inviteMember']);
     Route::post('/clients/{client}/custom-fields', [\App\Http\Controllers\Inertia\ClientChildrenController::class, 'defineField']);
     Route::post('/clients/{client}/custom-fields/{definition}/set', [\App\Http\Controllers\Inertia\ClientChildrenController::class, 'setField']);
+    // قاعدة المؤثرين (منتج مميّز) — محكومة بالاستحقاق + RBAC داخل المتحكّم
+    Route::get('/creator-database', [\App\Http\Controllers\Inertia\CreatorDatabaseController::class, 'index']);
+    Route::get('/creator-database/{poolCreator}', [\App\Http\Controllers\Inertia\CreatorDatabaseController::class, 'show']);
     Route::get('/creators', [\App\Http\Controllers\Inertia\CreatorsController::class, 'index']);
     Route::post('/creators', [\App\Http\Controllers\Inertia\CreatorsController::class, 'store']);
     Route::get('/creators/{creator}', [\App\Http\Controllers\Inertia\CreatorDetailController::class, 'show']);
@@ -649,6 +652,9 @@ Route::middleware(['auth', 'tenant', 'agency_member'])->prefix('app')->group(fun
         Route::post('/payouts/{payout}/{action}', [\App\Http\Controllers\Inertia\PayoutDetailController::class, 'action'])
             ->whereIn('action', ['approve', 'schedule', 'send-to-provider', 'mark-paid', 'mark-failed', 'cancel']);
 
+        // قاعدة المؤثرين (منتج مميّز) — محكومة بالاستحقاق + RBAC داخل المتحكّم
+        Route::get('/creator-database', [\App\Http\Controllers\Inertia\CreatorDatabaseController::class, 'index']);
+        Route::get('/creator-database/{poolCreator}', [\App\Http\Controllers\Inertia\CreatorDatabaseController::class, 'show']);
         // المبدعون — قُصّوا من Blade؛ الإضافة تعيد استخدام CreateCreator نفسه
         Route::get('/creators', [\App\Http\Controllers\Inertia\CreatorsController::class, 'index']);
         Route::post('/creators/{creator}/update', [\App\Http\Controllers\Inertia\CreatorsController::class, 'update']);

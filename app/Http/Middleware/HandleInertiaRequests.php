@@ -68,15 +68,25 @@ class HandleInertiaRequests extends Middleware
             $dev = ! app()->environment('production');
             $user = $request->user();
             $oid = TenantContext::organizationId();
-            if (! $user || ! $oid) return ['reviews' => false, 'admin' => false, 'dev_tools' => $dev];
+            if (! $user || ! $oid) return ['reviews' => false, 'admin' => false, 'dev_tools' => $dev, 'creator_database' => false];
             $role = $user->roleIn($oid);
+
+            // قاعدة المؤثرين: يظهر رابطها فقط إذا كانت المؤسسة مستحقّة (خطة/إضافة/تجاوز)
+            // والدور يملك صلاحية العرض — حوكمة مزدوجة تُطابق ما يفرضه المتحكّم في الخادم.
+            $cdb = false;
+            if (\App\Domain\AdminPool\Support\CreatorDatabaseAbilities::can($role, \App\Domain\AdminPool\Support\CreatorDatabaseAbilities::VIEW)) {
+                $org = \App\Domain\Tenancy\Support\TenantContext::withBypass(fn () => \App\Domain\Tenancy\Models\Organization::find($oid));
+                $cdb = $org !== null && app(\App\Domain\Billing\Services\EntitlementService::class)->allows($org, 'creator_database.access');
+            }
+
             return [
                 'reviews' => CrmAbilities::can($role, CrmAbilities::WRITE),
                 'admin' => CrmAbilities::can($role, CrmAbilities::MANAGE_PORTAL),
                 'dev_tools' => $dev,
+                'creator_database' => $cdb,
             ];
         } catch (\Throwable) {
-            return ['reviews' => false, 'admin' => false, 'dev_tools' => false];
+            return ['reviews' => false, 'admin' => false, 'dev_tools' => false, 'creator_database' => false];
         }
     }
 
