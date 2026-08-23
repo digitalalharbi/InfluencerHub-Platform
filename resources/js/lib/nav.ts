@@ -86,6 +86,7 @@ export const agencyNav: NavGroup[] = [
       { key: 'partners', label: 'الوكالات الشريكة', route: '/partner-agencies', icon: 'handshake', can: 'admin' },
       { key: 'team', label: 'الفريق', route: '/team', icon: 'users', can: 'admin' },
       { key: 'settings', label: 'الإعدادات', route: '/settings', icon: 'settings', can: 'admin' },
+      { key: 'system-health', label: 'صحّة النظام', route: '/system-health', icon: 'activity', can: 'admin' },
       { key: 'account', label: 'حسابي', route: '/account', icon: 'users' },
       // مركز المعاينة صفحة غير إنتاجية (dev_tools) — يظهر خارج الإنتاج فقط.
       { key: 'preview', label: 'مركز المعاينة', route: '/preview', icon: 'radar', can: 'dev_tools', external: true },
