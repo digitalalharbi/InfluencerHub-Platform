@@ -1,4 +1,4 @@
-import { Head, router, usePage } from '@inertiajs/react';
+import { Head, Link, router, usePage } from '@inertiajs/react';
 import { useState } from 'react';
 import AppShell from '@/Layouts/AppShell';
 import { ListHead, StatusBadge, Kpi, Sec, Bar, Field } from '@/Components/ui';
@@ -73,7 +73,7 @@ export default function TeamIndex({ members, summary, byRole, canManage, assigna
                   <span className="ih-idc__av" style={{ width: 36, height: 36, flexShrink: 0 }}>{m.name.slice(0, 1)}</span>
                   <div style={{ minWidth: 0, flex: 1 }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '.4rem', flexWrap: 'wrap' }}>
-                      <span style={{ fontWeight: 650, fontSize: '.9rem' }}>{m.name}</span>
+                      <Link href={u(`/team/${m.id}`)} style={{ fontWeight: 650, fontSize: '.9rem', color: 'var(--ih-primary)' }}>{m.name}</Link>
                       {m.isSelf && <span className="ih-tag" style={{ fontSize: '.6rem' }}>أنت</span>}
                     </div>
                     <div style={{ fontSize: '.74rem', color: 'var(--ih-text-muted)', direction: 'ltr', textAlign: 'start' }}>{m.email ?? '—'}</div>

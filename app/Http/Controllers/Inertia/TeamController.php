@@ -96,6 +96,52 @@ class TeamController extends Controller
         ]);
     }
 
+    /** لوحة العضو التشغيلية — عمله المُسنَد الفعلي (طلبات مفتوحة/متأخرة/مُنجَزة). */
+    public function member(Request $r, int $member): Response
+    {
+        $orgId = TenantContext::organizationId();
+        abort_unless($this->canManage($r->user(), $orgId), 403);
+        $m = $this->memberOf($orgId, $member);
+        $u = User::find($m->user_id);
+
+        $prio = \App\Domain\Requests\Enums\ServiceRequestPriority::labels();
+        $st = fn ($s) => __('statuses.' . $s);
+
+        $assigned = ServiceRequest::where('assigned_to', $m->user_id)->get();
+        $open = $assigned->whereIn('status', ServiceRequest::OPEN_STATUSES);
+
+        $rows = $open->sortBy(fn ($s) => [$s->sla_breached_at ? 0 : 1, $s->due_at?->timestamp ?? PHP_INT_MAX])->values()
+            ->map(fn (ServiceRequest $s) => [
+                'id' => $s->id, 'number' => $s->request_number, 'title' => $s->title,
+                'status' => $s->status, 'statusLabel' => $st($s->status), 'statusTone' => __('statuses.tone.' . $s->status),
+                'priority' => $prio[$s->priority] ?? $s->priority,
+                'due' => $s->due_at?->format('Y-m-d H:i'),
+                'breached' => (bool) $s->sla_breached_at,
+            ]);
+
+        return Inertia::render('Team/Member', [
+            'member' => [
+                'id' => $m->id,
+                'name' => $u?->name ?? '—',
+                'email' => $u?->email,
+                'role' => $m->role,
+                'roleLabel' => self::ROLE_LABEL[$m->role] ?? $m->role,
+                'status' => $m->status,
+                'statusLabel' => __("statuses.{$m->status}"),
+                'statusTone' => __("statuses.tone.{$m->status}"),
+                'isSelf' => $m->user_id === auth()->id(),
+                'canReview' => CrmAbilities::can($m->role, CrmAbilities::WRITE),
+            ],
+            'work' => $rows,
+            'summary' => [
+                'open' => $open->count(),
+                'breached' => $open->whereNotNull('sla_breached_at')->count(),
+                'resolved' => $assigned->whereIn('status', ['resolved', 'closed'])->count(),
+                'total' => $assigned->count(),
+            ],
+        ]);
+    }
+
     /** إضافة عضو موجود إلى مساحة العمل عبر بريده — لا رمز وهمي بلا مسار قبول. */
     public function invite(Request $r)
     {

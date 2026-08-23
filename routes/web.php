@@ -380,6 +380,7 @@ Route::middleware(['auth', 'tenant', 'agency_member', 'inertia'])->prefix('beta'
     Route::get('/client-reviews/documents/{document}/download', [\App\Http\Controllers\Inertia\ClientReviewsController::class, 'downloadDocument']);
     Route::get('/integrations', [\App\Http\Controllers\Inertia\IntegrationsController::class, 'index']);
     Route::get('/team', [\App\Http\Controllers\Inertia\TeamController::class, 'index']);
+    Route::get('/team/{member}', [\App\Http\Controllers\Inertia\TeamController::class, 'member'])->whereNumber('member');
     Route::post('/team/invite', [\App\Http\Controllers\Inertia\TeamController::class, 'invite']);
     Route::post('/team/{member}/role', [\App\Http\Controllers\Inertia\TeamController::class, 'changeRole']);
     Route::post('/team/{member}/status', [\App\Http\Controllers\Inertia\TeamController::class, 'changeStatus']);
@@ -701,6 +702,7 @@ Route::middleware(['auth', 'tenant', 'agency_member'])->prefix('app')->group(fun
         Route::get('/shortlisting', [\App\Http\Controllers\Inertia\ShortlistingController::class, 'index']);
         Route::get('/integrations', [\App\Http\Controllers\Inertia\IntegrationsController::class, 'index']);
         Route::get('/team', [\App\Http\Controllers\Inertia\TeamController::class, 'index']);
+        Route::get('/team/{member}', [\App\Http\Controllers\Inertia\TeamController::class, 'member'])->whereNumber('member');
         Route::post('/team/invite', [\App\Http\Controllers\Inertia\TeamController::class, 'invite']);
         Route::post('/team/{member}/role', [\App\Http\Controllers\Inertia\TeamController::class, 'changeRole']);
         Route::post('/team/{member}/status', [\App\Http\Controllers\Inertia\TeamController::class, 'changeStatus']);
