@@ -54,6 +54,28 @@ class SystemHealthTest extends TestCase
         $this->assertSame('ok', $sched2['status'], 'مع نبضة حديثة → سليم');
     }
 
+    /**
+     * انحدار: نبضة المجدول يجب ألّا تحمل withoutOverlapping — قفله (24س افتراضًا)
+     * يعلَق إذا قُتِلت العملية أثناء النشر فيتخطّى كلّ نبضة لاحقة يومًا كاملًا،
+     * فيظهر «المجدول متوقّف» في الإنتاج رغم عمل الحاوية.
+     */
+    public function test_heartbeat_schedule_has_no_overlap_mutex(): void
+    {
+        $schedule = app(\Illuminate\Console\Scheduling\Schedule::class);
+        $ref = new \ReflectionProperty(\Illuminate\Console\Scheduling\Event::class, 'withoutOverlapping');
+        $ref->setAccessible(true);
+
+        $beat = collect($schedule->events())->first(fn ($e) => str_contains((string) $e->command, 'ops:scheduler-heartbeat'));
+        $this->assertNotNull($beat, 'نبضة المجدول مُسجّلة في الجدولة');
+        $this->assertFalse($ref->getValue($beat), 'النبضة بلا قفل تداخل (يتجنّب القفل العالق)');
+
+        // الوظائف الساعيّة تبقى بلا تداخل لكن بصلاحية قصيرة تتعافى ذاتيًّا
+        $hourly = collect($schedule->events())->first(fn ($e) => str_contains((string) $e->command, 'reports:run-scheduled'));
+        $this->assertNotNull($hourly);
+        $this->assertTrue($ref->getValue($hourly));
+        $this->assertLessThanOrEqual(55, $hourly->expiresAt, 'قفل الوظيفة الساعيّة قصير الصلاحية');
+    }
+
     public function test_mail_and_whatsapp_honest_when_unconfigured(): void
     {
         config(['channels.email.enabled' => false, 'channels.whatsapp.enabled' => false]);
