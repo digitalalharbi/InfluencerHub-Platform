@@ -34,6 +34,9 @@ test.describe('بوابة الانضمام العامة', () => {
         await page.waitForURL('**/status');
         // أرسل الرمز (يظهر في وضع التطوير)
         await page.click('button:has-text("إرسال رمز التحقق")');
+        // ينتظر ظهور رمز من 6 أرقام (وضع التطوير) قبل استخراجه — كان يُقرأ قبل إعادة
+        // العرض فيُرجع null على المتصفّحات الأبطأ (webkit): «Cannot read properties of null».
+        await page.waitForFunction(() => /\b\d{6}\b/.test(document.body.innerText), null, { timeout: 10000 });
         const otp = (await page.locator('body').innerText()).match(/\b\d{6}\b/)[0];
         await page.fill('input[name="code"]', otp);
         await page.click('button:has-text("تأكيد")');
