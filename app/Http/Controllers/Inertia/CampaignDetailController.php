@@ -30,7 +30,8 @@ class CampaignDetailController extends Controller
     public function show(Campaign $campaign, \App\Domain\Exports\DocumentArtifactService $artifacts): Response
     {
         $this->authorize('view', $campaign);
-        $campaign->load('client', 'brand', 'deliverables.creator', 'collaborations.creator', 'contentItems.creator');
+        $campaign->load('client', 'brand', 'deliverables.creator', 'collaborations.creator', 'contentItems.creator',
+            'contracts.creator', 'contracts.client', 'payouts.creator');
 
         $metrics = CampaignAnalytics::forPage(collect([$campaign]))[$campaign->id] ?? [];
         $command = CampaignAnalytics::commandCenter($campaign, $metrics);
@@ -134,6 +135,24 @@ class CampaignDetailController extends Controller
                 'id' => $c->id, 'title' => $c->title, 'creator' => $c->creator?->display_name, 'platform' => $c->platform,
                 'status' => $c->status, 'statusLabel' => __('statuses.' . $c->status), 'statusTone' => __('statuses.tone.' . $c->status),
             ])->values(),
+            // عقود الحملة — تبويب داخل مساحة العمل بدل وحدة «العقود» المنفصلة. الطرف
+            // يبقى المستأجر/المبدع الحقيقي؛ InfluencerHub منصّة فقط.
+            'contracts' => $campaign->contracts->map(fn ($c) => [
+                'id' => $c->id, 'number' => $c->contract_number, 'title' => $c->title,
+                'party' => $c->party_type === 'creator' ? $c->creator?->display_name : $c->client?->display_name,
+                'partyType' => $c->party_type === 'creator' ? 'مبدع' : 'عميل',
+                'valueMinor' => (int) $c->value_minor, 'currency' => $c->currency,
+                'status' => $c->status, 'statusLabel' => __('statuses.' . $c->status), 'statusTone' => __('statuses.tone.' . $c->status),
+            ])->values(),
+            // مستحقات مبدعي الحملة — تبويب مالي داخل الحملة (يبقى منفصلًا عن تحصيل
+            // العميل: الفواتير أعلاه). لا يعرض آيبان كاملًا (آخر 4 فقط في التفصيل).
+            'payouts' => $campaign->payouts->map(fn ($p) => [
+                'id' => $p->id, 'number' => $p->payout_number, 'creator' => $p->creator?->display_name,
+                'description' => $p->description, 'amountMinor' => (int) $p->amount_minor, 'currency' => $p->currency,
+                'dueDate' => $p->due_date?->format('Y-m-d'),
+                'status' => $p->status, 'statusLabel' => __('statuses.' . $p->status), 'statusTone' => __('statuses.tone.' . $p->status),
+            ])->values(),
+            'canManagePayouts' => request()->user()?->can('create', \App\Domain\Finance\Models\Payout::class) ?? false,
         ]);
     }
 

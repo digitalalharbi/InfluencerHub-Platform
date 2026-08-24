@@ -50,11 +50,14 @@ interface CampaignInvoice {
   id: number; number: string; status: string; statusLabel: string; statusTone: string;
   totalMinor: number; balanceMinor: number; dueDate: string | null;
 }
+type CampaignContract = Row & { number: string; title: string; party: string | null; partyType: string; valueMinor: number; currency: string };
+type CampaignPayout = Row & { number: string; creator: string | null; description: string | null; amountMinor: number; currency: string; dueDate: string | null };
 interface Props {
   campaign: Campaign; metrics: Metrics; command: Command; lifecycle: Lifecycle; readiness: Readiness; timeline: TL[];
   deliverables: Deliverable[]; collaborations: Collab[]; content: Content[];
   canManage: boolean; deliverableTypes: Option[]; actions: CampaignAction[];
   invoices: CampaignInvoice[]; canInvoice: boolean;
+  contracts: CampaignContract[]; payouts: CampaignPayout[]; canManagePayouts: boolean;
   documents: { clientBrief: PreviewDoc };
 }
 /** [action, label, tone, needsReason] — تأتي من الخادم حسب الحالة الفعلية. */
@@ -87,7 +90,7 @@ function EmptyRow({ span, text }: { span: number; text: string }) {
   return <tr><td colSpan={span} style={{ textAlign: 'center', color: 'var(--ih-text-muted)', padding: '1.6rem' }}>{text}</td></tr>;
 }
 
-export default function CampaignShow({ campaign, metrics, command, lifecycle, readiness, timeline, deliverables, collaborations, content, canManage, deliverableTypes, actions, invoices, canInvoice, documents }: Props) {
+export default function CampaignShow({ campaign, metrics, command, lifecycle, readiness, timeline, deliverables, collaborations, content, canManage, deliverableTypes, actions, invoices, canInvoice, contracts, payouts, documents }: Props) {
   const [briefOpen, setBriefOpen] = useState(false);
   const [actionFor, setActionFor] = useState<CampaignAction | null>(null);
   const [actionReason, setActionReason] = useState('');
@@ -336,7 +339,10 @@ export default function CampaignShow({ campaign, metrics, command, lifecycle, re
               { key: 'deliverables', label: 'المخرجات', icon: 'image', count: deliverables.length },
               { key: 'collaborations', label: 'التعاونات', icon: 'git-merge', count: collaborations.length },
               { key: 'content', label: 'المحتوى', icon: 'image', count: content.length },
-              { key: 'finance', label: 'المالية', icon: 'wallet', count: invoices.length },
+              { key: 'contracts', label: 'العقود', icon: 'file-text', count: contracts.length },
+              // التحصيل من العميل (الفواتير) ومستحقات المبدعين تبقى منفصلة عمدًا
+              { key: 'finance', label: 'التحصيل', icon: 'wallet', count: invoices.length },
+              { key: 'payouts', label: 'المستحقات', icon: 'wallet', count: payouts.length },
             ]} />
             {tab === 'finance' && (
               <Sec title="فواتير الحملة" icon="wallet">
@@ -416,6 +422,36 @@ export default function CampaignShow({ campaign, metrics, command, lifecycle, re
                       <td><StatusBadge tone={c.statusTone} label={c.statusLabel} /></td></tr>
                   ))}
               </DataTable>
+            )}
+            {tab === 'contracts' && (
+              <DataTable head={['العقد', 'الطرف', 'القيمة', 'الحالة']}>
+                {contracts.length === 0 ? <EmptyRow span={4} text="لا عقود على هذه الحملة بعد." /> :
+                  contracts.map((c) => (
+                    <tr key={c.id} style={{ cursor: 'pointer' }} onClick={() => router.visit(u(`/contracts/${c.id}`))}>
+                      <td style={{ fontWeight: 600 }}><span style={{ direction: 'ltr', display: 'inline-block' }}>{c.number}</span> · {c.title}</td>
+                      <td>{c.party ?? '—'} <span style={{ color: 'var(--ih-text-muted)', fontSize: '.78rem' }}>({c.partyType})</span></td>
+                      <td className="ih-dt__num" style={{ direction: 'ltr', textAlign: 'right' }}>{money(c.valueMinor, c.currency)}</td>
+                      <td><StatusBadge tone={c.statusTone} label={c.statusLabel} /></td></tr>
+                  ))}
+              </DataTable>
+            )}
+            {tab === 'payouts' && (
+              <>
+                <p style={{ color: 'var(--ih-text-secondary)', fontSize: '.8rem', marginBottom: '.6rem' }}>
+                  مستحقات مبدعي هذه الحملة — منفصلة عن التحصيل من العميل.
+                </p>
+                <DataTable head={['المستحق', 'المبدع', 'القيمة', 'الاستحقاق', 'الحالة']}>
+                  {payouts.length === 0 ? <EmptyRow span={5} text="لا مستحقات على هذه الحملة بعد." /> :
+                    payouts.map((p) => (
+                      <tr key={p.id} style={{ cursor: 'pointer' }} onClick={() => router.visit(u(`/payouts/${p.id}`))}>
+                        <td style={{ fontWeight: 600, direction: 'ltr', textAlign: 'right' }}>{p.number}</td>
+                        <td>{p.creator ?? '—'}</td>
+                        <td className="ih-dt__num" style={{ direction: 'ltr', textAlign: 'right' }}>{money(p.amountMinor, p.currency)}</td>
+                        <td>{p.dueDate ?? '—'}</td>
+                        <td><StatusBadge tone={p.statusTone} label={p.statusLabel} /></td></tr>
+                    ))}
+                </DataTable>
+              </>
             )}
           </div>
         </div>
