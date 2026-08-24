@@ -21,28 +21,21 @@ function BrandMark({ size = 26 }: { size?: number }) {
  */
 export default function PublicLayout({
   title,
-  description,
   children,
 }: {
   title: string
+  /** يُقبل من الصفحات للتوافق؛ الوصف الافتراضي يوفّره القالب الجذر (بلا تكرار وسم). */
   description?: string
   children: ReactNode
 }) {
-  const page = usePage<SharedProps>()
-  const { brand } = page.props
-  // رابط قانوني لكل صفحة: نطاق المنتج + مسار الصفحة الحالي (بلا معاملات استعلام).
-  const path = page.url.split('?')[0]
-  const canonical = brand.url + (path === '/' ? '' : path)
+  const { brand } = usePage<SharedProps>().props
 
   return (
     <div className="pub">
-      {/* عنوان الصفحة يمرّ عبر مُحوِّل inertia.tsx فيُلحق «— InfluencerHub».
-          الوسوم على مستوى الموقع (og/الوصف الافتراضي) يوفّرها القالب الجذر؛
-          هنا نضبط فقط ما هو خاصّ بالصفحة: العنوان والرابط القانوني — بلا تكرار. */}
-      <Head title={title}>
-        <link head-key="canonical" rel="canonical" href={canonical} />
-        {description && <meta head-key="description" name="description" content={description} />}
-      </Head>
+      {/* عنوان الصفحة فقط يمرّ عبر مُحوِّل inertia.tsx فيُلحق «— InfluencerHub».
+          الرابط القانوني (نطاق المنتج + المسار) والوصف الافتراضي يضبطهما القالب
+          الجذر مرّةً في HTML الأوّليّ — عنصر واحد لكلٍّ بلا تكرار. */}
+      <Head title={title} />
 
       <header className="pub-header">
         <div className="pub-wrap pub-header-inner">
