@@ -1,74 +1,80 @@
 import { Head, Link } from '@inertiajs/react';
 import AppShell from '@/Layouts/AppShell';
-import { ListHead, Sec, StatusBadge, Kpi } from '@/Components/ui';
+import { ListHead, Kpi } from '@/Components/ui';
 import { Icon } from '@/Components/Icon';
 import { u } from '@/lib/href';
 
-interface Req { id: number; title: string; client: string | null; status: string; statusLabel: string; statusTone: string; link: string; overdue: boolean }
-interface ContentT { id: number; title: string; campaign: string | null; link: string }
-interface BrandT { id: number; title: string; client: string | null; link: string }
-interface Props { myRequests: Req[]; contentReview: ContentT[]; brandReviews: BrandT[]; canReview: boolean }
+/** عنصر عمل واحد — إمّا مهمة فردية أو طابور موافقة مجمّع (count). */
+interface WorkItem {
+  key: string;
+  title: string;
+  entity: string;
+  reason: string;
+  prio: 'overdue' | 'critical' | 'today' | 'approval' | 'soon' | 'normal';
+  prioLabel: string;
+  prioRank: number;
+  due: string | null;
+  sla: boolean;
+  count: number | null;
+  actionLabel: string;
+  href: string;
+}
+interface Brief { tasks: number; approvals: number; overdue: number; total: number }
+interface Props { role: string | null; brief: Brief; myWork: WorkItem[] }
 
-function TaskRow({ href, title, sub, right }: { href: string; title: string; sub?: string; right?: React.ReactNode }) {
+/** ألوان الأولوية — متّسقة مع نظام الحالات (أحمر=متأخر/حرج، كهرماني=قريب، أساسي=موافقة). */
+const PRIO_TONE: Record<WorkItem['prio'], { bg: string; fg: string }> = {
+  overdue: { bg: 'var(--ih-danger-soft)', fg: 'var(--ih-danger-ink)' },
+  critical: { bg: 'var(--ih-danger-soft)', fg: 'var(--ih-danger-ink)' },
+  today: { bg: 'var(--ih-warning-soft)', fg: 'var(--ih-warning-ink)' },
+  approval: { bg: 'var(--ih-primary-soft)', fg: 'var(--ih-primary-700)' },
+  soon: { bg: 'var(--ih-warning-soft)', fg: 'var(--ih-warning-ink)' },
+  normal: { bg: 'var(--ih-surface-sunken, #F2F4F7)', fg: 'var(--ih-text-muted)' },
+};
+
+function WorkRow({ item }: { item: WorkItem }) {
+  const tone = PRIO_TONE[item.prio];
   return (
-    <Link href={href} className="card" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '.7rem', padding: '.7rem .9rem', textDecoration: 'none', color: 'inherit' }}>
-      <div style={{ minWidth: 0 }}>
-        <div style={{ fontWeight: 600, fontSize: '.9rem', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{title}</div>
-        {sub && <div style={{ fontSize: '.74rem', color: 'var(--ih-text-muted)' }}>{sub}</div>}
+    <Link href={u(item.href)} className="card ih-risk" style={{ display: 'flex', alignItems: 'center', gap: '.8rem', padding: '.8rem 1rem', textDecoration: 'none', color: 'inherit' }}>
+      <span style={{ flexShrink: 0, fontSize: '.66rem', fontWeight: 700, padding: '.15rem .5rem', borderRadius: 999, background: tone.bg, color: tone.fg }}>
+        {item.prioLabel}{item.sla ? ' · SLA' : ''}
+      </span>
+      <div style={{ minWidth: 0, flex: 1 }}>
+        <div style={{ fontWeight: 600, fontSize: '.92rem', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+          {item.title}{item.count ? <span style={{ color: 'var(--ih-text-muted)', fontWeight: 500 }}> · {item.count}</span> : null}
+        </div>
+        <div style={{ fontSize: '.74rem', color: 'var(--ih-text-muted)' }}>
+          {item.entity} · {item.reason}{item.due ? ` · يستحق ${item.due}` : ''}
+        </div>
       </div>
-      {right}
+      <span className="btn btn-xs btn-outline" style={{ flexShrink: 0 }}>{item.actionLabel} ←</span>
     </Link>
   );
 }
 
-export default function MyTasksIndex({ myRequests, contentReview, brandReviews, canReview }: Props) {
-  const total = myRequests.length + contentReview.length + brandReviews.length;
-
+export default function MyTasksIndex({ brief, myWork }: Props) {
   return (
-    <AppShell heading="مهامي">
-      <Head title="مهامي" />
-      <ListHead eyebrow="العمل" title="مهامي" sub="ما يحتاج إجراءك الآن — من بيانات فعلية." />
+    <AppShell heading="عملي">
+      <Head title="عملي" />
+      <ListHead eyebrow="العمل" title="عملي" sub="كل ما يحتاج إجراءك الآن، مرتّبًا حسب الأولوية — من بيانات فعلية." />
 
       <div className="ih-kpis">
-        <Kpi label="إجمالي المهام" icon="list-checks" tone={total ? 'warning' : 'success'} value={total.toLocaleString('en-US')} sub={total ? 'بانتظارك' : 'لا مهام'} />
-        <Kpi label="طلبات مُسنَدة إليّ" icon="inbox" value={myRequests.length.toLocaleString('en-US')} sub="مفتوحة" />
-        <Kpi label="محتوى للمراجعة" icon="image" value={contentReview.length.toLocaleString('en-US')} sub="مرحلة الوكالة" />
+        <Kpi label="بحاجة إجراء" icon="list-checks" tone={brief.total ? 'warning' : 'success'} value={brief.total.toLocaleString('en-US')} sub={brief.total ? 'عنصرًا' : 'لا شيء'} />
+        <Kpi label="بانتظار موافقتك" icon="shield-check" value={brief.approvals.toLocaleString('en-US')} sub="طوابير اعتماد" />
+        <Kpi label="متأخر / حرج" icon="activity" tone={brief.overdue ? 'danger' : 'success'} value={brief.overdue.toLocaleString('en-US')} sub={brief.overdue ? 'يحتاج انتباهك' : 'لا متأخرات'} />
       </div>
 
-      {total === 0 && (
-        <div className="card" style={{ padding: '2rem', textAlign: 'center', color: 'var(--ih-success-ink)', background: 'var(--ih-success-soft)' }}>
-          <Icon name="shield-check" size={22} /><div style={{ marginTop: '.5rem' }}>لا مهام عاجلة — أنت على المسار.</div>
+      {myWork.length === 0 ? (
+        <div className="card" style={{ padding: '2.5rem', textAlign: 'center', color: 'var(--ih-success-ink)', background: 'var(--ih-success-soft)' }}>
+          <Icon name="shield-check" size={26} />
+          <div style={{ marginTop: '.6rem', fontWeight: 600 }}>لا شيء بانتظارك الآن</div>
+          <div style={{ fontSize: '.82rem', marginTop: '.2rem' }}>ما إن يصلك عمل يحتاج قرارك حتى يظهر هنا مرتّبًا.</div>
+        </div>
+      ) : (
+        <div style={{ display: 'grid', gap: '.55rem', maxWidth: 860 }}>
+          {myWork.map((item) => <WorkRow key={item.key} item={item} />)}
         </div>
       )}
-
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: '1.2rem', alignItems: 'start' }}>
-        {myRequests.length > 0 && (
-          <Sec title={`طلبات مُسنَدة إليّ (${myRequests.length})`} icon="inbox">
-            <div style={{ display: 'grid', gap: '.5rem' }}>
-              {myRequests.map((s) => (
-                <TaskRow key={s.id} href={u(s.link)} title={s.title} sub={s.client ?? undefined}
-                  right={<div style={{ display: 'flex', gap: '.3rem', alignItems: 'center' }}>{s.overdue && <span className="ih-tag" style={{ background: 'var(--ih-danger-soft)', color: 'var(--ih-danger-ink)', fontSize: '.64rem' }}>متأخر</span>}<StatusBadge tone={s.statusTone} label={s.statusLabel} /></div>} />
-              ))}
-            </div>
-          </Sec>
-        )}
-
-        {contentReview.length > 0 && (
-          <Sec title={`محتوى بانتظار المراجعة (${contentReview.length})`} icon="image">
-            <div style={{ display: 'grid', gap: '.5rem' }}>
-              {contentReview.map((c) => <TaskRow key={c.id} href={u(c.link)} title={c.title} sub={c.campaign ?? undefined} right={<Icon name="chevron-left" size={16} />} />)}
-            </div>
-          </Sec>
-        )}
-
-        {canReview && brandReviews.length > 0 && (
-          <Sec title={`علامات للمراجعة (${brandReviews.length})`} icon="bookmark">
-            <div style={{ display: 'grid', gap: '.5rem' }}>
-              {brandReviews.map((b) => <TaskRow key={b.id} href={u(b.link)} title={b.title} sub={b.client ?? undefined} right={<Icon name="chevron-left" size={16} />} />)}
-            </div>
-          </Sec>
-        )}
-      </div>
     </AppShell>
   );
 }

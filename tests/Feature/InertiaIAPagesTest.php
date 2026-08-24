@@ -53,9 +53,12 @@ class InertiaIAPagesTest extends TestCase
             'requester_client_id' => $client->id, 'client_id' => $client->id, 'type' => 'content', 'title' => 'مهمة',
             'priority' => 'normal', 'status' => 'in_progress', 'assigned_to' => $u->id, 'requested_by' => $u->id]);
         TenantContext::reset();
+        // عملي موحّد على محرّك myWork: الطلب المُسنَد يظهر كعنصر عمل، والملخّص يعدّه.
         $this->actingAs($u)->get('/beta/my-tasks')
             ->assertOk()
-            ->assertInertia(fn (Assert $page) => $page->component('MyTasks/Index')->has('myRequests', 1)->where('myRequests.0.title', 'مهمة'));
+            ->assertInertia(fn (Assert $page) => $page->component('MyTasks/Index')
+                ->has('myWork', 1)->where('myWork.0.title', 'مهمة')
+                ->where('brief.total', 1)->etc());
     }
 
     public function test_nav_can_flags_admin(): void
