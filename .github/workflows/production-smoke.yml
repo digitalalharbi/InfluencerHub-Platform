@@ -38,20 +38,31 @@ jobs:
           sudo apt-get install -y sshpass >/dev/null 2>&1 || true
           # دالّة SSH موحّدة (كلمة مرور VPS مُقنَّعة تلقائيًّا في سجلّات GitHub).
           rssh() { sshpass -p "$VPS_PASSWORD" ssh -o StrictHostKeyChecking=no -o ConnectTimeout=25 -p "$VPS_PORT" "$VPS_USER@$VPS_HOST" "$1"; }
-          # exec داخل الحاوية يجب أن يمرّر --env-file مثل النشر تمامًا، وإلّا فشل تحليل
-          # ملفّ compose ذي المتغيّرات وعاد فارغًا.
-          DC="docker compose -p platform -f deploy/vps/docker-compose.yml --env-file deploy/vps/.env"
-          # تشخيص آمن (لا أسرار): بلوغ الحاوية، عدد أسطر ملفّ الاعتماد، وجود PREVIEW_PASSWORD.
-          echo "diag container = $(rssh "cd '$VPS_APP_DIR' && $DC exec -T app sh -lc 'echo ok'" 2>/dev/null || echo NO)"
-          echo "diag creds_lines = $(rssh "cd '$VPS_APP_DIR' && $DC exec -T app sh -lc 'wc -l < storage/app/private/showcase-credentials.txt 2>/dev/null || echo 0'" 2>/dev/null | tr -d ' \r' || echo ERR)"
-          echo "diag preview_pw_set = $(rssh "cd '$VPS_APP_DIR' && grep -c '^PREVIEW_PASSWORD=..*' deploy/vps/.env 2>/dev/null || echo 0" 2>/dev/null | tr -d ' \r')"
-          # المصدر المُعتمَد: ملف اعتماد بيئة العرض داخل حاوية التطبيق. المحتوى يُلتقط في
-          # متغيّر ولا يُطبع؛ نستخرج سطر كلمة المرور فقط ثم نُقنّعه فورًا.
-          CONTENT="$(rssh "cd '$VPS_APP_DIR' && $DC exec -T app sh -lc 'cat storage/app/private/showcase-credentials.txt'" 2>/dev/null || true)"
+
+          # تشخيص آمن (لا أسرار): اتّصال SSH، أسماء الحاويات، وجود وحدة التخزين.
+          echo "diag ssh = $(rssh 'echo OK' 2>/dev/null || echo FAIL)"
+          echo "diag containers = $(rssh 'docker ps --format "{{.Names}}" 2>/dev/null | tr "\n" ","' 2>/dev/null || echo ERR)"
+          echo "diag volumes = $(rssh 'docker volume ls --format "{{.Name}}" 2>/dev/null | grep -i app_storage | tr "\n" ","' 2>/dev/null || echo ERR)"
+
+          FILE_REL='storage/app/private/showcase-credentials.txt'
+          # الاستراتيجية أ: قراءة الملف مباشرةً من مسار وحدة تخزين docker على المضيف (المستخدم root).
+          CONTENT="$(rssh "cat /var/lib/docker/volumes/platform_app_storage/_data/private/showcase-credentials.txt 2>/dev/null" 2>/dev/null || true)"
+          # الاستراتيجية ب: exec داخل حاوية التطبيق المُكتشَفة بالاسم (workdir=/app).
+          if [ -z "$CONTENT" ]; then
+            APPC="$(rssh 'docker ps --format "{{.Names}}" | grep -Ei "(^|[-_])app([-_]|$)" | head -n1' 2>/dev/null | tr -d '\r\n' || true)"
+            echo "diag app_container = ${APPC:-none}"
+            if [ -n "$APPC" ]; then
+              CONTENT="$(rssh "docker exec $APPC sh -lc 'cat $FILE_REL' 2>/dev/null" 2>/dev/null || true)"
+            fi
+          fi
+          echo "diag creds_found = $([ -n "$CONTENT" ] && echo yes || echo no)"
+
+          # نستخرج سطر كلمة المرور فقط ثم نُقنّعه فورًا (لا يُطبع المحتوى إطلاقًا).
           PW="$(printf '%s\n' "$CONTENT" | sed -n 's/^# [^:]*: //p' | head -n1 | tr -d '\r\n')"
           if [ -z "$PW" ]; then
             # مصدر بديل: PREVIEW_PASSWORD من بيئة الخادم إن كانت هي مصدر الحقيقة الفعلي.
             PW="$(rssh "cd '$VPS_APP_DIR' && grep -E '^PREVIEW_PASSWORD=' deploy/vps/.env" 2>/dev/null | cut -d= -f2- | tr -d '\r\n' || true)"
+            echo "diag preview_pw_fallback = $([ -n "$PW" ] && echo used || echo empty)"
           fi
           if [ -z "$PW" ]; then
             echo "ERROR: could not retrieve the Showcase credential from the VPS (see diag lines above)."
