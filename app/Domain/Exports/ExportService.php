@@ -31,6 +31,12 @@ class ExportService
     {
         $format = in_array($format, self::FORMATS, true) ? $format : 'csv';
 
+        // اسم ملفّ مُعرَّف بالعلامة: InfluencerHub-<القاعدة> (بلا تكرار البادئة).
+        $prefix = \App\Support\Brand::name() . '-';
+        if (! str_starts_with($filename, $prefix)) {
+            $filename = $prefix . $filename;
+        }
+
         AuditLogger::log('export.generated', null, [
             'type' => $exportType, 'format' => $format, 'rows' => $rowCount, 'title' => $data->title,
         ], $tenantId, $userId);

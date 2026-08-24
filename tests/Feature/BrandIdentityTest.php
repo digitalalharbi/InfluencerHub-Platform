@@ -48,6 +48,29 @@ class BrandIdentityTest extends TestCase
         $this->assertStringStartsWith('InfluencerHub-', Brand::documentFilename('تقرير'));
     }
 
+    public function test_error_pages_are_branded_and_leak_no_internals(): void
+    {
+        foreach (['404', '403', '429', '500', '503'] as $code) {
+            $html = view("errors.$code")->render();
+            $this->assertStringContainsString('InfluencerHub', $html, $code);
+            $this->assertStringContainsString('influencerhub.io', $html, $code);
+            $this->assertStringNotContainsString('Laravel', $html, $code);
+            $this->assertStringNotContainsString('إنفلونسر هَب', $html, $code);
+        }
+    }
+
+    public function test_html_head_carries_influencerhub_metadata_and_icons(): void
+    {
+        $head = view('inertia', ['page' => ['component' => 'x', 'props' => [], 'url' => '/', 'version' => '1']])->render();
+        $this->assertStringContainsString('og:site_name', $head);
+        $this->assertStringContainsString('content="InfluencerHub"', $head);
+        $this->assertStringContainsString('/favicon.ico', $head);
+        $this->assertStringContainsString('/icons/ih-icon.svg', $head);
+        $this->assertStringContainsString('rel="canonical"', $head);
+        $this->assertStringNotContainsString('إنفلونسر هَب', $head);
+        $this->assertStringNotContainsString('Laravel', $head);
+    }
+
     public function test_mail_shell_is_influencerhub_branded_not_framework(): void
     {
         $html = view('components.mail.layout', ['slot' => 'مرحبًا', 'title' => 'اختبار'])->render();
