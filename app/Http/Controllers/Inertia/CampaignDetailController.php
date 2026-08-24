@@ -67,7 +67,9 @@ class CampaignDetailController extends Controller
                 'clientBrief' => (function () use ($campaign, $artifacts) {
                     $latest = $artifacts->latest(self::BRIEF_TYPE, $campaign);
                     $currentFp = $artifacts->fingerprint($this->clientBriefData($campaign), self::BRIEF_TEMPLATE, 'pdf');
-                    $base = "/app/campaigns/{$campaign->id}/client-brief";
+                    // مسار نسبيّ للتركيب (بلا /app) — الواجهة تضيف البادئة عبر u()،
+                    // فبإضافتها هنا أيضًا يتكرّر /app/app ويصير 404 في iframe المعاينة.
+                    $base = "/campaigns/{$campaign->id}/client-brief";
                     return [
                         'title' => 'ملخّص الحملة (آمن للعميل)',
                         'hasArtifact' => (bool) $latest,
