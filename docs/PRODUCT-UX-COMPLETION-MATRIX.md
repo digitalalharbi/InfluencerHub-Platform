@@ -59,15 +59,32 @@ Work proceeds module-by-module; each row will be filled with evidence as it land
 
 ---
 
-## Unified Document Artifact (P1, not yet built)
+## Unified Document Artifact (P1)
 
-Target model: one immutable generated artifact per (type, subject, filters,
-template_version); Preview and Download stream the **same stored bytes**
-(`sha256(preview) == sha256(download)`); source change ⇒ old artifact marked
-stale, preview unchanged, regenerate creates a new version; private + tenant-scoped
-(no public URLs). Reuse `ExportJob` semantics where possible.
+**Built** (`DocumentArtifactService` + `PdfPreviewModal`): one immutable artifact per
+(type, subject, template_version), keyed by a source **fingerprint**. Preview (inline)
+and Download (attachment) stream the **same stored bytes** — `sha256(preview) ==
+sha256(download)`, verified by an `X-Artifact-Checksum` header. Source change ⇒ old
+artifact stays immutable, UI shows a **stale** banner, explicit **regenerate** makes a
+new version (no silent regeneration). Private disk, tenant-scoped, mount-relative URLs
+(no public URLs, no `/app` double-prefix). Stores on `export_jobs`
+(subject_type/subject_id/checksum/fingerprint/template_version) — no duplicate model.
 
-Applies to: Campaign report · Campaign client brief · Shortlist proposal · Invoice ·
-Report · Payout statement · Contract.
+| Document | PR | Preview modal | sha256 preview==download | Stale + regenerate | Live | Status |
+|---|---|---|---|---|---|---|
+| Campaign client brief | #52, #53 | ✓ | test + **live** (`078c2ca2…`) | ✓ test | **prod** | PRODUCTION_VERIFIED |
+| Shortlist proposal | #54 | ✓ | test | ✓ (fingerprint per version) | pending deploy | INTERNAL_VERIFIED |
+| Invoice | #54 | ✓ | test | ✓ | pending deploy | INTERNAL_VERIFIED |
+| Report | — | — | — | — | — | — (pending — needs null-subject/aggregate variant) |
+| Payout statement | — | — | — | — | — | — (pending — new template) |
+| Contract | — | — | — | — | — | — (pending — new template) |
 
-Status: — (pending).
+Currency polish (`SAR → ر.س`) in tenant UI: campaign readiness/financial panel — PR #55
+(invoice PDF keeps ISO code as a formal financial document).
+
+### Live production proof (campaign brief, `8c32c809`)
+`deploy-vps` success → preview (inline) & download (attachment) both 25,640 B, valid
+`%PDF`, **identical sha256** `078c2ca2…664e`, matching `X-Artifact-Checksum`. Modal
+opens with title + toolbar (تحميل / تبويب جديد / إعادة إنشاء / إغلاق). A double-`/app`
+prefix defect was found live (iframe 404), reproduced, fixed with a regression test,
+and shipped as #53.
