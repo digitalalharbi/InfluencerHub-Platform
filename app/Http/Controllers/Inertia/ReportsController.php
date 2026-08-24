@@ -19,13 +19,15 @@ use Inertia\Response;
 class ReportsController extends Controller
 {
     /** تصدير تقرير أداء العملاء (csv/xlsx/pdf) — من محرك التحليلات نفسه. */
-    public function export(\Illuminate\Http\Request $r, \App\Domain\Exports\ExportService $svc)
+    private const REPORT_TYPE = 'clients_report_pdf';
+    private const REPORT_TEMPLATE = 'v1';
+
+    /** جدول تقرير أداء العملاء — مصدر واحد للتصدير والمعاينة (بلا وقت في الصفوف). */
+    private function reportTabular(): \App\Domain\Exports\TabularData
     {
-        $this->authorize('viewAny', Client::class);
         $clients = Client::query()->get();
         $metrics = ClientAnalytics::forPage($clients);
         $sar = fn (int $minor) => number_format($minor / 100, 0) . ' ر.س';
-
         $rows = $clients->map(fn (Client $c) => [
             'name' => $c->display_name,
             'active' => (int) ($metrics[$c->id]['active_campaigns'] ?? 0),
@@ -33,7 +35,7 @@ class ReportsController extends Controller
             'revenue' => $sar((int) ($metrics[$c->id]['revenue_minor'] ?? 0)),
         ])->sortByDesc(fn ($x) => $x['active'])->values();
 
-        $data = new \App\Domain\Exports\TabularData(
+        return new \App\Domain\Exports\TabularData(
             title: 'تقرير أداء العملاء',
             columns: ['name' => 'العميل', 'active' => 'حملات نشطة', 'completion' => 'اكتمال الملف', 'revenue' => 'الإيراد (مُحصَّل)'],
             rows: $rows,
@@ -41,11 +43,84 @@ class ReportsController extends Controller
             workspace: \App\Domain\Tenancy\Support\TenantContext::organizationId() ? \App\Domain\Tenancy\Models\Organization::find(\App\Domain\Tenancy\Support\TenantContext::organizationId())?->name : null,
             generatedAt: now()->format('Y-m-d H:i'),
         );
-
-        return $svc->download($data, (string) $r->query('format', 'xlsx'), 'clients-report-' . now()->format('Ymd'), 'clients_report', $rows->count(), \App\Domain\Tenancy\Support\TenantContext::tenantId(), $r->user()->id);
     }
 
-    public function index(AnalyticsService $analytics): Response
+    public function export(\Illuminate\Http\Request $r, \App\Domain\Exports\ExportService $svc)
+    {
+        $this->authorize('viewAny', Client::class);
+        $data = $this->reportTabular();
+        $count = is_countable($data->rows) ? count($data->rows) : 0;
+
+        return $svc->download($data, (string) $r->query('format', 'xlsx'), 'clients-report-' . now()->format('Ymd'), 'clients_report', $count, \App\Domain\Tenancy\Support\TenantContext::tenantId(), $r->user()->id);
+    }
+
+    /** التنظيم (المستأجر) هو موضوع أثر التقرير المجمَّع. */
+    private function reportSubject(): \App\Domain\Tenancy\Models\Organization
+    {
+        return \App\Domain\Tenancy\Models\Organization::findOrFail(\App\Domain\Tenancy\Support\TenantContext::organizationId());
+    }
+
+    private function reportArtifact(\Illuminate\Http\Request $r, \App\Domain\Exports\DocumentArtifactService $svc, \App\Domain\Exports\Writers\PdfWriter $pdf, bool $regenerate = false): \App\Domain\Exports\Models\ExportJob
+    {
+        $subject = $this->reportSubject();
+        $tab = $this->reportTabular();
+        $fpData = ['rows' => collect($tab->rows)->toArray()];   // البصمة من الصفوف لا الوقت
+        $render = function () use ($tab, $pdf, $r) {
+            \App\Domain\Audit\Services\AuditLogger::log('export.generated', null,
+                ['type' => self::REPORT_TYPE, 'format' => 'pdf'], \App\Domain\Tenancy\Support\TenantContext::tenantId(), $r->user()?->id);
+            return $pdf->render($tab);
+        };
+        if (! $regenerate) {
+            $latest = $svc->latest(self::REPORT_TYPE, $subject);
+            if ($latest) return $latest;
+        }
+        return $svc->current(self::REPORT_TYPE, $subject, 'pdf', self::REPORT_TEMPLATE, $fpData, 'تقرير أداء العملاء', $render, $r->user()?->id);
+    }
+
+    private function streamReport(\App\Domain\Exports\Models\ExportJob $a, \App\Domain\Exports\DocumentArtifactService $svc, string $disposition)
+    {
+        $bytes = $svc->bytes($a);
+        return response($bytes, 200, [
+            'Content-Type' => 'application/pdf',
+            'Content-Disposition' => $disposition . '; filename="clients-report.pdf"',
+            'Content-Length' => (string) strlen($bytes), 'X-Artifact-Checksum' => $a->checksum,
+        ]);
+    }
+
+    public function pdfPreview(\Illuminate\Http\Request $r, \App\Domain\Exports\DocumentArtifactService $svc, \App\Domain\Exports\Writers\PdfWriter $pdf)
+    {
+        $this->authorize('viewAny', Client::class);
+        return $this->streamReport($this->reportArtifact($r, $svc, $pdf), $svc, 'inline');
+    }
+
+    public function pdfDownload(\Illuminate\Http\Request $r, \App\Domain\Exports\DocumentArtifactService $svc, \App\Domain\Exports\Writers\PdfWriter $pdf)
+    {
+        $this->authorize('viewAny', Client::class);
+        return $this->streamReport($this->reportArtifact($r, $svc, $pdf), $svc, 'attachment');
+    }
+
+    public function pdfRegenerate(\Illuminate\Http\Request $r, \App\Domain\Exports\DocumentArtifactService $svc, \App\Domain\Exports\Writers\PdfWriter $pdf): \Illuminate\Http\RedirectResponse
+    {
+        $this->authorize('viewAny', Client::class);
+        $this->reportArtifact($r, $svc, $pdf, regenerate: true);
+        return back()->with('ok', 'أُنشئت نسخة محدّثة من التقرير.');
+    }
+
+    /** بيانات مستند التقرير لصفحة التقارير — مسارات نسبية للتركيب. */
+    public function reportDocMeta(\App\Domain\Exports\DocumentArtifactService $svc): array
+    {
+        $latest = $svc->latest(self::REPORT_TYPE, $this->reportSubject());
+        $currentFp = $svc->fingerprint(['rows' => collect($this->reportTabular()->rows)->toArray()], self::REPORT_TEMPLATE, 'pdf');
+        return [
+            'title' => 'تقرير أداء العملاء',
+            'hasArtifact' => (bool) $latest,
+            'generatedAt' => $latest?->created_at?->format('Y-m-d H:i'),
+            'stale' => $svc->isStale($latest, $currentFp),
+            'previewUrl' => '/reports/pdf/preview', 'downloadUrl' => '/reports/pdf/download', 'regenerateUrl' => '/reports/pdf/regenerate',
+        ];
+    }
+
+    public function index(AnalyticsService $analytics, \App\Domain\Exports\DocumentArtifactService $artifacts): Response
     {
         $this->authorize('viewAny', Client::class);
         $o = $analytics->agencyOverview();
@@ -96,6 +171,7 @@ class ReportsController extends Controller
         ])->filter(fn ($r) => $r['revenueMinor'] > 0)->sortByDesc('revenueMinor')->take(6)->values();
 
         return Inertia::render('Reports/Index', [
+            'documents' => ['report' => $this->reportDocMeta($artifacts)],
             'timeline' => $timeline,
             'topClients' => $topClients,
             // كل حدّ من FinancialMetrics — لا يُعاد حسابه هنا بتعريف ثانٍ

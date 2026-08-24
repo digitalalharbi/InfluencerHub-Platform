@@ -60,4 +60,25 @@ class InertiaReportsTest extends TestCase
         $this->actingAs($u2)->get('/beta/reports')
             ->assertInertia(fn (Assert $page) => $page->where('kpis.clients', 2)->where('kpis.campaigns', 1));
     }
+    public function test_report_pdf_preview_and_download_same_artifact(): void
+    {
+        \Illuminate\Support\Facades\Storage::fake('local');
+        [$t, $org, $u] = $this->agency(clients: 3, campaigns: 2);
+
+        $prev = $this->actingAs($u)->get('/app/reports/pdf/preview');
+        $prev->assertOk()->assertHeader('content-type', 'application/pdf');
+        $this->assertStringContainsString('inline', $prev->headers->get('content-disposition'));
+        $down = $this->actingAs($u)->get('/app/reports/pdf/download');
+        $down->assertOk();
+        $this->assertStringContainsString('attachment', $down->headers->get('content-disposition'));
+
+        $this->assertStringStartsWith('%PDF-', $prev->getContent());
+        $this->assertSame(hash('sha256', $prev->getContent()), hash('sha256', $down->getContent()));
+        $this->assertSame(1, TenantContext::withBypass(fn () => \App\Domain\Exports\Models\ExportJob::where('type', 'clients_report_pdf')->count()));
+
+        $this->actingAs($u)->get('/app/reports')
+            ->assertInertia(fn (Assert $p) => $p
+                ->where('documents.report.previewUrl', '/reports/pdf/preview')
+                ->where('documents.report.hasArtifact', true)->etc());
+    }
 }

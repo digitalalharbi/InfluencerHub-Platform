@@ -1,9 +1,11 @@
 import { Head } from '@inertiajs/react';
+import { useState } from 'react';
 import AppShell from '@/Layouts/AppShell';
 import { BarChart, DonutChart, Kpi, ListHead, Sec, StatusBadge } from '@/Components/ui';
-import type { IconName } from '@/Components/Icon';
+import { Icon, type IconName } from '@/Components/Icon';
 import { u } from '@/lib/href';
 import { ExportButtons } from '@/Components/ExportButtons';
+import { PdfPreviewModal, type PreviewDoc } from '@/Components/PdfPreviewModal';
 
 /** كل حدّ معرَّف في FinancialMetrics — الإيراد صافٍ من الضريبة. */
 interface Financial {
@@ -26,6 +28,7 @@ interface Props {
   financial: Financial; kpis: Kpis;
   breakdowns: { campaigns: Bar[]; requests: Bar[]; content: Bar[]; collaborations: Bar[] };
   creatorsByType: { label: string; count: number }[];
+  documents: { report: PreviewDoc };
 }
 
 const TONE_COLOR: Record<string, string> = {
@@ -60,14 +63,20 @@ function Breakdown({ title, icon, bars }: { title: string; icon: IconName; bars:
   );
 }
 
-export default function ReportsIndex({ timeline, topClients, financial, kpis, breakdowns, creatorsByType }: Props) {
+export default function ReportsIndex({ timeline, topClients, financial, kpis, breakdowns, creatorsByType, documents }: Props) {
+  const [reportOpen, setReportOpen] = useState(false);
   return (
     <AppShell heading="التقارير">
       <Head title="التقارير" />
 
       <ListHead eyebrow="البيانات والتقارير" title="التقارير"
         sub="نظرة تجميعية على الأداء المالي والتشغيلي — مشتقّة من بيانات PostgreSQL الحقيقية"
-        actions={<ExportButtons path="/reports/export" formats={['xlsx', 'csv', 'pdf']} />} />
+        actions={<span style={{ display: 'inline-flex', gap: '.4rem', alignItems: 'center' }}>
+          <button onClick={() => setReportOpen(true)} className="btn btn-sm btn-outline" title="معاينة تقرير PDF">
+            <Icon name="file-text" size={14} /> معاينة PDF{documents.report.stale && <span style={{ width: 7, height: 7, borderRadius: '50%', background: 'var(--ih-warning-ink, #B54708)', display: 'inline-block', marginInlineStart: 5 }} />}
+          </button>
+          <ExportButtons path="/reports/export" formats={['xlsx', 'csv']} />
+        </span>} />
 
       {/* المالية */}
       <div className="ih-kpis">
@@ -174,6 +183,7 @@ export default function ReportsIndex({ timeline, topClients, financial, kpis, br
           </div>
         </Sec>
       </div>
+      <PdfPreviewModal doc={documents.report} open={reportOpen} onClose={() => setReportOpen(false)} />
     </AppShell>
   );
 }
