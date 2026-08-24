@@ -34,17 +34,27 @@ jobs:
           VPS_PASSWORD: ${{ secrets.VPS_PASSWORD }}
         run: |
           set +x
-          sudo apt-get update >/dev/null 2>&1 && sudo apt-get install -y sshpass >/dev/null 2>&1
-          # المصدر المُعتمَد: ملف اعتماد بيئة العرض داخل حاوية التطبيق (على وحدة تخزين ثابتة).
-          # نلتقط المحتوى في متغيّر ولا نطبعه؛ نستخرج قيمة كلمة المرور فقط ثم نُقنّعها فورًا.
-          CONTENT="$(sshpass -p "$VPS_PASSWORD" ssh -o StrictHostKeyChecking=no -o ConnectTimeout=25 -p "$VPS_PORT" "$VPS_USER@$VPS_HOST" "cd '$VPS_APP_DIR' && docker compose -p platform -f deploy/vps/docker-compose.yml exec -T app sh -lc 'cat storage/app/private/showcase-credentials.txt'" 2>/dev/null || true)"
-          PW="$(printf '%s\n' "$CONTENT" | sed -n '2s/^# [^:]*: //p' | tr -d '\r\n')"
+          sudo apt-get update >/dev/null 2>&1 || true
+          sudo apt-get install -y sshpass >/dev/null 2>&1 || true
+          # دالّة SSH موحّدة (كلمة مرور VPS مُقنَّعة تلقائيًّا في سجلّات GitHub).
+          rssh() { sshpass -p "$VPS_PASSWORD" ssh -o StrictHostKeyChecking=no -o ConnectTimeout=25 -p "$VPS_PORT" "$VPS_USER@$VPS_HOST" "$1"; }
+          # exec داخل الحاوية يجب أن يمرّر --env-file مثل النشر تمامًا، وإلّا فشل تحليل
+          # ملفّ compose ذي المتغيّرات وعاد فارغًا.
+          DC="docker compose -p platform -f deploy/vps/docker-compose.yml --env-file deploy/vps/.env"
+          # تشخيص آمن (لا أسرار): بلوغ الحاوية، عدد أسطر ملفّ الاعتماد، وجود PREVIEW_PASSWORD.
+          echo "diag container = $(rssh "cd '$VPS_APP_DIR' && $DC exec -T app sh -lc 'echo ok'" 2>/dev/null || echo NO)"
+          echo "diag creds_lines = $(rssh "cd '$VPS_APP_DIR' && $DC exec -T app sh -lc 'wc -l < storage/app/private/showcase-credentials.txt 2>/dev/null || echo 0'" 2>/dev/null | tr -d ' \r' || echo ERR)"
+          echo "diag preview_pw_set = $(rssh "cd '$VPS_APP_DIR' && grep -c '^PREVIEW_PASSWORD=..*' deploy/vps/.env 2>/dev/null || echo 0" 2>/dev/null | tr -d ' \r')"
+          # المصدر المُعتمَد: ملف اعتماد بيئة العرض داخل حاوية التطبيق. المحتوى يُلتقط في
+          # متغيّر ولا يُطبع؛ نستخرج سطر كلمة المرور فقط ثم نُقنّعه فورًا.
+          CONTENT="$(rssh "cd '$VPS_APP_DIR' && $DC exec -T app sh -lc 'cat storage/app/private/showcase-credentials.txt'" 2>/dev/null || true)"
+          PW="$(printf '%s\n' "$CONTENT" | sed -n 's/^# [^:]*: //p' | head -n1 | tr -d '\r\n')"
           if [ -z "$PW" ]; then
             # مصدر بديل: PREVIEW_PASSWORD من بيئة الخادم إن كانت هي مصدر الحقيقة الفعلي.
-            PW="$(sshpass -p "$VPS_PASSWORD" ssh -o StrictHostKeyChecking=no -o ConnectTimeout=25 -p "$VPS_PORT" "$VPS_USER@$VPS_HOST" "cd '$VPS_APP_DIR' && grep -E '^PREVIEW_PASSWORD=' deploy/vps/.env" 2>/dev/null | cut -d= -f2- | tr -d '\r\n' || true)"
+            PW="$(rssh "cd '$VPS_APP_DIR' && grep -E '^PREVIEW_PASSWORD=' deploy/vps/.env" 2>/dev/null | cut -d= -f2- | tr -d '\r\n' || true)"
           fi
           if [ -z "$PW" ]; then
-            echo "ERROR: could not retrieve the Showcase credential from the VPS (file/PREVIEW_PASSWORD both empty)."
+            echo "ERROR: could not retrieve the Showcase credential from the VPS (see diag lines above)."
             exit 1
           fi
           echo "::add-mask::$PW"
