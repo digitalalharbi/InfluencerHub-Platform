@@ -79,8 +79,8 @@ class EmailProviderTest extends TestCase
 
         $this->assertStringContainsString('dir="rtl"', $html);
         $this->assertStringContainsString('اعتُمد محتواك', $html);
-        $this->assertStringContainsString('إنفلونسر هَب', $html);
+        $this->assertStringContainsString('InfluencerHub', $html);
         $this->assertStringContainsString('https://influencerhub.io/app/content/8', $html);
-        $this->assertStringContainsString('فتح في إنفلونسر هَب', $html);
+        $this->assertStringContainsString('فتح في InfluencerHub', $html);
     }
 }

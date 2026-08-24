@@ -338,6 +338,19 @@ class MarketingController extends Controller
         return Inertia::render('Public/Pricing', ['plans' => self::PLANS]);
     }
 
+    /** عن InfluencerHub — صفحة عامة صادقة تشرح القدرات الفعلية. */
+    public function info(): Response
+    {
+        return Inertia::render('Public/Info', [
+            'brand' => [
+                'name' => \App\Support\Brand::name(),
+                'tagline' => \App\Support\Brand::tagline(),
+                'url' => \App\Support\Brand::url(),
+                'domain' => \App\Support\Brand::domain(),
+            ],
+        ]);
+    }
+
     public function help(): Response
     {
         return Inertia::render('Public/Help', ['groups' => self::FAQ_GROUPS]);

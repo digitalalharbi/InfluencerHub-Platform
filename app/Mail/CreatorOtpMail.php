@@ -7,6 +7,6 @@ use Illuminate\Queue\SerializesModels;
 class CreatorOtpMail extends Mailable {
     use Queueable, SerializesModels;
     public function __construct(public string $code) {}
-    public function envelope(): Envelope { return new Envelope(subject: 'رمز التحقق — إنفلونسر هَب'); }
+    public function envelope(): Envelope { return new Envelope(subject: 'رمز التحقق — InfluencerHub'); }
     public function content(): Content { return new Content(view: 'mail.otp', with: ['code' => $this->code]); }
 }

@@ -29,12 +29,12 @@ class NotificationMail extends Mailable implements ShouldQueue
                 : rtrim((string) config('app.url'), '/') . '/' . ltrim($n->action_url, '/');
         }
 
-        return $this->subject($n->title . ' — إنفلونسر هَب')
+        return $this->subject($n->title . ' — InfluencerHub')
             ->view('mail.notification', [
                 'title' => $n->title,
                 'body' => $n->body,
                 'url' => $url,
-                'cta' => 'فتح في إنفلونسر هَب',
+                'cta' => 'فتح في InfluencerHub',
             ]);
     }
 }

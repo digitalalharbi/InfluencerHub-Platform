@@ -22,6 +22,7 @@ Route::middleware('inertia')->controller(MarketingController::class)->group(func
     Route::get('/solutions/{role}', 'solution')->whereIn('role', ['clients', 'agencies', 'creators']);
     Route::get('/pricing', 'pricing')->name('pricing');
     Route::get('/help', 'help')->name('help');
+    Route::get('/info', 'info')->name('info');
     Route::get('/terms', 'terms')->name('terms');
     Route::get('/privacy', 'privacy')->name('privacy');
 });

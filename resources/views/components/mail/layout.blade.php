@@ -35,8 +35,8 @@
                     </span>
                   </td>
                   <td style="vertical-align:middle;text-align:right;">
-                    <div style="font-size:18px;line-height:1.2;font-weight:800;color:#ffffff;letter-spacing:0;">إنفلونسر هَب</div>
-                    <div style="margin-top:5px;font-size:12px;line-height:1.4;color:#c7d2fe;">منصة إدارة عمليات المؤثرين والعملاء</div>
+                    <div style="font-size:18px;line-height:1.2;font-weight:800;color:#ffffff;letter-spacing:0;direction:ltr;text-align:right;">{{ \App\Support\Brand::name() }}</div>
+                    <div style="margin-top:5px;font-size:12px;line-height:1.4;color:#c7d2fe;">{{ \App\Support\Brand::tagline() }}</div>
                   </td>
                 </tr>
               </table>
@@ -50,7 +50,10 @@
           <tr>
             <td style="background:#ffffff;border-right:1px solid #e5e7eb;border-left:1px solid #e5e7eb;border-bottom:1px solid #e5e7eb;border-radius:0 0 18px 18px;padding:0 30px 26px;">
               <div style="border-top:1px solid #edf0f5;padding-top:18px;color:#667085;font-size:12px;line-height:1.8;text-align:center;">
-                هذه رسالة آلية من إنفلونسر هَب. يمكنك تجاهلها إذا لم تطلب ذلك.
+                هذه رسالة آلية من {{ \App\Support\Brand::name() }}. يمكنك تجاهلها إذا لم تطلب ذلك.
+                <div style="margin-top:8px;">
+                  <a href="{{ \App\Support\Brand::url() }}/" style="color:#6252e5;text-decoration:none;font-weight:700;direction:ltr;display:inline-block;">{{ \App\Support\Brand::domain() }}</a>
+                </div>
               </div>
             </td>
           </tr>

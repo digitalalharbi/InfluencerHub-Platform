@@ -30,12 +30,12 @@ class SignupDecisionMail extends Mailable
         $s = $this->signupRequest;
 
         if ($this->approved) {
-            return $this->subject('اعتُمد طلبك — إنفلونسر هَب')->view('mail.signup-approved', [
+            return $this->subject('اعتُمد طلبك — InfluencerHub')->view('mail.signup-approved', [
                 'name' => $s->contact_name, 'company' => $s->company_name, 'url' => $this->setupUrl,
             ]);
         }
 
-        return $this->subject('بخصوص طلبك — إنفلونسر هَب')->view('mail.signup-rejected', [
+        return $this->subject('بخصوص طلبك — InfluencerHub')->view('mail.signup-rejected', [
             'name' => $s->contact_name, 'company' => $s->company_name, 'reason' => $this->reason,
         ]);
     }
