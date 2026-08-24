@@ -11,8 +11,9 @@ class ExportJob extends Model
     use BelongsToTenant;
 
     protected $fillable = [
-        'tenant_id', 'user_id', 'type', 'title', 'format', 'status', 'filters', 'row_count',
-        'disk', 'path', 'size_bytes', 'error', 'scheduled_report_id', 'completed_at', 'expires_at',
+        'tenant_id', 'user_id', 'type', 'subject_type', 'subject_id', 'title', 'format', 'status', 'filters', 'row_count',
+        'disk', 'path', 'size_bytes', 'checksum', 'fingerprint', 'template_version', 'error',
+        'scheduled_report_id', 'completed_at', 'expires_at',
     ];
 
     protected $casts = [

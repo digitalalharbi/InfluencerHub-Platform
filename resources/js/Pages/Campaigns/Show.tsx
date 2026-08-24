@@ -3,6 +3,7 @@ import { useState, type ReactNode } from 'react';
 import AppShell from '@/Layouts/AppShell';
 import { Field, Sec, StatusBadge, SummaryStrip, WorkTabs, WorkspaceHeader, sarShort } from '@/Components/ui';
 import { Icon } from '@/Components/Icon';
+import { PdfPreviewModal, type PreviewDoc } from '@/Components/PdfPreviewModal';
 import { u } from '@/lib/href';
 
 interface Stage { key: string; label: string; state: 'done' | 'current' | 'pending' }
@@ -54,6 +55,7 @@ interface Props {
   deliverables: Deliverable[]; collaborations: Collab[]; content: Content[];
   canManage: boolean; deliverableTypes: Option[]; actions: CampaignAction[];
   invoices: CampaignInvoice[]; canInvoice: boolean;
+  documents: { clientBrief: PreviewDoc };
 }
 /** [action, label, tone, needsReason] — تأتي من الخادم حسب الحالة الفعلية. */
 type CampaignAction = [string, string, string, boolean];
@@ -83,7 +85,8 @@ function EmptyRow({ span, text }: { span: number; text: string }) {
   return <tr><td colSpan={span} style={{ textAlign: 'center', color: 'var(--ih-text-muted)', padding: '1.6rem' }}>{text}</td></tr>;
 }
 
-export default function CampaignShow({ campaign, metrics, command, lifecycle, readiness, timeline, deliverables, collaborations, content, canManage, deliverableTypes, actions, invoices, canInvoice }: Props) {
+export default function CampaignShow({ campaign, metrics, command, lifecycle, readiness, timeline, deliverables, collaborations, content, canManage, deliverableTypes, actions, invoices, canInvoice, documents }: Props) {
+  const [briefOpen, setBriefOpen] = useState(false);
   const [actionFor, setActionFor] = useState<CampaignAction | null>(null);
   const [actionReason, setActionReason] = useState('');
   const runAction = (a: CampaignAction) => {
@@ -161,7 +164,9 @@ export default function CampaignShow({ campaign, metrics, command, lifecycle, re
         actions={
           <>
             {canManage && <button onClick={openEdit} className="btn btn-sm btn-outline"><Icon name="file-text" size={14} /> تعديل</button>}
-            <a href={u(`/campaigns/${campaign.id}/client-brief`)} className="btn btn-sm btn-outline" title="ملخّص PDF آمن للعميل" download><Icon name="external-link" size={14} /> ملخّص للعميل</a>
+            <button onClick={() => setBriefOpen(true)} className="btn btn-sm btn-outline" title="معاينة ملخّص PDF آمن للعميل">
+              <Icon name="file-text" size={14} /> ملخّص للعميل{documents.clientBrief.stale && <span style={{ width: 7, height: 7, borderRadius: '50%', background: 'var(--ih-warning-ink, #B54708)', display: 'inline-block', marginInlineStart: 5 }} />}
+            </button>
             <a href={u(`/campaigns/${campaign.id}/shortlist`)} className="btn btn-sm">الترشيحات</a>
             {actions.map((a) => (
               <button key={a[0]} onClick={() => runAction(a)} className={`btn btn-sm ${ABTN[a[2]] ?? 'btn-outline'}`}>{a[1]}</button>
@@ -529,6 +534,7 @@ export default function CampaignShow({ campaign, metrics, command, lifecycle, re
           </div>
         </div>
       )}
+      <PdfPreviewModal doc={documents.clientBrief} open={briefOpen} onClose={() => setBriefOpen(false)} />
     </AppShell>
   );
 }

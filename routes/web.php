@@ -320,6 +320,9 @@ Route::middleware(['auth', 'tenant', 'agency_member', 'inertia'])->prefix('beta'
     Route::get('/campaigns/{campaign}', [\App\Http\Controllers\Inertia\CampaignDetailController::class, 'show']);
     // ملخّص الحملة (PDF) آمن للعميل — يُشارَك مع العميل.
     Route::get('/campaigns/{campaign}/client-brief', [\App\Http\Controllers\Inertia\CampaignDetailController::class, 'exportClientPdf']);
+    Route::get('/campaigns/{campaign}/client-brief/preview', [\App\Http\Controllers\Inertia\CampaignDetailController::class, 'clientBriefPreview']);
+    Route::get('/campaigns/{campaign}/client-brief/download', [\App\Http\Controllers\Inertia\CampaignDetailController::class, 'clientBriefDownload']);
+    Route::post('/campaigns/{campaign}/client-brief/regenerate', [\App\Http\Controllers\Inertia\CampaignDetailController::class, 'clientBriefRegenerate']);
     Route::post('/campaigns/{campaign}', [\App\Http\Controllers\Inertia\CampaignDetailController::class, 'update']);
     Route::post('/campaigns/{campaign}/deliverables', [\App\Http\Controllers\Inertia\CampaignDetailController::class, 'addDeliverable']);
     Route::get('/campaigns/{campaign}/deliverables/{deliverable}/suggest', [\App\Http\Controllers\Inertia\DeliverableMatchController::class, 'suggest']);
@@ -634,6 +637,9 @@ Route::middleware(['auth', 'tenant', 'agency_member'])->prefix('app')->group(fun
         Route::get('/campaigns/{campaign}', [\App\Http\Controllers\Inertia\CampaignDetailController::class, 'show']);
         // ملخّص الحملة (PDF) آمن للعميل — يُشارَك مع العميل.
         Route::get('/campaigns/{campaign}/client-brief', [\App\Http\Controllers\Inertia\CampaignDetailController::class, 'exportClientPdf']);
+        Route::get('/campaigns/{campaign}/client-brief/preview', [\App\Http\Controllers\Inertia\CampaignDetailController::class, 'clientBriefPreview']);
+        Route::get('/campaigns/{campaign}/client-brief/download', [\App\Http\Controllers\Inertia\CampaignDetailController::class, 'clientBriefDownload']);
+        Route::post('/campaigns/{campaign}/client-brief/regenerate', [\App\Http\Controllers\Inertia\CampaignDetailController::class, 'clientBriefRegenerate']);
         Route::post('/campaigns/{campaign}', [\App\Http\Controllers\Inertia\CampaignDetailController::class, 'update']);
         Route::post('/campaigns/{campaign}/deliverables', [\App\Http\Controllers\Inertia\CampaignDetailController::class, 'addDeliverable']);
         Route::delete('/campaigns/{campaign}/deliverables/{deliverable}', [\App\Http\Controllers\Inertia\CampaignDetailController::class, 'removeDeliverable']);

@@ -27,7 +27,7 @@ class CampaignDetailController extends Controller
         'cancelled' => [],
     ];
 
-    public function show(Campaign $campaign): Response
+    public function show(Campaign $campaign, \App\Domain\Exports\DocumentArtifactService $artifacts): Response
     {
         $this->authorize('view', $campaign);
         $campaign->load('client', 'brand', 'deliverables.creator', 'collaborations.creator', 'contentItems.creator');
@@ -62,6 +62,23 @@ class CampaignDetailController extends Controller
                     'dueDate' => $i->due_date?->format('Y-m-d'),
                 ]),
             'canInvoice' => request()->user()?->can('create', \App\Domain\Finance\Models\Invoice::class) ?? false,
+            // مستندات الحملة — أثر «الملخّص الآمن للعميل»: معاينة/تنزيل نفس البايتات + كشف القِدَم
+            'documents' => [
+                'clientBrief' => (function () use ($campaign, $artifacts) {
+                    $latest = $artifacts->latest(self::BRIEF_TYPE, $campaign);
+                    $currentFp = $artifacts->fingerprint($this->clientBriefData($campaign), self::BRIEF_TEMPLATE, 'pdf');
+                    $base = "/app/campaigns/{$campaign->id}/client-brief";
+                    return [
+                        'title' => 'ملخّص الحملة (آمن للعميل)',
+                        'hasArtifact' => (bool) $latest,
+                        'generatedAt' => $latest?->created_at?->format('Y-m-d H:i'),
+                        'stale' => $artifacts->isStale($latest, $currentFp),
+                        'previewUrl' => "{$base}/preview",
+                        'downloadUrl' => "{$base}/download",
+                        'regenerateUrl' => "{$base}/regenerate",
+                    ];
+                })(),
+            ],
             'campaign' => [
                 'id' => $campaign->id,
                 'name' => $campaign->name,
@@ -185,14 +202,18 @@ class CampaignDetailController extends Controller
      * عليها والمخرجات والمخطط الزمني، ويستبعد صراحةً: التكلفة الملتزَمة، أتعاب
      * المبدعين، والهوامش الداخلية. Policy(view). مُدقَّق.
      */
-    public function exportClientPdf(Campaign $campaign, \App\Domain\Exports\Writers\PdfWriter $pdf): \Symfony\Component\HttpFoundation\Response
-    {
-        $this->authorize('view', $campaign);
-        $campaign->load('client', 'brand', 'deliverables');
-        $metrics = CampaignAnalytics::forPage(collect([$campaign]))[$campaign->id] ?? [];
+    /** نوع الأثر وإصدار القالب — تغيير الإصدار يُبطل النسخ القديمة. */
+    private const BRIEF_TYPE = 'campaign_client_brief';
+    private const BRIEF_TEMPLATE = 'v1';
 
+    /** بيانات الملخّص الآمنة للعميل — بلا أتعاب مبدع/تكلفة. تُحدّد البصمة (بلا وقت). */
+    private function clientBriefData(Campaign $campaign): array
+    {
+        $campaign->loadMissing('client', 'brand', 'deliverables');
+        $metrics = CampaignAnalytics::forPage(collect([$campaign]))[$campaign->id] ?? [];
         $cur = $campaign->currency ?: 'SAR';
-        $data = [
+
+        return [
             'workspace' => \App\Domain\Tenancy\Models\Organization::find(\App\Domain\Tenancy\Support\TenantContext::organizationId())?->name ?? 'الوكالة',
             'number' => $campaign->campaign_number,
             'name' => $campaign->name,
@@ -207,19 +228,70 @@ class CampaignDetailController extends Controller
             'progress' => (int) ($metrics['progress'] ?? 0),
             // مخرجات آمنة للعميل — بلا أتعاب المبدع (fee_minor مُستبعَد عمدًا)
             'deliverables' => $campaign->deliverables->map(fn ($d) => [
-                'platform' => $d->platform,
-                'type' => $d->type,
-                'quantity' => (int) $d->quantity,
-                'due' => $d->due_date?->format('Y-m-d') ?? '—',
-                'status' => __('statuses.' . $d->status),
+                'platform' => $d->platform, 'type' => $d->type, 'quantity' => (int) $d->quantity,
+                'due' => $d->due_date?->format('Y-m-d') ?? '—', 'status' => __('statuses.' . $d->status),
             ])->values()->all(),
-            'generatedAt' => now()->format('Y-m-d H:i'),
         ];
+    }
 
-        \App\Domain\Audit\Services\AuditLogger::log('export.generated', $campaign, [
-            'type' => 'campaign_client_brief', 'format' => 'pdf', 'campaign' => $campaign->campaign_number,
-        ], \App\Domain\Tenancy\Support\TenantContext::tenantId(), request()->user()?->id);
+    /** يعيد الأثر الحالي: أحدث نسخة مخزَّنة (ولو قديمة) أو يولّد الأولى. أو يجدّد صراحةً. */
+    private function briefArtifact(Campaign $campaign, \App\Domain\Exports\DocumentArtifactService $svc, bool $regenerate = false): \App\Domain\Exports\Models\ExportJob
+    {
+        $data = $this->clientBriefData($campaign);
+        $render = function () use ($campaign, $data, $svc) {
+            \App\Domain\Audit\Services\AuditLogger::log('export.generated', $campaign, [
+                'type' => self::BRIEF_TYPE, 'format' => 'pdf', 'campaign' => $campaign->campaign_number,
+            ], \App\Domain\Tenancy\Support\TenantContext::tenantId(), request()->user()?->id);
+            return $svc->pdfFromView('exports.campaign-brief', $data + ['generatedAt' => now()->format('Y-m-d H:i')]);
+        };
 
-        return $pdf->downloadView('exports.campaign-brief', $data, 'campaign-' . $campaign->campaign_number);
+        if (! $regenerate) {
+            $latest = $svc->latest(self::BRIEF_TYPE, $campaign);
+            if ($latest) return $latest;
+        }
+        return $svc->current(self::BRIEF_TYPE, $campaign, 'pdf', self::BRIEF_TEMPLATE, $data,
+            'ملخّص حملة ' . $campaign->campaign_number, $render, request()->user()?->id);
+    }
+
+    private function streamArtifact(\App\Domain\Exports\Models\ExportJob $a, \App\Domain\Exports\DocumentArtifactService $svc, string $disposition): \Symfony\Component\HttpFoundation\Response
+    {
+        $bytes = $svc->bytes($a);
+        $name = \Illuminate\Support\Str::slug($a->title) . '.' . $a->format;
+
+        return response($bytes, 200, [
+            'Content-Type' => 'application/pdf',
+            'Content-Disposition' => $disposition . '; filename="' . $name . '"',
+            'Content-Length' => (string) strlen($bytes),
+            'X-Artifact-Checksum' => $a->checksum,
+        ]);
+    }
+
+    /** معاينة داخل الصفحة (inline) — نفس الأثر الذي يُنزَّل. Policy(view). */
+    public function clientBriefPreview(Campaign $campaign, \App\Domain\Exports\DocumentArtifactService $svc): \Symfony\Component\HttpFoundation\Response
+    {
+        $this->authorize('view', $campaign);
+        return $this->streamArtifact($this->briefArtifact($campaign, $svc), $svc, 'inline');
+    }
+
+    /** تنزيل — يبثّ **نفس** بايتات أثر المعاينة (attachment). Policy(view). */
+    public function clientBriefDownload(Campaign $campaign, \App\Domain\Exports\DocumentArtifactService $svc): \Symfony\Component\HttpFoundation\Response
+    {
+        $this->authorize('view', $campaign);
+        return $this->streamArtifact($this->briefArtifact($campaign, $svc), $svc, 'attachment');
+    }
+
+    /** إنشاء نسخة محدثة صراحةً عند تغيّر المصدر — لا تجديد صامت. Policy(view). */
+    public function clientBriefRegenerate(Campaign $campaign, \App\Domain\Exports\DocumentArtifactService $svc): \Illuminate\Http\RedirectResponse
+    {
+        $this->authorize('view', $campaign);
+        $this->briefArtifact($campaign, $svc, regenerate: true);
+
+        return back()->with('ok', 'أُنشئت نسخة محدّثة من الملخّص.');
+    }
+
+    /** توافق خلفي: الرابط القديم يُنزّل الأثر ذاته. */
+    public function exportClientPdf(Campaign $campaign, \App\Domain\Exports\DocumentArtifactService $svc): \Symfony\Component\HttpFoundation\Response
+    {
+        return $this->clientBriefDownload($campaign, $svc);
     }
 }
