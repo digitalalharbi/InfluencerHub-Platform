@@ -42,7 +42,7 @@ export default function PublicLayout({
         <div className="pub-wrap pub-header-inner">
           <Link href="/" className="pub-logo">
             <BrandMark />
-            <span>إنفلونسر هَب</span>
+            <span style={{ direction: 'ltr' }}>InfluencerHub</span>
           </Link>
           <nav className="pub-nav">
             <Link href="/features">المزايا</Link>
@@ -67,8 +67,9 @@ export default function PublicLayout({
         <div className="pub-wrap">
           <div className="pub-footer-cols">
             <div>
-              <div className="pub-logo"><BrandMark /><span>إنفلونسر هَب</span></div>
-              <p className="pub-muted">منصّة إدارة التسويق عبر صنّاع المحتوى.</p>
+              <div className="pub-logo"><BrandMark /><span style={{ direction: 'ltr' }}>InfluencerHub</span></div>
+              <p className="pub-muted">منصّة إدارة حملات المؤثرين وصنّاع المحتوى.</p>
+              <a href="https://influencerhub.io/" style={{ direction: 'ltr', display: 'inline-block', marginTop: '.35rem', fontWeight: 700 }}>influencerhub.io</a>
             </div>
             <div>
               <h4>المنتَج</h4>
@@ -87,6 +88,7 @@ export default function PublicLayout({
             </div>
             <div>
               <h4>الدعم</h4>
+              <Link href="/info">عن InfluencerHub</Link>
               <Link href="/help">المساعدة</Link>
               <Link href="/terms">الشروط</Link>
               <Link href="/privacy">الخصوصية</Link>
@@ -94,7 +96,7 @@ export default function PublicLayout({
           </div>
           {/* الروابط النظامية في السطر الأخير أيضًا: هذا أوّل ما يُبحث عنه في التذييل */}
           <div className="pub-footer-legal">
-            © {new Date().getFullYear()} إنفلونسر هَب · <Link href="/terms">الشروط</Link> ·{' '}
+            © {new Date().getFullYear()} <span style={{ direction: 'ltr' }}>InfluencerHub</span> · <a href="https://influencerhub.io/" style={{ direction: 'ltr' }}>influencerhub.io</a> · <Link href="/terms">الشروط</Link> ·{' '}
             <Link href="/privacy">الخصوصية</Link>
           </div>
         </div>

@@ -47,6 +47,7 @@ class PublicPagesTest extends TestCase
             'حلول صنّاع المحتوى' => ['/solutions/creators', 'Public/Solution'],
             'الأسعار' => ['/pricing', 'Public/Pricing'],
             'المساعدة' => ['/help', 'Public/Help'],
+            'عن InfluencerHub' => ['/info', 'Public/Info'],
             'الشروط' => ['/terms', 'Public/Terms'],
             'الخصوصية' => ['/privacy', 'Public/Privacy'],
             'طلب عرض' => ['/demo', 'Public/Demo'],
@@ -88,6 +89,15 @@ class PublicPagesTest extends TestCase
                 ->has('plans.0.name')
                 ->has('plans.0.includes')
                 ->missing('plans.0.price'));
+    }
+
+    public function test_info_page_is_public_and_branded_influencerhub(): void
+    {
+        $this->get('/info')->assertOk()
+            ->assertInertia(fn (Assert $p) => $p->component('Public/Info')
+                ->where('brand.name', 'InfluencerHub')
+                ->where('brand.domain', 'influencerhub.io')
+                ->where('brand.url', 'https://influencerhub.io'));
     }
 
     public function test_help_page_carries_grouped_questions(): void
