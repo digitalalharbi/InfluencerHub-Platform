@@ -1,5 +1,6 @@
 import { Link } from '@inertiajs/react'
 import PublicLayout from '@/Layouts/PublicLayout'
+import PublicContact from '@/Components/PublicContact'
 
 /**
  * الشروط — تصف ما يفعله النظام فعلًا لا ما يفعله نظام افتراضي.
@@ -174,9 +175,11 @@ export default function Terms() {
         </p>
 
         <h2>12. التواصل</h2>
+        <p>للاستفسار عن هذه الشروط، تواصل معنا عبر قناة المنتج العامّة:</p>
+        <PublicContact />
         <p>
-          للاستفسار عن هذه الشروط، استخدم قنوات التواصل الرسمية المعلنة من مشغّل المنصّة، أو{' '}
-          <Link href="/demo">أرسل طلبًا عبر الموقع</Link>.
+          أو <Link href="/demo">أرسل طلبًا عبر الموقع</Link>. وتبقى قنوات مشغّل المنصّة
+          الرسمية مرجعًا للمسائل التعاقدية الخاصّة بمساحة عملك.
         </p>
 
         <p className="pub-legal-related">

@@ -53,6 +53,15 @@
                 هذه رسالة آلية من {{ \App\Support\Brand::name() }}. يمكنك تجاهلها إذا لم تطلب ذلك.
                 <div style="margin-top:8px;">
                   <a href="{{ \App\Support\Brand::url() }}/" style="color:#6252e5;text-decoration:none;font-weight:700;direction:ltr;display:inline-block;">{{ \App\Support\Brand::domain() }}</a>
+                  <span style="color:#cbd5e1;"> · </span>
+                  <a href="mailto:{{ \App\Support\Brand::publicEmail() }}" style="color:#6252e5;text-decoration:none;direction:ltr;display:inline-block;">{{ \App\Support\Brand::publicEmail() }}</a>
+                </div>
+                <div style="margin-top:6px;">
+                  <a href="{{ \App\Support\Brand::privacyUrl() }}" style="color:#667085;text-decoration:none;">الخصوصية</a>
+                  <span style="color:#cbd5e1;"> · </span>
+                  <a href="{{ \App\Support\Brand::termsUrl() }}" style="color:#667085;text-decoration:none;">الشروط</a>
+                  <span style="color:#cbd5e1;"> · </span>
+                  <a href="{{ \App\Support\Brand::helpUrl() }}" style="color:#667085;text-decoration:none;">المساعدة</a>
                 </div>
               </div>
             </td>

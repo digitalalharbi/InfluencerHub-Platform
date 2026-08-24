@@ -1,5 +1,6 @@
-import { Link, Head } from '@inertiajs/react'
+import { Link, Head, usePage } from '@inertiajs/react'
 import type { ReactNode } from 'react'
+import type { SharedProps } from '@/types'
 
 function BrandMark({ size = 26 }: { size?: number }) {
   return (
@@ -20,23 +21,21 @@ function BrandMark({ size = 26 }: { size?: number }) {
  */
 export default function PublicLayout({
   title,
-  description,
   children,
 }: {
   title: string
+  /** يُقبل من الصفحات للتوافق؛ الوصف الافتراضي يوفّره القالب الجذر (بلا تكرار وسم). */
   description?: string
   children: ReactNode
 }) {
+  const { brand } = usePage<SharedProps>().props
 
   return (
     <div className="pub">
-      <Head>
-        <title>{title}</title>
-        {description && <meta name="description" content={description} />}
-        <meta property="og:title" content={title} />
-        {description && <meta property="og:description" content={description} />}
-        <meta property="og:type" content="website" />
-      </Head>
+      {/* عنوان الصفحة فقط يمرّ عبر مُحوِّل inertia.tsx فيُلحق «— InfluencerHub».
+          الرابط القانوني (نطاق المنتج + المسار) والوصف الافتراضي يضبطهما القالب
+          الجذر مرّةً في HTML الأوّليّ — عنصر واحد لكلٍّ بلا تكرار. */}
+      <Head title={title} />
 
       <header className="pub-header">
         <div className="pub-wrap pub-header-inner">
@@ -92,6 +91,11 @@ export default function PublicLayout({
               <Link href="/help">المساعدة</Link>
               <Link href="/terms">الشروط</Link>
               <Link href="/privacy">الخصوصية</Link>
+            </div>
+            <div>
+              <h4>تواصل</h4>
+              <a href={`mailto:${brand.publicEmail}`} style={{ direction: 'ltr' }}>{brand.publicEmail}</a>
+              <a href={`tel:${brand.publicPhone}`} style={{ direction: 'ltr' }}>{brand.publicPhoneDisplay}</a>
             </div>
           </div>
           {/* الروابط النظامية في السطر الأخير أيضًا: هذا أوّل ما يُبحث عنه في التذييل */}

@@ -16,6 +16,13 @@ return [
     'locale' => 'ar',
     'timezone' => 'Asia/Riyadh',                             // لعرض التواريخ في سياق المنتج (التخزين UTC)
     'info_path' => '/info',                                  // صفحة «عن InfluencerHub» العامة
+    'privacy_path' => '/privacy',
+    'terms_path' => '/terms',
+    'help_path' => '/help',
+
+    // بيانات التواصل العامّة الحقيقية (مصدر المالك) — ليست تجريبية.
+    'public_email' => env('PRODUCT_PUBLIC_EMAIL', 'info@influencerhub.io'),
+    'public_phone' => env('PRODUCT_PUBLIC_PHONE', '+966550137003'),
 
     // البريد — المُرسِل الفعليّ يأتي من البيئة/المزوّد المُتحقَّق؛ هذه أسماء الأدوار فقط.
     'mail' => [

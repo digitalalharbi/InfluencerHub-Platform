@@ -1,5 +1,6 @@
 import { Link } from '@inertiajs/react'
 import PublicLayout from '@/Layouts/PublicLayout'
+import PublicContact from '@/Components/PublicContact'
 
 interface FaqGroup {
   title: string
@@ -68,6 +69,9 @@ export default function Help({ groups }: { groups: FaqGroup[] }) {
               اطّلع على المزايا
             </Link>
           </div>
+          <p className="pub-muted" style={{ marginTop: '1rem' }}>
+            أو تواصل معنا مباشرةً: <PublicContact inline />
+          </p>
         </div>
       </section>
     </PublicLayout>

@@ -62,6 +62,15 @@ class HandleInertiaRequests extends Middleware
                 'url' => \App\Support\Brand::url(),
                 'domain' => \App\Support\Brand::domain(),
                 'infoUrl' => \App\Support\Brand::infoUrl(),
+                // مسارات نسبية (نفس المضيف influencerhub.io) — تنقّل بلا تبويب جديد
+                'infoPath' => (string) config('influencerhub.info_path', '/info'),
+                'privacyPath' => (string) config('influencerhub.privacy_path', '/privacy'),
+                'termsPath' => (string) config('influencerhub.terms_path', '/terms'),
+                'helpPath' => (string) config('influencerhub.help_path', '/help'),
+                'publicEmail' => \App\Support\Brand::publicEmail(),
+                'publicPhone' => \App\Support\Brand::publicPhone(),
+                'publicPhoneDisplay' => \App\Support\Brand::publicPhoneDisplay(),
+                'year' => (int) date('Y'),
             ],
         ]);
     }

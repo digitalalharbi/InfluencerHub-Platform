@@ -8,7 +8,10 @@
     {{-- عنوان افتراضي — تتجاوزه Inertia لكلّ صفحة، ويبقى هوية المنتج قبل تحميل React --}}
     <title inertia>{{ $brand['name'] }} — {{ $brand['tagline'] }}</title>
     <meta name="description" content="{{ $brand['tagline'] }}">
-    <link rel="canonical" href="{{ url()->current() }}">
+    {{-- الرابط القانوني على نطاق المنتج influencerhub.io ومسار الطلب — لا على مضيف
+         الخدمة (crmv2.…) الذي يعطيه url()->current(). حاضر في HTML الأوّليّ (لزواحف
+         لا تُشغّل JS)، وعنصر واحد لا يتكرّر. العنوان لكلّ صفحة يضبطه Inertia. --}}
+    <link rel="canonical" href="{{ \App\Support\Brand::url() }}{{ request()->getPathInfo() === '/' ? '' : request()->getPathInfo() }}">
     {{-- أيقونات المنتج — عائلة واحدة (favicon.ico + SVG + apple-touch) --}}
     <link rel="icon" href="/favicon.ico" sizes="any">
     <link rel="icon" type="image/svg+xml" href="/icons/ih-icon.svg">
