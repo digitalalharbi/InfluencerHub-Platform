@@ -51,20 +51,35 @@ async function login(page) {
   expect(page.url(), 'login must land on /app, not bounce to /login').toMatch(/\/app(\/|$)/);
 }
 
-/**
- * يقرأ خصائص Inertia من HTML الخام (قبل الترطيب) عبر طلب مُصادَق — لأن Inertia
- * يحذف سمة data-page من الجذر بعد الترطيب فلا تصلح قراءتها من DOM الحيّ.
- */
-async function inertiaProps(page, path) {
-  const res = await page.request.get(path);
-  expect(res.ok(), `GET ${path} ok`).toBeTruthy();
-  const html = await res.text();
-  const m = html.match(/id="app"[^>]*data-page="([^"]*)"/);
-  expect(m, `Inertia data-page present in ${path}`).toBeTruthy();
-  const json = m[1]
+function decodeEntities(s) {
+  return s
     .replace(/&quot;/g, '"').replace(/&#0?39;/g, "'").replace(/&#0?34;/g, '"')
     .replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&amp;/g, '&');
-  return JSON.parse(json).props;
+}
+
+/**
+ * ينتقل إلى المسار ويقرأ خصائص Inertia من **جسم استجابة المستند** لنفس التنقّل
+ * المُصادَق (HTML الخام قبل الترطيب) — لأن Inertia يحذف سمة data-page من الجذر بعد
+ * الترطيب، ولأن طلبًا منفصلًا قد لا يحمل الجلسة. يُبقي الصفحة على المسار للفحوص التالية.
+ */
+async function gotoAndProps(page, path) {
+  const waitDoc = page.waitForResponse(
+    (r) => r.request().resourceType() === 'document' && new URL(r.url()).pathname === path && r.status() < 400,
+    { timeout: 30_000 },
+  ).catch(() => null);
+  const [resp] = await Promise.all([waitDoc, page.goto(path, { waitUntil: 'networkidle' })]);
+
+  let html = null;
+  if (resp) { try { html = await resp.text(); } catch { /* body gone */ } }
+  if (!html) html = await page.content();
+
+  const m = html.match(/id="app"[^>]*?data-page="([^"]*)"/) || html.match(/data-page="([^"]*)"/);
+  if (!m) {
+    throw new Error(`No Inertia data-page for ${path} — respStatus=${resp ? resp.status() : 'none'} `
+      + `finalUrl=${resp ? new URL(resp.url()).pathname : 'n/a'} len=${html.length} `
+      + `hasIdApp=${html.includes('id="app"')} hasDataPage=${html.includes('data-page')}`);
+  }
+  return JSON.parse(decodeEntities(m[1])).props;
 }
 
 test('authenticated campaign workspace smoke on production', async ({ page }, testInfo) => {
@@ -76,8 +91,7 @@ test('authenticated campaign workspace smoke on production', async ({ page }, te
   await login(page);
 
   // 2) اكتشاف حملة حقيقية من قائمة الحملات (لا افتراض معرّف)
-  await page.goto('/app/campaigns', { waitUntil: 'networkidle' });
-  const listProps = await inertiaProps(page, '/app/campaigns');
+  const listProps = await gotoAndProps(page, '/app/campaigns');
   const rows = listProps?.campaigns?.data ?? [];
   expect(Array.isArray(rows) && rows.length > 0, 'showcase tenant must expose at least one campaign').toBeTruthy();
   // فضّل حملة غير منتهية ليكون فحص «الإجراء التالي» ذا معنى (يُخفى للمكتملة/الملغاة)
@@ -85,9 +99,8 @@ test('authenticated campaign workspace smoke on production', async ({ page }, te
   const chosen = rows.find((r) => r.status && !FINAL.includes(r.status)) ?? rows[0];
   const campaignId = chosen.id;
 
-  // 3) فتح تفاصيل الحملة — تحميل كامل للواجهة + قراءة الحمولة من HTML الخام
-  await page.goto(`/app/campaigns/${campaignId}`, { waitUntil: 'networkidle' });
-  const props = await inertiaProps(page, `/app/campaigns/${campaignId}`);
+  // 3) فتح تفاصيل الحملة — تنقّل مُصادَق + قراءة الحمولة من جسم المستند
+  const props = await gotoAndProps(page, `/app/campaigns/${campaignId}`);
   expect(props.campaign?.id, 'campaign detail payload must load').toBe(campaignId);
 
   // فصل المالية في الحمولة نفسها: تحصيل العميل (invoices) ≠ مستحقات المبدع (payouts)
