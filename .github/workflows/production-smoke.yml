@@ -1,0 +1,66 @@
+name: Production smoke (authenticated)
+
+# بنية ضمان جودة فقط — تُشغَّل يدويًّا. لا تعمل على push/PR إطلاقًا.
+# تتحقّق من مساحة عمل الحملة المُصادَقة على الإنتاج الحقيقي باستخدام حساب بيئة
+# العرض المُصرَّح به الموجود أصلًا، مُسترجَعًا بأمان (مُقنَّع، لا يُطبع في السجلّات).
+# لا تُغيّر أي سلوك مصادقة، ولا تُنشئ بيانات إنتاج، ولا تُعدّل أي كلمة مرور.
+on:
+  workflow_dispatch:
+
+concurrency:
+  group: production-smoke
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  smoke:
+    name: Authenticated production smoke
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      VPS_HOST: ${{ secrets.VPS_HOST }}
+      VPS_USER: ${{ secrets.VPS_USER || 'root' }}
+      VPS_PORT: ${{ secrets.VPS_PORT || '22' }}
+      VPS_APP_DIR: ${{ secrets.VPS_APP_DIR || '/opt/crmv2' }}
+      SMOKE_BASE_URL: https://influencerhub.io
+      SHOWCASE_EMAIL: showcase_admin@showcase.test
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Retrieve Showcase credential securely (masked, never printed)
+        env:
+          VPS_PASSWORD: ${{ secrets.VPS_PASSWORD }}
+        run: |
+          set +x
+          sudo apt-get update >/dev/null 2>&1 && sudo apt-get install -y sshpass >/dev/null 2>&1
+          # المصدر المُعتمَد: ملف اعتماد بيئة العرض داخل حاوية التطبيق (على وحدة تخزين ثابتة).
+          # نلتقط المحتوى في متغيّر ولا نطبعه؛ نستخرج قيمة كلمة المرور فقط ثم نُقنّعها فورًا.
+          CONTENT="$(sshpass -p "$VPS_PASSWORD" ssh -o StrictHostKeyChecking=no -o ConnectTimeout=25 -p "$VPS_PORT" "$VPS_USER@$VPS_HOST" "cd '$VPS_APP_DIR' && docker compose -p platform -f deploy/vps/docker-compose.yml exec -T app sh -lc 'cat storage/app/private/showcase-credentials.txt'" 2>/dev/null || true)"
+          PW="$(printf '%s\n' "$CONTENT" | sed -n '2s/^# [^:]*: //p' | tr -d '\r\n')"
+          if [ -z "$PW" ]; then
+            # مصدر بديل: PREVIEW_PASSWORD من بيئة الخادم إن كانت هي مصدر الحقيقة الفعلي.
+            PW="$(sshpass -p "$VPS_PASSWORD" ssh -o StrictHostKeyChecking=no -o ConnectTimeout=25 -p "$VPS_PORT" "$VPS_USER@$VPS_HOST" "cd '$VPS_APP_DIR' && grep -E '^PREVIEW_PASSWORD=' deploy/vps/.env" 2>/dev/null | cut -d= -f2- | tr -d '\r\n' || true)"
+          fi
+          if [ -z "$PW" ]; then
+            echo "ERROR: could not retrieve the Showcase credential from the VPS (file/PREVIEW_PASSWORD both empty)."
+            exit 1
+          fi
+          echo "::add-mask::$PW"
+          printf 'SHOWCASE_PASSWORD=%s\n' "$PW" >> "$GITHUB_ENV"
+          echo "Showcase credential retrieved and masked."
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install dependencies + Chromium
+        run: |
+          npm ci
+          npx playwright install --with-deps chromium
+
+      - name: Run authenticated production smoke
+        env:
+          SHOWCASE_PASSWORD: ${{ env.SHOWCASE_PASSWORD }}
+        run: npx playwright test --config=playwright.smoke.config.js
