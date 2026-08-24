@@ -10,8 +10,14 @@ interface Command {
   stages: Stage[]; current: string; current_label: string; progress: number;
   next_action: { title: string; hint: string; link: string }; is_late: boolean;
 }
-interface ReadyItem { label: string; done: boolean; hint: string; link: string | null }
-interface Readiness { items: ReadyItem[]; done: number; total: number; percent: number }
+type ReadyState = 'ready' | 'attention' | 'blocked' | 'not_applicable';
+interface ReadyAction { title: string; link: string }
+interface ReadyItem { label: string; state: ReadyState; reason: string; evidence: string | null; action: ReadyAction | null }
+interface ReadyBudget {
+  budgetMinor: number; committedMinor: number; remainingMinor: number;
+  overBudget: boolean; variancePct: number; currency: string;
+}
+interface Readiness { items: ReadyItem[]; ready: number; blocked: number; done: number; total: number; percent: number; budget: ReadyBudget }
 interface LifeStage {
   key: string; label: string; label_en: string; owner: string;
   state: 'complete' | 'in_progress' | 'blocked' | 'not_started';
@@ -53,6 +59,14 @@ interface Props {
 type CampaignAction = [string, string, string, boolean];
 
 const ABTN: Record<string, string> = { primary: 'btn-primary', danger: 'btn-danger', ghost: 'btn-ghost' };
+
+/** حالات معايير الجاهزية — علامة/تسمية/ألوان مهنية. لا شطب للمكتمل. */
+const READY_STATE: Record<ReadyState, { label: string; mark: string; bg: string; fg: string; accent: string }> = {
+  ready: { label: 'جاهز', mark: '✓', bg: 'var(--ih-success-soft, #ECFDF3)', fg: 'var(--ih-success-700, #067647)', accent: 'var(--ih-success-700, #067647)' },
+  attention: { label: 'يحتاج انتباه', mark: '!', bg: 'var(--ih-warning-soft, #FFFAEB)', fg: 'var(--ih-warning-ink, #B54708)', accent: 'var(--ih-warning-ink, #B54708)' },
+  blocked: { label: 'محظور', mark: '×', bg: 'var(--ih-danger-soft, #FEF3F2)', fg: 'var(--ih-danger-ink, #B42318)', accent: 'var(--ih-danger-ink, #B42318)' },
+  not_applicable: { label: 'لا ينطبق', mark: '—', bg: 'var(--ih-surface-sunken, #F2F4F7)', fg: 'var(--ih-text-muted)', accent: 'var(--ih-gray-300, #D0D5DD)' },
+};
 
 const LBL: React.CSSProperties = { fontSize: '.8rem', fontWeight: 600, display: 'block', marginBottom: '.3rem' };
 
@@ -235,33 +249,77 @@ export default function CampaignShow({ campaign, metrics, command, lifecycle, re
       })()}
 
       <SummaryStrip items={[
-        { label: 'الميزانية', value: money(campaign.budgetMinor, campaign.currency) },
-        { label: 'الملتزَم', value: money(campaign.committedMinor, campaign.currency), tone: overBudget ? 'danger' : 'primary' },
+        { label: 'تقدّم دورة الحملة', value: `${lifecycle.progress}%`, tone: 'primary' },
+        { label: 'جاهزية التنفيذ', value: `${readiness.ready}/${readiness.total}`, tone: readiness.blocked ? 'danger' : undefined },
         { label: 'المخرجات', value: metrics.deliverables, icon: 'image' },
         { label: 'صناع المحتوى', value: metrics.creators, icon: 'users' },
-        { label: 'التقدّم', value: `${metrics.progress}%`, tone: 'primary' },
+        { label: 'المبلغ الملتزم به', value: money(campaign.committedMinor, campaign.currency), tone: overBudget ? 'danger' : 'primary' },
       ]} />
+
+      {/* لوحة التحكّم المالي — ميزانية/التزامات/متبقٍّ أو تجاوز، بدلًا من رقمين مجرّدين */}
+      {readiness.budget.budgetMinor > 0 && (() => {
+        const b = readiness.budget;
+        const over = b.overBudget;
+        const remLabel = over ? 'تجاوز الميزانية' : 'المتبقّي من الميزانية';
+        const remColor = over ? 'var(--ih-danger-ink, #B42318)' : 'var(--ih-success-700, #067647)';
+        const cells: { k: string; v: string; c?: string }[] = [
+          { k: 'الميزانية المعتمدة', v: money(b.budgetMinor, b.currency) },
+          { k: 'إجمالي الالتزامات', v: money(b.committedMinor, b.currency), c: over ? 'var(--ih-danger-ink, #B42318)' : undefined },
+          { k: remLabel, v: money(Math.abs(b.remainingMinor), b.currency), c: remColor },
+          { k: 'الفارق', v: `${over ? '+' : ''}${b.variancePct}%`, c: over ? 'var(--ih-danger-ink, #B42318)' : 'var(--ih-text-secondary)' },
+        ];
+        return (
+          <div className="card" style={{ padding: '.9rem 1.1rem', marginBottom: '1.1rem', borderInlineStart: `3px solid ${over ? 'var(--ih-danger, #D92D20)' : 'var(--ih-success-700, #067647)'}` }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '.5rem', marginBottom: '.7rem', flexWrap: 'wrap' }}>
+              <Icon name="wallet" size={16} />
+              <span style={{ fontWeight: 800, fontSize: '.92rem' }}>الحالة المالية</span>
+              {over && <span className="badge" style={{ background: 'var(--ih-danger-soft, #FEF3F2)', color: 'var(--ih-danger-ink, #B42318)', fontWeight: 700 }}>الالتزامات تتجاوز الميزانية</span>}
+            </div>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(130px, 1fr))', gap: '.7rem' }}>
+              {cells.map((c) => (
+                <div key={c.k}>
+                  <div style={{ fontSize: '.72rem', color: 'var(--ih-text-muted)' }}>{c.k}</div>
+                  <div style={{ fontWeight: 800, fontVariantNumeric: 'tabular-nums', color: c.c ?? 'var(--ih-text)' }}>{c.v}</div>
+                </div>
+              ))}
+            </div>
+            {over && canManage && (
+              <div style={{ display: 'flex', gap: '.5rem', flexWrap: 'wrap', marginTop: '.8rem' }}>
+                <a href={u(`/campaigns/${campaign.id}#deliverables`)} className="btn btn-xs btn-outline">مراجعة التكاليف</a>
+                <a href={u(`/campaigns/${campaign.id}/shortlist`)} className="btn btn-xs btn-outline">فتح المؤثرين</a>
+              </div>
+            )}
+          </div>
+        );
+      })()}
 
       <div style={{ display: 'grid', gridTemplateColumns: '1.3fr .7fr', gap: '1.1rem', alignItems: 'start' }} className="ih-overview-grid">
         <div style={{ display: 'grid', gap: '1.1rem' }}>
-          <Sec title="قائمة الجاهزية" icon="clipboard-check">
+          <Sec title="جاهزية التنفيذ" icon="clipboard-check">
             <div className="ih-sec__body">
-              <div style={{ display: 'flex', alignItems: 'center', gap: '.6rem', marginBottom: '.8rem' }}>
-                <div className="ih-bar" style={{ flex: 1 }}><span style={{ width: `${readiness.percent}%` }} /></div>
-                <span style={{ fontWeight: 800, fontVariantNumeric: 'tabular-nums' }}>{readiness.done}/{readiness.total}</span>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '.6rem', marginBottom: '.9rem', flexWrap: 'wrap' }}>
+                <div className="ih-bar" style={{ flex: 1, minWidth: 120 }}><span style={{ width: `${readiness.percent}%`, background: readiness.blocked ? 'var(--ih-danger, #D92D20)' : undefined }} /></div>
+                <span style={{ fontWeight: 800, fontVariantNumeric: 'tabular-nums' }}>{readiness.ready} من {readiness.total} جاهز</span>
+                {readiness.blocked > 0 && <span className="badge" style={{ background: 'var(--ih-danger-soft, #FEF3F2)', color: 'var(--ih-danger-ink, #B42318)', fontWeight: 700 }}>{readiness.blocked} محظور</span>}
               </div>
-              <div style={{ display: 'grid', gap: '.4rem' }}>
-                {readiness.items.map((it, i) => (
-                  <a key={i} href={it.link ?? '#'} className="ih-risk" style={{ justifyContent: 'flex-start', gap: '.6rem', opacity: it.done ? 0.65 : 1 }}>
-                    <span style={{ width: 22, height: 22, borderRadius: '50%', flexShrink: 0, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', background: it.done ? 'var(--ih-success-soft)' : 'var(--ih-warning-soft)', color: it.done ? 'var(--ih-success-ink)' : 'var(--ih-warning-ink)' }}>
-                      {it.done ? <Icon name="shield-check" size={13} /> : '!'}
-                    </span>
-                    <span style={{ flex: 1, minWidth: 0 }}>
-                      <span style={{ display: 'block', fontWeight: 600, textDecoration: it.done ? 'line-through' : 'none' }}>{it.label}</span>
-                      {!it.done && <span style={{ display: 'block', fontSize: '.74rem', color: 'var(--ih-text-muted)', fontWeight: 500 }}>{it.hint}</span>}
-                    </span>
-                  </a>
-                ))}
+              <div style={{ display: 'grid', gap: '.5rem' }}>
+                {readiness.items.map((it, i) => {
+                  const S = READY_STATE[it.state];
+                  return (
+                    <div key={i} style={{ border: '1px solid var(--ih-border)', borderInlineStart: `3px solid ${S.accent}`, borderRadius: 8, padding: '.55rem .7rem', background: 'var(--ih-surface)' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '.5rem' }}>
+                        <span style={{ width: 20, height: 20, borderRadius: 6, flexShrink: 0, display: 'grid', placeItems: 'center', background: S.bg, color: S.fg, fontWeight: 800, fontSize: '.7rem' }}>{S.mark}</span>
+                        <span style={{ fontWeight: 700, fontSize: '.85rem', flex: 1, minWidth: 0 }}>{it.label}</span>
+                        <span className="badge" style={{ background: S.bg, color: S.fg, fontWeight: 700, fontSize: '.66rem' }}>{S.label}</span>
+                      </div>
+                      <div style={{ fontSize: '.75rem', color: 'var(--ih-text-secondary)', marginTop: '.35rem', marginInlineStart: '1.7rem' }}>{it.reason}</div>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '.6rem', flexWrap: 'wrap', marginTop: it.evidence || it.action ? '.35rem' : 0, marginInlineStart: '1.7rem' }}>
+                        {it.evidence && <span style={{ fontSize: '.7rem', color: 'var(--ih-text-muted)', fontVariantNumeric: 'tabular-nums' }}>{it.evidence}</span>}
+                        {it.action && <a href={u(it.action.link)} className="btn btn-xs btn-outline">{it.action.title} ←</a>}
+                      </div>
+                    </div>
+                  );
+                })}
               </div>
             </div>
           </Sec>
