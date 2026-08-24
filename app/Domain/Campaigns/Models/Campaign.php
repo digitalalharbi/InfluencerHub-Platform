@@ -20,6 +20,11 @@ class Campaign extends Model {
     public function statusHistory(): HasMany { return $this->hasMany(CampaignStatusHistory::class); }
     public function collaborations(): HasMany { return $this->hasMany(\App\Domain\Collaborations\Models\Collaboration::class); }
     public function contentItems(): HasMany { return $this->hasMany(\App\Domain\Content\Models\ContentItem::class); }
+    // مساحة عمل الحملة: كلّ هذه الكيانات تحمل campaign_id، فتُعرض تبويباتٍ داخل الحملة
+    // بدل وحدات منفصلة (لا دمج نماذج — تجميع عرضٍ فقط).
+    public function contracts(): HasMany { return $this->hasMany(\App\Domain\Contracts\Models\Contract::class); }
+    public function invoices(): HasMany { return $this->hasMany(\App\Domain\Finance\Models\Invoice::class); }
+    public function payouts(): HasMany { return $this->hasMany(\App\Domain\Finance\Models\Payout::class); }
     /** إجمالي أجور المخرجات (وحدات صغرى) — لمقارنته بالميزانية. */
     public function committedMinor(): int { return (int) $this->deliverables->sum(fn($d) => (int)($d->fee_minor ?? 0) * (int)$d->quantity); }
     public function isEditable(): bool { return in_array($this->status, ['draft','planning'], true); }

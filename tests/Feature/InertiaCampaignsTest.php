@@ -72,7 +72,39 @@ class InertiaCampaignsTest extends TestCase
                 ->where('campaign.id', $cm->id)
                 ->has('command.stages')->has('command.next_action')
                 ->has('readiness.items')->has('timeline')
-                ->has('deliverables')->has('collaborations')->has('content'));
+                ->has('deliverables')->has('collaborations')->has('content')
+                // مساحة عمل الحملة: العقود والمستحقات تبويبان داخل الحملة (لا وحدتان منفصلتان)
+                ->has('contracts')->has('payouts')->has('invoices'));
+    }
+
+    public function test_campaign_workspace_exposes_contracts_and_payouts_of_the_campaign(): void
+    {
+        [$t, , $u] = $this->agency(1);
+        TenantContext::bypass(true);
+        $cm = Campaign::where('tenant_id', $t->id)->first();
+        $creator = \App\Domain\Creators\Models\Creator::where('tenant_id', $t->id)->first()
+            ?? \App\Domain\Creators\Models\Creator::create([
+                'tenant_id' => $t->id, 'creator_number' => 'CR-WS-' . $t->id, 'type' => 'influencer',
+                'display_name' => 'مبدع مساحة العمل', 'status' => 'active', 'iban_last4' => '6789',
+            ]);
+        // عقد ومستحق مرتبطان بالحملة عبر campaign_id — يجب أن يظهرا في حمولتها
+        \App\Domain\Contracts\Models\Contract::create([
+            'tenant_id' => $t->id, 'contract_number' => 'CO-WS-1', 'party_type' => 'creator',
+            'creator_id' => $creator->id, 'campaign_id' => $cm->id, 'title' => 'عقد مساحة العمل',
+            'value_minor' => 100000, 'currency' => 'SAR', 'status' => 'draft', 'created_by' => $u->id,
+        ]);
+        \App\Domain\Finance\Models\Payout::create([
+            'tenant_id' => $t->id, 'payout_number' => 'PY-WS-1', 'creator_id' => $creator->id,
+            'campaign_id' => $cm->id, 'description' => 'مستحق مساحة العمل', 'amount_minor' => 50000,
+            'currency' => 'SAR', 'status' => 'pending', 'created_by' => $u->id,
+        ]);
+        TenantContext::reset();
+        $this->actingAs($u)->get("/beta/campaigns/{$cm->id}")
+            ->assertOk()
+            ->assertInertia(fn (Assert $page) => $page
+                ->component('Campaigns/Show')
+                ->where('contracts', fn ($c) => collect($c)->contains('number', 'CO-WS-1'))
+                ->where('payouts', fn ($p) => collect($p)->contains('number', 'PY-WS-1')));
     }
 
     public function test_detail_is_idor_safe_across_tenants(): void
