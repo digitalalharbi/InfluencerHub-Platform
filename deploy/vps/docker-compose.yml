@@ -45,6 +45,10 @@ services:
     networks:
       - default
       - web_proxy
+    volumes:
+      # تخزين دائم مشترك لملفّات المستخدم (آثار المستندات/التقارير المجدولة/التصدير).
+      # بدونه يُمحى storage/app مع كل نشر (up --build) فتُصبح التنزيلات فارغة رغم بقاء صفوف القاعدة.
+      - app_storage:/app/storage/app
 
   queue:
     build:
@@ -62,6 +66,8 @@ services:
       DB_PASSWORD: ${DB_PASSWORD:?Set DB_PASSWORD in deploy/vps/.env}
       QUEUE_CONNECTION: ${QUEUE_CONNECTION:-database}
     command: sh -c 'php artisan queue:work --queue=default --tries=3 --sleep=1 --timeout=120 --max-time=3600'
+    volumes:
+      - app_storage:/app/storage/app
     depends_on:
       db:
         condition: service_healthy
@@ -81,12 +87,15 @@ services:
       DB_USERNAME: ${DB_USERNAME:-influencerhub_crmv2}
       DB_PASSWORD: ${DB_PASSWORD:?Set DB_PASSWORD in deploy/vps/.env}
     command: sh -c 'while true; do php artisan schedule:run --no-interaction; sleep 60; done'
+    volumes:
+      - app_storage:/app/storage/app
     depends_on:
       db:
         condition: service_healthy
 
 volumes:
   postgres_data:
+  app_storage:
 
 networks:
   web_proxy:
