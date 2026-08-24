@@ -105,7 +105,9 @@ class CampaignAnalytics
         $approved = $content->whereIn('status', ['approved', 'published'])->count();
         $budget = (int) $c->budget_minor;
         $cur = $c->currency ?: 'SAR';
-        $fmt = fn (int $minor) => number_format($minor / 100, 0) . ' ' . $cur;
+        // الريال بالعربية (ر.س) في واجهة المستأجر؛ رمز ISO للعملات الأخرى فقط.
+        $curLabel = $cur === 'SAR' ? 'ر.س' : $cur;
+        $fmt = fn (int $minor) => number_format($minor / 100, 0) . ' ' . $curLabel;
         $unassigned = $delivs->whereNull('creator_id')->count();
         $cid = $c->id;
 
