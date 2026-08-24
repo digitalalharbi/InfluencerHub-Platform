@@ -3,6 +3,7 @@
 namespace App\Domain\Exports\Writers;
 
 use App\Domain\Exports\TabularData;
+use App\Support\Brand;
 use Mpdf\Mpdf;
 use Symfony\Component\HttpFoundation\Response;
 
@@ -32,6 +33,7 @@ class PdfWriter
         $mpdf->autoScriptToLang = true;
         $mpdf->autoLangToFont = true;
 
+        $this->meta($mpdf, $data->title);
         $mpdf->SetHTMLHeader($this->header($data));
         $mpdf->SetHTMLFooter($this->footer());
         $mpdf->WriteHTML($html);
@@ -50,7 +52,7 @@ class PdfWriter
     }
 
     /** يولّد PDF عربي RTL من قالب Blade مخصّص (فاتورة/تقرير حملة/ترشيح…). */
-    public function fromView(string $view, array $data, string $orientation = 'P'): string
+    public function fromView(string $view, array $data, string $orientation = 'P', ?string $title = null): string
     {
         $html = view($view, $data)->render();
         $mpdf = new Mpdf([
@@ -61,6 +63,7 @@ class PdfWriter
         $mpdf->SetDirectionality('rtl');
         $mpdf->autoScriptToLang = true;
         $mpdf->autoLangToFont = true;
+        $this->meta($mpdf, $title ?? ($data['title'] ?? Brand::name() . ' — مستند'));
         $mpdf->SetHTMLFooter($this->footer());
         $mpdf->WriteHTML($html);
 
@@ -77,7 +80,7 @@ class PdfWriter
 
     private function header(TabularData $data): string
     {
-        $ws = e($data->workspace ?? 'إنفلونسر هَب');
+        $ws = e($data->workspace ?? Brand::name());
         $title = e($data->title);
 
         return '<table width="100%" style="border-bottom:1px solid #ddd;font-family:dejavusans;font-size:9pt;color:#555;">
@@ -89,10 +92,20 @@ class PdfWriter
 
     private function footer(): string
     {
+        // هوية المنصّة في التذييل (المستأجر يبقى صاحب المستند في الترويسة/المتن).
         return '<table width="100%" style="border-top:1px solid #ddd;font-family:dejavusans;font-size:8pt;color:#888;">
             <tr>
-              <td style="text-align:right;">إنفلونسر هَب — منصّة إدارة عمليات المؤثرين</td>
+              <td style="text-align:right;">' . e(Brand::documentFooter()) . '</td>
               <td style="text-align:left;">صفحة {PAGENO} من {nbpg}</td>
             </tr></table>';
+    }
+
+    /** بيانات PDF الوصفية — هوية InfluencerHub لا اسم إطار العمل/المكتبة. */
+    private function meta(Mpdf $mpdf, string $title): void
+    {
+        $mpdf->SetTitle($title);
+        $mpdf->SetAuthor(Brand::name());
+        $mpdf->SetCreator(Brand::name());
+        $mpdf->SetSubject('مستند ' . Brand::name() . ' · ' . Brand::domain());
     }
 }

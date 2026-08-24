@@ -1,7 +1,7 @@
-<x-mail.layout title="تأكيد البريد — إنفلونسر هَب" preheader="أكد بريدك الإلكتروني للمتابعة في إنفلونسر هَب.">
+<x-mail.layout title="تأكيد البريد — InfluencerHub" preheader="أكد بريدك الإلكتروني للمتابعة في InfluencerHub.">
   <div style="display:inline-block;margin:0 0 16px;padding:7px 12px;background:#f7f5ff;border:1px solid #e8e3ff;border-radius:999px;color:#6252e5;font-size:12px;font-weight:700;">تفعيل البريد</div>
   <h1 style="margin:0 0 12px;font-size:25px;line-height:1.45;color:#101828;font-weight:800;letter-spacing:0;">أكد بريدك الإلكتروني</h1>
-  <p style="margin:0 0 24px;font-size:15px;line-height:1.9;color:#475467;">اضغط على الزر التالي لتأكيد بريدك الإلكتروني ومتابعة إعداد حسابك في إنفلونسر هَب.</p>
+  <p style="margin:0 0 24px;font-size:15px;line-height:1.9;color:#475467;">اضغط على الزر التالي لتأكيد بريدك الإلكتروني ومتابعة إعداد حسابك في InfluencerHub.</p>
 
   <p style="margin:0 0 24px;text-align:center;">
     <a href="{{ $verifyUrl }}" style="display:inline-block;background:#6252e5;color:#ffffff;text-decoration:none;font-weight:800;border-radius:10px;padding:14px 30px;min-width:160px;text-align:center;">تأكيد البريد</a>

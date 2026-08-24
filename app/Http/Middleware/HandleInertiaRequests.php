@@ -55,6 +55,14 @@ class HandleInertiaRequests extends Middleware
             'locale' => app()->getLocale(),
             'dir' => app()->getLocale() === 'ar' ? 'rtl' : 'ltr',
             'base' => MountPrefix::for($request),
+            // هوية المنتج القانونية — مصدر واحد لواجهة React (تذييل/دخول/معلومات).
+            'brand' => [
+                'name' => \App\Support\Brand::name(),
+                'tagline' => \App\Support\Brand::tagline(),
+                'url' => \App\Support\Brand::url(),
+                'domain' => \App\Support\Brand::domain(),
+                'infoUrl' => \App\Support\Brand::infoUrl(),
+            ],
         ]);
     }
 
