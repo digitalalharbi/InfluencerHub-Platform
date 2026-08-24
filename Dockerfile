@@ -17,7 +17,14 @@ RUN apt-get update && apt-get install -y git unzip libpq-dev libzip-dev libpng-d
 COPY --from=composer:2 /usr/bin/composer /usr/bin/composer
 WORKDIR /app
 COPY . /app
-RUN composer install --no-dev --optimize-autoloader --no-interaction
+# إعادة محاولة composer install: تنزيل zipball من api.github.com يُقيَّد معدّله بلا
+# مُصادقة فيُرجِع 504 لبعض الحزم؛ ذاكرة composer تتراكم داخل الطبقة فتُنزَّل في كل
+# محاولة الحزمُ الناقصة فقط، فيَنجح النشر رغم أعطال GitHub المؤقّتة. المهلة موسّعة.
+RUN for i in 1 2 3 4 5; do \
+      composer install --no-dev --optimize-autoloader --no-interaction && exit 0; \
+      echo ">> composer install failed (attempt $i) — retrying after backoff"; sleep 20; \
+    done; \
+    echo ">> composer install failed after 5 attempts" >&2; exit 1
 COPY --from=frontend /app/public/build /app/public/build
 ENV PORT=8000
 EXPOSE 8000
