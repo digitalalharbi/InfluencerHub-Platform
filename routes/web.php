@@ -384,6 +384,9 @@ Route::middleware(['auth', 'tenant', 'agency_member', 'inertia'])->prefix('beta'
     Route::post('/publishers/{publisher}/convert', [\App\Http\Controllers\Inertia\PublishersController::class, 'convert']);
     Route::get('/reports', [\App\Http\Controllers\Inertia\ReportsController::class, 'index']);
     Route::get('/reports/export', [\App\Http\Controllers\Inertia\ReportsController::class, 'export']);
+    Route::get('/reports/pdf/preview', [\App\Http\Controllers\Inertia\ReportsController::class, 'pdfPreview']);
+    Route::get('/reports/pdf/download', [\App\Http\Controllers\Inertia\ReportsController::class, 'pdfDownload']);
+    Route::post('/reports/pdf/regenerate', [\App\Http\Controllers\Inertia\ReportsController::class, 'pdfRegenerate']);
     // مركز التصدير — تقارير مجدولة + سجلّ تنزيلات (تنزيل آمن بترخيص). المسارات الثابتة قبل {exportJob}.
     Route::get('/exports', [\App\Http\Controllers\Inertia\ExportsController::class, 'index']);
     Route::post('/exports/schedules', [\App\Http\Controllers\Inertia\ExportsController::class, 'storeSchedule']);
@@ -586,6 +589,9 @@ Route::middleware(['auth', 'tenant', 'agency_member'])->prefix('app')->group(fun
         // التقارير (تجميعات حقيقية) — قُصّت من Blade
         Route::get('/reports', [\App\Http\Controllers\Inertia\ReportsController::class, 'index']);
         Route::get('/reports/export', [\App\Http\Controllers\Inertia\ReportsController::class, 'export']);
+        Route::get('/reports/pdf/preview', [\App\Http\Controllers\Inertia\ReportsController::class, 'pdfPreview']);
+        Route::get('/reports/pdf/download', [\App\Http\Controllers\Inertia\ReportsController::class, 'pdfDownload']);
+        Route::post('/reports/pdf/regenerate', [\App\Http\Controllers\Inertia\ReportsController::class, 'pdfRegenerate']);
 
         // مركز التصدير — تقارير مجدولة + سجلّ تنزيلات (تنزيل آمن بترخيص). المسارات الثابتة قبل {exportJob}.
         Route::get('/exports', [\App\Http\Controllers\Inertia\ExportsController::class, 'index']);
