@@ -4,6 +4,7 @@ import AppShell from '@/Layouts/AppShell'
 import { Sec, WorkspaceHeader, sarShort } from '@/Components/ui'
 import { Icon } from '@/Components/Icon'
 import { u } from '@/lib/href'
+import { PdfPreviewModal, type PreviewDoc } from '@/Components/PdfPreviewModal'
 
 interface Invoice {
   id: number; number: string; client: string | null; campaign: string | null
@@ -24,9 +25,11 @@ interface Props {
   invoice: Invoice; items: Item[]; payments: Payment[]; history: Hist[]
   can: { edit: boolean; issue: boolean; pay: boolean; cancel: boolean }
   paymentMethods: Record<string, string>
+  documents: { pdf: PreviewDoc }
 }
 
-export default function InvoiceShow({ invoice, items, payments, history, can, paymentMethods }: Props) {
+export default function InvoiceShow({ invoice, items, payments, history, can, paymentMethods, documents }: Props) {
+  const [pdfOpen, setPdfOpen] = useState(false)
   const { errors } = usePage().props as { errors?: Record<string, string> }
   const [panel, setPanel] = useState<'pay' | 'cancel' | null>(null)
   const [busy, setBusy] = useState(false)
@@ -65,7 +68,7 @@ export default function InvoiceShow({ invoice, items, payments, history, can, pa
         ]}
         actions={
           <>
-            <a href={u(`/invoices/${invoice.id}/pdf`)} className="btn btn-sm btn-outline" download>تنزيل PDF</a>
+            <button onClick={() => setPdfOpen(true)} className="btn btn-sm btn-outline" title="معاينة PDF">معاينة PDF{documents.pdf.stale && <span style={{ width: 7, height: 7, borderRadius: '50%', background: 'var(--ih-warning-ink, #B54708)', display: 'inline-block', marginInlineStart: 5 }} />}</button>
             {can.issue && <button onClick={() => act('issue')} className="btn btn-sm" disabled={busy}>إصدار الفاتورة</button>}
             {can.pay && <button onClick={() => setPanel(panel === 'pay' ? null : 'pay')} className="btn btn-sm">تسجيل دفعة</button>}
             {can.cancel && <button onClick={() => setPanel(panel === 'cancel' ? null : 'cancel')} className="btn btn-sm btn-outline">إلغاء</button>}
@@ -202,6 +205,7 @@ export default function InvoiceShow({ invoice, items, payments, history, can, pa
           ))}
         </ul>
       </Sec>
+      <PdfPreviewModal doc={documents.pdf} open={pdfOpen} onClose={() => setPdfOpen(false)} />
     </AppShell>
   )
 }

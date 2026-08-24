@@ -18,7 +18,7 @@ class ShortlistController extends Controller
 {
     public function __construct(private ShortlistService $svc) {}
 
-    public function index(Request $r, Campaign $campaign): Response
+    public function index(Request $r, Campaign $campaign, \App\Domain\Exports\DocumentArtifactService $artifacts): Response
     {
         $this->authorize('view', $campaign);
         $campaign->load('deliverables', 'client', 'brand');
@@ -88,6 +88,8 @@ class ShortlistController extends Controller
             'canEdit' => $canEdit,
             'budgetPct' => ($budget > 0) ? (int) round(min(100, $committed / $budget * 100)) : 0,
             'overBudget' => $budget > 0 && $committed > $budget,
+            // مستند المقترح — معاينة/تنزيل نفس الأثر + كشف القِدَم (نفس معمارية الحملة)
+            'documents' => ['proposal' => $this->proposalMeta($campaign, $r, $artifacts)],
         ]);
     }
 
@@ -133,43 +135,102 @@ class ShortlistController extends Controller
             'shortlist', $items->count(), \App\Domain\Tenancy\Support\TenantContext::tenantId(), $r->user()->id);
     }
 
-    /**
-     * مقترح الترشيحات (PDF) آمن للعميل — يُشارَك مع العميل. يعرض المبدع وحسابه
-     * ومنصّته وجمهوره والسعر المقترح والقرار، ويستبعد صراحةً: تكلفة المبدع،
-     * درجة المطابقة الداخلية وأسبابها، وأي بيانات تواصل خاصّة أو مصدر داخلي.
-     * Policy(view). مُدقَّق.
-     */
-    public function exportClientPdf(Request $r, Campaign $campaign, \App\Domain\Exports\Writers\PdfWriter $pdf): \Symfony\Component\HttpFoundation\Response
+    private const PROPOSAL_TYPE = 'shortlist_client_proposal';
+    private const PROPOSAL_TEMPLATE = 'v1';
+
+    /** بيانات المقترح الآمنة للعميل — بلا score/reasons/تكلفة مبدع/تواصل. تُحدّد البصمة (بلا وقت). */
+    private function proposalData(Campaign $campaign, Request $r): array
     {
-        $this->authorize('view', $campaign);
-        $campaign->load('client', 'brand');
+        $campaign->loadMissing('client', 'brand');
         [$version, $items] = $this->currentItems($campaign, $r);
 
-        $data = [
+        return [
             'workspace' => \App\Domain\Tenancy\Models\Organization::find(\App\Domain\Tenancy\Support\TenantContext::organizationId())?->name ?? 'الوكالة',
             'campaign' => $campaign->name,
             'number' => $campaign->campaign_number,
             'client' => $campaign->client?->display_name ?? '—',
             'brand' => $campaign->brand?->name,
             'versionNo' => (int) $version->version,
-            // بنود آمنة للعميل — بلا score/reasons/تكلفة مبدع/تواصل خاص
             'items' => $items->map(fn (CampaignShortlistItem $it) => [
                 'creator' => $it->creator?->display_name ?? '—',
                 'handle' => $it->creator?->handle,
                 'platform' => $it->creator?->primary_platform ?? '—',
                 'followers' => number_format((int) ($it->creator?->followers_count ?? 0)),
                 'backup' => (bool) $it->is_backup,
-                'fee' => number_format(($it->proposed_fee_minor ?? 0) / 100, 0) . ' SAR',
+                'fee' => number_format(($it->proposed_fee_minor ?? 0) / 100, 0) . ' ر.س',
                 'decision' => $this->decisionLabel($it->client_decision),
             ])->values()->all(),
-            'generatedAt' => now()->format('Y-m-d H:i'),
         ];
+    }
 
-        \App\Domain\Audit\Services\AuditLogger::log('export.generated', $campaign, [
-            'type' => 'shortlist_client_proposal', 'format' => 'pdf', 'campaign' => $campaign->campaign_number,
-        ], \App\Domain\Tenancy\Support\TenantContext::tenantId(), $r->user()?->id);
+    private function proposalArtifact(Campaign $campaign, Request $r, \App\Domain\Exports\DocumentArtifactService $svc, bool $regenerate = false): \App\Domain\Exports\Models\ExportJob
+    {
+        $data = $this->proposalData($campaign, $r);
+        $render = function () use ($campaign, $data, $svc, $r) {
+            \App\Domain\Audit\Services\AuditLogger::log('export.generated', $campaign, [
+                'type' => self::PROPOSAL_TYPE, 'format' => 'pdf', 'campaign' => $campaign->campaign_number,
+            ], \App\Domain\Tenancy\Support\TenantContext::tenantId(), $r->user()?->id);
+            return $svc->pdfFromView('exports.shortlist-proposal', $data + ['generatedAt' => now()->format('Y-m-d H:i')]);
+        };
+        if (! $regenerate) {
+            $latest = $svc->latest(self::PROPOSAL_TYPE, $campaign);
+            if ($latest) return $latest;
+        }
+        return $svc->current(self::PROPOSAL_TYPE, $campaign, 'pdf', self::PROPOSAL_TEMPLATE, $data,
+            'مقترح ترشيحات ' . $campaign->campaign_number, $render, $r->user()?->id);
+    }
 
-        return $pdf->downloadView('exports.shortlist-proposal', $data, 'shortlist-' . $campaign->campaign_number);
+    private function streamProposal(\App\Domain\Exports\Models\ExportJob $a, \App\Domain\Exports\DocumentArtifactService $svc, string $disposition): \Symfony\Component\HttpFoundation\Response
+    {
+        $bytes = $svc->bytes($a);
+        return response($bytes, 200, [
+            'Content-Type' => 'application/pdf',
+            'Content-Disposition' => $disposition . '; filename="' . \Illuminate\Support\Str::slug($a->title) . '.pdf"',
+            'Content-Length' => (string) strlen($bytes), 'X-Artifact-Checksum' => $a->checksum,
+        ]);
+    }
+
+    /** معاينة inline للمقترح — نفس أثر التنزيل. */
+    public function proposalPreview(Request $r, Campaign $campaign, \App\Domain\Exports\DocumentArtifactService $svc): \Symfony\Component\HttpFoundation\Response
+    {
+        $this->authorize('view', $campaign);
+        return $this->streamProposal($this->proposalArtifact($campaign, $r, $svc), $svc, 'inline');
+    }
+
+    /** تنزيل المقترح — نفس بايتات المعاينة (attachment). */
+    public function proposalDownload(Request $r, Campaign $campaign, \App\Domain\Exports\DocumentArtifactService $svc): \Symfony\Component\HttpFoundation\Response
+    {
+        $this->authorize('view', $campaign);
+        return $this->streamProposal($this->proposalArtifact($campaign, $r, $svc), $svc, 'attachment');
+    }
+
+    /** إنشاء نسخة محدّثة صريحة من المقترح. */
+    public function proposalRegenerate(Request $r, Campaign $campaign, \App\Domain\Exports\DocumentArtifactService $svc): \Illuminate\Http\RedirectResponse
+    {
+        $this->authorize('view', $campaign);
+        $this->proposalArtifact($campaign, $r, $svc, regenerate: true);
+        return back()->with('ok', 'أُنشئت نسخة محدّثة من المقترح.');
+    }
+
+    /** توافق خلفي: الرابط القديم يُنزّل الأثر ذاته. */
+    public function exportClientPdf(Request $r, Campaign $campaign, \App\Domain\Exports\DocumentArtifactService $svc): \Symfony\Component\HttpFoundation\Response
+    {
+        return $this->proposalDownload($r, $campaign, $svc);
+    }
+
+    /** بيانات مستند المقترح لصفحة الترشيح (معاينة/تنزيل نفس الأثر + كشف القِدَم). مسارات نسبية للتركيب. */
+    public function proposalMeta(Campaign $campaign, Request $r, \App\Domain\Exports\DocumentArtifactService $svc): array
+    {
+        $latest = $svc->latest(self::PROPOSAL_TYPE, $campaign);
+        $currentFp = $svc->fingerprint($this->proposalData($campaign, $r), self::PROPOSAL_TEMPLATE, 'pdf');
+        $base = "/campaigns/{$campaign->id}/shortlist/proposal";
+        return [
+            'title' => 'مقترح المؤثرين (آمن للعميل)',
+            'hasArtifact' => (bool) $latest,
+            'generatedAt' => $latest?->created_at?->format('Y-m-d H:i'),
+            'stale' => $svc->isStale($latest, $currentFp),
+            'previewUrl' => "{$base}/preview", 'downloadUrl' => "{$base}/download", 'regenerateUrl' => "{$base}/regenerate",
+        ];
     }
 
     public function add(Request $r, Campaign $campaign)

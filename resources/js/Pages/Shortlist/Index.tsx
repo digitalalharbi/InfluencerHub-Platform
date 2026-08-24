@@ -4,6 +4,7 @@ import AppShell from '@/Layouts/AppShell';
 import { Sec, StatusBadge, SummaryStrip, WorkTabs, WorkspaceHeader, Bar, type WorkTab } from '@/Components/ui';
 import { Icon } from '@/Components/Icon';
 import { u } from '@/lib/href';
+import { PdfPreviewModal, type PreviewDoc } from '@/Components/PdfPreviewModal';
 
 interface Campaign { id: number; name: string; number: string; client: string | null; brand: string | null; budgetMinor: number; committedMinor: number }
 interface Version { number: number; status: string; statusLabel: string; statusTone: string; submittedAt: string | null; decidedAt: string | null }
@@ -22,6 +23,7 @@ interface Props {
   filters: { q: string | null; platform: string | null };
   canEdit: boolean; budgetPct: number; overBudget: boolean; versions: VersionRow[];
   candidatePool: CandidatePool;
+  documents: { proposal: PreviewDoc };
 }
 
 const money = (m: number) => (m / 100).toLocaleString('en-US') + ' ر.س';
@@ -42,7 +44,8 @@ function DataTable({ head, children }: { head: string[]; children: ReactNode }) 
   );
 }
 
-export default function ShortlistIndex({ campaign, version, items, candidates, filters, canEdit, budgetPct, overBudget, versions, candidatePool }: Props) {
+export default function ShortlistIndex({ campaign, version, items, candidates, filters, canEdit, budgetPct, overBudget, versions, candidatePool, documents }: Props) {
+  const [proposalOpen, setProposalOpen] = useState(false);
   const [tab, setTab] = useState(canEdit ? 'list' : 'list');
   useEffect(() => {
     const applyHash = () => {
@@ -84,7 +87,9 @@ export default function ShortlistIndex({ campaign, version, items, candidates, f
         ]}
         actions={
           <>
-            <a href={u(`${base}/proposal`)} className="btn btn-sm btn-outline" title="مقترح PDF آمن للعميل" download><Icon name="external-link" size={13} /> مقترح للعميل</a>
+            <button onClick={() => setProposalOpen(true)} className="btn btn-sm btn-outline" title="معاينة مقترح PDF آمن للعميل">
+              <Icon name="file-text" size={13} /> مقترح للعميل{documents.proposal.stale && <span style={{ width: 7, height: 7, borderRadius: '50%', background: 'var(--ih-warning-ink, #B54708)', display: 'inline-block', marginInlineStart: 5 }} />}
+            </button>
             <a href={u(`${base}/export?format=xlsx`)} className="btn btn-sm btn-outline" title="تصدير داخلي (Excel)" download><Icon name="external-link" size={13} /> داخلي</a>
             {canEdit ? (
               <>
@@ -257,6 +262,7 @@ export default function ShortlistIndex({ campaign, version, items, candidates, f
           <Icon name="clipboard-check" size={15} /> هذا الإصدار {version.statusLabel} — لا يمكن تعديله. لإجراء تغييرات أنشئ إصدارًا جديدًا (يَنسخ العناصر الحالية ويحفظ التاريخ).
         </div>
       )}
+      <PdfPreviewModal doc={documents.proposal} open={proposalOpen} onClose={() => setProposalOpen(false)} />
     </AppShell>
   );
 }
