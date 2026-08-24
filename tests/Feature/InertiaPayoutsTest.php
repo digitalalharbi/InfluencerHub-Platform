@@ -180,4 +180,25 @@ class InertiaPayoutsTest extends TestCase
     {
         $this->get('/app/payouts')->assertRedirect('/login');
     }
+
+    public function test_statement_preview_and_download_same_artifact(): void
+    {
+        \Illuminate\Support\Facades\Storage::fake('local');
+        [$t, $org, $u] = $this->agency(['approved']);
+        $py = $this->payout($t->id);
+
+        $prev = $this->actingAs($u)->get("/app/payouts/{$py->id}/statement/preview");
+        $prev->assertOk()->assertHeader('content-type', 'application/pdf');
+        $this->assertStringContainsString('inline', $prev->headers->get('content-disposition'));
+        $down = $this->actingAs($u)->get("/app/payouts/{$py->id}/statement/download");
+        $down->assertOk();
+        $this->assertStringContainsString('attachment', $down->headers->get('content-disposition'));
+
+        $this->assertStringStartsWith('%PDF-', $prev->getContent());
+        $this->assertSame(hash('sha256', $prev->getContent()), hash('sha256', $down->getContent()));
+        $this->assertSame(1, TenantContext::withBypass(fn () => \App\Domain\Exports\Models\ExportJob::where('type', 'payout_statement')->count()));
+
+        $this->actingAs($u)->get("/app/payouts/{$py->id}")
+            ->assertInertia(fn ($pg) => $pg->where('documents.statement.previewUrl', "/payouts/{$py->id}/statement/preview")->where('documents.statement.hasArtifact', true)->etc());
+    }
 }

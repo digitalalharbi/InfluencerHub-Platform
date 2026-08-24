@@ -26,7 +26,82 @@ class ContractDetailController extends Controller
         'completed' => [], 'terminated' => [], 'cancelled' => [],
     ];
 
-    public function show(Request $r, Contract $contract): Response
+    private const DOC_TYPE = 'contract_pdf';
+    private const DOC_TEMPLATE = 'v1';
+
+    private function contractData(Contract $contract): array
+    {
+        $contract->loadMissing('creator', 'client', 'campaign');
+        $cur = $contract->currency ?: 'SAR';
+        $map = ['draft' => ['#eef2f7', '#475467'], 'sent' => ['#eff8ff', '#175cd3'], 'signed' => ['#ecfdf3', '#067647'],
+            'active' => ['#ecfdf3', '#067647'], 'completed' => ['#f2f4f7', '#475467'], 'terminated' => ['#fef3f2', '#b42318'], 'cancelled' => ['#f2f4f7', '#475467']];
+        return [
+            'workspace' => \App\Domain\Tenancy\Models\Organization::find(\App\Domain\Tenancy\Support\TenantContext::organizationId())?->name ?? 'إنفلونسر هَب',
+            'number' => $contract->contract_number,
+            'title' => $contract->title,
+            'party' => $contract->party_type === 'creator' ? ($contract->creator?->display_name ?? '—') : ($contract->client?->display_name ?? '—'),
+            'partyType' => $contract->party_type === 'creator' ? 'مبدع' : 'عميل',
+            'campaign' => $contract->campaign?->name,
+            'statusLabel' => __('statuses.' . $contract->status),
+            'statusColor' => $map[$contract->status] ?? ['#eef2f7', '#475467'],
+            'value' => $contract->value_minor ? number_format($contract->value_minor / 100, 2) . ' ' . $cur : null,
+            'start' => $contract->start_date?->format('Y-m-d'),
+            'end' => $contract->end_date?->format('Y-m-d'),
+            'terms' => $contract->terms,
+            'signedBy' => $contract->signed_by_name,
+            'signedAt' => $contract->signed_at?->format('Y-m-d'),
+        ];
+    }
+
+    private function docArtifact(Request $r, Contract $contract, \App\Domain\Exports\DocumentArtifactService $svc, bool $regenerate = false): \App\Domain\Exports\Models\ExportJob
+    {
+        $data = $this->contractData($contract);
+        $render = function () use ($contract, $data, $svc, $r) {
+            \App\Domain\Audit\Services\AuditLogger::log('export.generated', $contract, ['type' => self::DOC_TYPE, 'format' => 'pdf'], $contract->tenant_id, $r->user()?->id);
+            return $svc->pdfFromView('exports.contract', $data + ['generatedAt' => now()->format('Y-m-d H:i')]);
+        };
+        if (! $regenerate) { $latest = $svc->latest(self::DOC_TYPE, $contract); if ($latest) return $latest; }
+        return $svc->current(self::DOC_TYPE, $contract, 'pdf', self::DOC_TEMPLATE, $data, 'عقد ' . $contract->contract_number, $render, $r->user()?->id);
+    }
+
+    private function streamDoc(\App\Domain\Exports\Models\ExportJob $a, \App\Domain\Exports\DocumentArtifactService $svc, string $disposition)
+    {
+        $bytes = $svc->bytes($a);
+        return response($bytes, 200, ['Content-Type' => 'application/pdf',
+            'Content-Disposition' => $disposition . '; filename="' . \Illuminate\Support\Str::slug($a->title) . '.pdf"',
+            'Content-Length' => (string) strlen($bytes), 'X-Artifact-Checksum' => $a->checksum]);
+    }
+
+    public function pdfPreview(Request $r, Contract $contract, \App\Domain\Exports\DocumentArtifactService $svc)
+    {
+        $this->authorize('view', $contract);
+        return $this->streamDoc($this->docArtifact($r, $contract, $svc), $svc, 'inline');
+    }
+
+    public function pdfDownload(Request $r, Contract $contract, \App\Domain\Exports\DocumentArtifactService $svc)
+    {
+        $this->authorize('view', $contract);
+        return $this->streamDoc($this->docArtifact($r, $contract, $svc), $svc, 'attachment');
+    }
+
+    public function pdfRegenerate(Request $r, Contract $contract, \App\Domain\Exports\DocumentArtifactService $svc): RedirectResponse
+    {
+        $this->authorize('view', $contract);
+        $this->docArtifact($r, $contract, $svc, regenerate: true);
+        return back()->with('ok', 'أُنشئت نسخة محدّثة من العقد.');
+    }
+
+    private function docMeta(Contract $contract, \App\Domain\Exports\DocumentArtifactService $svc): array
+    {
+        $latest = $svc->latest(self::DOC_TYPE, $contract);
+        $currentFp = $svc->fingerprint($this->contractData($contract), self::DOC_TEMPLATE, 'pdf');
+        $base = "/contracts/{$contract->id}/pdf";
+        return ['title' => 'عقد ' . $contract->contract_number, 'hasArtifact' => (bool) $latest,
+            'generatedAt' => $latest?->created_at?->format('Y-m-d H:i'), 'stale' => $svc->isStale($latest, $currentFp),
+            'previewUrl' => "{$base}/preview", 'downloadUrl' => "{$base}/download", 'regenerateUrl' => "{$base}/regenerate"];
+    }
+
+    public function show(Request $r, Contract $contract, \App\Domain\Exports\DocumentArtifactService $artifacts): Response
     {
         $this->authorize('view', $contract);
         $c = $contract->load('creator', 'client', 'statusHistory');
@@ -35,6 +110,7 @@ class ContractDetailController extends Controller
         $st = fn ($s) => __('statuses.' . $s);
 
         return Inertia::render('Contracts/Show', [
+            'documents' => ['pdf' => $this->docMeta($contract, $artifacts)],
             'contract' => [
                 'id' => $c->id, 'number' => $c->contract_number, 'title' => $c->title,
                 'party' => $c->party_type === 'creator' ? ($c->creator?->display_name) : ($c->client?->display_name),

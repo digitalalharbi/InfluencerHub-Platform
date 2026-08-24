@@ -344,12 +344,18 @@ Route::middleware(['auth', 'tenant', 'agency_member', 'inertia'])->prefix('beta'
     Route::get('/contracts', [\App\Http\Controllers\Inertia\ContractsController::class, 'index']);
     Route::post('/contracts', [\App\Http\Controllers\Inertia\ContractsController::class, 'store']);
     Route::get('/contracts/{contract}', [\App\Http\Controllers\Inertia\ContractDetailController::class, 'show']);
+    Route::get('/contracts/{contract}/pdf/preview', [\App\Http\Controllers\Inertia\ContractDetailController::class, 'pdfPreview']);
+    Route::get('/contracts/{contract}/pdf/download', [\App\Http\Controllers\Inertia\ContractDetailController::class, 'pdfDownload']);
+    Route::post('/contracts/{contract}/pdf/regenerate', [\App\Http\Controllers\Inertia\ContractDetailController::class, 'pdfRegenerate']);
     Route::post('/contracts/{contract}', [\App\Http\Controllers\Inertia\ContractDetailController::class, 'update']);
     Route::post('/contracts/{contract}/{action}', [\App\Http\Controllers\Inertia\ContractDetailController::class, 'action']);
     Route::get('/payouts', [\App\Http\Controllers\Inertia\PayoutsController::class, 'index']);
     Route::get('/payouts/export', [\App\Http\Controllers\Inertia\PayoutsController::class, 'export']);
     Route::post('/payouts', [\App\Http\Controllers\Inertia\PayoutsController::class, 'store']);
     Route::get('/payouts/{payout}', [\App\Http\Controllers\Inertia\PayoutDetailController::class, 'show']);
+    Route::get('/payouts/{payout}/statement/preview', [\App\Http\Controllers\Inertia\PayoutDetailController::class, 'pdfPreview']);
+    Route::get('/payouts/{payout}/statement/download', [\App\Http\Controllers\Inertia\PayoutDetailController::class, 'pdfDownload']);
+    Route::post('/payouts/{payout}/statement/regenerate', [\App\Http\Controllers\Inertia\PayoutDetailController::class, 'pdfRegenerate']);
     Route::post('/payouts/{payout}/{action}', [\App\Http\Controllers\Inertia\PayoutDetailController::class, 'action']);
     Route::get('/collaborations', [\App\Http\Controllers\Inertia\CollaborationsController::class, 'index']);
     Route::post('/collaborations', [\App\Http\Controllers\Inertia\CollaborationsController::class, 'store']);
@@ -689,6 +695,9 @@ Route::middleware(['auth', 'tenant', 'agency_member'])->prefix('app')->group(fun
         Route::get('/contracts', [\App\Http\Controllers\Inertia\ContractsController::class, 'index']);
         Route::post('/contracts', [\App\Http\Controllers\Inertia\ContractsController::class, 'store']);
         Route::get('/contracts/{contract}', [\App\Http\Controllers\Inertia\ContractDetailController::class, 'show']);
+        Route::get('/contracts/{contract}/pdf/preview', [\App\Http\Controllers\Inertia\ContractDetailController::class, 'pdfPreview']);
+        Route::get('/contracts/{contract}/pdf/download', [\App\Http\Controllers\Inertia\ContractDetailController::class, 'pdfDownload']);
+        Route::post('/contracts/{contract}/pdf/regenerate', [\App\Http\Controllers\Inertia\ContractDetailController::class, 'pdfRegenerate']);
         Route::post('/contracts/{contract}', [\App\Http\Controllers\Inertia\ContractDetailController::class, 'update']);
         Route::post('/contracts/{contract}/{action}', [\App\Http\Controllers\Inertia\ContractDetailController::class, 'action'])
             ->whereIn('action', ['send', 'activate', 'complete', 'terminate', 'cancel']);
@@ -718,6 +727,9 @@ Route::middleware(['auth', 'tenant', 'agency_member'])->prefix('app')->group(fun
         Route::get('/payouts/export', [\App\Http\Controllers\Inertia\PayoutsController::class, 'export']);
         Route::post('/payouts', [\App\Http\Controllers\Inertia\PayoutsController::class, 'store']);
         Route::get('/payouts/{payout}', [\App\Http\Controllers\Inertia\PayoutDetailController::class, 'show']);
+        Route::get('/payouts/{payout}/statement/preview', [\App\Http\Controllers\Inertia\PayoutDetailController::class, 'pdfPreview']);
+        Route::get('/payouts/{payout}/statement/download', [\App\Http\Controllers\Inertia\PayoutDetailController::class, 'pdfDownload']);
+        Route::post('/payouts/{payout}/statement/regenerate', [\App\Http\Controllers\Inertia\PayoutDetailController::class, 'pdfRegenerate']);
         Route::post('/payouts/{payout}/{action}', [\App\Http\Controllers\Inertia\PayoutDetailController::class, 'action'])
             ->whereIn('action', ['approve', 'schedule', 'send-to-provider', 'mark-paid', 'mark-failed', 'cancel']);
 

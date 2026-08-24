@@ -192,4 +192,25 @@ class InertiaContractsTest extends TestCase
     {
         $this->get('/app/contracts')->assertRedirect('/login');
     }
+
+    public function test_contract_pdf_preview_and_download_same_artifact(): void
+    {
+        \Illuminate\Support\Facades\Storage::fake('local');
+        [$t, $org, $u] = $this->agency(['signed']);
+        $ct = $this->contract($t->id);
+
+        $prev = $this->actingAs($u)->get("/app/contracts/{$ct->id}/pdf/preview");
+        $prev->assertOk()->assertHeader('content-type', 'application/pdf');
+        $this->assertStringContainsString('inline', $prev->headers->get('content-disposition'));
+        $down = $this->actingAs($u)->get("/app/contracts/{$ct->id}/pdf/download");
+        $down->assertOk();
+        $this->assertStringContainsString('attachment', $down->headers->get('content-disposition'));
+
+        $this->assertStringStartsWith('%PDF-', $prev->getContent());
+        $this->assertSame(hash('sha256', $prev->getContent()), hash('sha256', $down->getContent()));
+        $this->assertSame(1, TenantContext::withBypass(fn () => \App\Domain\Exports\Models\ExportJob::where('type', 'contract_pdf')->count()));
+
+        $this->actingAs($u)->get("/app/contracts/{$ct->id}")
+            ->assertInertia(fn ($pg) => $pg->where('documents.pdf.previewUrl', "/contracts/{$ct->id}/pdf/preview")->where('documents.pdf.hasArtifact', true)->etc());
+    }
 }

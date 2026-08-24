@@ -5,6 +5,7 @@ import { Sec, SummaryStrip, WorkspaceHeader } from '@/Components/ui';
 import { Icon } from '@/Components/Icon';
 import type { SharedProps } from '@/types';
 import { u } from '@/lib/href';
+import { PdfPreviewModal, type PreviewDoc } from '@/Components/PdfPreviewModal';
 
 interface Payout {
   id: number; number: string; creator: string | null; amountMinor: number; currency: string;
@@ -15,13 +16,14 @@ interface Payout {
 type Action = [string, string, string, 'none' | 'reason' | 'date' | 'reference'];
 interface History { from: string; to: string; by: string; reason: string | null; at: string | null }
 /** `canManage` (صلاحية التعديل) لم يعد يحجب شريط الإجراءات — انظر التعليق أدناه. */
-interface Props { payout: Payout; actions: Action[]; providerNote: boolean; history: History[] }
+interface Props { payout: Payout; actions: Action[]; providerNote: boolean; history: History[]; documents: { statement: PreviewDoc } }
 
 const BTN: Record<string, string> = { primary: 'btn-primary', danger: 'btn-danger', ghost: 'btn-ghost' };
 const money = (m: number, cur: string) => (m / 100).toLocaleString('en-US') + ' ' + cur;
 const PAYLOAD_KEY: Record<string, string> = { reason: 'reason', date: 'due_date', reference: 'payment_reference' };
 
-export default function PayoutShow({ payout, actions, providerNote, history }: Props) {
+export default function PayoutShow({ payout, actions, providerNote, history, documents }: Props) {
+  const [stmtOpen, setStmtOpen] = useState(false);
   const { props } = usePage<SharedProps>();
   const [modalFor, setModalFor] = useState<Action | null>(null);
   const [value, setValue] = useState('');
@@ -55,9 +57,14 @@ export default function PayoutShow({ payout, actions, providerNote, history }: P
            (`isEditable`). ربط شريط الإجراءات بها كان يُخفي الجدولة والصرف عن
            المالية فور الاعتماد — فيقف المستحقّ المعتمَد بلا مخرج رغم أن
            المتحكّم فحص كل فعل بقاعدته وأرسله في `actions`. */
-        actions={actions.length > 0 ? <>{actions.map((a) => (
-          <button key={a[0]} onClick={() => runAction(a)} className={`btn btn-sm ${BTN[a[2]] ?? 'btn-outline'}`}>{a[1]}</button>
-        ))}</> : undefined}
+        actions={<>
+          <button onClick={() => setStmtOpen(true)} className="btn btn-sm btn-outline" title="معاينة كشف المستحق (PDF)">
+            <Icon name="file-text" size={14} /> كشف PDF{documents.statement.stale && <span style={{ width: 7, height: 7, borderRadius: '50%', background: 'var(--ih-warning-ink, #B54708)', display: 'inline-block', marginInlineStart: 5 }} />}
+          </button>
+          {actions.map((a) => (
+            <button key={a[0]} onClick={() => runAction(a)} className={`btn btn-sm ${BTN[a[2]] ?? 'btn-outline'}`}>{a[1]}</button>
+          ))}
+        </>}
       />
 
       {providerNote && (
@@ -115,6 +122,7 @@ export default function PayoutShow({ payout, actions, providerNote, history }: P
           </div>
         </div>
       )}
+      <PdfPreviewModal doc={documents.statement} open={stmtOpen} onClose={() => setStmtOpen(false)} />
     </AppShell>
   );
 }
