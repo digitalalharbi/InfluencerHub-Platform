@@ -1,9 +1,12 @@
 name: Production smoke (authenticated)
 
 # بنية ضمان جودة فقط — تُشغَّل يدويًّا. لا تعمل على push/PR إطلاقًا.
-# تتحقّق من مساحة عمل الحملة المُصادَقة على الإنتاج الحقيقي باستخدام حساب بيئة
-# العرض المُصرَّح به الموجود أصلًا، مُسترجَعًا بأمان (مُقنَّع، لا يُطبع في السجلّات).
-# لا تُغيّر أي سلوك مصادقة، ولا تُنشئ بيانات إنتاج، ولا تُعدّل أي كلمة مرور.
+# تتحقّق من مساحة عمل الحملة المُصادَقة على الإنتاج الحقيقي. الاستراتيجية:
+# كلمة مرور عابرة تُولَّد لكل تشغيل، تُدوَّر بها كلمةُ مرور مدير بيئة العرض فقط عبر
+# أمر QA ضيّق النطاق (preview:rotate-smoke-credential)، ثم تُستعمل للدخول فورًا ثم
+# تُهمَل. لا كلمة مرور دائمة، ولا ملفّ اعتماد، ولا PREVIEW_PASSWORD، ولا إعادة بذر/
+# تهيئة، ولا تعديل لأي مستخدم آخر أو بيانات أخرى. التغيير الوحيد: كلمة مرور
+# showcase_admin@showcase.test.
 on:
   workflow_dispatch:
 
@@ -29,47 +32,34 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Retrieve Showcase credential securely (masked, never printed)
+      - name: Rotate ephemeral Showcase QA password (per-run, masked, never printed)
         env:
           VPS_PASSWORD: ${{ secrets.VPS_PASSWORD }}
         run: |
           set +x
           sudo apt-get update >/dev/null 2>&1 || true
           sudo apt-get install -y sshpass >/dev/null 2>&1 || true
-          # دالّة SSH موحّدة (كلمة مرور VPS مُقنَّعة تلقائيًّا في سجلّات GitHub).
           rssh() { sshpass -p "$VPS_PASSWORD" ssh -o StrictHostKeyChecking=no -o ConnectTimeout=25 -p "$VPS_PORT" "$VPS_USER@$VPS_HOST" "$1"; }
 
-          # تشخيص آمن (لا أسرار): اتّصال SSH، أسماء الحاويات، وجود وحدة التخزين.
-          echo "diag ssh = $(rssh 'echo OK' 2>/dev/null || echo FAIL)"
-          echo "diag containers = $(rssh 'docker ps --format "{{.Names}}" 2>/dev/null | tr "\n" ","' 2>/dev/null || echo ERR)"
-          echo "diag volumes = $(rssh 'docker volume ls --format "{{.Name}}" 2>/dev/null | grep -i app_storage | tr "\n" ","' 2>/dev/null || echo ERR)"
+          # كلمة مرور عشوائية قويّة تُولَّد لكل تشغيل فقط — لا تُخزَّن ولا تُطبع إطلاقًا.
+          SMOKE_PASSWORD="$(openssl rand -base64 36 | tr -d '\n')"
+          echo "::add-mask::$SMOKE_PASSWORD"
 
-          # مسار مطلق داخل الحاوية (workdir=/app؛ وحدة التخزين على /app/storage/app).
-          FILE_ABS='/app/storage/app/private/showcase-credentials.txt'
-          # حاوية التطبيق لمشروع docker المُسمّى platform تحديدًا (على المضيف عدّة أطقم).
+          # حاوية التطبيق لمشروع platform تحديدًا (على المضيف عدّة أطقم).
           APPC="$(rssh 'docker ps --format "{{.Names}}" | grep -E "^platform-app" | head -n1' 2>/dev/null | tr -d '\r\n' || true)"
           [ -z "$APPC" ] && APPC="platform-app-1"
-          echo "diag app_container = ${APPC:-none}"
-          # تشخيص آمن: أسماء الملفّات في مجلّد private (لا محتوى) لتأكيد وجود الملف.
-          echo "diag private_dir = $(rssh "docker exec $APPC sh -c 'ls /app/storage/app/private 2>/dev/null' | tr '\n' ','" 2>/dev/null || echo ERR)"
-          # القراءة: مسار مطلق + sh -c (لا -l حتى لا يتغيّر مجلّد العمل). لا يُطبع المحتوى.
-          CONTENT="$(rssh "docker exec $APPC sh -c 'cat $FILE_ABS' 2>/dev/null" 2>/dev/null || true)"
-          echo "diag creds_found = $([ -n "$CONTENT" ] && echo yes || echo no)"
+          echo "app container = $APPC"
 
-          # نستخرج سطر كلمة المرور فقط ثم نُقنّعه فورًا (لا يُطبع المحتوى إطلاقًا).
-          PW="$(printf '%s\n' "$CONTENT" | sed -n 's/^# [^:]*: //p' | head -n1 | tr -d '\r\n')"
-          if [ -z "$PW" ]; then
-            # مصدر بديل: PREVIEW_PASSWORD من بيئة الخادم إن كانت هي مصدر الحقيقة الفعلي.
-            PW="$(rssh "cd '$VPS_APP_DIR' && grep -E '^PREVIEW_PASSWORD=' deploy/vps/.env" 2>/dev/null | cut -d= -f2- | tr -d '\r\n' || true)"
-            echo "diag preview_pw_fallback = $([ -n "$PW" ] && echo used || echo empty)"
-          fi
-          if [ -z "$PW" ]; then
-            echo "ERROR: could not retrieve the Showcase credential from the VPS (see diag lines above)."
+          # التغيير الوحيد: كلمة مرور مدير بيئة العرض عبر أمر QA ضيّق النطاق.
+          # لا ملفّ اعتماد، لا PREVIEW_PASSWORD، لا إعادة بذر/تهيئة. السرّ يُمرَّر عبر -e
+          # (مُقنَّع في السجلّات) ويُقرأ داخل الحاوية بـ getenv؛ مخرجات الأمر لا تحوي كلمة المرور.
+          if ! rssh "docker exec -e PRODUCTION_SMOKE_PASSWORD='$SMOKE_PASSWORD' $APPC php artisan preview:rotate-smoke-credential --force"; then
+            echo "ERROR: preview:rotate-smoke-credential failed on production."
             exit 1
           fi
-          echo "::add-mask::$PW"
-          printf 'SHOWCASE_PASSWORD=%s\n' "$PW" >> "$GITHUB_ENV"
-          echo "Showcase credential retrieved and masked."
+          # نُمرّر نفس السرّ لـPlaywright (متغيّر مُقنَّع لهذا التشغيل فقط).
+          printf 'SHOWCASE_PASSWORD=%s\n' "$SMOKE_PASSWORD" >> "$GITHUB_ENV"
+          echo "Showcase QA password rotated for this run (masked)."
 
       - uses: actions/setup-node@v4
         with:
