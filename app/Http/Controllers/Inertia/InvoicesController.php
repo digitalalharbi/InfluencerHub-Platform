@@ -65,10 +65,13 @@ class InvoicesController extends Controller
     }
 
     /** فاتورة PDF عربية RTL احترافية (تنزيل مُوثّق، لا رابط عام). */
-    public function exportPdf(Request $r, Invoice $invoice, \App\Domain\Exports\Writers\PdfWriter $pdf)
+    private const INV_TYPE = 'invoice_pdf';
+    private const INV_TEMPLATE = 'v1';
+
+    /** بيانات الفاتورة للقالب — حتمية (تُحدّد البصمة). العملة بالرمز ISO مناسبة للمستند المالي. */
+    private function invoiceData(Invoice $invoice): array
     {
-        $this->authorize('view', $invoice);
-        $invoice->load('client', 'campaign', 'brand', 'items');
+        $invoice->loadMissing('client', 'campaign', 'brand', 'items');
         $cur = $invoice->currency ?: 'SAR';
         $m = fn (int $minor) => number_format($minor / 100, 2) . ' ' . $cur;
         $statusMap = [
@@ -78,9 +81,7 @@ class InvoicesController extends Controller
         ];
         [$statusLabel, $statusColor] = $statusMap[$invoice->status] ?? [$invoice->status, ['#eef2f7', '#475467']];
 
-        \App\Domain\Audit\Services\AuditLogger::log('export.generated', $invoice, ['type' => 'invoice_pdf', 'format' => 'pdf'], $invoice->tenant_id, $r->user()->id);
-
-        return $pdf->downloadView('exports.invoice', [
+        return [
             'workspace' => \App\Domain\Tenancy\Support\TenantContext::organizationId()
                 ? \App\Domain\Tenancy\Models\Organization::find(\App\Domain\Tenancy\Support\TenantContext::organizationId())?->name : 'إنفلونسر هَب',
             'inv' => [
@@ -99,10 +100,75 @@ class InvoicesController extends Controller
                 'outstanding' => $invoice->balanceMinor() ? $m($invoice->balanceMinor()) : null,
                 'notes' => $invoice->notes,
             ],
-        ], 'invoice-' . $invoice->invoice_number);
+        ];
     }
 
-    public function show(Request $r, Invoice $invoice): Response
+    private function invoiceArtifact(Request $r, Invoice $invoice, \App\Domain\Exports\DocumentArtifactService $svc, bool $regenerate = false): \App\Domain\Exports\Models\ExportJob
+    {
+        $data = $this->invoiceData($invoice);
+        $render = function () use ($invoice, $data, $svc, $r) {
+            \App\Domain\Audit\Services\AuditLogger::log('export.generated', $invoice, ['type' => self::INV_TYPE, 'format' => 'pdf'], $invoice->tenant_id, $r->user()?->id);
+            return $svc->pdfFromView('exports.invoice', $data);
+        };
+        if (! $regenerate) {
+            $latest = $svc->latest(self::INV_TYPE, $invoice);
+            if ($latest) return $latest;
+        }
+        return $svc->current(self::INV_TYPE, $invoice, 'pdf', self::INV_TEMPLATE, $data,
+            'فاتورة ' . $invoice->invoice_number, $render, $r->user()?->id);
+    }
+
+    private function streamInvoice(\App\Domain\Exports\Models\ExportJob $a, \App\Domain\Exports\DocumentArtifactService $svc, string $disposition)
+    {
+        $bytes = $svc->bytes($a);
+        return response($bytes, 200, [
+            'Content-Type' => 'application/pdf',
+            'Content-Disposition' => $disposition . '; filename="' . \Illuminate\Support\Str::slug($a->title) . '.pdf"',
+            'Content-Length' => (string) strlen($bytes), 'X-Artifact-Checksum' => $a->checksum,
+        ]);
+    }
+
+    public function pdfPreview(Request $r, Invoice $invoice, \App\Domain\Exports\DocumentArtifactService $svc)
+    {
+        $this->authorize('view', $invoice);
+        return $this->streamInvoice($this->invoiceArtifact($r, $invoice, $svc), $svc, 'inline');
+    }
+
+    public function pdfDownload(Request $r, Invoice $invoice, \App\Domain\Exports\DocumentArtifactService $svc)
+    {
+        $this->authorize('view', $invoice);
+        return $this->streamInvoice($this->invoiceArtifact($r, $invoice, $svc), $svc, 'attachment');
+    }
+
+    public function pdfRegenerate(Request $r, Invoice $invoice, \App\Domain\Exports\DocumentArtifactService $svc): \Illuminate\Http\RedirectResponse
+    {
+        $this->authorize('view', $invoice);
+        $this->invoiceArtifact($r, $invoice, $svc, regenerate: true);
+        return back()->with('ok', 'أُنشئت نسخة محدّثة من الفاتورة.');
+    }
+
+    /** توافق خلفي: الرابط القديم يُنزّل الأثر ذاته. */
+    public function exportPdf(Request $r, Invoice $invoice, \App\Domain\Exports\DocumentArtifactService $svc)
+    {
+        return $this->pdfDownload($r, $invoice, $svc);
+    }
+
+    /** بيانات مستند الفاتورة لصفحة العرض — مسارات نسبية للتركيب. */
+    public function invoiceDocMeta(Invoice $invoice, \App\Domain\Exports\DocumentArtifactService $svc): array
+    {
+        $latest = $svc->latest(self::INV_TYPE, $invoice);
+        $currentFp = $svc->fingerprint($this->invoiceData($invoice), self::INV_TEMPLATE, 'pdf');
+        $base = "/invoices/{$invoice->id}/pdf";
+        return [
+            'title' => 'فاتورة ' . $invoice->invoice_number,
+            'hasArtifact' => (bool) $latest,
+            'generatedAt' => $latest?->created_at?->format('Y-m-d H:i'),
+            'stale' => $svc->isStale($latest, $currentFp),
+            'previewUrl' => "{$base}/preview", 'downloadUrl' => "{$base}/download", 'regenerateUrl' => "{$base}/regenerate",
+        ];
+    }
+
+    public function show(Request $r, Invoice $invoice, \App\Domain\Exports\DocumentArtifactService $artifacts): Response
     {
         $this->authorize('view', $invoice);
         $invoice->load('client', 'campaign', 'brand', 'items', 'payments', 'statusHistory');
@@ -110,6 +176,7 @@ class InvoicesController extends Controller
         $canManage = $r->user()->can('manage', $invoice);
 
         return Inertia::render('Invoices/Show', [
+            'documents' => ['pdf' => $this->invoiceDocMeta($invoice, $artifacts)],
             'invoice' => $this->row($invoice) + [
                 'notes' => $invoice->notes,
                 'cancelReason' => $invoice->cancel_reason,

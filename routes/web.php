@@ -418,6 +418,9 @@ Route::middleware(['auth', 'tenant', 'agency_member', 'inertia'])->prefix('beta'
     // تصدير الترشيحات — داخلي (XLSX/CSV) ومقترح PDF آمن للعميل. GET فلا يتعارض مع POST catch-all.
     Route::get('/campaigns/{campaign}/shortlist/export', [\App\Http\Controllers\Inertia\ShortlistController::class, 'export']);
     Route::get('/campaigns/{campaign}/shortlist/proposal', [\App\Http\Controllers\Inertia\ShortlistController::class, 'exportClientPdf']);
+    Route::get('/campaigns/{campaign}/shortlist/proposal/preview', [\App\Http\Controllers\Inertia\ShortlistController::class, 'proposalPreview']);
+    Route::get('/campaigns/{campaign}/shortlist/proposal/download', [\App\Http\Controllers\Inertia\ShortlistController::class, 'proposalDownload']);
+    Route::post('/campaigns/{campaign}/shortlist/proposal/regenerate', [\App\Http\Controllers\Inertia\ShortlistController::class, 'proposalRegenerate']);
     Route::post('/campaigns/{campaign}/shortlist/add', [\App\Http\Controllers\Inertia\ShortlistController::class, 'add']);
     Route::post('/campaigns/{campaign}/shortlist/submit', [\App\Http\Controllers\Inertia\ShortlistController::class, 'submit']);
     Route::post('/campaigns/{campaign}/shortlist/revise', [\App\Http\Controllers\Inertia\ShortlistController::class, 'revise']);
@@ -651,6 +654,9 @@ Route::middleware(['auth', 'tenant', 'agency_member'])->prefix('app')->group(fun
         // تصدير الترشيحات — داخلي (XLSX/CSV) ومقترح PDF آمن للعميل. GET فلا يتعارض مع POST catch-all.
         Route::get('/campaigns/{campaign}/shortlist/export', [\App\Http\Controllers\Inertia\ShortlistController::class, 'export']);
         Route::get('/campaigns/{campaign}/shortlist/proposal', [\App\Http\Controllers\Inertia\ShortlistController::class, 'exportClientPdf']);
+        Route::get('/campaigns/{campaign}/shortlist/proposal/preview', [\App\Http\Controllers\Inertia\ShortlistController::class, 'proposalPreview']);
+        Route::get('/campaigns/{campaign}/shortlist/proposal/download', [\App\Http\Controllers\Inertia\ShortlistController::class, 'proposalDownload']);
+        Route::post('/campaigns/{campaign}/shortlist/proposal/regenerate', [\App\Http\Controllers\Inertia\ShortlistController::class, 'proposalRegenerate']);
         Route::post('/campaigns/{campaign}/shortlist/add', [\App\Http\Controllers\Inertia\ShortlistController::class, 'add']);
         Route::post('/campaigns/{campaign}/shortlist/submit', [\App\Http\Controllers\Inertia\ShortlistController::class, 'submit']);
         Route::post('/campaigns/{campaign}/shortlist/revise', [\App\Http\Controllers\Inertia\ShortlistController::class, 'revise']);
@@ -700,6 +706,9 @@ Route::middleware(['auth', 'tenant', 'agency_member'])->prefix('app')->group(fun
         Route::post('/invoices', [\App\Http\Controllers\Inertia\InvoicesController::class, 'store']);
         Route::get('/invoices/{invoice}', [\App\Http\Controllers\Inertia\InvoicesController::class, 'show']);
     Route::get('/invoices/{invoice}/pdf', [\App\Http\Controllers\Inertia\InvoicesController::class, 'exportPdf']);
+        Route::get('/invoices/{invoice}/pdf/preview', [\App\Http\Controllers\Inertia\InvoicesController::class, 'pdfPreview']);
+        Route::get('/invoices/{invoice}/pdf/download', [\App\Http\Controllers\Inertia\InvoicesController::class, 'pdfDownload']);
+        Route::post('/invoices/{invoice}/pdf/regenerate', [\App\Http\Controllers\Inertia\InvoicesController::class, 'pdfRegenerate']);
         Route::post('/invoices/{invoice}/update', [\App\Http\Controllers\Inertia\InvoicesController::class, 'update']);
         Route::post('/invoices/{invoice}/issue', [\App\Http\Controllers\Inertia\InvoicesController::class, 'issue']);
         Route::post('/invoices/{invoice}/pay', [\App\Http\Controllers\Inertia\InvoicesController::class, 'pay']);

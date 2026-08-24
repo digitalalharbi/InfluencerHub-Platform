@@ -77,4 +77,27 @@ class InvoicePdfTest extends TestCase
         [, , $inv] = $this->setup_invoice();
         $this->get("/app/invoices/{$inv->id}/pdf")->assertRedirect('/login');
     }
+
+    /** المعاينة والتنزيل يبثّان نفس أثر الفاتورة (sha256 متطابق)، وروابط نسبية للتركيب. */
+    public function test_invoice_preview_and_download_same_artifact_bytes(): void
+    {
+        \Illuminate\Support\Facades\Storage::fake('local');
+        [$t, $u, $inv] = $this->setup_invoice();
+
+        $prev = $this->actingAs($u)->get("/app/invoices/{$inv->id}/pdf/preview");
+        $prev->assertOk()->assertHeader('content-type', 'application/pdf');
+        $this->assertStringContainsString('inline', $prev->headers->get('content-disposition'));
+        $down = $this->actingAs($u)->get("/app/invoices/{$inv->id}/pdf/download");
+        $down->assertOk();
+        $this->assertStringContainsString('attachment', $down->headers->get('content-disposition'));
+
+        $this->assertStringStartsWith('%PDF-', $prev->getContent());
+        $this->assertSame(hash('sha256', $prev->getContent()), hash('sha256', $down->getContent()));
+        $this->assertSame(1, TenantContext::withBypass(fn () => \App\Domain\Exports\Models\ExportJob::where('type', 'invoice_pdf')->count()));
+
+        $this->actingAs($u)->get("/app/invoices/{$inv->id}")
+            ->assertInertia(fn ($p) => $p
+                ->where('documents.pdf.previewUrl', "/invoices/{$inv->id}/pdf/preview")
+                ->where('documents.pdf.hasArtifact', true)->etc());
+    }
 }
