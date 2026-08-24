@@ -93,32 +93,87 @@ class CampaignAnalytics
     }
 
     /** قائمة جاهزية ذكية — تُحسب آليًا من بيانات حقيقية (لا تحديد يدوي). */
+    /**
+     * قائمة الجاهزية التنفيذية — كل معيار حالةٌ صادقة (جاهز/يحتاج انتباه/محظور/لا ينطبق)
+     * مع السبب والدليل والإجراء العامل. لا شطب للمكتمل: المكتمل «جاهز» لا «ملغى».
+     */
     public static function readiness(\App\Domain\Campaigns\Models\Campaign $c, array $m): array
     {
         $delivs = $c->deliverables;
         $committed = (int) $delivs->sum(fn ($d) => (int) ($d->fee_minor ?? 0) * (int) $d->quantity);
         $content = $c->contentItems;
-        $approvedContent = $content->whereIn('status', ['approved', 'published'])->count();
+        $approved = $content->whereIn('status', ['approved', 'published'])->count();
+        $budget = (int) $c->budget_minor;
+        $cur = $c->currency ?: 'SAR';
+        $fmt = fn (int $minor) => number_format($minor / 100, 0) . ' ' . $cur;
+        $unassigned = $delivs->whereNull('creator_id')->count();
+        $cid = $c->id;
+
+        // كل معيار: [label, state, reason, evidence, action]. الحالات:
+        // ready | attention | blocked | not_applicable
+        $mk = fn (string $label, string $state, string $reason, ?string $evidence, ?array $action) =>
+            compact('label', 'state', 'reason', 'evidence', 'action');
+
+        $clientOk = $c->client && in_array($c->client->status, ['active', 'qualified'], true);
+        $brandNa = ! $c->brand_id;
+        $brandOk = $brandNa || ($c->brand && $c->brand->status === 'approved');
+        $overBudget = $budget > 0 && $committed > $budget;
 
         $items = [
-            ['label' => 'العميل نشِط', 'done' => $c->client && in_array($c->client->status, ['active', 'qualified'], true),
-                'hint' => 'حالة العميل يجب أن تكون نشِطة/مؤهّلة', 'link' => $c->client ? "/app/clients/{$c->client_id}" : null],
-            ['label' => 'العلامة معتمدة', 'done' => ! $c->brand_id || ($c->brand && $c->brand->status === 'approved'),
-                'hint' => 'العلامة بانتظار الاعتماد', 'link' => '/app/brand-reviews'],
-            ['label' => 'الميزانية محدّدة', 'done' => (int) $c->budget_minor > 0,
-                'hint' => 'حدّد ميزانية الحملة', 'link' => "/app/campaigns/{$c->id}"],
-            ['label' => 'مخرجات مُضافة', 'done' => $delivs->count() > 0,
-                'hint' => 'أضِف مخرجًا واحدًا على الأقل', 'link' => "/app/campaigns/{$c->id}"],
-            ['label' => 'كل مخرج مُسنَد لمبدع', 'done' => $delivs->count() > 0 && $delivs->whereNull('creator_id')->isEmpty(),
-                'hint' => 'أسنِد مبدعًا لكل مخرج', 'link' => "/app/campaigns/{$c->id}"],
-            ['label' => 'ضمن الميزانية', 'done' => (int) $c->budget_minor === 0 || $committed <= (int) $c->budget_minor,
-                'hint' => 'إجمالي الأجور يتجاوز الميزانية', 'link' => "/app/campaigns/{$c->id}"],
-            ['label' => 'المحتوى معتمد', 'done' => $content->count() > 0 && $approvedContent === $content->count(),
-                'hint' => $content->count() ? ($content->count() - $approvedContent) . ' عنصر لم يُعتمد بعد' : 'لا محتوى بعد', 'link' => '/app/content'],
+            $mk('العميل نشِط', $clientOk ? 'ready' : 'blocked',
+                $clientOk ? 'العميل مؤهّل للتعاقد.' : 'حالة العميل ليست نشِطة/مؤهّلة — لا يمكن المضي في التنفيذ.',
+                $c->client ? 'الحالة الحالية: ' . __('statuses.' . $c->client->status) : 'لا عميل مرتبط',
+                $c->client_id ? ['title' => 'فتح ملفّ العميل', 'link' => "/app/clients/{$c->client_id}"] : null),
+
+            $mk('العلامة معتمدة', $brandNa ? 'not_applicable' : ($brandOk ? 'ready' : 'blocked'),
+                $brandNa ? 'لا علامة مرتبطة بهذه الحملة.' : ($brandOk ? 'العلامة معتمدة.' : 'العلامة بانتظار اعتماد المراجعة.'),
+                $c->brand ? 'العلامة: ' . $c->brand->name : null,
+                $brandOk ? null : ['title' => 'مراجعة العلامات', 'link' => '/app/brand-reviews']),
+
+            $mk('الميزانية محدّدة', $budget > 0 ? 'ready' : 'attention',
+                $budget > 0 ? 'ميزانية الحملة محدّدة.' : 'لم تُحدَّد ميزانية بعد — يتعذّر ضبط الالتزامات.',
+                $budget > 0 ? 'الميزانية: ' . $fmt($budget) : null,
+                $budget > 0 ? null : ['title' => 'تحديد الميزانية', 'link' => "/app/campaigns/{$cid}"]),
+
+            $mk('مخرجات مُضافة', $delivs->count() > 0 ? 'ready' : 'attention',
+                $delivs->count() > 0 ? 'المخرجات مُضافة.' : 'أضِف مخرجًا واحدًا على الأقل لبدء التنفيذ.',
+                $delivs->count() . ' مخرج',
+                $delivs->count() > 0 ? null : ['title' => 'إضافة مخرج', 'link' => "/app/campaigns/{$cid}"]),
+
+            $mk('كل مخرج مُسنَد لمبدع', $delivs->count() === 0 ? 'attention' : ($unassigned === 0 ? 'ready' : 'attention'),
+                $delivs->count() === 0 ? 'لا مخرجات لإسنادها بعد.' : ($unassigned === 0 ? 'كل المخرجات مُسنَدة.' : "{$unassigned} مخرج بلا مبدع مُسنَد."),
+                $delivs->count() ? ($delivs->count() - $unassigned) . '/' . $delivs->count() . ' مُسنَد' : null,
+                $unassigned > 0 ? ['title' => 'إسناد المبدعين', 'link' => "/app/campaigns/{$cid}"] : null),
+
+            $mk('ضمن الميزانية', $budget === 0 ? 'not_applicable' : ($overBudget ? 'blocked' : 'ready'),
+                $budget === 0 ? 'الميزانية غير محدّدة بعد.' : ($overBudget ? 'الالتزامات تتجاوز الميزانية المعتمدة.' : 'الالتزامات ضمن الميزانية.'),
+                $budget === 0 ? null : 'الميزانية ' . $fmt($budget) . ' · الالتزامات ' . $fmt($committed),
+                $overBudget ? ['title' => 'مراجعة التكاليف', 'link' => "/app/campaigns/{$cid}#deliverables"] : null),
+
+            $mk('المحتوى معتمد', $content->count() === 0 ? 'not_applicable' : ($approved === $content->count() ? 'ready' : 'attention'),
+                $content->count() === 0 ? 'لا محتوى مُقدَّم بعد.' : ($approved === $content->count() ? 'كل المحتوى معتمد.' : ($content->count() - $approved) . ' عنصر بانتظار الاعتماد.'),
+                $content->count() ? "{$approved}/{$content->count()} معتمد" : null,
+                ($content->count() && $approved < $content->count()) ? ['title' => 'مراجعة المحتوى', 'link' => '/app/content'] : null),
         ];
-        $done = collect($items)->where('done', true)->count();
-        return ['items' => $items, 'done' => $done, 'total' => count($items),
-            'percent' => (int) round($done / count($items) * 100)];
+
+        $ready = collect($items)->where('state', 'ready')->count();
+        $blocked = collect($items)->where('state', 'blocked')->count();
+        $applicable = collect($items)->where('state', '!=', 'not_applicable')->count();
+
+        return [
+            'items' => $items,
+            'ready' => $ready, 'blocked' => $blocked,
+            'done' => $ready, 'total' => $applicable,
+            'percent' => $applicable ? (int) round($ready / $applicable * 100) : 100,
+            'budget' => [
+                'budgetMinor' => $budget,
+                'committedMinor' => $committed,
+                'remainingMinor' => $budget - $committed, // سالب = تجاوز
+                'overBudget' => $overBudget,
+                'variancePct' => $budget > 0 ? (int) round(($committed - $budget) / $budget * 100) : 0,
+                'currency' => $cur,
+            ],
+        ];
     }
 
     /** مخطط زمني موحّد لأحداث الحملة (مراحل + تعاونات + محتوى) مرتّب زمنيًا تنازليًا. */
