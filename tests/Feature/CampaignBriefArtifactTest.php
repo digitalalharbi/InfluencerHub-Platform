@@ -92,6 +92,21 @@ class CampaignBriefArtifactTest extends TestCase
             ->assertInertia(fn ($p) => $p->where('documents.clientBrief.stale', false));
     }
 
+    /**
+     * انحدار: روابط المستند نسبية للتركيب (بلا /app) — الواجهة تضيف البادئة عبر
+     * u()، فلو بدأت بـ/app لتكرّرت (/app/app) وأعطى iframe المعاينة 404.
+     */
+    public function test_document_urls_are_mount_relative_not_double_prefixed(): void
+    {
+        Storage::fake('local');
+        [$t, $u, $cm] = $this->world();
+
+        $this->actingAs($u)->get("/app/campaigns/{$cm->id}")->assertInertia(fn ($p) => $p
+            ->where('documents.clientBrief.previewUrl', "/campaigns/{$cm->id}/client-brief/preview")
+            ->where('documents.clientBrief.downloadUrl', "/campaigns/{$cm->id}/client-brief/download")
+            ->where('documents.clientBrief.regenerateUrl', "/campaigns/{$cm->id}/client-brief/regenerate"));
+    }
+
     public function test_preview_is_tenant_scoped(): void
     {
         Storage::fake('local');
