@@ -37,6 +37,44 @@ class Brand
         return self::url() . (string) config('influencerhub.info_path', '/info');
     }
 
+    public static function privacyUrl(): string
+    {
+        return self::url() . (string) config('influencerhub.privacy_path', '/privacy');
+    }
+
+    public static function termsUrl(): string
+    {
+        return self::url() . (string) config('influencerhub.terms_path', '/terms');
+    }
+
+    public static function helpUrl(): string
+    {
+        return self::url() . (string) config('influencerhub.help_path', '/help');
+    }
+
+    /** بريد التواصل العام الحقيقي (يختلف عن مُرسِل البريد الآليّ no-reply@). */
+    public static function publicEmail(): string
+    {
+        return (string) config('influencerhub.public_email', 'info@influencerhub.io');
+    }
+
+    /** الهاتف العام — القيمة المخزّنة الأصلية (بلا تنسيق). */
+    public static function publicPhone(): string
+    {
+        return (string) config('influencerhub.public_phone', '+966550137003');
+    }
+
+    /** عرض الهاتف بتجميع مقروء (لا يغيّر القيمة المخزّنة). */
+    public static function publicPhoneDisplay(): string
+    {
+        $p = self::publicPhone();
+        // +966550137003 → +966 55 013 7003
+        if (preg_match('/^\+966(\d{2})(\d{3})(\d{4})$/', $p, $m)) {
+            return "+966 {$m[1]} {$m[2]} {$m[3]}";
+        }
+        return $p;
+    }
+
     public static function mailFromAddress(): string
     {
         return (string) config('influencerhub.mail.from_address', 'no-reply@influencerhub.io');

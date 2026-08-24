@@ -40,11 +40,11 @@ final class GatewayContent
             'flow' => self::FLOW,
             'preview' => self::PREVIEW,
             'more' => self::MORE,
-            // لا نعرض بريدًا/هاتفًا غير مُتحقَّق كأنه عامل. الموقع هو القناة المؤكَّدة،
-            // والبريد يبقى null حتى تُهيَّأ قناة دعم حقيقية (Brand::supportEmail()).
+            // بيانات تواصل عامّة حقيقية (مصدر المالك) — بريد وهاتف مؤكَّدان.
             'contact' => [
-                'email' => \App\Support\Brand::supportEmail(),   // null ما لم يُهيَّأ
-                'phone' => null,                                  // لا رقم مُختلَق
+                'email' => \App\Support\Brand::publicEmail(),         // info@influencerhub.io
+                'phone' => \App\Support\Brand::publicPhone(),         // +966550137003
+                'phoneDisplay' => \App\Support\Brand::publicPhoneDisplay(),
                 'website' => \App\Support\Brand::url() . '/',
                 'domain' => \App\Support\Brand::domain(),
             ],

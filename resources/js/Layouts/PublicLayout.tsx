@@ -1,5 +1,6 @@
-import { Link, Head } from '@inertiajs/react'
+import { Link, Head, usePage } from '@inertiajs/react'
 import type { ReactNode } from 'react'
+import type { SharedProps } from '@/types'
 
 function BrandMark({ size = 26 }: { size?: number }) {
   return (
@@ -27,15 +28,20 @@ export default function PublicLayout({
   description?: string
   children: ReactNode
 }) {
+  const page = usePage<SharedProps>()
+  const { brand } = page.props
+  // رابط قانوني لكل صفحة: نطاق المنتج + مسار الصفحة الحالي (بلا معاملات استعلام).
+  const path = page.url.split('?')[0]
+  const canonical = brand.url + (path === '/' ? '' : path)
 
   return (
     <div className="pub">
-      <Head>
-        <title>{title}</title>
-        {description && <meta name="description" content={description} />}
-        <meta property="og:title" content={title} />
-        {description && <meta property="og:description" content={description} />}
-        <meta property="og:type" content="website" />
+      {/* عنوان الصفحة يمرّ عبر مُحوِّل inertia.tsx فيُلحق «— InfluencerHub».
+          الوسوم على مستوى الموقع (og/الوصف الافتراضي) يوفّرها القالب الجذر؛
+          هنا نضبط فقط ما هو خاصّ بالصفحة: العنوان والرابط القانوني — بلا تكرار. */}
+      <Head title={title}>
+        <link head-key="canonical" rel="canonical" href={canonical} />
+        {description && <meta head-key="description" name="description" content={description} />}
       </Head>
 
       <header className="pub-header">
@@ -92,6 +98,11 @@ export default function PublicLayout({
               <Link href="/help">المساعدة</Link>
               <Link href="/terms">الشروط</Link>
               <Link href="/privacy">الخصوصية</Link>
+            </div>
+            <div>
+              <h4>تواصل</h4>
+              <a href={`mailto:${brand.publicEmail}`} style={{ direction: 'ltr' }}>{brand.publicEmail}</a>
+              <a href={`tel:${brand.publicPhone}`} style={{ direction: 'ltr' }}>{brand.publicPhoneDisplay}</a>
             </div>
           </div>
           {/* الروابط النظامية في السطر الأخير أيضًا: هذا أوّل ما يُبحث عنه في التذييل */}

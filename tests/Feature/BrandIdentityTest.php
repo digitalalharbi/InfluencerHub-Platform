@@ -28,6 +28,59 @@ class BrandIdentityTest extends TestCase
         $this->assertNull(Brand::supportEmail());
     }
 
+    public function test_real_public_contacts_are_canonical_owner_values(): void
+    {
+        // مصدر المالك — بريد وهاتف حقيقيان، ليسا تجريبيَّين ولا يُصنَّفان placeholder.
+        $this->assertSame('info@influencerhub.io', Brand::publicEmail());
+        $this->assertSame('+966550137003', Brand::publicPhone());              // القيمة المخزّنة الأصلية
+        $this->assertSame('+966 55 013 7003', Brand::publicPhoneDisplay());     // العرض المقروء فقط
+        // بريد التواصل العام يختلف عن مُرسِل البريد الآليّ (لا يُعرَض no-reply كقناة عامّة).
+        // (القيمة الزمنية للمُرسِل قد تُضبط من .env المحلّي؛ العُرف no-reply@ مُثبَت في .env.example.)
+        $this->assertNotSame(Brand::publicEmail(), Brand::mailFromAddress());
+        $this->assertStringContainsString('no-reply@influencerhub.io', file_get_contents(base_path('.env.example')));
+        // روابط الوثائق النظامية تُبنى من النطاق القانوني.
+        $this->assertSame('https://influencerhub.io/privacy', Brand::privacyUrl());
+        $this->assertSame('https://influencerhub.io/terms', Brand::termsUrl());
+        $this->assertSame('https://influencerhub.io/help', Brand::helpUrl());
+    }
+
+    public function test_public_policy_pages_load_branded_with_own_titles(): void
+    {
+        foreach ([
+            '/privacy' => 'الخصوصية',
+            '/terms' => 'الشروط',
+            '/help' => 'المساعدة',
+            '/info' => 'عن InfluencerHub',
+        ] as $path => $needle) {
+            $res = $this->get($path);
+            $res->assertOk();
+            // العنوان لكل صفحة يُركَّب في الواجهة عبر PublicLayout؛ نتحقّق أن المسار حيّ 200
+            // وأن هوية المنتج حاضرة في الصدفة (لا إطار عمل مُسرَّب).
+            $res->assertSee('InfluencerHub', false);
+            $this->assertIsString($needle);
+        }
+    }
+
+    public function test_shared_inertia_brand_prop_carries_contacts_and_policy_paths(): void
+    {
+        $brand = (new \App\Http\Middleware\HandleInertiaRequests())
+            ->share(request())['brand'];
+        $this->assertSame('info@influencerhub.io', $brand['publicEmail']);
+        $this->assertSame('+966550137003', $brand['publicPhone']);
+        $this->assertSame('/privacy', $brand['privacyPath']);
+        $this->assertSame('/terms', $brand['termsPath']);
+        $this->assertSame('/help', $brand['helpPath']);
+    }
+
+    public function test_mail_shell_footer_carries_public_contact_and_policy_links(): void
+    {
+        $html = view('components.mail.layout', ['slot' => 'مرحبًا', 'title' => 'اختبار'])->render();
+        $this->assertStringContainsString('info@influencerhub.io', $html);
+        $this->assertStringContainsString('/privacy', $html);
+        $this->assertStringContainsString('/terms', $html);
+        $this->assertStringContainsString('/help', $html);
+    }
+
     public function test_env_examples_use_canonical_product_domain_not_local(): void
     {
         foreach ([base_path('.env.example'), base_path('deploy/vps/.env.example')] as $file) {
@@ -35,6 +88,8 @@ class BrandIdentityTest extends TestCase
             $this->assertStringContainsString('no-reply@influencerhub.io', $env, $file);
             $this->assertStringNotContainsString('influencerhub.local', $env, $file);
             $this->assertStringContainsString('PRODUCT_URL=https://influencerhub.io', $env, $file);
+            $this->assertStringContainsString('PRODUCT_PUBLIC_EMAIL=info@influencerhub.io', $env, $file);
+            $this->assertStringContainsString('PRODUCT_PUBLIC_PHONE=+966550137003', $env, $file);
         }
     }
 

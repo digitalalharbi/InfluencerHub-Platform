@@ -341,14 +341,8 @@ class MarketingController extends Controller
     /** عن InfluencerHub — صفحة عامة صادقة تشرح القدرات الفعلية. */
     public function info(): Response
     {
-        return Inertia::render('Public/Info', [
-            'brand' => [
-                'name' => \App\Support\Brand::name(),
-                'tagline' => \App\Support\Brand::tagline(),
-                'url' => \App\Support\Brand::url(),
-                'domain' => \App\Support\Brand::domain(),
-            ],
-        ]);
+        // هوية المنتج تأتي من الخصائص المشتركة (brand) — لا نُكرّرها هنا فتُظلَّل الحقول الأوسع.
+        return Inertia::render('Public/Info');
     }
 
     public function help(): Response

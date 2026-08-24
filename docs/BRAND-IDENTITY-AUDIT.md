@@ -41,6 +41,24 @@ Status vocabulary: `PRODUCTION_VERIFIED` · `INTERNAL_VERIFIED` · `BLOCKED_EXTE
 | Invoice/contract readiness warning | n/a | — | documents print only existing tenant data (org name); **no legal fields (VAT/CR/address) are printed**, so nothing to fabricate or warn about | tenant | org.name | — | NOT_APPLICABLE (no legal field in current doc semantics) |
 | Org legal fields in Settings | n/a | — | not added — current documents don't use legal name/VAT/CR; adding would invent unspecified requirements | tenant | — | — | NOT_APPLICABLE (until a real business/legal need is specified) |
 
+## Real public contact data + global footer + policy pages (final pass)
+
+Owner-canonical source of truth (NOT demo values — must never be removed or classified placeholder):
+public email **info@influencerhub.io**, public phone **+966550137003** (stored raw; displays `+966 55 013 7003`).
+
+| Surface | Before | After | Source | Verified |
+| --- | --- | --- | --- | --- |
+| Canonical contact email | fake `info@influencerhub.sa` → then nulled | **info@influencerhub.io** (`Brand::publicEmail`) | config/env | PRODUCTION path (footer/pages) |
+| Canonical contact phone | fake `+966 55 000 0000` → then nulled | **+966550137003** raw, display `+966 55 013 7003` | config/env | INTERNAL_VERIFIED (local browser) |
+| Transactional sender (distinct) | — | `no-reply@influencerhub.io` (never shown as public contact) | config | asserted ≠ publicEmail |
+| Global app footer (all portals) | none | one `AppFooter` in `AppShell`: privacy/terms/help + © year InfluencerHub + influencerhub.io; normal-flow, soft divider, neutral z-index, RTL, mobile-centered | shared `brand` prop | INTERNAL_VERIFIED (/app agency; DOM: below content, 1px divider, z=auto) |
+| Public site footer | policy links only | + تواصل column (email + phone) | shared brand | INTERNAL_VERIFIED |
+| /privacy /terms /help /info | existed, no real contact | real contact channel via shared `PublicContact` (no hardcoding); own titles + brand-domain canonical | shared brand | INTERNAL_VERIFIED (200; `الخصوصية — InfluencerHub`; canonical `https://influencerhub.io/terms`) |
+| Per-page canonical/description | root static (serving host) duplicated | single canonical on **brand domain**; removed root static dup | PublicLayout head-key | INTERNAL_VERIFIED (canonCount=1) |
+| Mail shell footer | website only | + public email + privacy/terms/help links | Brand helpers | test-verified |
+
+Note: brand-domain canonical requires `PRODUCT_URL=https://influencerhub.io` (set in deploy env); locally it reflects the dev origin.
+
 ## Classification of repo identity tokens (step 15)
 - `إنفلونسر هَب` (old Arabic wordmark) — USER_FACING → replaced with `InfluencerHub` across app/resources (#61); only remaining occurrences are TEST_FIXTURE assertions that intentionally check branding.
 - `Laravel` — framework internals only (DEV_ONLY); config fallbacks changed to InfluencerHub.

@@ -1,6 +1,7 @@
 import { Link, usePage } from '@inertiajs/react';
 import { useEffect, useState, type ReactNode } from 'react';
 import { Icon } from '@/Components/Icon';
+import AppFooter from '@/Components/AppFooter';
 import { agencyNav, mobilePrimary, type NavGroup, type NavItem } from '@/lib/nav';
 import { base, u } from '@/lib/href';
 import type { SharedProps } from '@/types';
@@ -155,6 +156,7 @@ export default function AppShell({
           )}
           {children}
         </div>
+        <AppFooter />
       </main>
 
       {/* تنقّل الجوال — وجهات أساسية + «المزيد» يفتح القائمة الكاملة */}

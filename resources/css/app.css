@@ -690,6 +690,29 @@ select.field { appearance: none; background-image: linear-gradient(45deg, transp
 /* content container width */
 .ih-content { padding: 1.5rem; flex: 1; min-width: 0; }
 @media (max-width: 767.98px) { .ih-content { padding: 1rem; } }
+
+/* ---- تذييل التطبيق العام (كل البوّابات) ----
+   يبقى في التدفّق الطبيعي أسفل المحتوى بفضل .ih-content{flex:1}: يلتصق بأسفل
+   الشاشة في الصفحات القصيرة، ويتدفّق بعد المحتوى في الطويلة. z-index محايد
+   فتعلوه النوافذ المنبثقة (overlay/modal ذات z-index أعلى). */
+.ih-appfoot {
+  display: flex; align-items: center; justify-content: space-between;
+  flex-wrap: wrap; gap: .5rem 1rem;
+  padding: .85rem 1.5rem calc(.85rem + var(--ih-safe-bottom));
+  border-top: 1px solid var(--ih-border);
+  background: var(--ih-surface, transparent);
+  color: var(--ih-text-muted);
+  font-size: .78rem; line-height: 1.6;
+}
+.ih-appfoot__links { display: flex; flex-wrap: wrap; gap: .25rem 1rem; }
+.ih-appfoot__link { color: var(--ih-text-muted); text-decoration: none; border-radius: 4px; }
+.ih-appfoot__link:hover { color: var(--ih-text); text-decoration: underline; }
+.ih-appfoot__link:focus-visible { outline: 2px solid var(--ih-primary); outline-offset: 2px; }
+.ih-appfoot__copy { display: inline-flex; align-items: center; gap: .15rem; }
+.ih-appfoot__domain { direction: ltr; unicode-bidi: isolate; }
+@media (max-width: 767.98px) {
+  .ih-appfoot { padding-inline: 1rem; justify-content: center; text-align: center; }
+}
 @media (max-width: 900px) { .ih-settings-grid { grid-template-columns: 1fr !important; } }
 
 /* ---- KPI stat cards ---- */

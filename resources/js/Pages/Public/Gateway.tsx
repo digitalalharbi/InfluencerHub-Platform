@@ -37,7 +37,7 @@ type Props = {
     rows: { name: string; state: string; tone: string }[]
   }
   more: { group: string; items: string[] }[]
-  contact: { email: string | null; phone: string | null; website: string; domain: string }
+  contact: { email: string | null; phone: string | null; phoneDisplay?: string | null; website: string; domain: string }
   legal: { label: string; href: string }[]
   year: number
 }
@@ -291,7 +291,7 @@ export default function Gateway({
           <div className="gw-footer-contact">
             {/* لا نعرض بريدًا/هاتفًا غير مُتحقَّق. الموقع هو القناة المؤكَّدة. */}
             {contact.email && <a href={`mailto:${contact.email}`} dir="ltr">{contact.email}</a>}
-            {contact.phone && <a href={`tel:${contact.phone.replace(/\s/g, '')}`} dir="ltr">{contact.phone}</a>}
+            {contact.phone && <a href={`tel:${contact.phone.replace(/\s/g, '')}`} dir="ltr">{contact.phoneDisplay ?? contact.phone}</a>}
             {contact.website && <a href={contact.website} dir="ltr">{contact.domain}</a>}
           </div>
 

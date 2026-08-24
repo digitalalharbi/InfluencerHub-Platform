@@ -1,7 +1,7 @@
-import { Link } from '@inertiajs/react'
+import { Link, usePage } from '@inertiajs/react'
 import PublicLayout from '@/Layouts/PublicLayout'
-
-interface Brand { name: string; tagline: string; url: string; domain: string }
+import PublicContact from '@/Components/PublicContact'
+import type { SharedProps } from '@/types'
 
 /** القدرات الفعلية — لا نُعلن تكاملًا حيًّا غير مُفعَّل. */
 const CAPS: { title: string; body: string }[] = [
@@ -18,7 +18,8 @@ const CAPS: { title: string; body: string }[] = [
   { title: 'الأمن والخصوصية', body: 'عزل كامل بين المستأجرين، وصلاحيات دقيقة لكل إجراء، ومستندات خاصّة تُنزَّل بترخيص لا بروابط عامّة.' },
 ]
 
-export default function Info({ brand }: { brand: Brand }) {
+export default function Info() {
+  const { brand } = usePage<SharedProps>().props
   return (
     <PublicLayout
       title="عن InfluencerHub"
@@ -55,10 +56,12 @@ export default function Info({ brand }: { brand: Brand }) {
       </section>
 
       <section className="pub-wrap pub-section" style={{ textAlign: 'center' }}>
-        <p className="pub-muted">
+        <h2 style={{ marginBottom: '.75rem' }}>تواصل معنا</h2>
+        <p className="pub-muted" style={{ marginBottom: '.5rem' }}>
           للاطّلاع على المنصّة أو طلب عرض توضيحي، زُر{' '}
-          <a href={`${brand.url}/`} style={{ direction: 'ltr', fontWeight: 700 }}>{brand.domain}</a>.
+          <a href={`${brand.url}/`} style={{ direction: 'ltr', fontWeight: 700 }}>{brand.domain}</a>، أو تواصل مباشرةً:
         </p>
+        <p><PublicContact inline /></p>
       </section>
     </PublicLayout>
   )

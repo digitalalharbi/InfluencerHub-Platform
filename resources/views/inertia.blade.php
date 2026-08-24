@@ -7,8 +7,9 @@
     @php($brand = ['name' => \App\Support\Brand::name(), 'tagline' => \App\Support\Brand::tagline(), 'url' => \App\Support\Brand::url(), 'domain' => \App\Support\Brand::domain()])
     {{-- عنوان افتراضي — تتجاوزه Inertia لكلّ صفحة، ويبقى هوية المنتج قبل تحميل React --}}
     <title inertia>{{ $brand['name'] }} — {{ $brand['tagline'] }}</title>
-    <meta name="description" content="{{ $brand['tagline'] }}">
-    <link rel="canonical" href="{{ url()->current() }}">
+    {{-- الوصف والرابط القانوني لكلّ صفحة عامّة تُضبط من الواجهة (PublicLayout):
+         الرابط على نطاق المنتج influencerhub.io لا على مضيف الخدمة (crmv2.…)،
+         ويُحدَّثان مع تنقّل Inertia. الوسم الافتراضي في og:description أدناه. --}}
     {{-- أيقونات المنتج — عائلة واحدة (favicon.ico + SVG + apple-touch) --}}
     <link rel="icon" href="/favicon.ico" sizes="any">
     <link rel="icon" type="image/svg+xml" href="/icons/ih-icon.svg">
