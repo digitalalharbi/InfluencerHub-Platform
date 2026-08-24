@@ -51,10 +51,10 @@ async function login(page) {
   expect(page.url(), 'login must land on /app, not bounce to /login').toMatch(/\/app(\/|$)/);
 }
 
-/** يقرأ خصائص Inertia من عنصر #app (تحميل كامل للصفحة يجعلها محدَّثة). */
+/** يقرأ خصائص Inertia من عنصر الجذر (data-page) — بلا افتراض معرّف ثابت. */
 async function inertiaProps(page) {
-  const raw = await page.getAttribute('#app', 'data-page');
-  expect(raw, 'Inertia #app data-page must be present').toBeTruthy();
+  const raw = await page.getAttribute('[data-page]', 'data-page');
+  expect(raw, 'Inertia data-page must be present').toBeTruthy();
   return JSON.parse(raw).props;
 }
 
