@@ -42,7 +42,7 @@ class PayoutDetailController extends Controller
             'failed' => ['#fef3f2', '#b42318'], 'cancelled' => ['#f2f4f7', '#475467'],
         ];
         return [
-            'workspace' => \App\Domain\Tenancy\Models\Organization::find(\App\Domain\Tenancy\Support\TenantContext::organizationId())?->name ?? 'إنفلونسر هَب',
+            'workspace' => \App\Domain\Tenancy\Models\Organization::find(\App\Domain\Tenancy\Support\TenantContext::organizationId())?->name ?? \App\Support\Brand::name(),
             'number' => $payout->payout_number,
             'creator' => $payout->creator?->display_name ?? '—',
             'campaign' => $payout->campaign?->name,
@@ -74,7 +74,7 @@ class PayoutDetailController extends Controller
     {
         $bytes = $svc->bytes($a);
         return response($bytes, 200, ['Content-Type' => 'application/pdf',
-            'Content-Disposition' => $disposition . '; filename="' . \Illuminate\Support\Str::slug($a->title) . '.pdf"',
+            'Content-Disposition' => $disposition . '; filename="' . \App\Support\Brand::documentFilename($a->title) . '"',
             'Content-Length' => (string) strlen($bytes), 'X-Artifact-Checksum' => $a->checksum]);
     }
 

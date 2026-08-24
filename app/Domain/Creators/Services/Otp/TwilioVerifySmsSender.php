@@ -89,7 +89,7 @@ class TwilioVerifySmsSender implements OtpSmsSender
             ->post($url, [
                 'From' => $from,
                 'To' => $to,
-                'Body' => "رمز التحقق الخاص بك في إنفلونسر هَب هو: {$code}",
+                'Body' => "رمز التحقق الخاص بك في InfluencerHub هو: {$code}",
             ]);
 
         if (! $response->successful()) {

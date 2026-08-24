@@ -3,7 +3,7 @@
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>انتهت الجلسة — إنفلونسر هَب</title>
+    <title>انتهت الجلسة — InfluencerHub</title>
     <style>
         :root{--ih-primary:#6d5df6;--ih-ink:#111827;--ih-muted:#64748b;--ih-border:#e2e8f0;--ih-bg:#f8fafc;--ih-card:#fff}
         *{box-sizing:border-box} body{margin:0;min-height:100vh;display:grid;place-items:center;background:var(--ih-bg);color:var(--ih-ink);font-family:"IBM Plex Sans Arabic",Inter,system-ui,sans-serif;padding:24px}
@@ -26,7 +26,7 @@
                 <circle cx="9" cy="10" r="2" fill="var(--ih-primary)"/>
                 <circle cx="23" cy="22" r="2" fill="var(--ih-primary)"/>
             </svg>
-            <span>إنفلونسر هَب</span>
+            <span>InfluencerHub</span>
         </div>
         <div class="code">419</div>
         <h1>انتهت الجلسة</h1>

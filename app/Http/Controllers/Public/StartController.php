@@ -103,7 +103,7 @@ class StartController extends Controller
         Mail::send(
             'mail.verification-code',
             ['code' => $code, 'verifyUrl' => $verifyUrl],
-            fn ($m) => $m->to($email)->subject('رمز تأكيد البريد — إنفلونسر هَب'),
+            fn ($m) => $m->to($email)->subject('رمز تأكيد البريد — InfluencerHub'),
         );
 
         if (! app()->environment('production')) {

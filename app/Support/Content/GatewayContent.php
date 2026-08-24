@@ -25,7 +25,7 @@ final class GatewayContent
     {
         return [
             'system' => [
-                'name' => 'إنفلونسر هَب',
+                'name' => 'InfluencerHub',
                 'tagline' => 'منصّتك لإدارة التسويق مع صنّاع المحتوى',
             ],
             'nav' => [

@@ -185,7 +185,7 @@ class ShortlistController extends Controller
         $bytes = $svc->bytes($a);
         return response($bytes, 200, [
             'Content-Type' => 'application/pdf',
-            'Content-Disposition' => $disposition . '; filename="' . \Illuminate\Support\Str::slug($a->title) . '.pdf"',
+            'Content-Disposition' => $disposition . '; filename="' . \App\Support\Brand::documentFilename($a->title) . '"',
             'Content-Length' => (string) strlen($bytes), 'X-Artifact-Checksum' => $a->checksum,
         ]);
     }

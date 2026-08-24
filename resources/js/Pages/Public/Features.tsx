@@ -23,7 +23,7 @@ export default function Features({ groups }: { groups: FeatureGroup[] }) {
   return (
     <PublicLayout
       title="المزايا"
-      description="ما تديره فعلًا في إنفلونسر هَب: الطلبات، الحملات، الترشيحات، المحتوى واعتماده، العقود، المستحقات، التقارير، والصلاحيات."
+      description="ما تديره فعلًا في InfluencerHub: الطلبات، الحملات، الترشيحات، المحتوى واعتماده، العقود، المستحقات، التقارير، والصلاحيات."
     >
       <section className="pub-hero">
         <div className="pub-wrap">

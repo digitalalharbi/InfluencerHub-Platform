@@ -58,4 +58,20 @@ class Brand
     {
         return 'تم إنشاء هذا المستند عبر ' . self::name() . ' · ' . self::domain();
     }
+
+    /**
+     * اسم ملفّ مُصدَّر مُعرَّف بالعلامة وآمن: InfluencerHub-<رمز/عنوان>.<امتداد>.
+     * يُستخرج الرمز اللاتيني من العنوان (CM-1-2 / INV-1-0001) إن وُجد، وإلّا slug.
+     */
+    public static function documentFilename(string $title, string $ext = 'pdf'): string
+    {
+        $token = '';
+        if (preg_match('/[A-Za-z]{2,}[-\d]*\d/', $title, $m)) {
+            $token = $m[0];                                   // رمز المستند اللاتيني (رقمه)
+        }
+        $token = $token !== '' ? $token : \Illuminate\Support\Str::slug($title);
+        $token = trim($token, '-') ?: 'document';
+
+        return self::name() . '-' . $token . '.' . $ext;
+    }
 }

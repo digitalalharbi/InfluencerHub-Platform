@@ -36,7 +36,7 @@ class ContractDetailController extends Controller
         $map = ['draft' => ['#eef2f7', '#475467'], 'sent' => ['#eff8ff', '#175cd3'], 'signed' => ['#ecfdf3', '#067647'],
             'active' => ['#ecfdf3', '#067647'], 'completed' => ['#f2f4f7', '#475467'], 'terminated' => ['#fef3f2', '#b42318'], 'cancelled' => ['#f2f4f7', '#475467']];
         return [
-            'workspace' => \App\Domain\Tenancy\Models\Organization::find(\App\Domain\Tenancy\Support\TenantContext::organizationId())?->name ?? 'إنفلونسر هَب',
+            'workspace' => \App\Domain\Tenancy\Models\Organization::find(\App\Domain\Tenancy\Support\TenantContext::organizationId())?->name ?? \App\Support\Brand::name(),
             'number' => $contract->contract_number,
             'title' => $contract->title,
             'party' => $contract->party_type === 'creator' ? ($contract->creator?->display_name ?? '—') : ($contract->client?->display_name ?? '—'),
@@ -68,7 +68,7 @@ class ContractDetailController extends Controller
     {
         $bytes = $svc->bytes($a);
         return response($bytes, 200, ['Content-Type' => 'application/pdf',
-            'Content-Disposition' => $disposition . '; filename="' . \Illuminate\Support\Str::slug($a->title) . '.pdf"',
+            'Content-Disposition' => $disposition . '; filename="' . \App\Support\Brand::documentFilename($a->title) . '"',
             'Content-Length' => (string) strlen($bytes), 'X-Artifact-Checksum' => $a->checksum]);
     }
 

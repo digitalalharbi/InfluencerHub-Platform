@@ -4,7 +4,7 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
     <meta name="csrf-token" content="{{ csrf_token() }}">
-    <title>@yield('title', 'InfluencerHub') — إنفلونسر هَب</title>
+    <title>@yield('title', 'InfluencerHub') — InfluencerHub</title>
     <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Arabic:wght@400;500;600;700;800&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <link rel="manifest" href="/manifest.webmanifest"><meta name="apple-mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"><link rel="apple-touch-icon" href="/icons/ih-icon.svg"><meta name="theme-color" content="#0D1424">
     @vite(['resources/css/app.css', 'resources/js/app.js'])
@@ -23,7 +23,7 @@
     <div class="ih-scrim" @click="nav=false"></div>
     <aside class="sidebar ih-side" @click="nav=false">
         <a href="/app" class="ih-side__brand">
-            <x-ih-logo :size="28" color="var(--ih-primary)"/> <span>إنفلونسر هَب</span>
+            <x-ih-logo :size="28" color="var(--ih-primary)"/> <span>InfluencerHub</span>
         </a>
         <div class="ih-side__workspace">
             <span class="ih-side__ws-avatar">{{ mb_substr($ihWorkspace, 0, 1) }}</span>
@@ -51,7 +51,7 @@
             <button class="ih-icon-btn" @click="nav=true" aria-label="فتح القائمة">
                 <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="3" x2="21" y1="6" y2="6"/><line x1="3" x2="21" y1="12" y2="12"/><line x1="3" x2="21" y1="18" y2="18"/></svg>
             </button>
-            <span style="font-weight:800; color:var(--ih-primary); display:inline-flex; align-items:center; gap:.5rem;"><x-ih-logo :size="24" color="var(--ih-primary)"/> إنفلونسر هَب</span>
+            <span style="font-weight:800; color:var(--ih-primary); display:inline-flex; align-items:center; gap:.5rem;"><x-ih-logo :size="24" color="var(--ih-primary)"/> InfluencerHub</span>
             <span style="margin-inline-start:auto; font-weight:700; font-size:.9rem;">@yield('heading', '')</span>
             <button type="button" class="ih-icon-btn" @click="$dispatch('ih-open-command-palette')" aria-label="بحث سريع"><x-icon name="search" :size="18"/></button>
         </div>

@@ -58,7 +58,7 @@ export default function InvitationAccept({ token, creatorName, email, phone, ema
 
   return (
     <div className="pub" style={{ minHeight: '100vh', display: 'grid', placeItems: 'center', padding: '1.5rem' }}>
-      <Head title="تفعيل بوابتك — إنفلونسر هَب" />
+      <Head title="تفعيل بوابتك — InfluencerHub" />
       <div className="card" style={{ maxWidth: 480, width: '100%', padding: '1.8rem' }}>
         <h1 style={{ fontSize: 'var(--ih-fs-section)', fontWeight: 700, margin: '0 0 .3rem' }}>
           أهلًا {creatorName ?? ''}

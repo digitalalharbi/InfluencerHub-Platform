@@ -1,5 +1,5 @@
 @props([
-    'title' => 'إنفلونسر هَب',
+    'title' => 'InfluencerHub',
     'preheader' => '',
 ])
 <!doctype html>

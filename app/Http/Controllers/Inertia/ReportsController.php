@@ -82,7 +82,7 @@ class ReportsController extends Controller
         $bytes = $svc->bytes($a);
         return response($bytes, 200, [
             'Content-Type' => 'application/pdf',
-            'Content-Disposition' => $disposition . '; filename="clients-report.pdf"',
+            'Content-Disposition' => $disposition . '; filename="' . \App\Support\Brand::documentFilename("clients-report") . '"',
             'Content-Length' => (string) strlen($bytes), 'X-Artifact-Checksum' => $a->checksum,
         ]);
     }

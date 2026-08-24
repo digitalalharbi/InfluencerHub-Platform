@@ -16,7 +16,7 @@ export default function Help({ groups }: { groups: FaqGroup[] }) {
   return (
     <PublicLayout
       title="المساعدة"
-      description="أجوبة عن البدء وأنواع الحسابات والتشغيل والاشتراك والبيانات في إنفلونسر هَب."
+      description="أجوبة عن البدء وأنواع الحسابات والتشغيل والاشتراك والبيانات في InfluencerHub."
     >
       <section className="pub-hero">
         <div className="pub-wrap">

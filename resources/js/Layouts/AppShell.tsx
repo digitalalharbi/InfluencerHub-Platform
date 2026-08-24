@@ -19,7 +19,7 @@ function isActive(url: string, route: string, match?: string, home = base()): bo
 }
 
 export default function AppShell({
-  heading, children, nav: navGroups = agencyNav, home = base(), wsName, wsPlan = 'وكالة · الخطة النشطة', brand = 'إنفلونسر هَب',
+  heading, children, nav: navGroups = agencyNav, home = base(), wsName, wsPlan = 'وكالة · الخطة النشطة', brand = 'InfluencerHub',
   portal = 'agency',
 }: {
   heading?: string; children: ReactNode; nav?: NavGroup[]; home?: string;

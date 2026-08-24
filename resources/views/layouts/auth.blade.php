@@ -31,7 +31,7 @@
 <div class="ih-auth">
     {{-- ============ القسم التسويقي ============ --}}
     <section class="ih-auth__brand">
-        <a href="/" class="ih-auth__logo"><x-ih-logo :size="30" color="#FFFFFF"/> <span>إنفلونسر هَب</span></a>
+        <a href="/" class="ih-auth__logo"><x-ih-logo :size="30" color="#FFFFFF"/> <span>InfluencerHub</span></a>
         <h1 class="ih-auth__headline">@yield('headline', 'منصّة تشغيل متكاملة لوكالات المؤثرين')</h1>
         <p class="ih-auth__sub">@yield('sub', 'أدر العملاء والعلامات والمؤثرين والطلبات والحملات والمحتوى والعقود والمدفوعات والتقارير — في بيئة تشغيل موحّدة بدل الرسائل والملفات المتفرّقة.')</p>
         <div class="ih-auth__benefits">
@@ -52,7 +52,7 @@
     {{-- ============ قسم الدخول ============ --}}
     <section class="ih-auth__form">
         <div class="ih-auth__card">
-            <a href="/" style="text-decoration:none; color:var(--ih-primary); display:inline-flex;"><x-ih-logo :size="26" color="var(--ih-primary)"/> <span style="font-weight:800; margin-inline-start:.4rem; color:var(--ih-text);">إنفلونسر هَب</span></a>
+            <a href="/" style="text-decoration:none; color:var(--ih-primary); display:inline-flex;"><x-ih-logo :size="26" color="var(--ih-primary)"/> <span style="font-weight:800; margin-inline-start:.4rem; color:var(--ih-text);">InfluencerHub</span></a>
             <div style="margin:1.2rem 0 .4rem;"><span class="ih-auth__portal-tag">@yield('portal_tag', 'بوابة الوكالة')</span></div>
             <h2 style="font-size:1.35rem; font-weight:800; margin:.6rem 0 .3rem;">@yield('form_title', 'تسجيل الدخول')</h2>
             <p style="color:var(--ih-text-muted); font-size:.88rem; margin:0 0 1.4rem;">@yield('form_sub', 'ادخل إلى حسابك لإدارة عملياتك اليومية.')</p>
