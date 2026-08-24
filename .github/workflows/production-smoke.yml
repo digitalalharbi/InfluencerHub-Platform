@@ -44,17 +44,16 @@ jobs:
           echo "diag containers = $(rssh 'docker ps --format "{{.Names}}" 2>/dev/null | tr "\n" ","' 2>/dev/null || echo ERR)"
           echo "diag volumes = $(rssh 'docker volume ls --format "{{.Name}}" 2>/dev/null | grep -i app_storage | tr "\n" ","' 2>/dev/null || echo ERR)"
 
-          FILE_REL='storage/app/private/showcase-credentials.txt'
-          # الاستراتيجية أ: قراءة الملف مباشرةً من مسار وحدة تخزين docker على المضيف (المستخدم root).
-          CONTENT="$(rssh "cat /var/lib/docker/volumes/platform_app_storage/_data/private/showcase-credentials.txt 2>/dev/null" 2>/dev/null || true)"
-          # الاستراتيجية ب: exec داخل حاوية التطبيق المُكتشَفة بالاسم (workdir=/app).
-          if [ -z "$CONTENT" ]; then
-            APPC="$(rssh 'docker ps --format "{{.Names}}" | grep -Ei "(^|[-_])app([-_]|$)" | head -n1' 2>/dev/null | tr -d '\r\n' || true)"
-            echo "diag app_container = ${APPC:-none}"
-            if [ -n "$APPC" ]; then
-              CONTENT="$(rssh "docker exec $APPC sh -lc 'cat $FILE_REL' 2>/dev/null" 2>/dev/null || true)"
-            fi
-          fi
+          # مسار مطلق داخل الحاوية (workdir=/app؛ وحدة التخزين على /app/storage/app).
+          FILE_ABS='/app/storage/app/private/showcase-credentials.txt'
+          # حاوية التطبيق لمشروع docker المُسمّى platform تحديدًا (على المضيف عدّة أطقم).
+          APPC="$(rssh 'docker ps --format "{{.Names}}" | grep -E "^platform-app" | head -n1' 2>/dev/null | tr -d '\r\n' || true)"
+          [ -z "$APPC" ] && APPC="platform-app-1"
+          echo "diag app_container = ${APPC:-none}"
+          # تشخيص آمن: أسماء الملفّات في مجلّد private (لا محتوى) لتأكيد وجود الملف.
+          echo "diag private_dir = $(rssh "docker exec $APPC sh -c 'ls /app/storage/app/private 2>/dev/null' | tr '\n' ','" 2>/dev/null || echo ERR)"
+          # القراءة: مسار مطلق + sh -c (لا -l حتى لا يتغيّر مجلّد العمل). لا يُطبع المحتوى.
+          CONTENT="$(rssh "docker exec $APPC sh -c 'cat $FILE_ABS' 2>/dev/null" 2>/dev/null || true)"
           echo "diag creds_found = $([ -n "$CONTENT" ] && echo yes || echo no)"
 
           # نستخرج سطر كلمة المرور فقط ثم نُقنّعه فورًا (لا يُطبع المحتوى إطلاقًا).
