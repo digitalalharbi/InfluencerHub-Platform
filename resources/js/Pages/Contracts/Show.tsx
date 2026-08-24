@@ -2,6 +2,8 @@ import { Head, router, usePage } from '@inertiajs/react';
 import { useState } from 'react';
 import AppShell from '@/Layouts/AppShell';
 import { Field, Sec, SummaryStrip, WorkspaceHeader , WaitingNotice } from '@/Components/ui';
+import { Icon } from '@/Components/Icon';
+import { PdfPreviewModal, type PreviewDoc } from '@/Components/PdfPreviewModal';
 import type { SharedProps } from '@/types';
 import { u } from '@/lib/href';
 
@@ -13,14 +15,15 @@ interface Contract {
 type Action = [string, string, string, boolean];
 interface History { from: string; to: string; by: string; reason: string | null; at: string | null }
 interface WaitingInfo { party: string; expects: string; canRemind: boolean }
-interface Props { contract: Contract; canManage: boolean; actions: Action[]; history: History[]; waitingOn: WaitingInfo | null; }
+interface Props { contract: Contract; canManage: boolean; actions: Action[]; history: History[]; waitingOn: WaitingInfo | null; documents: { pdf: PreviewDoc }; }
 
 const BTN: Record<string, string> = { primary: 'btn-primary', danger: 'btn-danger', ghost: 'btn-ghost' };
 const money = (m: number, cur: string) => (m / 100).toLocaleString('en-US') + ' ' + cur;
 
 const LBL: React.CSSProperties = { fontSize: '.8rem', fontWeight: 600, display: 'block', marginBottom: '.3rem' };
 
-export default function ContractShow({ contract, canManage, actions, history, waitingOn}: Props) {
+export default function ContractShow({ contract, canManage, actions, history, waitingOn, documents }: Props) {
+  const [pdfOpen, setPdfOpen] = useState(false);
   const { props } = usePage<SharedProps>();
   const [reasonFor, setReasonFor] = useState<Action | null>(null);
   const [reason, setReason] = useState('');
@@ -77,9 +80,14 @@ export default function ContractShow({ contract, canManage, actions, history, wa
           ['الطرف', `${contract.party ?? '—'} (${contract.partyType})`], ['القيمة', money(contract.valueMinor, contract.currency)],
           ['البداية', contract.startDate ?? '—'], ['النهاية', contract.endDate ?? '—'],
         ]}
-        actions={canManage && actions.length > 0 ? <>{actions.map((a) => (
-          <button key={a[0]} onClick={() => runAction(a)} className={`btn btn-sm ${BTN[a[2]] ?? 'btn-outline'}`}>{a[1]}</button>
-        ))}</> : undefined}
+        actions={<>
+          <button onClick={() => setPdfOpen(true)} className="btn btn-sm btn-outline" title="معاينة العقد (PDF)">
+            <Icon name="file-text" size={14} /> معاينة PDF{documents.pdf.stale && <span style={{ width: 7, height: 7, borderRadius: '50%', background: 'var(--ih-warning-ink, #B54708)', display: 'inline-block', marginInlineStart: 5 }} />}
+          </button>
+          {canManage && actions.map((a) => (
+            <button key={a[0]} onClick={() => runAction(a)} className={`btn btn-sm ${BTN[a[2]] ?? 'btn-outline'}`}>{a[1]}</button>
+          ))}
+        </>}
       />
 
       {/* الانتظار يُعلَن: قائمة إجراءات فارغة بلا سبب تبدو عطلًا */}
@@ -167,6 +175,7 @@ export default function ContractShow({ contract, canManage, actions, history, wa
           </div>
         </div>
       )}
+      <PdfPreviewModal doc={documents.pdf} open={pdfOpen} onClose={() => setPdfOpen(false)} />
     </AppShell>
   );
 }
