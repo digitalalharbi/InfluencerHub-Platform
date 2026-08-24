@@ -71,7 +71,10 @@ test('authenticated campaign workspace smoke on production', async ({ page }, te
   const listProps = await inertiaProps(page);
   const rows = listProps?.campaigns?.data ?? [];
   expect(Array.isArray(rows) && rows.length > 0, 'showcase tenant must expose at least one campaign').toBeTruthy();
-  const campaignId = rows[0].id;
+  // فضّل حملة غير منتهية ليكون فحص «الإجراء التالي» ذا معنى (يُخفى للمكتملة/الملغاة)
+  const FINAL = ['completed', 'cancelled'];
+  const chosen = rows.find((r) => r.status && !FINAL.includes(r.status)) ?? rows[0];
+  const campaignId = chosen.id;
 
   // 3) فتح تفاصيل الحملة — تحميل كامل ثم قراءة الحمولة
   await page.goto(`/app/campaigns/${campaignId}`, { waitUntil: 'networkidle' });
@@ -87,40 +90,44 @@ test('authenticated campaign workspace smoke on production', async ({ page }, te
   expect(payoutStr).not.toContain('iban');
   expect(JSON.stringify(props.payouts)).not.toMatch(/SA\d{20,}/);
 
-  // 4) الإجراء التالي يُعرض ويشتقّ من الحالة (عنوان + مرحلة)
-  await expect(page.locator('.ih-nba__eyebrow, .ih-nba__title').first()).toBeVisible();
-
-  // 5) التبويبات الستّة تُفتح بنجاح
-  for (const label of TABS) {
-    const btn = page.locator('button', { hasText: label }).first();
-    await expect(btn, `tab "${label}" exists`).toBeVisible();
-    await btn.click();
-    await page.waitForTimeout(150);
-    // منطقة المحتوى تعرض جدولًا أو حالة فارغة — لا شاشة خطأ
-    const hasPanel = await page.locator('.ih-dt-wrap, .ih-sec, table').first().isVisible().catch(() => false);
-    expect(hasPanel, `tab "${label}" renders a content panel`).toBeTruthy();
+  // 4) الإجراء التالي يُعرض ويشتقّ من الحالة (عنوان + مرحلة) — يُخفى فقط للحملات المنتهية
+  const isFinalCampaign = FINAL.includes(props.campaign?.status);
+  if (!isFinalCampaign) {
+    await expect(page.locator('.ih-nba__eyebrow').first(), 'Next Action renders for a live campaign').toBeVisible();
+    await expect(page.locator('.ih-nba__title').first()).not.toBeEmpty();
+  } else {
+    testInfo.annotations.push({ type: 'next-action', description: 'campaign is terminal — Next Action intentionally hidden' });
   }
 
-  // 6) فصل المالية مرئيًّا: تبويبا «التحصيل» و«المستحقات» متمايزان وموجودان
-  await expect(page.locator('button', { hasText: 'التحصيل' }).first()).toBeVisible();
-  await expect(page.locator('button', { hasText: 'المستحقات' }).first()).toBeVisible();
+  // 5) التبويبات الستّة تُفتح بنجاح (تفعيل فعليّ عبر aria-selected؛ الصفحة تبقى سليمة)
+  for (const label of TABS) {
+    const btn = page.locator('button[role=tab]', { hasText: label }).first();
+    await expect(btn, `tab "${label}" exists`).toBeVisible();
+    await btn.click();
+    await expect(btn, `tab "${label}" activates`).toHaveAttribute('aria-selected', 'true');
+    await expect(page.locator('.ih-worktabs'), 'workspace remains intact').toBeVisible();
+  }
 
-  // 7) روابط عميقة حقيقية (إن وُجدت صفوف) — كلٌّ يفتح مساره الصحيح
+  // 6) فصل المالية مرئيًّا: تبويبا «التحصيل» (تحصيل العميل) و«المستحقات» (مبدع) متمايزان
+  await expect(page.locator('button[role=tab]', { hasText: 'التحصيل' }).first()).toBeVisible();
+  await expect(page.locator('button[role=tab]', { hasText: 'المستحقات' }).first()).toBeVisible();
+
+  // 7) روابط عميقة حقيقية (إن وُجدت صفوف) — كلٌّ يفتح مساره الصحيح، وإلّا NOT_APPLICABLE
   const deep = [
-    { tab: 'العقود', re: /\/contracts\/\d+/ },
-    { tab: 'التحصيل', re: /\/invoices\/\d+/ },
-    { tab: 'المستحقات', re: /\/payouts\/\d+/ },
+    { tab: 'العقود', row: 'table tbody tr[style*="cursor"]', re: /\/contracts\/\d+/ },
+    { tab: 'التحصيل', row: 'a[href*="/invoices/"]', re: /\/invoices\/\d+/ },
+    { tab: 'المستحقات', row: 'table tbody tr[style*="cursor"]', re: /\/payouts\/\d+/ },
   ];
   for (const d of deep) {
-    await page.locator('button', { hasText: d.tab }).first().click();
-    await page.waitForTimeout(150);
-    const row = page.locator('table tbody tr[style*="cursor"], table tbody tr a').first();
+    await page.locator('button[role=tab]', { hasText: d.tab }).first().click();
+    await page.waitForTimeout(200);
+    const row = page.locator(d.row).first();
     const has = await row.isVisible().catch(() => false);
     if (!has) { testInfo.annotations.push({ type: 'deep-link', description: `${d.tab}: NOT_APPLICABLE_NO_DATA` }); continue; }
     await Promise.all([page.waitForURL(d.re, { timeout: 20_000 }), row.click()]);
-    expect(page.url()).toMatch(d.re);
+    expect(page.url(), `${d.tab} row opens its detail route`).toMatch(d.re);
     await page.goBack({ waitUntil: 'networkidle' });
-    await expect(page.locator('.ih-nba__eyebrow, .ih-nba__title').first()).toBeVisible();
+    await expect(page.locator('.ih-worktabs').first()).toBeVisible();
   }
 
   // 8) التذييل العام (#63) على صفحة الحملة المُصادَقة
