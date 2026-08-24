@@ -72,7 +72,9 @@ const READY_STATE: Record<ReadyState, { label: string; mark: string; bg: string;
 
 const LBL: React.CSSProperties = { fontSize: '.8rem', fontWeight: 600, display: 'block', marginBottom: '.3rem' };
 
-const money = (m: number, cur: string) => (m / 100).toLocaleString('en-US', { minimumFractionDigits: 0 }) + ' ' + cur;
+/** الريال بالعربية (ر.س) في واجهة المستأجر؛ رمز ISO للعملات الأخرى فقط. */
+const CUR_LABEL: Record<string, string> = { SAR: 'ر.س' };
+const money = (m: number, cur: string) => (m / 100).toLocaleString('en-US', { minimumFractionDigits: 0 }) + ' ' + (CUR_LABEL[cur] ?? cur);
 
 function DataTable({ head, children }: { head: string[]; children: ReactNode }) {
   return (

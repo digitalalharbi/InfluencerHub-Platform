@@ -58,6 +58,8 @@ class CampaignReadinessTest extends TestCase
         $this->assertSame('blocked', $within['state']);
         $this->assertStringContainsString('80,000', $within['evidence']);   // الالتزامات
         $this->assertStringContainsString('50,000', $within['evidence']);   // الميزانية
+        $this->assertStringContainsString('ر.س', $within['evidence']);      // ريال عربي لا SAR
+        $this->assertStringNotContainsString('SAR', $within['evidence']);
         $this->assertNotNull($within['action']);                             // إجراء عامل
         $this->assertGreaterThanOrEqual(1, $r['blocked']);
         $this->assertSame('SAR', $r['budget']['currency']);
