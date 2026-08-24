@@ -4,7 +4,7 @@ import { createRoot } from 'react-dom/client';
 import type { ComponentType } from 'react';
 import { setBase } from '@/lib/href';
 
-const appName = 'إنفلونسر هَب';
+const appName = 'InfluencerHub';
 
 /**
  * إعلان عطل عامّ — منطقة حيّة يقرأها قارئ الشاشة أيضًا.

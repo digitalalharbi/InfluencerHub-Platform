@@ -83,7 +83,7 @@ class InvoicesController extends Controller
 
         return [
             'workspace' => \App\Domain\Tenancy\Support\TenantContext::organizationId()
-                ? \App\Domain\Tenancy\Models\Organization::find(\App\Domain\Tenancy\Support\TenantContext::organizationId())?->name : 'إنفلونسر هَب',
+                ? \App\Domain\Tenancy\Models\Organization::find(\App\Domain\Tenancy\Support\TenantContext::organizationId())?->name : \App\Support\Brand::name(),
             'inv' => [
                 'number' => $invoice->invoice_number, 'client' => $invoice->client?->display_name ?? '—',
                 'brand' => $invoice->brand?->name, 'campaign' => $invoice->campaign?->name,
@@ -123,7 +123,7 @@ class InvoicesController extends Controller
         $bytes = $svc->bytes($a);
         return response($bytes, 200, [
             'Content-Type' => 'application/pdf',
-            'Content-Disposition' => $disposition . '; filename="' . \Illuminate\Support\Str::slug($a->title) . '.pdf"',
+            'Content-Disposition' => $disposition . '; filename="' . \App\Support\Brand::documentFilename($a->title) . '"',
             'Content-Length' => (string) strlen($bytes), 'X-Artifact-Checksum' => $a->checksum,
         ]);
     }

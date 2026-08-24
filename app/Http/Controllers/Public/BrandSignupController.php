@@ -421,7 +421,7 @@ class BrandSignupController extends Controller
             Mail::send(
                 'mail.verification-code',
                 ['code' => $code, 'verifyUrl' => $verifyUrl],
-                fn ($m) => $m->to($to)->subject('رمز تأكيد البريد — إنفلونسر هَب'),
+                fn ($m) => $m->to($to)->subject('رمز تأكيد البريد — InfluencerHub'),
             );
         } else {
             try {

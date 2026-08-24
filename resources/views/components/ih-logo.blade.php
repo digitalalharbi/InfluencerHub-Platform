@@ -11,6 +11,6 @@
         <circle cx="23" cy="22" r="2" fill="{{ $color }}"/>
     </svg>
     @if($withWordmark)
-        <span style="font-weight:800; letter-spacing:0;">إنفلونسر هَب</span>
+        <span style="font-weight:800; letter-spacing:0;">InfluencerHub</span>
     @endif
 </span>

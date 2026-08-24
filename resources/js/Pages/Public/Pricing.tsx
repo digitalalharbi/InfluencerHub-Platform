@@ -21,7 +21,7 @@ export default function Pricing({ plans }: { plans: Plan[] }) {
   return (
     <PublicLayout
       title="الأسعار"
-      description="باقات إنفلونسر هَب حسب القدرات: البداية، النمو، والمؤسسات. التسعير يُحدَّد بالتواصل — لا شراء ذاتي حاليًّا."
+      description="باقات InfluencerHub حسب القدرات: البداية، النمو، والمؤسسات. التسعير يُحدَّد بالتواصل — لا شراء ذاتي حاليًّا."
     >
       <section className="pub-hero">
         <div className="pub-wrap">

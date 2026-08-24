@@ -38,6 +38,16 @@ class BrandIdentityTest extends TestCase
         }
     }
 
+    public function test_exported_document_filenames_are_influencerhub_branded(): void
+    {
+        $this->assertSame('InfluencerHub-INV-1-0001.pdf', Brand::documentFilename('فاتورة INV-1-0001'));
+        $this->assertSame('InfluencerHub-CM-9.pdf', Brand::documentFilename('ملخّص حملة CM-9'));
+        $this->assertSame('InfluencerHub-CO-1-3.pdf', Brand::documentFilename('عقد CO-1-3'));
+        $this->assertStringStartsWith('InfluencerHub-', Brand::documentFilename('كشف مستحق PY-1-2'));
+        // بلا رمز لاتيني → لا يزال مُعرَّفًا بالعلامة وآمنًا
+        $this->assertStringStartsWith('InfluencerHub-', Brand::documentFilename('تقرير'));
+    }
+
     public function test_mail_shell_is_influencerhub_branded_not_framework(): void
     {
         $html = view('components.mail.layout', ['slot' => 'مرحبًا', 'title' => 'اختبار'])->render();

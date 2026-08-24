@@ -93,7 +93,7 @@ export default function Start({ accountTypes, selected, prefill, carry }: Props)
             <span className="gw-mark" aria-hidden="true">
               <BrandMark />
             </span>
-            إنفلونسر هَب
+            InfluencerHub
           </Link>
 
           <div className="gw-header-actions" style={{ marginInlineStart: 'auto' }}>

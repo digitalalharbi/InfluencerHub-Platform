@@ -33,7 +33,7 @@ export default function Demo({ audiences }: { audiences: Audience[] }) {
   return (
     <PublicLayout
       title="اطلب عرضًا توضيحيًا"
-      description="اطلب جلسة عرض لإنفلونسر هَب مبنية على دورك: عميل، وكالة، أو صانع محتوى."
+      description="اطلب جلسة عرض لInfluencerHub مبنية على دورك: عميل، وكالة، أو صانع محتوى."
     >
       <section className="pub-wrap pub-section" style={{ maxWidth: 640 }}>
         <h1 className="pub-h1">اطلب عرضًا توضيحيًا</h1>

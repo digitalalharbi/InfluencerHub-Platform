@@ -258,7 +258,7 @@ class CampaignDetailController extends Controller
     private function streamArtifact(\App\Domain\Exports\Models\ExportJob $a, \App\Domain\Exports\DocumentArtifactService $svc, string $disposition): \Symfony\Component\HttpFoundation\Response
     {
         $bytes = $svc->bytes($a);
-        $name = \Illuminate\Support\Str::slug($a->title) . '.' . $a->format;
+        $name = \App\Support\Brand::documentFilename($a->title, $a->format);
 
         return response($bytes, 200, [
             'Content-Type' => 'application/pdf',
