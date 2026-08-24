@@ -31,7 +31,15 @@ Status vocabulary: `PRODUCTION_VERIFIED` · `INTERNAL_VERIFIED` · `BLOCKED_EXTE
 | Export document filenames | `slug(title).pdf` (weak on Arabic) | not branded / meaningless | `InfluencerHub-<REF>.pdf` (e.g. `InfluencerHub-INV-1-0001.pdf`) | No | Brand helper | #61 | INTERNAL_VERIFIED |
 | Showcase tenant labeling | «بيانات تجريبية» badge | — (already honest) | keep «بيئة استعراضية / بيانات تجريبية»; real tenants show their own name | **Yes** | `showcase` flag | (unchanged) | PRODUCTION_VERIFIED |
 | Invoice/Contract legal issuer/parties | tenant data | — (must NOT become InfluencerHub) | **tenant data only**; missing legal fields ⇒ warn admin, never fabricate | **Yes** | org.* | (unchanged) | PRODUCTION_VERIFIED (client-safe + tenant-owner tests) |
-| Support / contact | none | must not invent an inbox | show verified email only; else «زيارة influencerhub.io» (support null until configured) | No | config (null) | #60 | INTERNAL_VERIFIED |
+| Support / contact | none | must not invent an inbox | show verified email only; else «زيارة influencerhub.io» (support null until configured) | No | config (null) | #60 | NOT_CONFIGURED (honest) |
+| HTML head: title/description/canonical | none / framework | no title, no description, no canonical | `<title>` InfluencerHub + tagline, meta description, canonical | No | config | #61 | INTERNAL_VERIFIED |
+| Favicon / app icons | files existed, not linked | not referenced in head | favicon.ico + ih-icon.svg + apple-touch, one family | No | assets | #61 | INTERNAL_VERIFIED |
+| OpenGraph / Twitter meta | none | not shareable/branded | og:site_name/title/description/url + twitter card | No | config | #61 | INTERNAL_VERIFIED |
+| Web manifest | already InfluencerHub | — | InfluencerHub + branded icons | No | assets | (existing) | PRODUCTION_VERIFIED |
+| Error pages 404/403/429/500/503 | Laravel defaults (only 419 custom) | framework/blank error pages | branded Arabic pages via `<x-error-shell>` + influencerhub.io + safe nav; no stack/framework leak | No | static | #61 | INTERNAL_VERIFIED |
+| XLSX/CSV export filenames | `clients-YYYYMMDD` | not branded | `InfluencerHub-clients-YYYYMMDD.<ext>` (ExportService prefixes) | No | Brand helper | #61 | INTERNAL_VERIFIED |
+| Invoice/contract readiness warning | n/a | — | documents print only existing tenant data (org name); **no legal fields (VAT/CR/address) are printed**, so nothing to fabricate or warn about | tenant | org.name | — | NOT_APPLICABLE (no legal field in current doc semantics) |
+| Org legal fields in Settings | n/a | — | not added — current documents don't use legal name/VAT/CR; adding would invent unspecified requirements | tenant | — | — | NOT_APPLICABLE (until a real business/legal need is specified) |
 
 ## Classification of repo identity tokens (step 15)
 - `إنفلونسر هَب` (old Arabic wordmark) — USER_FACING → replaced with `InfluencerHub` across app/resources (#61); only remaining occurrences are TEST_FIXTURE assertions that intentionally check branding.
@@ -46,7 +54,19 @@ Legal company name · CR · VAT · physical address · phone · a functioning su
 inbox. `Brand::supportEmail()` returns `null` until a real channel is configured;
 UI falls back to «زيارة influencerhub.io».
 
-## Remaining (later slices, honest backlog)
-- Auth pages visual polish beyond wordmark; branded error pages (403/404/419/429/500/maintenance) content review.
-- Settings → organization legal-identity fields with an admin warning when a legally-required field is missing (step 26/28).
-- Favicon / manifest / OpenGraph audit on public pages (step 17).
+## Remaining internally-executable brand tasks: 0
+Everything internally executable is done: brand config, PDF footer/metadata/filenames,
+email shell/templates/subjects/from-address convention, public site + `/info`,
+wordmark sweep (0 user-facing legacy occurrences), browser title/description/canonical,
+favicon/app-icon links, OpenGraph/Twitter meta, branded error pages, XLSX/CSV filenames.
+
+Marked `NOT_APPLICABLE` (would require inventing unspecified data — deliberately not done):
+organization legal fields (legal name / VAT / CR / address) and a document-readiness
+warning — current invoice/contract documents print only the tenant org name, so there
+is no legally-required field to fabricate or warn about.
+
+Marked `BLOCKED_EXTERNAL` (needs a real external provider/channel, cannot be verified in-repo):
+- **Operational email sending** — `no-reply@influencerhub.io` is the canonical sender
+  convention; it is not `PRODUCTION_VERIFIED` until a real provider accepts a controlled
+  message. Production mail is currently `not_configured` (see System Health).
+- **Support inbox** — `Brand::supportEmail()` stays `null`; UI falls back to «زيارة influencerhub.io».
