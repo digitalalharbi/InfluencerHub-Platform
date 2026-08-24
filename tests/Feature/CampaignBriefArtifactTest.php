@@ -107,6 +107,33 @@ class CampaignBriefArtifactTest extends TestCase
             ->where('documents.clientBrief.regenerateUrl', "/campaigns/{$cm->id}/client-brief/regenerate"));
     }
 
+    /**
+     * انحدار: لو مُحي ملفّ الأثر (نشر يمسح storage/app بينما يبقى صفّ القاعدة) فإنّ
+     * الخدمة تُعيد التوليد بدل بثّ بايتات فارغة — تنزيل صحيح لا تالف.
+     */
+    public function test_serving_regenerates_when_stored_file_missing(): void
+    {
+        Storage::fake('local');
+        [$t, $u, $cm] = $this->world();
+
+        $this->actingAs($u)->get("/app/campaigns/{$cm->id}/client-brief/preview")->assertOk();
+        $first = TenantContext::withBypass(fn () => ExportJob::where('type', 'campaign_client_brief')->latest('id')->first());
+
+        // يحاكي مسح التخزين عند النشر: الملفّ يزول ويبقى الصفّ
+        Storage::disk('local')->delete($first->path);
+        $this->assertFalse(Storage::disk('local')->exists($first->path));
+
+        $res = $this->actingAs($u)->get("/app/campaigns/{$cm->id}/client-brief/preview");
+        $res->assertOk();
+        $bytes = $res->getContent();
+        $this->assertStringStartsWith('%PDF-', $bytes);              // بايتات حقيقية لا فارغة
+        $this->assertGreaterThan(1000, strlen($bytes));
+        // أُعيد التوليد كصفّ جديد بملفّ موجود
+        $fresh = TenantContext::withBypass(fn () => ExportJob::where('type', 'campaign_client_brief')->latest('id')->first());
+        $this->assertNotSame($first->id, $fresh->id);
+        Storage::disk('local')->assertExists($fresh->path);
+    }
+
     public function test_preview_is_tenant_scoped(): void
     {
         Storage::fake('local');

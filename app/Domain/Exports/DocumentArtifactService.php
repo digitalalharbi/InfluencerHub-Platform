@@ -26,12 +26,17 @@ class DocumentArtifactService
         return hash('sha256', json_encode($sourceData, JSON_UNESCAPED_UNICODE) . '|' . $templateVersion . '|' . $format);
     }
 
-    /** أحدث أثر مخزَّن لهذا الكيان (أيًّا كانت بصمته) — لعرض «توجد نسخة منذ…». */
+    /**
+     * أحدث أثر مخزَّن لهذا الكيان **وملفّه موجود فعلًا** — لعرض «توجد نسخة منذ…».
+     * التخزين المحلّي يُمحى مع كل نشر بينما يبقى صفّ القاعدة، فلو أعدنا صفًّا بلا ملفّ
+     * لبثثنا بايتات فارغة (تنزيل تالف). نتجاهل الصفوف اليتيمة فيُعاد التوليد تلقائيًّا.
+     */
     public function latest(string $type, Model $subject, string $format = 'pdf'): ?ExportJob
     {
         return ExportJob::where('type', $type)->where('format', $format)
             ->where('subject_type', $subject->getMorphClass())->where('subject_id', $subject->getKey())
-            ->where('status', 'completed')->latest('id')->first();
+            ->where('status', 'completed')->latest('id')->get()
+            ->first(fn (ExportJob $a) => $a->path && Storage::disk($a->disk ?: self::DISK)->exists($a->path));
     }
 
     /** هل النسخة الحالية قديمة مقابل بيانات المصدر الآن؟ */
