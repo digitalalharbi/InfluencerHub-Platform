@@ -3,8 +3,9 @@ import { useEffect, useRef, useState } from 'react';
 import { Icon } from '@/Components/Icon';
 
 interface Result {
-  type: string; typeLabel: string; id: number; name: string;
-  sub: string | null; tenantId: number | null; tenant: string; status: string | null; href: string;
+  entityType: string; typeLabel: string; entityId: number; name: string;
+  sub: string | null; tenantId: number | null; tenant: string; organizationId: number | null;
+  portalHint: string | null; status: string | null; contextHref: string;
 }
 
 /**
@@ -70,18 +71,18 @@ export default function PlatformCommandPalette() {
             <p style={{ padding: '1.2rem', textAlign: 'center', color: 'var(--ih-text-muted)', fontSize: '.82rem' }}>لا نتائج.</p>
           ) : (
             <ul style={{ listStyle: 'none', margin: 0, padding: '.35rem' }}>
-              {results.map((r) => (
-                <li key={`${r.type}-${r.id}`}>
-                  <button type="button" onClick={() => go(r.href)} disabled={!r.href}
-                    style={{ width: '100%', display: 'flex', alignItems: 'center', gap: '.7rem', padding: '.6rem .7rem', border: 0, background: 'none', cursor: r.href ? 'pointer' : 'default', textAlign: 'start', borderRadius: 8 }}
+              {results.map((r, idx) => (
+                <li key={`${r.entityType}-${r.entityId}-${idx}`}>
+                  <button type="button" onClick={() => go(r.contextHref)} disabled={!r.contextHref}
+                    style={{ width: '100%', display: 'flex', alignItems: 'center', gap: '.7rem', padding: '.6rem .7rem', border: 0, background: 'none', cursor: r.contextHref ? 'pointer' : 'default', textAlign: 'start', borderRadius: 8 }}
                     onMouseEnter={(e) => (e.currentTarget.style.background = 'var(--ih-surface-sunken, #F2F4F7)')}
                     onMouseLeave={(e) => (e.currentTarget.style.background = 'none')}>
                     <span style={{ fontSize: '.62rem', fontWeight: 700, padding: '.12rem .45rem', borderRadius: 999, background: 'var(--ih-primary-soft)', color: 'var(--ih-primary-700)', flexShrink: 0 }}>{r.typeLabel}</span>
                     <span style={{ minWidth: 0, flex: 1 }}>
                       <span style={{ display: 'block', fontWeight: 600, fontSize: '.88rem', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{r.name}</span>
-                      <span style={{ display: 'block', fontSize: '.72rem', color: 'var(--ih-text-muted)' }}>{[r.sub, r.tenant].filter(Boolean).join(' · ')}</span>
+                      <span style={{ display: 'block', fontSize: '.72rem', color: 'var(--ih-text-muted)' }}>{[r.sub, r.tenant, r.portalHint].filter(Boolean).join(' · ')}</span>
                     </span>
-                    {r.href && <Icon name="chevron-left" size={15} />}
+                    {r.contextHref && <Icon name="chevron-left" size={15} />}
                   </button>
                 </li>
               ))}

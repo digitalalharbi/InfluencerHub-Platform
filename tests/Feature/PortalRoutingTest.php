@@ -97,11 +97,19 @@ class PortalRoutingTest extends TestCase
         $tenant = $this->tenant(Tenant::TYPE_AGENCY);
         $user = $this->user('مبدع');
 
-        TenantContext::withBypass(fn () => Creator::create([
-            'tenant_id' => $tenant->id, 'creator_number' => 'CR-'.Str::random(6),
-            'type' => 'influencer', 'display_name' => 'مبدع', 'status' => 'active',
-            'user_id' => $user->id,
-        ]));
+        TenantContext::withBypass(function () use ($tenant, $user) {
+            // بوّابة المبدع مؤهَّلة (القاعدة القانونية fail-closed): مؤسسة صالحة +
+            // اشتراك يفعّل creator_portal.enabled. بدون ذلك يُحظر الدخول عمدًا.
+            $org = \App\Domain\Tenancy\Models\Organization::create(['tenant_id' => $tenant->id, 'name' => 'و', 'slug' => Str::random(8), 'type' => 'agency', 'status' => 'active']);
+            $plan = \App\Domain\Billing\Models\Plan::create(['key' => Str::random(6), 'name' => 'P', 'is_active' => true]);
+            $pv = \App\Domain\Billing\Models\PlanVersion::create(['plan_id' => $plan->id, 'version' => 1, 'is_active' => true]);
+            \App\Domain\Billing\Models\PlanEntitlement::create(['plan_version_id' => $pv->id, 'feature_key' => 'creator_portal.enabled', 'value' => 1]);
+            (new \App\Domain\Billing\Actions\CreateSubscription)->handle($org, $pv);
+            Creator::create([
+                'tenant_id' => $tenant->id, 'creator_number' => 'CR-' . Str::random(6),
+                'type' => 'influencer', 'display_name' => 'مبدع', 'status' => 'active', 'user_id' => $user->id,
+            ]);
+        });
 
         return $user;
     }
