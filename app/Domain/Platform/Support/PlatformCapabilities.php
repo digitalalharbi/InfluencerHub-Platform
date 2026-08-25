@@ -42,7 +42,7 @@ final class PlatformCapabilities
     private static function live(): array
     {
         // P1: الهوية/الوصول. P2: عرض المستأجرين + البحث الشامل.
-        return [self::OWNER, self::TENANTS_VIEW, self::GLOBAL_SEARCH];
+        return [self::OWNER, self::TENANTS_VIEW, self::GLOBAL_SEARCH, self::PORTAL_PREVIEW];
     }
 
     /**

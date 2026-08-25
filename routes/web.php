@@ -106,7 +106,7 @@ Route::middleware('guest')->group(function () {
     Route::post('/creator/invitation/{token}/accept', [\App\Http\Controllers\Creator\InvitationAcceptController::class, 'accept'])->middleware('inertia');
 });
 Route::post('/creator/logout', [CreatorAuthController::class, 'logout'])->middleware('auth');
-Route::middleware(['auth', 'creator'])->prefix('creator')->group(function () {
+Route::middleware(['auth', 'platform_preview:creator', 'creator'])->prefix('creator')->group(function () {
     // سطح المنتَج — React/Inertia (قُصّ من Blade)
     Route::middleware('inertia')->group(function () {
         Route::get('/', [\App\Http\Controllers\Inertia\Creator\DashboardController::class, 'index']);
@@ -182,7 +182,7 @@ Route::middleware('guest')->group(function () {
     Route::post('/client/login', [ClientAuthController::class, 'login'])->middleware('throttle:login');
 });
 Route::post('/client/logout', [ClientAuthController::class, 'logout'])->middleware('auth');
-Route::middleware(['auth', 'client_member'])->prefix('client')->group(function () {
+Route::middleware(['auth', 'platform_preview:client', 'client_member'])->prefix('client')->group(function () {
     // تبديل العميل النشِط يبقى Blade (جزء من تدفّق المصادقة)
     Route::post('/switch', [ClientAuthController::class, 'switch']);
 
@@ -271,7 +271,7 @@ Route::middleware('guest')->group(function () {
     Route::post('/partner/invite/{token}', [\App\Http\Controllers\Partner\PartnerInvitationController::class, 'accept'])->middleware('throttle:10,1');
 });
 Route::post('/partner/logout', [PartnerAuthController::class, 'logout'])->middleware('auth');
-Route::middleware(['auth', 'partner_member'])->prefix('partner')->group(function () {
+Route::middleware(['auth', 'platform_preview:partner', 'partner_member'])->prefix('partner')->group(function () {
     // تبديل الوكالة يبقى Blade (جزء من تدفّق المصادقة)
     Route::post('/switch', [PartnerAuthController::class, 'switch']);
 
@@ -292,7 +292,7 @@ Route::middleware(['auth', 'partner_member'])->prefix('partner')->group(function
 
 // واجهة CRM (جلسة + سياق المستأجر). لا localStorage ولا بيانات وهمية — كل شيء من قاعدة البيانات.
 // ==== React/Inertia (تطوير متوازٍ — لا يحذف نسخة Blade في /app حتى تُثبت بوابة القبول) ====
-Route::middleware(['auth', 'tenant', 'agency_member', 'inertia'])->prefix('beta')->group(function () {
+Route::middleware(['auth', 'tenant', 'platform_preview:agency', 'agency_member', 'inertia'])->prefix('beta')->group(function () {
     Route::get('/', \App\Http\Controllers\Inertia\AgencyDashboardController::class);
     Route::get('/clients', [\App\Http\Controllers\Inertia\ClientsController::class, 'index']);
     Route::get('/clients/export', [\App\Http\Controllers\Inertia\ClientsController::class, 'export']);
@@ -440,7 +440,7 @@ Route::middleware(['auth', 'tenant', 'agency_member', 'inertia'])->prefix('beta'
 });
 
 // بوابة المبدع — React/Inertia (بالتوازي مع Blade `/creator`)
-Route::middleware(['auth', 'creator', 'inertia'])->prefix('beta/creator')->group(function () {
+Route::middleware(['auth', 'platform_preview:creator', 'creator', 'inertia'])->prefix('beta/creator')->group(function () {
     Route::get('/', [\App\Http\Controllers\Inertia\Creator\DashboardController::class, 'index']);
     Route::get('/collaborations', [\App\Http\Controllers\Inertia\Creator\CollaborationController::class, 'index']);
     Route::get('/collaborations/{collaboration}', [\App\Http\Controllers\Inertia\Creator\CollaborationController::class, 'show']);
@@ -510,10 +510,14 @@ Route::middleware(['auth', 'platform_owner', 'inertia'])->prefix('platform')->gr
     Route::get('/tenants', [\App\Http\Controllers\Platform\PlatformTenantController::class, 'index'])->name('platform.tenants');
     Route::get('/tenants/{tenant}', [\App\Http\Controllers\Platform\PlatformTenantController::class, 'show'])->whereNumber('tenant')->name('platform.tenant');
     Route::get('/search', \App\Http\Controllers\Platform\PlatformSearchController::class)->name('platform.search');
+    // P3: بدء/إنهاء معاينة بوّابة للقراءة فقط. exit قبل النمط ذي المعاملات كي لا يُلتقط.
+    Route::get('/preview/exit', [\App\Http\Controllers\Platform\PlatformPreviewController::class, 'exit'])->name('platform.preview.exit');
+    Route::get('/preview/{tenant}/{portal}/{user}', [\App\Http\Controllers\Platform\PlatformPreviewController::class, 'start'])
+        ->whereNumber(['tenant', 'user'])->whereIn('portal', ['agency', 'client', 'creator', 'partner'])->name('platform.preview.start');
 });
 
 // بوابة الشريك — React/Inertia (بالتوازي مع Blade `/partner`)
-Route::middleware(['auth', 'partner_member', 'inertia'])->prefix('beta/partner')->group(function () {
+Route::middleware(['auth', 'platform_preview:partner', 'partner_member', 'inertia'])->prefix('beta/partner')->group(function () {
     Route::get('/', [\App\Http\Controllers\Inertia\Partner\DashboardController::class, 'index']);
     Route::get('/requests', [\App\Http\Controllers\Inertia\Partner\RequestController::class, 'index']);
     Route::post('/requests', [\App\Http\Controllers\Inertia\Partner\RequestController::class, 'store']);
@@ -522,7 +526,7 @@ Route::middleware(['auth', 'partner_member', 'inertia'])->prefix('beta/partner')
 });
 
 // بوابة العميل — React/Inertia (بالتوازي مع Blade `/client`)
-Route::middleware(['auth', 'client_member', 'inertia'])->prefix('beta/client')->group(function () {
+Route::middleware(['auth', 'platform_preview:client', 'client_member', 'inertia'])->prefix('beta/client')->group(function () {
     Route::get('/', [\App\Http\Controllers\Inertia\Client\DashboardController::class, 'index']);
     Route::get('/content', [\App\Http\Controllers\Inertia\Client\ContentController::class, 'index']);
     Route::get('/content/{content}', [\App\Http\Controllers\Inertia\Client\ContentController::class, 'show']);
@@ -572,7 +576,7 @@ Route::middleware(['auth', 'client_member', 'inertia'])->prefix('beta/client')->
     Route::post('/account/settings/sessions/revoke-others', [\App\Http\Controllers\Inertia\Client\AccountController::class, 'revokeOtherSessions']);
 });
 
-Route::middleware(['auth', 'tenant', 'agency_member'])->prefix('app')->group(function () {
+Route::middleware(['auth', 'tenant', 'platform_preview:agency', 'agency_member'])->prefix('app')->group(function () {
 
     // العلامات التجارية (عرض على مستوى الوكالة)
 

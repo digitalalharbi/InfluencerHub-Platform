@@ -142,6 +142,50 @@ class PlatformPortalEligibilityService
     }
 
     /**
+     * قائمة المستخدمين المؤهَّلين فعلًا لبوّابة داخل مستأجر (لاختيار المالك الدقيق §7).
+     * كلٌّ نشِط، والمستأجر مشتقّ من الكيان المرجعيّ. محدودة العدد.
+     * @return list<array{userId:int,userName:string,entityId:int,entityLabel:string,organizationId:?int}>
+     */
+    public function eligibleContextsForTenantPortal(int $tenantId, string $portal): array
+    {
+        return TenantContext::withBypass(function () use ($tenantId, $portal) {
+            $active = User::where('is_active', true)->pluck('id');
+            $u = fn (int $id) => User::withoutGlobalScopes()->find($id);
+            $out = [];
+
+            if ($portal === 'agency') {
+                $orgIds = Organization::withoutGlobalScopes()->where('tenant_id', $tenantId)->pluck('id');
+                foreach (OrganizationMembership::where('tenant_id', $tenantId)->where('status', 'active')
+                    ->whereNotIn('role', self::AGENCY_PORTAL_ROLES)->whereIn('organization_id', $orgIds)
+                    ->whereIn('user_id', $active)->limit(25)->get() as $m) {
+                    $org = Organization::withoutGlobalScopes()->find($m->organization_id);
+                    $out[] = ['userId' => (int) $m->user_id, 'userName' => $u((int) $m->user_id)?->name ?? '—', 'entityId' => (int) $m->organization_id, 'entityLabel' => ($org?->name ?? '—') . ' · ' . $m->role, 'organizationId' => (int) $m->organization_id];
+                }
+            } elseif ($portal === 'client') {
+                $clientIds = Client::withoutGlobalScopes()->where('tenant_id', $tenantId)->pluck('id');
+                foreach (ClientMember::where('tenant_id', $tenantId)->where('status', 'active')->whereIn('client_id', $clientIds)->whereIn('user_id', $active)->limit(25)->get() as $cm) {
+                    $client = Client::withoutGlobalScopes()->find($cm->client_id);
+                    $out[] = ['userId' => (int) $cm->user_id, 'userName' => $u((int) $cm->user_id)?->name ?? '—', 'entityId' => (int) $cm->client_id, 'entityLabel' => $client?->display_name ?? '—', 'organizationId' => null];
+                }
+            } elseif ($portal === 'creator') {
+                foreach (Creator::where('tenant_id', $tenantId)->whereNotNull('user_id')->whereIn('user_id', $active)->limit(25)->get() as $cr) {
+                    if ($this->entitlements->portalEligible($cr)) {
+                        $out[] = ['userId' => (int) $cr->user_id, 'userName' => $u((int) $cr->user_id)?->name ?? '—', 'entityId' => (int) $cr->id, 'entityLabel' => $cr->display_name ?? '—', 'organizationId' => null];
+                    }
+                }
+            } elseif ($portal === 'partner') {
+                $agencyIds = ExternalAgency::withoutGlobalScopes()->where('tenant_id', $tenantId)->where('status', 'approved')->pluck('id');
+                foreach (ExternalAgencyMember::where('tenant_id', $tenantId)->where('status', 'active')->whereIn('external_agency_id', $agencyIds)->whereIn('user_id', $active)->limit(25)->get() as $em) {
+                    $agency = ExternalAgency::withoutGlobalScopes()->find($em->external_agency_id);
+                    $out[] = ['userId' => (int) $em->user_id, 'userName' => $u((int) $em->user_id)?->name ?? '—', 'entityId' => (int) $em->external_agency_id, 'entityLabel' => $agency?->name ?? '—', 'organizationId' => null];
+                }
+            }
+
+            return $out;
+        });
+    }
+
+    /**
      * تحقّق دقيق من صحّة الرباعية الكاملة (لتفويض معاينة P3) — لا يكفي «المستخدم ينتمي
      * لمكان ما في المستأجر». يشترط: مستخدم موجود ونشِط + الرابط الدقيق للكيان
      * (entityId) + مطابقة مستأجر الكيان المرجعيّ + (للوكالة) مطابقة المؤسسة. fail-closed.

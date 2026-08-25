@@ -2,7 +2,7 @@ import { createInertiaApp, router } from '@inertiajs/react';
 import { resolvePageComponent } from 'laravel-vite-plugin/inertia-helpers';
 import { createRoot } from 'react-dom/client';
 import type { ComponentType } from 'react';
-import { setBase } from '@/lib/href';
+import { setBase, setPreviewToken } from '@/lib/href';
 
 const appName = 'InfluencerHub';
 
@@ -37,7 +37,11 @@ createInertiaApp({
   setup({ el, App, props }) {
     // بادئة التركيب تأتي من الخادم وتتغيّر مع كل تنقّل (/beta ↔ /app أثناء التحويل).
     setBase(props.initialPage.props.base);
-    router.on('navigate', (e) => setBase(e.detail.page.props.base));
+    setPreviewToken((props.initialPage.props.preview as { token?: string } | null)?.token);
+    router.on('navigate', (e) => {
+      setBase(e.detail.page.props.base);
+      setPreviewToken((e.detail.page.props.preview as { token?: string } | null)?.token);
+    });
 
     // عطل الخادم كان يمرّ صامتًا: يضغط المستخدم «حفظ» فلا يحدث شيء ولا يُقال
     // له لماذا، فيظنّ الزرّ معطّلًا أو عمله محفوظًا. إعلان واحد هنا يغطّي كل

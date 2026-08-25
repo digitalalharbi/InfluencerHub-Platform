@@ -27,6 +27,12 @@ class EnsureAgencyMember
 
     public function handle(Request $request, Closure $next): Response
     {
+        // معاينة مالك المنصّة للقراءة فقط: PortalPreview ضبط السياق/الهوية/الخصائص
+        // وتحقّق منها بالفعل (بلا كتابة جلسة) — نتخطّى الحلّ العادي.
+        if ($request->attributes->get('platform_preview')) {
+            return $next($request);
+        }
+
         $user = $request->user('sanctum') ?? $request->user();
         abort_unless($user, 401);
 

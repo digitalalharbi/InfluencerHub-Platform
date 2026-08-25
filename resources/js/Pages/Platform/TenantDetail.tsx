@@ -8,12 +8,14 @@ interface Stats { organizations: number; users: number; campaigns: number; hasSu
 interface Org { id: number; name: string; type: string; status: string; members: number }
 interface Portals { agency: boolean; client: boolean; creator: boolean; partner: boolean }
 interface Activity { action: string; actor: string | null; at: string | null }
-interface Props { tenant: Tenant; stats: Stats; orgs: Org[]; portals: Portals; activity: Activity[] }
+interface PreviewCtx { userId: number; userName: string; entityLabel: string; startHref: string }
+interface PreviewPortal { portal: keyof Portals; label: string; contexts: PreviewCtx[] }
+interface Props { tenant: Tenant; stats: Stats; orgs: Org[]; portals: Portals; previewPortals: PreviewPortal[]; activity: Activity[] }
 
 const PORTAL_LABEL: Record<keyof Portals, string> = { agency: 'الوكالة', client: 'العميل', creator: 'صانع المحتوى', partner: 'الشريك' };
 const n = (v: number) => v.toLocaleString('en-US');
 
-export default function TenantDetail({ tenant, stats, orgs, portals, activity }: Props) {
+export default function TenantDetail({ tenant, stats, orgs, portals, previewPortals, activity }: Props) {
   return (
     <AppShell heading="مستأجر" nav={platformNav} portal="platform">
       <Head title={`${tenant.name} · المنصّة`} />
@@ -32,9 +34,6 @@ export default function TenantDetail({ tenant, stats, orgs, portals, activity }:
 
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: '1.2rem', alignItems: 'start' }}>
         <Sec title="البوّابات المتاحة" icon="layout-dashboard">
-          <p style={{ fontSize: '.76rem', color: 'var(--ih-text-muted)', marginBottom: '.6rem' }}>
-            المعاينة داخل كل بوّابة (بمستخدم حقيقي) تُضاف في المرحلة القادمة.
-          </p>
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: '.5rem' }}>
             {(Object.keys(PORTAL_LABEL) as (keyof Portals)[]).map((p) => (
               <span key={p} className="ih-tag" style={{ opacity: portals[p] ? 1 : .4 }}>
@@ -42,6 +41,38 @@ export default function TenantDetail({ tenant, stats, orgs, portals, activity }:
               </span>
             ))}
           </div>
+        </Sec>
+
+        <Sec title="معاينة البوّابات (قراءة فقط)" icon="eye">
+          <p style={{ fontSize: '.76rem', color: 'var(--ih-text-muted)', marginBottom: '.6rem' }}>
+            اختر مستخدمًا حقيقيًّا مؤهَّلًا لمعاينة النظام كما يراه — بلا كلمة مروره، وبلا أي إجراء.
+            كل معاينة موقَّعة، مؤقّتة، ومُدقَّقة (الفاعل = مالك المنصّة).
+          </p>
+          {previewPortals.length === 0 ? (
+            <p className="pub-muted">لا بوّابة متاحة للمعاينة في هذا المستأجر.</p>
+          ) : (
+            <div style={{ display: 'grid', gap: '.9rem' }}>
+              {previewPortals.map((pp) => (
+                <div key={pp.portal}>
+                  <div style={{ fontWeight: 700, fontSize: '.82rem', marginBottom: '.35rem' }}>{pp.label}</div>
+                  {pp.contexts.length === 0 ? (
+                    <p className="pub-muted" style={{ fontSize: '.74rem' }}>لا مستخدم مؤهَّل نشِط.</p>
+                  ) : (
+                    <div style={{ display: 'grid', gap: '.35rem' }}>
+                      {pp.contexts.map((c) => (
+                        <div key={c.userId} className="ih-risk" style={{ alignItems: 'center' }}>
+                          <span style={{ fontWeight: 600 }}>{c.userName}</span>
+                          <span style={{ color: 'var(--ih-text-muted)', fontSize: '.72rem' }}>{c.entityLabel}</span>
+                          <span style={{ flex: 1 }} />
+                          <a href={c.startHref} className="btn btn-xs btn-primary">▶ معاينة</a>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
+          )}
         </Sec>
 
         <Sec title={`المؤسسات (${n(orgs.length)})`} icon="building-2">

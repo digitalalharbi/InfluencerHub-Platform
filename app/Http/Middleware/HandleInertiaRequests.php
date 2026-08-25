@@ -57,6 +57,23 @@ class HandleInertiaRequests extends Middleware
             'locale' => app()->getLocale(),
             'dir' => app()->getLocale() === 'ar' ? 'rtl' : 'ltr',
             'base' => MountPrefix::for($request),
+            // معاينة مالك المنصّة (§P3) — يُشارَك فقط داخل معاينة نشطة. الرمز يمرَّر
+            // في الروابط الداخلية (u()) للتنقّل الآمن متعدّد النوافذ، والشريط يعرض الهدف.
+            'preview' => function () use ($request) {
+                $p = $request->attributes->get('preview');
+                if (! is_array($p)) {
+                    return null;
+                }
+                $target = \App\Domain\Identity\Models\User::withoutGlobalScopes()->find($p['userId']);
+                return [
+                    'active' => true,
+                    'token' => $p['token'],
+                    'portal' => $p['portal'],
+                    'tenantId' => $p['tenantId'],
+                    'targetName' => $target?->name ?? '—',
+                    'exitHref' => '/platform/preview/exit?token=' . $p['token'],
+                ];
+            },
             // هوية المنتج القانونية — مصدر واحد لواجهة React (تذييل/دخول/معلومات).
             'brand' => [
                 'name' => \App\Support\Brand::name(),
