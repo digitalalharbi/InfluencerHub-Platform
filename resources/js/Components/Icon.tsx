@@ -5,7 +5,7 @@ import {
   ChevronLeft, Circle, Gauge, Activity, Radar, CalendarDays, ListChecks,
   TrendingUp, Receipt, Sparkles, Tag, Phone, Share2, AlertTriangle,
   LayoutGrid, Rows3, Table2, X, Star, Heart, MapPin, ExternalLink, MessageCircle,
-  Pencil, Check,
+  Pencil, Check, Eye,
   type LucideProps,
 } from 'lucide-react';
 
@@ -58,6 +58,7 @@ const MAP = {
   'message-circle': MessageCircle,
   pencil: Pencil,
   check: Check,
+  eye: Eye,
 } as const;
 
 export type IconName = keyof typeof MAP;

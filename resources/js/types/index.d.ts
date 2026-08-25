@@ -37,6 +37,18 @@ export interface SharedProps extends InertiaPageProps {
   /** بادئة تركيب الصفحة الحالية (`/beta`, `/app`, `/beta/client`…) — انظر lib/href. */
   base: string;
   brand: Brand;
+  /** معاينة مالك المنصّة النشطة (§P3) — null خارج المعاينة. للعرض فقط؛ الحوكمة في الخادم. */
+  preview?: PreviewContext | null;
+}
+
+/** سياق معاينة مالك المنصّة للقراءة فقط (§P3). */
+export interface PreviewContext {
+  active: true;
+  token: string;
+  portal: 'agency' | 'client' | 'creator' | 'partner';
+  tenantId: number;
+  targetName: string;
+  exitHref: string;
 }
 
 export {};

@@ -87,9 +87,23 @@ that is validated — not trusted — on every request.
   tenants/orgs/users/clients/brands/campaigns/creators/contracts/invoices/payouts (no secrets),
   each result linking into the correct tenant context; a real ⌘K command palette (React) that
   queries it. `platform.tenants.view` + `platform.global_search` now live.
-- **P3 — read-only portal preview.** A per-guard "preview" branch that accepts an owner-signed
-  target and populates `TenantContext` + the portal request attribute
-  (`activeClient`/`creator`/`activeAgency`), reusing `isMethodSafe()` to stay read-only.
+- **P3 — read-only portal preview (DONE).** A dedicated `PortalPreview` middleware
+  (`platform_preview:{portal}`) runs *before* each portal guard. Given an owner-signed,
+  15-minute `PlatformPreviewToken` in `?_pv=` carrying the exact tuple
+  (owner/target-user/tenant/portal/entity/org), it: verifies HMAC + expiry + owner-match +
+  portal-match; enforces read-only server-side (`isMethodSafe()`, unsafe → 403 before any
+  execution); validates the exact tuple via `isContextEligible` (not "belongs somewhere in
+  tenant"); requires an **active** target; then establishes request-scoped context
+  (`bypass(false)` + `TenantContext::set`) and the portal request attribute
+  (`activeClient`/`creator`/`activeAgency`) **without any session write** — so two tabs on
+  different tenants never collide on `active_client_id`/`active_agency_id` (the multi-tab
+  hazard). Dual identity: `platform_owner_id` is retained before `Auth::setUser($target)`, and
+  each portal guard short-circuits on the `platform_preview` attribute (never running its own
+  session-writing branch). Owner picks a **real** eligible user on the tenant-detail page;
+  start/exit are audited with the **owner** as actor (`platform.preview.start|exit`). A
+  read-only banner + "exit to platform" rides in `AppShell`; the token is threaded through
+  in-portal links via `u()`. `platform.portal.preview` now live. Read-only preview only —
+  interactive impersonation stays P4.
 - **P4 — interactive impersonation + audit.** Explicit confirmation to go interactive; a
   short-lived (30–60 min) revocable impersonation session; the owner context bar; and the
   added audit columns (`acting_as_user_id`, `organization_id`, `session_id`, `reason`).

@@ -28,13 +28,16 @@ PATTERN='TenantContext::(set|reset|bypass)\('
 #  Middleware/EnsureCreator         يُنشئ سياق بوابة صانع المحتوى لمدى الطلب
 #  Middleware/EnsurePartnerMember   يُنشئ سياق بوابة الشريك لمدى الطلب
 #  Middleware/EnsureBrandMember     يُنشئ سياق مساحة العلامة لمدى الطلب
+#  Middleware/PortalPreview         يُنشئ سياق معاينة مالك المنصّة لمدى الطلب (§P3):
+#                                   bypass(false)+set مرّة واحدة لعزلٍ على المستأجر
+#                                   الهدف، بلا كتابة جلسة، بلا set-ثمّ-إعادة داخله.
 #
 # قيدٌ على وسائط البوّابات: استثناؤها مقصور على **إنشاء** السياق (استدعاء `set`
 # واحد قرب نهايتها). وسيطٌ يضبط ثم يُعيد داخل نفسه يعود إلى العيب الأصلي — وهو
 # ما وقع فعلًا وكلّف 157 تعويضًا في المتحكّمات.
 # ─────────────────────────────────────────────────────────────────────────────
 EXEMPT_RE='^app/Domain/Tenancy/Support/(TenantContext|SetTenantContext)\.php$'
-EXEMPT_RE+='|^app/Http/Middleware/(SetTenantContext|EnsureClientMember|EnsureCreator|EnsurePartnerMember|EnsureBrandMember)\.php$'
+EXEMPT_RE+='|^app/Http/Middleware/(SetTenantContext|EnsureClientMember|EnsureCreator|EnsurePartnerMember|EnsureBrandMember|PortalPreview)\.php$'
 
 hits=$(grep -rEn "$PATTERN" app/ 2>/dev/null | grep -Ev "^($(echo "$EXEMPT_RE" | sed 's/\^//g;s/\$//g')):" || true)
 

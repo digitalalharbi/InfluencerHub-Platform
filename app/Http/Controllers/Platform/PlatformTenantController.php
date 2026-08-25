@@ -66,6 +66,22 @@ class PlatformTenantController extends Controller
             // (لا منطق أهلية مكرّر، §5/§ P2-hardening).
             $portals = $this->eligibility->tenantPortals($tenant->id);
 
+            // P3: لكل بوّابة متاحة، قائمة المستخدمين المؤهَّلين فعلًا كي يختار المالك
+            // هدفًا حقيقيًا بعينه (لا اختلاق هوية) — كلٌّ مع رابط بدء معاينة موقَّع لاحقًا.
+            $labels = ['agency' => 'الوكالة', 'client' => 'العميل', 'creator' => 'المبدع', 'partner' => 'الشريك'];
+            $previewPortals = [];
+            foreach (['agency', 'client', 'creator', 'partner'] as $portal) {
+                if (empty($portals[$portal])) {
+                    continue;
+                }
+                $contexts = collect($this->eligibility->eligibleContextsForTenantPortal($tenant->id, $portal))
+                    ->map(fn (array $c) => [
+                        'userId' => $c['userId'], 'userName' => $c['userName'], 'entityLabel' => $c['entityLabel'],
+                        'startHref' => "/platform/preview/{$tenant->id}/{$portal}/{$c['userId']}",
+                    ])->values();
+                $previewPortals[] = ['portal' => $portal, 'label' => $labels[$portal], 'contexts' => $contexts];
+            }
+
             $sub = Subscription::withoutGlobalScopes()->where('tenant_id', $tenant->id)->whereIn('status', ['trialing', 'active'])->latest()->first();
 
             $activity = AuditLog::withoutGlobalScopes()->where('tenant_id', $tenant->id)->latest('occurred_at')->limit(12)->get()
@@ -85,6 +101,7 @@ class PlatformTenantController extends Controller
                 ],
                 'orgs' => $orgs,
                 'portals' => $portals,
+                'previewPortals' => $previewPortals,
                 'activity' => $activity,
             ];
         });

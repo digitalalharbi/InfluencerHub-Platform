@@ -11,6 +11,9 @@ use Illuminate\Http\Request;
  */
 class EnsureCreator {
     public function handle(Request $request, Closure $next) {
+        // معاينة مالك المنصّة للقراءة فقط — تخطّي الحلّ العادي (PortalPreview ضبط كل شيء).
+        if ($request->attributes->get('platform_preview')) { return $next($request); }
+
         $user = $request->user();
         if (! $user) return redirect('/creator/login');
 

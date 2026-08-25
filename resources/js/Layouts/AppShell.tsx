@@ -30,6 +30,7 @@ export default function AppShell({
 }) {
   const page = usePage<SharedProps>();
   const { auth, workspace, showcase, nav, flash } = page.props;
+  const preview = page.props.preview ?? null;
   const unread = page.props.unreadNotifications ?? 0;
   const url = page.url;
   const [open, setOpen] = useState(false);
@@ -165,6 +166,19 @@ export default function AppShell({
       </aside>
 
       <main style={{ flex: 1, display: 'flex', flexDirection: 'column', minWidth: 0 }}>
+        {preview?.active && (
+          <div role="status" style={{
+            display: 'flex', alignItems: 'center', gap: '.75rem', flexWrap: 'wrap',
+            padding: '.55rem 1rem', background: '#78350f', color: '#fff', fontSize: '.82rem', fontWeight: 600,
+          }}>
+            <Icon name="eye" size={16} />
+            <span>وضع المعاينة (قراءة فقط) — تعرض النظام كما يراه <strong>{preview.targetName}</strong>. لا يمكن تنفيذ أي إجراء.</span>
+            <a href={preview.exitHref} style={{
+              marginInlineStart: 'auto', color: '#78350f', background: '#fff', padding: '.25rem .7rem',
+              borderRadius: 7, fontWeight: 700, textDecoration: 'none', whiteSpace: 'nowrap',
+            }}>الخروج إلى المنصّة ←</a>
+          </div>
+        )}
         <div className="ih-topbar-mobile">
           <button className="ih-icon-btn" onClick={() => setOpen(true)} aria-label="فتح القائمة"><Icon name="menu" size={22} /></button>
           <span style={{ fontWeight: 800, color: 'var(--ih-primary)' }}>◆ {brand}</span>
