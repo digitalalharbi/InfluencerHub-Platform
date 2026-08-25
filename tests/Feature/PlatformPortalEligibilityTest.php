@@ -40,11 +40,12 @@ class PlatformPortalEligibilityTest extends TestCase
     }
 
     /** يُفعّل بوّابة المبدع بلا اشتراك حقيقي — نُبدّل خدمة الأهلية بمزيّف. */
-    private function enableCreatorPortal(): void
+    private function enableCreatorPortal(bool $enabled = true): void
     {
-        $this->mock(CreatorEntitlementService::class, function ($m) {
+        $this->mock(CreatorEntitlementService::class, function ($m) use ($enabled) {
             $m->shouldReceive('orgForTenant')->andReturnUsing(fn ($tid) => Organization::withoutGlobalScopes()->where('tenant_id', $tid)->first());
-            $m->shouldReceive('portalEnabled')->andReturn(true);
+            $m->shouldReceive('portalEnabled')->andReturn($enabled);
+            $m->shouldReceive('portalEligible')->andReturn($enabled);   // القاعدة القانونية الوحيدة
         });
     }
 
@@ -149,5 +150,92 @@ class PlatformPortalEligibilityTest extends TestCase
         $this->assertFalse($portals['client']);
         $this->assertFalse($portals['creator']);
         $this->assertFalse($portals['partner']);
+    }
+
+    public function test_user_with_four_plus_contexts_returns_all(): void
+    {
+        $this->enableCreatorPortal();
+        $u = $this->user();
+        // 4 سياقات مختلفة عبر 4 مستأجرين: وكالة/عميل/مبدع/شريك.
+        [$t1, $org1] = $this->tenantOrg();
+        [$t2] = $this->tenantOrg();
+        [$t3] = $this->tenantOrg();
+        [$t4] = $this->tenantOrg();
+        TenantContext::withBypass(function () use ($u, $t1, $org1, $t2, $t3, $t4) {
+            OrganizationMembership::create(['tenant_id' => $t1->id, 'organization_id' => $org1->id, 'user_id' => $u->id, 'role' => 'agency_admin', 'status' => 'active']);
+            $client = Client::create(['tenant_id' => $t2->id, 'client_number' => 'CL-2', 'display_name' => 'ع', 'status' => 'active']);
+            ClientMember::create(['tenant_id' => $t2->id, 'client_id' => $client->id, 'user_id' => $u->id, 'role' => 'client_admin', 'status' => 'active']);
+            Creator::create(['tenant_id' => $t3->id, 'creator_number' => 'CR-3', 'type' => 'influencer', 'display_name' => 'م', 'status' => 'active', 'user_id' => $u->id]);
+            $agency = ExternalAgency::create(['tenant_id' => $t4->id, 'agency_number' => 'EA-4', 'name' => 'ش', 'status' => 'approved']);
+            ExternalAgencyMember::create(['tenant_id' => $t4->id, 'external_agency_id' => $agency->id, 'user_id' => $u->id, 'role' => 'external_agency_admin', 'status' => 'active']);
+        });
+
+        $ctx = collect($this->svc()->contextsForUser($u));
+        $this->assertCount(4, $ctx);   // لا اقتطاع
+        $this->assertEqualsCanonicalizing(['agency', 'client', 'creator', 'partner'], $ctx->pluck('portal')->all());
+    }
+
+    public function test_inactive_user_has_no_contexts(): void
+    {
+        [$t, $org] = $this->tenantOrg();
+        $u = $this->user();
+        $u->forceFill(['is_active' => false])->save();
+        TenantContext::withBypass(fn () => OrganizationMembership::create(['tenant_id' => $t->id, 'organization_id' => $org->id, 'user_id' => $u->id, 'role' => 'agency_admin', 'status' => 'active']));
+
+        $this->assertSame([], $this->svc()->contextsForUser($u));
+        $this->assertNull($this->svc()->eligibleUserForPortal($t->id, 'agency'));   // لا يُقترح مستخدم غير نشِط
+    }
+
+    public function test_membership_tenant_mismatch_with_entity_is_fail_closed(): void
+    {
+        // عضوية عميل تُشير لمستأجر مختلف عن مستأجر الـClient المرجعيّ ⇒ لا سياق.
+        [$tA] = $this->tenantOrg();
+        [$tB] = $this->tenantOrg();
+        $u = $this->user();
+        TenantContext::withBypass(function () use ($tA, $tB, $u) {
+            $client = Client::create(['tenant_id' => $tA->id, 'client_number' => 'CL-M', 'display_name' => 'ع', 'status' => 'active']);
+            // tenant_id مزوّر (tB) بينما العميل في tA
+            ClientMember::create(['tenant_id' => $tB->id, 'client_id' => $client->id, 'user_id' => $u->id, 'role' => 'client_admin', 'status' => 'active']);
+        });
+
+        $this->assertSame([], $this->svc()->contextsForUser($u));
+    }
+
+    public function test_is_context_eligible_validates_exact_tuple(): void
+    {
+        [$t, $org] = $this->tenantOrg();
+        [$tOther] = $this->tenantOrg();
+        $u = $this->user();
+        TenantContext::withBypass(fn () => OrganizationMembership::create(['tenant_id' => $t->id, 'organization_id' => $org->id, 'user_id' => $u->id, 'role' => 'agency_admin', 'status' => 'active']));
+
+        $svc = $this->svc();
+        $this->assertTrue($svc->isContextEligible($u->id, $t->id, 'agency', $org->id, $org->id));   // رباعية صحيحة
+        $this->assertFalse($svc->isContextEligible($u->id, $t->id, 'agency', $org->id + 999, $org->id + 999)); // كيان خاطئ
+        $this->assertFalse($svc->isContextEligible($u->id, $tOther->id, 'agency', $org->id, $org->id));  // مستأجر عابر
+        $this->assertFalse($svc->isContextEligible($u->id, $t->id, 'client', $org->id, null));   // بوّابة خاطئة
+    }
+
+    public function test_creator_portal_eligible_is_fail_closed_no_org(): void
+    {
+        // القاعدة القانونية الوحيدة: بلا مؤسسة ⇒ غير مؤهَّل (كان يمرّ في الحارس سابقًا).
+        $t = Tenant::create(['name' => 'NoOrg', 'slug' => Str::random(8), 'deployment_mode' => 'saas', 'status' => 'active']);
+        $u = $this->user();
+        $cr = TenantContext::withBypass(fn () => Creator::create(['tenant_id' => $t->id, 'creator_number' => 'CR-NO', 'type' => 'influencer', 'display_name' => 'م', 'status' => 'active', 'user_id' => $u->id]));
+
+        // خدمة الأهلية الحقيقية: لا مؤسسة لهذا المستأجر ⇒ portalEligible=false
+        $ent = app(CreatorEntitlementService::class);
+        $this->assertFalse($ent->portalEligible($cr));
+        $this->assertSame([], $this->svc()->contextsForUser($u));
+    }
+
+    public function test_creator_guard_blocks_creator_without_org_fail_closed(): void
+    {
+        // انحدار الحارس: صانع محتوى بلا مؤسسة كان يمرّ سابقًا؛ الآن يُحظر (fail-closed)
+        // عبر نفس القاعدة القانونية portalEligible.
+        $t = Tenant::create(['name' => 'NoOrg2', 'slug' => Str::random(8), 'deployment_mode' => 'saas', 'status' => 'active']);
+        $u = $this->user();
+        TenantContext::withBypass(fn () => Creator::create(['tenant_id' => $t->id, 'creator_number' => 'CR-G', 'type' => 'influencer', 'display_name' => 'م', 'status' => 'active', 'user_id' => $u->id]));
+
+        $this->actingAs($u)->get('/creator')->assertForbidden();
     }
 }

@@ -19,10 +19,9 @@ class EnsureCreator {
         $creator = TenantContext::withBypass(fn () => Creator::where('user_id', $user->id)->first());
         if (! $creator) { abort(403, 'لا يوجد ملف مبدع مرتبط بحسابك.'); }
 
-        // creator_portal.enabled: منع الدخول إن لم تُفعَّل الميزة (لا نكتفي بإخفاء الرابط)
-        $ent = app(\App\Domain\Creators\Services\CreatorEntitlementService::class);
-        $org = $ent->orgForTenant($creator->tenant_id);
-        if ($org && ! $ent->portalEnabled($org)) {
+        // القاعدة القانونية الوحيدة (fail-closed): ملفّ مبدع + مؤسسة صالحة + بوّابة مفعّلة.
+        // غياب المؤسسة يمنع الدخول أيضًا (كان يمرّ سابقًا) — نفس مصدر أهلية المنصّة.
+        if (! app(\App\Domain\Creators\Services\CreatorEntitlementService::class)->portalEligible($creator)) {
             abort(403, 'بوابة المبدع غير مفعّلة في خطة الوكالة. تواصل مع الوكالة.');
         }
 

@@ -1,7 +1,7 @@
 <?php
 namespace App\Domain\Creators\Services;
 use App\Domain\Billing\Services\{EntitlementService, UsageMeterService};
-use App\Domain\Creators\Models\{CreatorApplication, CreatorApplicationPlatform};
+use App\Domain\Creators\Models\{Creator, CreatorApplication, CreatorApplicationPlatform};
 use App\Domain\Tenancy\Models\Organization;
 use App\Domain\Tenancy\Support\TenantContext;
 use RuntimeException;
@@ -47,6 +47,17 @@ class CreatorEntitlementService {
     /** creator_portal.enabled: يمنع دخول/تفعيل بوابة المبدع. */
     public function portalEnabled(Organization $org): bool {
         return $this->scoped($org, fn () => $this->ent->allows($org, 'creator_portal.enabled'));
+    }
+
+    /**
+     * القاعدة القانونية الوحيدة لأهلية بوّابة المبدع (fail-closed) — يستعملها حارس
+     * البوّابة EnsureCreator ومصدر أهلية المنصّة معًا، فلا تختلف نسختان للحقيقة:
+     *   ملفّ مبدع مربوط + مؤسسة مستأجر صالحة + creator_portal.enabled = مؤهَّل.
+     * غياب المؤسسة أو التفعيل ⇒ غير مؤهَّل (لا نسمح بلا مؤسسة كما كان سابقًا).
+     */
+    public function portalEligible(Creator $creator): bool {
+        $org = $this->orgForTenant((int) $creator->tenant_id);
+        return $org !== null && $this->portalEnabled($org);
     }
 
     /** social_integrations.max: يحدّ عدد المنصّات المرتبطة بالطلب. */

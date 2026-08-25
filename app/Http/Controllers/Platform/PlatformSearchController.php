@@ -60,7 +60,9 @@ class PlatformSearchController extends Controller
                 if ($contexts === []) {
                     $push('user', 'مستخدم', (int) $u->id, $u->name, $u->email, null, null, null, $status);
                 } else {
-                    foreach (array_slice($contexts, 0, 3) as $c) {
+                    // كل السياقات المؤهَّلة — بلا اقتطاع (§1). حماية الحجم تكون بحدّ
+                    // المستخدمين المطابقين (PER_TYPE) لا بإسقاط سياقات صامتًا.
+                    foreach ($contexts as $c) {
                         $push('user', 'مستخدم', (int) $u->id, $u->name, $u->email, $c['tenantId'], $c['organizationId'], $c['portal'], $status);
                     }
                 }
