@@ -27,6 +27,7 @@ return Application::configure(basePath: dirname(__DIR__))
             'system_admin' => \App\Http\Middleware\EnsureSystemAdmin::class,
             'platform_owner' => \App\Http\Middleware\EnsurePlatformOwner::class,
             'platform_preview' => \App\Http\Middleware\PortalPreview::class,
+            'nomination' => \App\Http\Middleware\EnsureNominationEnabled::class,
             'inertia' => \App\Http\Middleware\HandleInertiaRequests::class,
         ]);
 

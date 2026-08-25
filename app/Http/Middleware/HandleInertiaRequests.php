@@ -2,9 +2,16 @@
 
 namespace App\Http\Middleware;
 
+use App\Domain\AdminPool\Support\CreatorDatabaseAbilities;
+use App\Domain\Billing\Services\EntitlementService;
+use App\Domain\Communications\Models\Notification;
 use App\Domain\CRM\Support\CrmAbilities;
+use App\Domain\Identity\Models\User;
+use App\Domain\Nomination\Access\NominationAccess;
+use App\Domain\Platform\Support\PlatformCapabilities;
 use App\Domain\Tenancy\Models\Organization;
 use App\Domain\Tenancy\Support\TenantContext;
+use App\Support\Brand;
 use App\Support\Http\MountPrefix;
 use App\Support\Navigation\NavigationBadges;
 use Illuminate\Http\Request;
@@ -37,14 +44,14 @@ class HandleInertiaRequests extends Middleware
             'workspace' => fn () => $this->workspaceName(),
             'showcase' => fn () => $this->isShowcase(),
             // مالك المنصّة — عَلَم لعرض مدخل /platform في البوّابات العادية (لا يظهر لغيره).
-            'isPlatformOwner' => fn () => \App\Domain\Platform\Support\PlatformCapabilities::isOwner($request->user()),
+            'isPlatformOwner' => fn () => PlatformCapabilities::isOwner($request->user()),
             'nav' => fn () => [
                 'badges' => $request->user() ? NavigationBadges::all() : [],
                 'can' => $this->navCapabilities($request),
             ],
             // عدّاد الإشعارات غير المقروءة — لجرس شريط العنوان في كل البوابات
             'unreadNotifications' => fn () => $request->user()
-                ? \App\Domain\Communications\Models\Notification::where('user_id', $request->user()->id)->whereNull('read_at')->count()
+                ? Notification::where('user_id', $request->user()->id)->whereNull('read_at')->count()
                 : 0,
             'flash' => [
                 'ok' => fn () => $request->session()->get('ok'),
@@ -64,40 +71,41 @@ class HandleInertiaRequests extends Middleware
                 if (! is_array($p)) {
                     return null;
                 }
-                $target = \App\Domain\Identity\Models\User::withoutGlobalScopes()->find($p['userId']);
+                $target = User::withoutGlobalScopes()->find($p['userId']);
+
                 return [
                     'active' => true,
                     'token' => $p['token'],
                     'portal' => $p['portal'],
                     'tenantId' => $p['tenantId'],
                     'targetName' => $target?->name ?? '—',
-                    'exitHref' => '/platform/preview/exit?token=' . $p['token'],
+                    'exitHref' => '/platform/preview/exit?token='.$p['token'],
                 ];
             },
             // هوية المنتج القانونية — مصدر واحد لواجهة React (تذييل/دخول/معلومات).
             'brand' => [
-                'name' => \App\Support\Brand::name(),
-                'tagline' => \App\Support\Brand::tagline(),
-                'url' => \App\Support\Brand::url(),
-                'domain' => \App\Support\Brand::domain(),
-                'infoUrl' => \App\Support\Brand::infoUrl(),
+                'name' => Brand::name(),
+                'tagline' => Brand::tagline(),
+                'url' => Brand::url(),
+                'domain' => Brand::domain(),
+                'infoUrl' => Brand::infoUrl(),
                 // مسارات نسبية (نفس المضيف influencerhub.io) — تنقّل بلا تبويب جديد
                 'infoPath' => (string) config('influencerhub.info_path', '/info'),
                 'privacyPath' => (string) config('influencerhub.privacy_path', '/privacy'),
                 'termsPath' => (string) config('influencerhub.terms_path', '/terms'),
                 'helpPath' => (string) config('influencerhub.help_path', '/help'),
-                'publicEmail' => \App\Support\Brand::publicEmail(),
-                'publicPhone' => \App\Support\Brand::publicPhone(),
-                'publicPhoneDisplay' => \App\Support\Brand::publicPhoneDisplay(),
+                'publicEmail' => Brand::publicEmail(),
+                'publicPhone' => Brand::publicPhone(),
+                'publicPhoneDisplay' => Brand::publicPhoneDisplay(),
                 'year' => (int) date('Y'),
             ],
         ]);
     }
 
-
     /**
      * قدرات عناصر القائمة للمستخدم الحالي (تُصفّي عناصر nav ذات `can`).
      * تُحسب من دور الوكالة؛ للبوابات الأخرى تبقى false (تستخدم قوائمها الخاصة).
+     *
      * @return array<string,bool>
      */
     private function navCapabilities(Request $request): array
@@ -109,15 +117,21 @@ class HandleInertiaRequests extends Middleware
             $dev = (bool) config('app.dev_tools');
             $user = $request->user();
             $oid = TenantContext::organizationId();
-            if (! $user || ! $oid) return ['reviews' => false, 'admin' => false, 'dev_tools' => $dev, 'creator_database' => false];
+            if (! $user || ! $oid) {
+                return ['reviews' => false, 'admin' => false, 'dev_tools' => $dev, 'creator_database' => false, 'influencer_nomination' => false];
+            }
             $role = $user->roleIn($oid);
+
+            // ترشيح المؤثرين: يُخفى رابطه إذا كانت الميزة مُطفأة لهذا النطاق أو الدور بلا
+            // صلاحية عرض — من نفس مصدر القرار الذي يفرضه الخادم (NominationAccess).
+            $nomination = app(NominationAccess::class)->canView($user, 'agency');
 
             // قاعدة المؤثرين: يظهر رابطها فقط إذا كانت المؤسسة مستحقّة (خطة/إضافة/تجاوز)
             // والدور يملك صلاحية العرض — حوكمة مزدوجة تُطابق ما يفرضه المتحكّم في الخادم.
             $cdb = false;
-            if (\App\Domain\AdminPool\Support\CreatorDatabaseAbilities::can($role, \App\Domain\AdminPool\Support\CreatorDatabaseAbilities::VIEW)) {
-                $org = \App\Domain\Tenancy\Support\TenantContext::withBypass(fn () => \App\Domain\Tenancy\Models\Organization::find($oid));
-                $cdb = $org !== null && app(\App\Domain\Billing\Services\EntitlementService::class)->allows($org, 'creator_database.access');
+            if (CreatorDatabaseAbilities::can($role, CreatorDatabaseAbilities::VIEW)) {
+                $org = TenantContext::withBypass(fn () => Organization::find($oid));
+                $cdb = $org !== null && app(EntitlementService::class)->allows($org, 'creator_database.access');
             }
 
             return [
@@ -125,9 +139,10 @@ class HandleInertiaRequests extends Middleware
                 'admin' => CrmAbilities::can($role, CrmAbilities::MANAGE_PORTAL),
                 'dev_tools' => $dev,
                 'creator_database' => $cdb,
+                'influencer_nomination' => $nomination,
             ];
         } catch (\Throwable) {
-            return ['reviews' => false, 'admin' => false, 'dev_tools' => false, 'creator_database' => false];
+            return ['reviews' => false, 'admin' => false, 'dev_tools' => false, 'creator_database' => false, 'influencer_nomination' => false];
         }
     }
 
@@ -141,6 +156,7 @@ class HandleInertiaRequests extends Middleware
         } catch (\Throwable) {
             // ignore
         }
+
         return null;
     }
 
@@ -148,8 +164,11 @@ class HandleInertiaRequests extends Middleware
     {
         try {
             $oid = TenantContext::organizationId();
-            if (! $oid) return false;
+            if (! $oid) {
+                return false;
+            }
             $org = Organization::withoutGlobalScopes()->find($oid);
+
             return $org?->tenant?->slug === 'showcase';
         } catch (\Throwable) {
             return false;
