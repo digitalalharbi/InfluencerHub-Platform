@@ -103,3 +103,15 @@
 
 > اسم المجموعة لا يساوي اسم عنصر بداخلها (لذلك «التنفيذ» وليس «الحملات»).
 > المجموعة تُخفى كليًا إن لم يملك المستخدم صلاحية أي عنصر بداخلها. العناصر غير المبنية لا تُعرض.
+
+## §8 Reconciliation status (lang files)
+
+`lang/ar/navigation.php` + `lang/ar/entities.php` reconciled to the canonical
+terms (guarded by `tests/Feature/TerminologyConsistencyTest`):
+العلامات التجارية → **العلامات** · طلبات الخدمة → **الطلبات** · المحتوى والموافقات → **المحتوى** ·
+مستحقات المبدعين والمدفوعات → **المستحقات** · `creators` nav label → **صناع المحتوى** ·
+brand-portal payouts label المدفوعات → **المستحقات** (payouts = creator dues, not client payments).
+
+**Deferred (own careful pass):** the singular creator/influencer umbrella
+(`مبدع`/`المبدع` vs `صانع محتوى`, `مؤثر`/`المؤثرون`) — used broadly across
+messages; unifying needs a full cross-reference sweep, not a label swap.
