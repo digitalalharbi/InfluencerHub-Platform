@@ -10,6 +10,7 @@ use App\Domain\Creators\Models\Creator;
 use App\Domain\Identity\Models\User;
 use App\Domain\Partners\Models\ExternalAgencyMember;
 use App\Domain\Tenancy\Models\{Organization, OrganizationMembership, Tenant};
+use App\Domain\Platform\Services\PlatformPortalEligibilityService;
 use App\Domain\Tenancy\Support\TenantContext;
 use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
@@ -24,6 +25,10 @@ use Inertia\Response;
  */
 class PlatformTenantController extends Controller
 {
+    public function __construct(private PlatformPortalEligibilityService $eligibility)
+    {
+    }
+
     public function index(Request $r): Response
     {
         $data = TenantContext::withBypass(function () use ($r) {
@@ -57,13 +62,9 @@ class PlatformTenantController extends Controller
                 'members' => OrganizationMembership::withoutGlobalScopes()->where('organization_id', $o->id)->where('status', 'active')->count(),
             ])->values();
 
-            // البوّابات المتاحة فعلًا لهذا المستأجر (لا نُنشئ بوّابة غير موجودة §5).
-            $portals = [
-                'agency' => OrganizationMembership::withoutGlobalScopes()->where('tenant_id', $tenant->id)->where('status', 'active')->exists(),
-                'client' => ClientMember::withoutGlobalScopes()->where('tenant_id', $tenant->id)->where('status', 'active')->exists(),
-                'creator' => Creator::withoutGlobalScopes()->where('tenant_id', $tenant->id)->whereNotNull('user_id')->exists(),
-                'partner' => ExternalAgencyMember::withoutGlobalScopes()->where('tenant_id', $tenant->id)->where('status', 'active')->exists(),
-            ];
+            // البوّابات المتاحة فعلًا لهذا المستأجر — مصدر واحد يطابق حرّاس البوّابات
+            // (لا منطق أهلية مكرّر، §5/§ P2-hardening).
+            $portals = $this->eligibility->tenantPortals($tenant->id);
 
             $sub = Subscription::withoutGlobalScopes()->where('tenant_id', $tenant->id)->whereIn('status', ['trialing', 'active'])->latest()->first();
 

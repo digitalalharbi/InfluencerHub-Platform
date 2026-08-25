@@ -83,21 +83,41 @@ class PlatformSearchAndSwitcherTest extends TestCase
         $data = $res->json();
         $this->assertNotEmpty($data['results']);
         // يجد المستأجر ورابطه يدخل سياق المستأجر
-        $tenantHit = collect($data['results'])->firstWhere('type', 'tenant');
+        $tenantHit = collect($data['results'])->firstWhere('entityType', 'tenant');
         $this->assertNotNull($tenantHit);
-        $this->assertSame("/platform/tenants/{$t->id}", $tenantHit['href']);
+        $this->assertSame("/platform/tenants/{$t->id}", $tenantHit['contextHref']);
+        // شكل النتيجة المطلوب (§3)
+        $this->assertArrayHasKey('entityId', $tenantHit);
+        $this->assertArrayHasKey('tenantId', $tenantHit);
+        $this->assertArrayHasKey('organizationId', $tenantHit);
+        $this->assertArrayHasKey('portalHint', $tenantHit);
 
-        // يبحث عبر أنواع مختلفة (مستخدم بالاسم)
-        $userHit = $this->actingAs($this->owner())->getJson('/platform/search?q=Zaid')->json('results');
-        $this->assertTrue(collect($userHit)->contains('type', 'user'));
+        // يبحث عبر أنواع مختلفة (مستخدم بالاسم) — وسياقه من علاقاته الفعلية
+        $userHits = collect($this->actingAs($this->owner())->getJson('/platform/search?q=Zaid')->json('results'))
+            ->where('entityType', 'user');
+        $this->assertTrue($userHits->isNotEmpty());
+        $this->assertSame('agency', $userHits->first()['portalHint']);   // عضو الوكالة
     }
 
-    public function test_search_requires_min_length_and_is_audited(): void
+    public function test_search_requires_min_length(): void
     {
         $this->actingAs($this->owner())->getJson('/platform/search?q=a')->assertOk()->assertJson(['results' => []]);
+    }
 
+    public function test_audit_records_no_raw_query_text(): void
+    {
         $this->seedTenant();
         $this->actingAs($this->owner())->getJson('/platform/search?q=Acme')->assertOk();
-        $this->assertDatabaseHas('audit_logs', ['action' => 'platform.search']);
+
+        $row = \App\Domain\Audit\Models\AuditLog::where('action', 'platform.search')->latest('id')->first();
+        $this->assertNotNull($row);
+        $changes = json_encode($row->changes, JSON_UNESCAPED_UNICODE);
+        // يسجّل الميتاداتا فقط…
+        $this->assertStringContainsString('query_length', $changes);
+        $this->assertStringContainsString('result_count', $changes);
+        $this->assertStringContainsString('searched_types', $changes);
+        // …ولا يخزّن نصّ البحث الخام إطلاقًا (§4).
+        $this->assertStringNotContainsString('Acme', $changes);
+        $this->assertStringNotContainsString('Acme', json_encode($row->new_values ?? [], JSON_UNESCAPED_UNICODE));
     }
 }
