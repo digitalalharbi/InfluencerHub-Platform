@@ -30,7 +30,7 @@ export const agencyNav: NavGroup[] = [
     label: 'العمل',
     items: [
       { key: 'dashboard', label: 'لوحة التحكم', route: '', icon: 'layout-dashboard', match: '' },
-      { key: 'my_tasks', label: 'مهامي', route: '/my-tasks', icon: 'list-checks' },
+      { key: 'my_tasks', label: 'عملي', route: '/my-tasks', icon: 'list-checks' },
       { key: 'requests', label: 'الطلبات', route: '/service-requests', icon: 'inbox', badge: 'service_requests' },
     ],
   },

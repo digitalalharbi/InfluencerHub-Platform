@@ -69,6 +69,17 @@ class OperationalDashboard
         ];
     }
 
+    /**
+     * «عملي» الشخصي (بلا لقطة الفريق) — نقطة البداية اليومية. المصدر نفسه الذي
+     * تستعمله اللوحة، فلا تتفرّع نسختان من «المطلوب مني الآن».
+     * @return array{role: ?string, brief: array, myWork: array}
+     */
+    public function personalWork(): array
+    {
+        $work = $this->myWork();
+        return ['role' => $this->role(), 'brief' => $this->brief($work), 'myWork' => $work];
+    }
+
     /** قائمة "المطلوب مني الآن" مرتّبة حسب الأولوية. */
     private function myWork(): array
     {
