@@ -2,6 +2,7 @@ import { Link, usePage } from '@inertiajs/react';
 import { useEffect, useState, type ReactNode } from 'react';
 import { Icon } from '@/Components/Icon';
 import AppFooter from '@/Components/AppFooter';
+import PlatformCommandPalette from '@/Components/PlatformCommandPalette';
 import { agencyNav, mobilePrimary, type NavGroup, type NavItem } from '@/lib/nav';
 import { base, u } from '@/lib/href';
 import type { SharedProps } from '@/types';
@@ -69,6 +70,7 @@ export default function AppShell({
   return (
     <div className={`ih-shell has-bottom-nav${open ? ' nav-open' : ''}${rail ? ' rail-collapsed' : ''}`}>
       <div className="ih-scrim" onClick={() => setOpen(false)} />
+      {portal === 'platform' && <PlatformCommandPalette />}
 
       <aside className="sidebar ih-side" onClick={() => setOpen(false)}>
         <Link href={home} className="ih-side__brand" title={rail ? brand : undefined}>

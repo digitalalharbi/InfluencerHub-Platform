@@ -506,6 +506,10 @@ Route::middleware(['auth', 'system_admin', 'inertia'])->prefix('beta/admin')->gr
 // مبدّل المستأجرين/البحث/المعاينة/التقمّص في مراحل لاحقة (P2–P4).
 Route::middleware(['auth', 'platform_owner', 'inertia'])->prefix('platform')->group(function () {
     Route::get('/', \App\Http\Controllers\Platform\ControlCenterController::class)->name('platform.home');
+    // P2: مبدّل المستأجرين + البحث الشامل.
+    Route::get('/tenants', [\App\Http\Controllers\Platform\PlatformTenantController::class, 'index'])->name('platform.tenants');
+    Route::get('/tenants/{tenant}', [\App\Http\Controllers\Platform\PlatformTenantController::class, 'show'])->whereNumber('tenant')->name('platform.tenant');
+    Route::get('/search', \App\Http\Controllers\Platform\PlatformSearchController::class)->name('platform.search');
 });
 
 // بوابة الشريك — React/Inertia (بالتوازي مع Blade `/partner`)

@@ -41,7 +41,8 @@ final class PlatformCapabilities
      */
     private static function live(): array
     {
-        return [self::OWNER];   // P1: الهوية/الوصول فقط
+        // P1: الهوية/الوصول. P2: عرض المستأجرين + البحث الشامل.
+        return [self::OWNER, self::TENANTS_VIEW, self::GLOBAL_SEARCH];
     }
 
     /**

@@ -258,13 +258,15 @@ export const brandNav: NavGroup[] = [
 export const platformNav: NavGroup[] = [
   {
     key: 'overview',
-    items: [{ key: 'home', label: 'مركز التحكّم', route: '', icon: 'layout-dashboard', match: '' }],
+    items: [
+      { key: 'home', label: 'مركز التحكّم', route: '', icon: 'layout-dashboard', match: '' },
+      { key: 'tenants', label: 'المستأجرون', route: '/tenants', icon: 'building-2' },
+    ],
   },
   {
     key: 'manage',
-    label: 'المنصّة',
+    label: 'الإدارة',
     items: [
-      { key: 'tenants', label: 'المستأجرون', route: '/beta/admin/tenants', icon: 'building-2', abs: true },
       { key: 'subscriptions', label: 'الاشتراكات', route: '/beta/admin/subscriptions', icon: 'wallet', abs: true },
       { key: 'audit', label: 'سجل التدقيق', route: '/beta/admin/audit', icon: 'file-text', abs: true },
     ],
