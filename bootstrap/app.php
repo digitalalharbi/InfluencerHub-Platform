@@ -25,6 +25,7 @@ return Application::configure(basePath: dirname(__DIR__))
             'partner_member' => \App\Http\Middleware\EnsurePartnerMember::class,
             'brand_member' => \App\Http\Middleware\EnsureBrandMember::class,
             'system_admin' => \App\Http\Middleware\EnsureSystemAdmin::class,
+            'platform_owner' => \App\Http\Middleware\EnsurePlatformOwner::class,
             'inertia' => \App\Http\Middleware\HandleInertiaRequests::class,
         ]);
 

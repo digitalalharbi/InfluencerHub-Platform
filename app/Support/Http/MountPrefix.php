@@ -17,7 +17,7 @@ final class MountPrefix
 {
     private const PREFIXES = [
         'beta/client', 'beta/creator', 'beta/partner', 'beta/admin', 'beta',
-        'client', 'creator', 'partner', 'admin', 'brand', 'app',
+        'platform', 'client', 'creator', 'partner', 'admin', 'brand', 'app',
     ];
 
     public static function for(Request $request): string

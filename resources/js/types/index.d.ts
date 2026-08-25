@@ -27,6 +27,8 @@ export interface SharedProps extends InertiaPageProps {
   auth: { user: AuthUser | null };
   workspace: string | null;
   showcase: boolean;
+  /** مالك المنصّة — لعرض مدخل /platform؛ الحوكمة الحقيقية في الخادم (middleware). */
+  isPlatformOwner?: boolean;
   nav: { badges: Record<string, number>; can?: Record<string, boolean> };
   unreadNotifications?: number;
   flash: { ok: string | null; error: string | null; inviteToken?: string | null };

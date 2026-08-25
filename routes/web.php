@@ -500,6 +500,14 @@ Route::middleware(['auth', 'system_admin', 'inertia'])->prefix('beta/admin')->gr
     Route::get('/audit', [\App\Http\Controllers\Inertia\Admin\PlatformController::class, 'audit']);
 });
 
+// مساحة «مالك المنصّة» (Platform Owner) — عابرة للمستأجرين، خارج نطاق أي مستأجر.
+// لا middleware 'tenant': المالك يعمل بـwithBypass داخل المتحكّمات. الحرّاسة:
+// auth + platform_owner (قدرة platform.owner الصريحة). P1: مركز التحكّم فقط؛
+// مبدّل المستأجرين/البحث/المعاينة/التقمّص في مراحل لاحقة (P2–P4).
+Route::middleware(['auth', 'platform_owner', 'inertia'])->prefix('platform')->group(function () {
+    Route::get('/', \App\Http\Controllers\Platform\ControlCenterController::class)->name('platform.home');
+});
+
 // بوابة الشريك — React/Inertia (بالتوازي مع Blade `/partner`)
 Route::middleware(['auth', 'partner_member', 'inertia'])->prefix('beta/partner')->group(function () {
     Route::get('/', [\App\Http\Controllers\Inertia\Partner\DashboardController::class, 'index']);
