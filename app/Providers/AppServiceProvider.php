@@ -113,9 +113,15 @@ class AppServiceProvider extends ServiceProvider
         // تحديد معدّل تسجيل الدخول (كل البوّابات) — يمنع التخمين العنيف. مفتاح مركّب
         // (بريد مُجزّأ + IP) فلا يُقفل شبكة كاملة، ومفتاح IP فضفاض ضد التخمين الموزّع.
         // الرسالة على القفل عامّة (429) ولا تكشف وجود بريد (لا account enumeration).
-        \Illuminate\Support\Facades\RateLimiter::for('login', fn ($r) => [
-            \Illuminate\Cache\RateLimiting\Limit::perMinute(20)->by('login:' . sha1((string) $r->input('email')) . '|' . $r->ip()),
-            \Illuminate\Cache\RateLimiting\Limit::perMinute(60)->by('login-ip:' . $r->ip()),
-        ]);
+        \Illuminate\Support\Facades\RateLimiter::for('login', function ($r) {
+            // بيئة E2E فقط تعطّل الحدّ (مئات عمليات دخول بحسابات قليلة عبر كاش مشترك).
+            if (config('app.disable_login_throttle')) {
+                return \Illuminate\Cache\RateLimiting\Limit::none();
+            }
+            return [
+                \Illuminate\Cache\RateLimiting\Limit::perMinute(20)->by('login:' . sha1((string) $r->input('email')) . '|' . $r->ip()),
+                \Illuminate\Cache\RateLimiting\Limit::perMinute(60)->by('login-ip:' . $r->ip()),
+            ];
+        });
     }
 }
