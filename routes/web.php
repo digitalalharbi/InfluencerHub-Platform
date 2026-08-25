@@ -512,8 +512,8 @@ Route::middleware(['auth', 'platform_owner', 'inertia'])->prefix('platform')->gr
     Route::get('/search', \App\Http\Controllers\Platform\PlatformSearchController::class)->name('platform.search');
     // P3: بدء/إنهاء معاينة بوّابة للقراءة فقط. exit قبل النمط ذي المعاملات كي لا يُلتقط.
     Route::get('/preview/exit', [\App\Http\Controllers\Platform\PlatformPreviewController::class, 'exit'])->name('platform.preview.exit');
-    Route::get('/preview/{tenant}/{portal}/{user}', [\App\Http\Controllers\Platform\PlatformPreviewController::class, 'start'])
-        ->whereNumber(['tenant', 'user'])->whereIn('portal', ['agency', 'client', 'creator', 'partner'])->name('platform.preview.start');
+    Route::get('/preview/{tenant}/{portal}/{user}/{entity}', [\App\Http\Controllers\Platform\PlatformPreviewController::class, 'start'])
+        ->whereNumber(['tenant', 'user', 'entity'])->whereIn('portal', ['agency', 'client', 'creator', 'partner'])->name('platform.preview.start');
 });
 
 // بوابة الشريك — React/Inertia (بالتوازي مع Blade `/partner`)

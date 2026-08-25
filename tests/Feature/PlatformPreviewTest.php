@@ -8,7 +8,10 @@ use App\Domain\Identity\Models\User;
 use App\Domain\Platform\Support\PlatformPreviewToken;
 use App\Domain\Tenancy\Models\{Organization, OrganizationMembership, Tenant};
 use App\Domain\Tenancy\Support\TenantContext;
+use App\Http\Middleware\PortalPreview;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Str;
 use Inertia\Testing\AssertableInertia as Assert;
 use Tests\TestCase;
@@ -194,7 +197,7 @@ class PlatformPreviewTest extends TestCase
         [$target, $t, $org] = $this->agencyTarget();
         $owner = $this->owner();
 
-        $res = $this->actingAs($owner)->get("/platform/preview/{$t->id}/agency/{$target->id}");
+        $res = $this->actingAs($owner)->get("/platform/preview/{$t->id}/agency/{$target->id}/{$org->id}?organization={$org->id}");
         $res->assertRedirect();
         $this->assertStringContainsString('/app?_pv=', $res->headers->get('Location'));
 
@@ -210,7 +213,7 @@ class PlatformPreviewTest extends TestCase
         // مستخدم بلا أي سياق في هذا المستأجر ⇒ 404 NOT_AVAILABLE.
         $stranger = User::create(['name' => 'S', 'email' => Str::random(6) . '@ex.com', 'password' => bcrypt('x'), 'is_active' => true]);
 
-        $this->actingAs($owner)->get("/platform/preview/{$t->id}/agency/{$stranger->id}")->assertNotFound();
+        $this->actingAs($owner)->get("/platform/preview/{$t->id}/agency/{$stranger->id}/999?organization=999")->assertNotFound();
     }
 
     public function test_exit_audits_and_returns_to_platform(): void
@@ -227,10 +230,210 @@ class PlatformPreviewTest extends TestCase
 
     public function test_non_owner_cannot_start_preview(): void
     {
-        [$target, $t] = $this->agencyTarget();
+        [$target, $t, $org] = $this->agencyTarget();
         $plain = User::create(['name' => 'P', 'email' => Str::random(6) . '@ex.com', 'password' => bcrypt('x'), 'is_active' => true]);
 
         // مجموعة /platform محميّة بـ platform_owner ⇒ غير المالك 403.
-        $this->actingAs($plain)->get("/platform/preview/{$t->id}/agency/{$target->id}")->assertForbidden();
+        $this->actingAs($plain)->get("/platform/preview/{$t->id}/agency/{$target->id}/{$org->id}?organization={$org->id}")->assertForbidden();
+    }
+
+    // ── §1 السياق الدقيق: لا first() نيابةً عن المالك ───────────────────
+
+    private function twoClients(Tenant $t, User $u): array
+    {
+        return TenantContext::withBypass(function () use ($t, $u) {
+            $a = Client::create(['tenant_id' => $t->id, 'client_number' => 'CL-A', 'display_name' => 'Client A', 'status' => 'active']);
+            $b = Client::create(['tenant_id' => $t->id, 'client_number' => 'CL-B', 'display_name' => 'Client B', 'status' => 'active']);
+            foreach ([$a, $b] as $c) {
+                ClientMember::create(['tenant_id' => $t->id, 'client_id' => $c->id, 'user_id' => $u->id, 'role' => 'client_admin', 'status' => 'active']);
+            }
+            return [$a, $b];
+        });
+    }
+
+    public function test_same_user_two_clients_each_button_opens_the_correct_client(): void
+    {
+        [$t] = $this->tenantOrg();
+        $owner = $this->owner();
+        $u = User::create(['name' => 'Dual Client', 'email' => Str::random(6) . '@ex.com', 'password' => bcrypt('x'), 'is_active' => true]);
+        [$a, $b] = $this->twoClients($t, $u);
+
+        foreach ([[$a, 'Client A'], [$b, 'Client B']] as [$client, $name]) {
+            $res = $this->actingAs($owner)->get("/platform/preview/{$t->id}/client/{$u->id}/{$client->id}");
+            $res->assertRedirect();
+            $loc = $res->headers->get('Location');
+            // المنحة تحمل الكيان المختار بالضبط — لا الأوّل.
+            $claims = PlatformPreviewToken::verify(Str::after($loc, '_pv='), now()->timestamp);
+            $this->assertSame((int) $client->id, $claims['entity']);
+            // وعند فتح البوّابة يرى العميل الصحيح فعلًا.
+            $this->actingAs($owner)->get($loc)->assertSuccessful()
+                ->assertInertia(fn (Assert $p) => $p->where('client.name', $name));
+        }
+    }
+
+    public function test_same_user_two_orgs_each_start_carries_the_correct_org(): void
+    {
+        $t = Tenant::create(['name' => 'MultiOrg', 'slug' => Str::random(8), 'deployment_mode' => 'saas', 'status' => 'active']);
+        $owner = $this->owner();
+        $u = User::create(['name' => 'Dual Org', 'email' => Str::random(6) . '@ex.com', 'password' => bcrypt('x'), 'is_active' => true]);
+        [$oa, $ob] = TenantContext::withBypass(function () use ($t, $u) {
+            $oa = Organization::create(['tenant_id' => $t->id, 'name' => 'Org A', 'slug' => Str::random(8), 'type' => 'agency', 'status' => 'active']);
+            $ob = Organization::create(['tenant_id' => $t->id, 'name' => 'Org B', 'slug' => Str::random(8), 'type' => 'agency', 'status' => 'active']);
+            foreach ([$oa, $ob] as $o) {
+                OrganizationMembership::create(['tenant_id' => $t->id, 'organization_id' => $o->id, 'user_id' => $u->id, 'role' => 'agency_admin', 'status' => 'active']);
+            }
+            return [$oa, $ob];
+        });
+
+        foreach ([$oa, $ob] as $org) {
+            $res = $this->actingAs($owner)->get("/platform/preview/{$t->id}/agency/{$u->id}/{$org->id}?organization={$org->id}");
+            $res->assertRedirect();
+            $claims = PlatformPreviewToken::verify(Str::after($res->headers->get('Location'), '_pv='), now()->timestamp);
+            $this->assertSame((int) $org->id, $claims['entity']);
+            $this->assertSame((int) $org->id, $claims['org']);   // الرباعية الدقيقة كما اختار المالك
+        }
+
+        // وعند فتح الوكالة بمنحة المؤسسة A يرى مساحة عمل A لا B.
+        $token = $this->token($owner, $u, $t, 'agency', $oa->id, $oa->id);
+        $this->actingAs($owner)->get("/beta?_pv={$token}")->assertSuccessful()
+            ->assertInertia(fn (Assert $p) => $p->where('workspace', 'Org A'));
+    }
+
+    public function test_modified_entity_or_org_in_start_is_blocked(): void
+    {
+        [$t] = $this->tenantOrg();
+        $owner = $this->owner();
+        $u = User::create(['name' => 'C', 'email' => Str::random(6) . '@ex.com', 'password' => bcrypt('x'), 'is_active' => true]);
+        [$a] = $this->twoClients($t, $u);
+
+        // كيان لا يخصّ المستخدم ⇒ 404. مؤسسة مزوّرة على بوّابة عميل ⇒ 404.
+        $this->actingAs($owner)->get("/platform/preview/{$t->id}/client/{$u->id}/" . ($a->id + 9999))->assertNotFound();
+        $this->actingAs($owner)->get("/platform/preview/{$t->id}/client/{$u->id}/{$a->id}?organization=4242")->assertNotFound();
+    }
+
+    // ── §2 استعادة هوية المالك بعد التنفيذ مُحكَمة النطاق ────────────────
+
+    public function test_owner_identity_is_restored_after_preview_middleware_returns(): void
+    {
+        [$target, $t, $org] = $this->agencyTarget();
+        $owner = $this->owner();
+        $token = $this->token($owner, $target, $t, 'agency', $org->id, $org->id);
+
+        $req = Request::create('/beta', 'GET', ['_pv' => $token]);
+        $req->setUserResolver(fn () => $owner);
+        Auth::setUser($owner);
+
+        $insideId = null;
+        (new PortalPreview())->handle($req, function () use (&$insideId) {
+            $insideId = Auth::id();   // داخل المتحكّم: الفاعل = الهدف
+            return new \Illuminate\Http\Response('ok');
+        }, 'agency');
+
+        $this->assertSame((int) $target->id, $insideId);            // الهوية الفاعلة = الهدف
+        $this->assertSame((int) $owner->id, (int) Auth::id());      // وبعد العودة: المالك مُستعاد
+    }
+
+    // ── §3 تكافؤ السياق: عاديّ مقابل معاينة ─────────────────────────────
+
+    public function test_client_context_parity_normal_vs_preview_and_zero_session_writes(): void
+    {
+        [$t] = $this->tenantOrg();
+        $owner = $this->owner();
+        $u = User::create(['name' => 'Parity Client', 'email' => Str::random(6) . '@ex.com', 'password' => bcrypt('x'), 'is_active' => true]);
+        [$a] = $this->twoClients($t, $u);
+
+        // عاديّ: المستخدم الحقيقي يرى عميله، وتُكتب الجلسة.
+        $this->actingAs($u)->get('/client')->assertSuccessful()
+            ->assertInertia(fn (Assert $p) => $p->where('client.name', 'Client A'));
+        $this->assertSame((int) $a->id, session('active_client_id'));
+
+        session()->forget('active_client_id');
+
+        // معاينة: نفس العميل، لكن بلا كتابة جلسة، وclientMembership مضبوط (صفحة الحساب
+        // تقرأ الدور فتفشل لو كان null) ⇒ 200 يثبت التكافؤ.
+        $res = $this->actingAs($owner)->get("/platform/preview/{$t->id}/client/{$u->id}/{$a->id}");
+        $loc = $res->headers->get('Location');
+        $this->actingAs($owner)->get($loc)->assertSuccessful()
+            ->assertInertia(fn (Assert $p) => $p->where('client.name', 'Client A'));
+        $this->assertNull(session('active_client_id'));   // صفر كتابة جلسة
+
+        $token = Str::after($loc, '_pv=');
+        $this->actingAs($owner)->get("/client/account?_pv={$token}")->assertSuccessful();   // clientMembership غير null
+    }
+
+    // ── §4 حظر أي تحوّر من داخل معاينة + استمرار جلسة المالك ─────────────
+
+    public function test_preview_logout_and_switch_and_account_mutations_are_blocked(): void
+    {
+        [$t] = $this->tenantOrg();
+        $owner = $this->owner();
+        $u = User::create(['name' => 'Blockee', 'email' => Str::random(6) . '@ex.com', 'password' => bcrypt('x'), 'is_active' => true]);
+        [$a] = $this->twoClients($t, $u);
+        $token = $this->token($owner, $u, $t, 'client', $a->id, null);
+
+        // خروج/تبديل/تغيير كلمة مرور من داخل معاينة ⇒ 403 قبل أي تحوّر — الحارس العالميّ.
+        $this->actingAs($owner)->post("/client/logout?_pv={$token}")->assertForbidden();
+        $this->actingAs($owner)->post("/client/switch?_pv={$token}", ['client_id' => $a->id])->assertForbidden();
+        $this->actingAs($owner)->post("/logout?_pv={$token}")->assertForbidden();
+
+        // وجلسة المالك سليمة: مسار مالك-فقط لا يزال 200 (المتحكّم لم يُنفَّذ فلم يُسجَّل خروج).
+        $this->actingAs($owner)->get('/platform')->assertSuccessful();
+    }
+
+    public function test_partner_context_parity_and_zero_session_writes(): void
+    {
+        [$t] = $this->tenantOrg();
+        $owner = $this->owner();
+        $u = User::create(['name' => 'Partner', 'email' => Str::random(6) . '@ex.com', 'password' => bcrypt('x'), 'is_active' => true]);
+        $agency = TenantContext::withBypass(function () use ($t, $u) {
+            $a = \App\Domain\Partners\Models\ExternalAgency::create(['tenant_id' => $t->id, 'agency_number' => 'EA-P', 'name' => 'شريك', 'status' => 'approved']);
+            \App\Domain\Partners\Models\ExternalAgencyMember::create(['tenant_id' => $t->id, 'external_agency_id' => $a->id, 'user_id' => $u->id, 'role' => 'external_agency_admin', 'status' => 'active']);
+            return $a;
+        });
+
+        // عاديّ: تُكتب الجلسة.
+        $this->actingAs($u)->get('/partner')->assertSuccessful();
+        $this->assertSame((int) $agency->id, session('active_agency_id'));
+        session()->forget('active_agency_id');
+
+        // معاينة: نفس البوّابة، بلا كتابة active_agency_id.
+        $token = $this->token($owner, $u, $t, 'partner', $agency->id, null);
+        $this->actingAs($owner)->get("/partner?_pv={$token}")->assertSuccessful()
+            ->assertInertia(fn (Assert $p) => $p->where('preview.active', true)->where('auth.user.name', $u->name));
+        $this->assertNull(session('active_agency_id'));
+    }
+
+    public function test_creator_context_parity_normal_vs_preview(): void
+    {
+        // القاعدة القانونية الوحيدة portalEligible مُبدَّلة بمزيّف (يستهلكها الحارس
+        // والحلّال وisContextEligible معًا) — فيتطابق العاديّ والمعاينة.
+        $this->mock(\App\Domain\Creators\Services\CreatorEntitlementService::class, function ($m) {
+            $m->shouldReceive('portalEligible')->andReturn(true);
+        });
+        [$t] = $this->tenantOrg();
+        $owner = $this->owner();
+        $u = User::create(['name' => 'Creator', 'email' => Str::random(6) . '@ex.com', 'password' => bcrypt('x'), 'is_active' => true]);
+        $creator = TenantContext::withBypass(fn () => \App\Domain\Creators\Models\Creator::create(['tenant_id' => $t->id, 'creator_number' => 'CR-P', 'type' => 'influencer', 'display_name' => 'مبدع', 'status' => 'active', 'user_id' => $u->id]));
+
+        $this->actingAs($u)->get('/creator')->assertSuccessful();   // عاديّ
+
+        $token = $this->token($owner, $u, $t, 'creator', $creator->id, null);
+        $this->actingAs($owner)->get("/creator?_pv={$token}")->assertSuccessful()   // معاينة كالهدف
+            ->assertInertia(fn (Assert $p) => $p->where('preview.active', true)->where('auth.user.name', $u->name));
+    }
+
+    public function test_preview_navigation_continuity_keeps_pv_active(): void
+    {
+        [$t] = $this->tenantOrg();
+        $owner = $this->owner();
+        $u = User::create(['name' => 'Nav', 'email' => Str::random(6) . '@ex.com', 'password' => bcrypt('x'), 'is_active' => true]);
+        [$a] = $this->twoClients($t, $u);
+        $token = $this->token($owner, $u, $t, 'client', $a->id, null);
+
+        // تنقّل: لوحة → حملات → حساب، والمعاينة نشطة في كلٍّ (preview.active=true).
+        foreach (['/client', '/client/campaigns', '/client/account'] as $path) {
+            $this->actingAs($owner)->get("{$path}?_pv={$token}")->assertSuccessful()
+                ->assertInertia(fn (Assert $p) => $p->where('preview.active', true)->where('preview.portal', 'client'));
+        }
     }
 }

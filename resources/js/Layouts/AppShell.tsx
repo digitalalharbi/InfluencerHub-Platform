@@ -153,10 +153,18 @@ export default function AppShell({
         </nav>
 
         <div className="ih-side__foot">
-          <Link href="/logout" method="post" as="button" className="nav-link ih-nav__link" data-label="تسجيل الخروج"
-            style={{ width: '100%', border: 0, background: 'none', cursor: 'pointer', textAlign: 'start', fontSize: '.84rem' }}>
-            <Icon name="log-out" size={18} /> <span>تسجيل الخروج</span>
-          </Link>
+          {preview?.active ? (
+            // في المعاينة لا تسجيل خروج (سيُخرج المالك نفسه). البديل: الخروج من المعاينة.
+            <a href={preview.exitHref} className="nav-link ih-nav__link" data-label="الخروج من المعاينة"
+              style={{ width: '100%', cursor: 'pointer', textAlign: 'start', fontSize: '.84rem', textDecoration: 'none' }}>
+              <Icon name="log-out" size={18} /> <span>الخروج من المعاينة</span>
+            </a>
+          ) : (
+            <Link href="/logout" method="post" as="button" className="nav-link ih-nav__link" data-label="تسجيل الخروج"
+              style={{ width: '100%', border: 0, background: 'none', cursor: 'pointer', textAlign: 'start', fontSize: '.84rem' }}>
+              <Icon name="log-out" size={18} /> <span>تسجيل الخروج</span>
+            </Link>
+          )}
           <button type="button" onClick={(e) => { e.stopPropagation(); toggleRail(); }} className="ih-side__collapse"
             aria-label={rail ? 'توسيع القائمة' : 'طيّ القائمة'} title={rail ? 'توسيع' : 'طيّ'}>
             <Icon name="chevron-left" size={16} style={{ transform: rail ? 'scaleX(-1)' : undefined }} />

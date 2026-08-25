@@ -28,6 +28,11 @@ export function base(): string {
   return BASE;
 }
 
+/** رمز المعاينة الحاليّ (أو null) — يستعمله معترِض inertia لتغطية كل الطلبات لا u() فقط. */
+export function previewToken(): string | null {
+  return PV;
+}
+
 /** `u('/content')` → `/app/content` أو `/beta/content` حسب مكان التقديم. */
 export function u(path: string): string {
   const full = BASE + path;

@@ -8,7 +8,7 @@ interface Stats { organizations: number; users: number; campaigns: number; hasSu
 interface Org { id: number; name: string; type: string; status: string; members: number }
 interface Portals { agency: boolean; client: boolean; creator: boolean; partner: boolean }
 interface Activity { action: string; actor: string | null; at: string | null }
-interface PreviewCtx { userId: number; userName: string; entityLabel: string; startHref: string }
+interface PreviewCtx { userId: number; userName: string; entityLabel: string; entityId: number; organizationId: number | null; startHref: string }
 interface PreviewPortal { portal: keyof Portals; label: string; contexts: PreviewCtx[] }
 interface Props { tenant: Tenant; stats: Stats; orgs: Org[]; portals: Portals; previewPortals: PreviewPortal[]; activity: Activity[] }
 
@@ -60,7 +60,8 @@ export default function TenantDetail({ tenant, stats, orgs, portals, previewPort
                   ) : (
                     <div style={{ display: 'grid', gap: '.35rem' }}>
                       {pp.contexts.map((c) => (
-                        <div key={c.userId} className="ih-risk" style={{ alignItems: 'center' }}>
+                        // مفتاح مركّب: مستخدم واحد قد يظهر بأكثر من كيان/مؤسسة في نفس البوّابة.
+                        <div key={`${pp.portal}:${c.userId}:${c.entityId}:${c.organizationId ?? 0}`} className="ih-risk" style={{ alignItems: 'center' }}>
                           <span style={{ fontWeight: 600 }}>{c.userName}</span>
                           <span style={{ color: 'var(--ih-text-muted)', fontSize: '.72rem' }}>{c.entityLabel}</span>
                           <span style={{ flex: 1 }} />

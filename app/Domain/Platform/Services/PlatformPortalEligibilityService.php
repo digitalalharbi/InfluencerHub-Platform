@@ -210,18 +210,28 @@ class PlatformPortalEligibilityService
                     return OrganizationMembership::where('user_id', $user->id)->where('organization_id', $entityId)
                         ->where('status', 'active')->whereNotIn('role', self::AGENCY_PORTAL_ROLES)->exists();
                 case 'client':
+                    // المؤسسة لا تنطبق على العميل: أي قيمة غير null رباعيةٌ غير متّسقة ⇒ حظر.
+                    if ($organizationId !== null) {
+                        return false;
+                    }
                     $client = Client::withoutGlobalScopes()->find($entityId);
                     if (! $client || (int) $client->tenant_id !== $tenantId) {
                         return false;
                     }
                     return ClientMember::where('user_id', $user->id)->where('client_id', $entityId)->where('status', 'active')->exists();
                 case 'creator':
+                    if ($organizationId !== null) {
+                        return false;
+                    }
                     $creator = Creator::withoutGlobalScopes()->find($entityId);
                     if (! $creator || (int) $creator->tenant_id !== $tenantId || (int) $creator->user_id !== $user->id) {
                         return false;
                     }
                     return $this->entitlements->portalEligible($creator);
                 case 'partner':
+                    if ($organizationId !== null) {
+                        return false;
+                    }
                     $agency = ExternalAgency::withoutGlobalScopes()->find($entityId);
                     if (! $agency || (int) $agency->tenant_id !== $tenantId || $agency->status !== 'approved') {
                         return false;

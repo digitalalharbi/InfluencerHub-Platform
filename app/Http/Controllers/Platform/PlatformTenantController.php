@@ -75,10 +75,18 @@ class PlatformTenantController extends Controller
                     continue;
                 }
                 $contexts = collect($this->eligibility->eligibleContextsForTenantPortal($tenant->id, $portal))
-                    ->map(fn (array $c) => [
-                        'userId' => $c['userId'], 'userName' => $c['userName'], 'entityLabel' => $c['entityLabel'],
-                        'startHref' => "/platform/preview/{$tenant->id}/{$portal}/{$c['userId']}",
-                    ])->values();
+                    ->map(function (array $c) use ($tenant, $portal) {
+                        // الرابط يحمل الكيان الدقيق (+المؤسسة للوكالة) الذي اختاره المالك،
+                        // فمستخدم بعميلين/بمؤسستين يفتح كلُّ صفّ سياقَه الصحيح لا الأوّل.
+                        $href = "/platform/preview/{$tenant->id}/{$portal}/{$c['userId']}/{$c['entityId']}";
+                        if ($c['organizationId'] !== null) {
+                            $href .= '?organization=' . $c['organizationId'];
+                        }
+                        return [
+                            'userId' => $c['userId'], 'userName' => $c['userName'], 'entityLabel' => $c['entityLabel'],
+                            'entityId' => $c['entityId'], 'organizationId' => $c['organizationId'], 'startHref' => $href,
+                        ];
+                    })->values();
                 $previewPortals[] = ['portal' => $portal, 'label' => $labels[$portal], 'contexts' => $contexts];
             }
 
