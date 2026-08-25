@@ -123,6 +123,22 @@ that is validated — not trusted — on every request.
   navigation-only + owner-checked audit; the token stays cryptographically valid until its
   15-minute expiry — acceptable because preview is fully read-only; true grant revocation lands
   with P4/P5, so no revocation is implied.
+  - **P3 acceptance pass (browser + privacy + scale).** (a) Dedicated Playwright specs drive the
+    **real UI** on Chromium/Firefox/WebKit: `19-platform-preview` (owner login → tenant → exact
+    context → click Preview → real portal + banner + target identity → multi-page nav keeps
+    preview → real mutation control → server 403 → owner session intact → exit) and
+    `20-preview-multitab` (two tabs on two client contexts stay independent across cross-tab
+    navigation). (b) Mutation-surface audit: every mutation in the portals is Inertia
+    (`useForm`/`router`) and carries `_pv` via the interceptor; the only `fetch` calls are two
+    GETs; no `axios` mutations, no native POST forms — and the global guard now runs **before**
+    `SubstituteBindings`, so any unsafe `_pv` request is 403 before binding/mutation, logout/
+    switch included. (c) Privacy regression (`PlatformPreviewPrivacyTest`) plants **populated**
+    sentinels (creator fee/payout/bank in one side, client selling price in the other) and proves
+    zero cross-side financial leakage and zero credential/secret leakage across every reachable
+    preview page — with a positive check that the sentinel *is* visible on its own side (not a
+    blank-field test). (d) Scale (`searchEligibleContexts` + `/platform/tenants/{t}/contexts`):
+    the 25-cap is gone — a server-side searchable, paginated picker (name/email/entity) reaches
+    **any** authorized context; a >25-context tenant proves #26 is discoverable and previewable.
 - **P4 — interactive impersonation + audit.** Explicit confirmation to go interactive; a
   short-lived (30–60 min) revocable impersonation session; the owner context bar; and the
   added audit columns (`acting_as_user_id`, `organization_id`, `session_id`, `reason`).

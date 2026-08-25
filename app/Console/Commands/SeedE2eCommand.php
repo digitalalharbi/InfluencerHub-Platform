@@ -48,6 +48,12 @@ class SeedE2eCommand extends Command {
         // Phase 5 — عضو بوابة عميل (client_admin) على نايك
         $clientUser = $this->user('عميل نايك', 'client@a.test');
         \App\Domain\CRM\Models\ClientMember::create(['tenant_id' => $tA->id, 'client_id' => $nikeClient->id, 'user_id' => $clientUser->id, 'role' => 'client_admin', 'status' => 'active', 'accepted_at' => now()]);
+        // سياق عميل ثانٍ (عميل مختلف، مستخدم مختلف) — لاختبار عزل المعاينة متعدّد النوافذ (§P3).
+        $stcClient = \App\Domain\CRM\Models\Client::withoutGlobalScopes()->where('tenant_id', $tA->id)->where('display_name', 'stc')->first();
+        if ($stcClient) {
+            $clientUser2 = $this->user('عميل اس تي سي', 'client2@a.test');
+            \App\Domain\CRM\Models\ClientMember::create(['tenant_id' => $tA->id, 'client_id' => $stcClient->id, 'user_id' => $clientUser2->id, 'role' => 'client_admin', 'status' => 'active', 'accepted_at' => now()]);
+        }
         // علامة معتمدة جاهزة + مسودة لاختبار سير العمل
         // (كان هنا إعادة ضبط للسياق تعويضًا عن `createDraft`؛ صارت تستعيد ما كان بنفسها)
         app(\App\Domain\CRM\Services\BrandWorkflowService::class)->createDraft($tA->id, $nikeClient->id, ['name' => 'Nike Air'], $clientUser->id);
@@ -124,7 +130,12 @@ class SeedE2eCommand extends Command {
             app(CreateClient::class)->handle($orgB, ['display_name' => 'عميل باء الوحيد', 'status' => 'active', 'type' => 'company'], $adminB);
         }, $orgB->id);
 
-        $this->info('E2E seeded: admin@a.test / viewer@a.test / admin@b.test / creator@a.test / client@a.test / partner@a.test (E2E_PASSWORD)');
+        // ==== مالك المنصّة (§P3) — خارج كل مستأجر، غير مرتبط بأيّ عضوية ====
+        // العلامتان محروستان من الإسناد الجماعي (بتصميم) — forceFill.
+        $owner = User::create(['name' => 'مالك المنصّة', 'email' => 'owner@platform.test', 'password' => $this->pw(), 'is_active' => true]);
+        $owner->forceFill(['is_system_admin' => true, 'is_platform_owner' => true])->save();
+
+        $this->info('E2E seeded: admin@a.test / viewer@a.test / admin@b.test / creator@a.test / client@a.test / client2@a.test / partner@a.test / owner@platform.test (E2E_PASSWORD)');
         return 0;
     }
 
