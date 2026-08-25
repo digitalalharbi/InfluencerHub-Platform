@@ -40,6 +40,21 @@ export default function AppShell({
   const can = nav?.can ?? {};
   const wsLabel = wsName ?? workspace ?? 'مساحة العمل';
 
+  // طيّ المجموعات الثانوية (المزيد/الإدارة) — مطويّة افتراضيًّا لتقليل الوجهات الظاهرة،
+  // وتُفتح تلقائيًّا إن كانت تحوي الصفحة الحالية، ويُحفظ تفضيل المستخدم محليًّا.
+  const [collapsed, setCollapsed] = useState<Record<string, boolean>>({});
+  useEffect(() => {
+    try {
+      const saved = JSON.parse(localStorage.getItem('ih.navCollapsed') || '{}');
+      if (saved && typeof saved === 'object') setCollapsed(saved);
+    } catch { /* تجاهل */ }
+  }, []);
+  const toggleGroup = (key: string) => setCollapsed((c) => {
+    const next = { ...c, [key]: !(c[key] ?? true) };
+    try { localStorage.setItem('ih.navCollapsed', JSON.stringify(next)); } catch { /* تجاهل */ }
+    return next;
+  });
+
   // تصفية بالصلاحية (عنصر ذو `can` يظهر فقط إن كانت القدرة صحيحة) وإخفاء المجموعات الفارغة.
   const visibleGroups = navGroups
     .map((g) => ({ ...g, items: g.items.filter((it) => !it.can || can[it.can]) }))
@@ -68,10 +83,32 @@ export default function AppShell({
         </div>
 
         <nav className="ih-side__scroll ih-nav" style={{ display: 'flex', flexDirection: 'column', gap: '.1rem' }}>
-          {visibleGroups.map((group) => (
+          {visibleGroups.map((group) => {
+            const hasActive = !!group.collapsible && group.items.some((it) =>
+              isActive(url, it.abs ? it.route : u(it.route), it.match === undefined ? undefined : u(it.match), home));
+            const isCollapsed = !!group.collapsible && !hasActive && (collapsed[group.key] ?? true);
+            // عدّاد العمل المعلّق داخل مجموعة مطويّة — كي لا يختفي ما يحتاج إجراءً.
+            const groupCount = group.items.reduce((n, it) => n + (it.badge ? (badges[it.badge] ?? 0) : 0), 0);
+            return (
             <div key={group.key}>
-              {group.label && <div className="ih-nav__group">{group.label}</div>}
-              {group.items.map((item) => {
+              {group.collapsible ? (
+                <button
+                  type="button"
+                  className="ih-nav__group ih-nav__group--toggle"
+                  aria-expanded={!isCollapsed}
+                  title={rail ? group.label : undefined}
+                  onClick={(e) => { e.stopPropagation(); toggleGroup(group.key); }}
+                >
+                  <span>{group.label}</span>
+                  <span style={{ display: 'inline-flex', alignItems: 'center', gap: '.35rem' }}>
+                    {isCollapsed && groupCount > 0 && <span className="ih-nav__badge">{groupCount > 99 ? '99+' : groupCount}</span>}
+                    <Icon name="chevron-left" size={13} style={{ transform: isCollapsed ? undefined : 'rotate(-90deg)', transition: 'transform .15s', opacity: .7 }} />
+                  </span>
+                </button>
+              ) : (
+                group.label && <div className="ih-nav__group">{group.label}</div>
+              )}
+              {!isCollapsed && group.items.map((item) => {
                 const href = item.abs ? item.route : u(item.route);
                 const active = isActive(url, href, item.match === undefined ? undefined : u(item.match), home);
                 const count = item.badge ? badges[item.badge] ?? 0 : 0;
@@ -108,7 +145,8 @@ export default function AppShell({
                 );
               })}
             </div>
-          ))}
+            );
+          })}
         </nav>
 
         <div className="ih-side__foot">

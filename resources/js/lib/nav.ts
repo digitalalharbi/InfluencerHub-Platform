@@ -16,6 +16,7 @@ export interface NavGroup {
   key: string;
   label?: string;
   items: NavItem[];
+  collapsible?: boolean;   // مجموعة ثانوية تُطوى افتراضيًّا (المزيد/الإدارة) — تقلّل الوجهات الظاهرة
 }
 
 /**
@@ -24,14 +25,24 @@ export interface NavGroup {
  * تُصفّى بالدور/الصلاحية عبر `nav.can` المشتركة؛ المجموعة الفارغة تُخفى في AppShell.
  * لا يُعرض عنصر لوحدة غير مبنية. ما لم يُهاجَر بعد يشير إلى Blade `/app` (لا حذف لأي وحدة).
  */
+// بنية مبسّطة (تقليل العبء الإدراكي): وجهات أساسية يوميّة قليلة + مجموعتان ثانويتان
+// تُطويان افتراضيًّا («المزيد» و«الإدارة»). لا تُحذف أي وجهة — تُنقَل الوحدات التي صارت
+// جزءًا من مساحة عمل الكيان (الحملة/العميل) إلى «المزيد» كفهارس عبر-الكيانات، وتبقى
+// روابطها ومساراتها كما هي (توافق الروابط العميقة).
 export const agencyNav: NavGroup[] = [
+  {
+    key: 'main',
+    items: [
+      { key: 'dashboard', label: 'لوحة التحكم', route: '', icon: 'layout-dashboard', match: '' },
+      { key: 'my_tasks', label: 'عملي', route: '/my-tasks', icon: 'list-checks' },
+    ],
+  },
   {
     key: 'work',
     label: 'العمل',
     items: [
-      { key: 'dashboard', label: 'لوحة التحكم', route: '', icon: 'layout-dashboard', match: '' },
-      { key: 'my_tasks', label: 'عملي', route: '/my-tasks', icon: 'list-checks' },
       { key: 'requests', label: 'الطلبات', route: '/service-requests', icon: 'inbox', badge: 'service_requests' },
+      { key: 'campaigns', label: 'الحملات', route: '/campaigns', icon: 'megaphone' },
     ],
   },
   {
@@ -39,26 +50,10 @@ export const agencyNav: NavGroup[] = [
     label: 'العلاقات',
     items: [
       { key: 'clients', label: 'العملاء', route: '/clients', icon: 'building-2' },
-      { key: 'brands', label: 'العلامات', route: '/brands', icon: 'bookmark' },
-      // وجهة واحدة لصناع المحتوى. كانت وجهتين («المؤثرون» و«صناع المحتوى»)
-      // تفتحان الصفحة نفسها بفلتر مختلف، فبدتا وحدتين منفصلتين والتصفية
-      // بالقدرة موجودة داخل الصفحة أصلًا. الاسم الموحّد: صناع المحتوى.
+      // وجهة واحدة لصناع المحتوى (الترشيح/التعاون/المحتوى يُدار من داخل الحملة أو الملفّ).
       { key: 'creators', label: 'صناع المحتوى', route: '/creators', icon: 'users' },
-      // قاعدة المؤثرين (منتج مميّز) — يظهر فقط للمؤسسات المستحقّة (can: creator_database)
+      // قاعدة المؤثرين (منتج مميّز · اكتشاف) — يظهر فقط للمؤسسات المستحقّة.
       { key: 'creator_database', label: 'قاعدة المؤثرين', route: '/creator-database', icon: 'radar', can: 'creator_database' },
-      { key: 'publishers', label: 'الناشرون', route: '/publishers', icon: 'radar' },
-      { key: 'applications', label: 'طلبات الانضمام', route: '/creator-applications', icon: 'user-plus', badge: 'creator_applications', can: 'reviews' },
-    ],
-  },
-  {
-    key: 'execution',
-    label: 'التنفيذ',
-    items: [
-      { key: 'campaigns', label: 'الحملات', route: '/campaigns', icon: 'megaphone' },
-      { key: 'shortlisting', label: 'الترشيحات', route: '/shortlisting', icon: 'list-checks' },
-      { key: 'collaborations', label: 'التعاونات', route: '/collaborations', icon: 'git-merge' },
-      { key: 'content', label: 'المحتوى', route: '/content', icon: 'image', badge: 'content' },
-      { key: 'contracts', label: 'العقود', route: '/contracts', icon: 'file-text' },
     ],
   },
   {
@@ -70,22 +65,40 @@ export const agencyNav: NavGroup[] = [
     ],
   },
   {
-    key: 'intelligence',
-    label: 'الذكاء',
+    key: 'reports',
+    label: 'التقارير',
     items: [
       { key: 'reports', label: 'التقارير', route: '/reports', icon: 'bar-chart-3' },
-      { key: 'automation', label: 'الأتمتة', route: '/automation', icon: 'sparkles', can: 'admin' },
-      { key: 'exports', label: 'مركز التصدير', route: '/exports', icon: 'file-text' },
-      { key: 'integrations', label: 'التكاملات', route: '/integrations', icon: 'plug' },
     ],
   },
   {
-    key: 'admin',
-    label: 'الإدارة',
+    // «المزيد» — فهارس عبر-الكيانات + طوابير مراجعة. عمليّاتها اليومية تُدار من داخل
+    // الحملة/العميل/الملفّ ومن «عملي»؛ تبقى هنا للبحث والإدارة العرضيّة. مطويّة افتراضيًّا.
+    key: 'more',
+    label: 'المزيد',
+    collapsible: true,
     items: [
+      { key: 'content', label: 'المحتوى', route: '/content', icon: 'image', badge: 'content' },
+      { key: 'shortlisting', label: 'الترشيحات', route: '/shortlisting', icon: 'list-checks' },
+      { key: 'collaborations', label: 'التعاونات', route: '/collaborations', icon: 'git-merge' },
+      { key: 'contracts', label: 'العقود', route: '/contracts', icon: 'file-text' },
+      { key: 'brands', label: 'العلامات', route: '/brands', icon: 'bookmark' },
+      { key: 'publishers', label: 'الناشرون', route: '/publishers', icon: 'radar' },
+      { key: 'applications', label: 'طلبات الانضمام', route: '/creator-applications', icon: 'user-plus', badge: 'creator_applications', can: 'reviews' },
       { key: 'brand_reviews', label: 'مراجعة العلامات', route: '/brands?seg=needs_review', match: '/brands', icon: 'shield-check', badge: 'brand_reviews', can: 'reviews' },
       { key: 'client_reviews', label: 'مراجعات العملاء', route: '/client-reviews', icon: 'clipboard-check', badge: 'client_reviews', can: 'reviews' },
+      { key: 'exports', label: 'مركز التصدير', route: '/exports', icon: 'file-text' },
+    ],
+  },
+  {
+    // «الإدارة» — إعداد المنصّة وأدوات المدير. مطويّة افتراضيًّا، ولا تظهر إلّا للمخوّلين.
+    key: 'admin',
+    label: 'الإدارة',
+    collapsible: true,
+    items: [
       { key: 'partners', label: 'الوكالات الشريكة', route: '/partner-agencies', icon: 'handshake', can: 'admin' },
+      { key: 'automation', label: 'الأتمتة', route: '/automation', icon: 'sparkles', can: 'admin' },
+      { key: 'integrations', label: 'التكاملات', route: '/integrations', icon: 'plug', can: 'admin' },
       { key: 'team', label: 'الفريق', route: '/team', icon: 'users', can: 'admin' },
       { key: 'settings', label: 'الإعدادات', route: '/settings', icon: 'settings', can: 'admin' },
       { key: 'system-health', label: 'صحّة النظام', route: '/system-health', icon: 'activity', can: 'admin' },
