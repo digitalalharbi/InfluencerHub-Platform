@@ -12,9 +12,9 @@ _Last updated: 2026-08-26._
 - **Origin:** `https://github.com/digitalalharbi/InfluencerHub-Platform.git`
 - **Branch:** `feat/influencer-nomination-foundation`
 - **Base SHA:** `244851f6b13e39c429807cd156f9e4977e1abcd8` (origin/main, #82 Platform Owner P3-hardening)
-- **HEAD SHA:** _uncommitted (see below); update on commit_
+- **HEAD SHA:** `c5912d8` (N1 feature commit) + this docs-update commit on top
 - **origin/main SHA:** `244851f6b13e39c429807cd156f9e4977e1abcd8`
-- **Working tree:** dirty (N1 work — additive only)
+- **Working tree:** clean after commit (N1 work — additive only)
 - **Other worktrees (do not disturb):**
   - `/Users/mohammedalharbimacbook/Developer/InfluencerHub-Platform` → `fix/security-advisories-guzzle-commonmark` (has protected uncommitted work: `composer.lock`, `.claude/`, `.env.e2e` — DO NOT touch)
   - `/Users/mohammedalharbimacbook/Developer/ih-autopilot` → `main`
@@ -30,9 +30,9 @@ _Last updated: 2026-08-26._
 
 ## PR / CI
 
-- **PR:** _pending push (branch not yet pushed at time of writing)_
-- **Head SHA:** _pending_
-- **CI run / state:** _pending_
+- **PR:** #83 — https://github.com/digitalalharbi/InfluencerHub-Platform/pull/83 (base `main`)
+- **Head SHA:** `c5912d8` (+ docs-update commit)
+- **CI run / state:** triggered on push (InfluencerHub CI/CD: backend + frontend + e2e) — verify on the PR
 - **Merge state:** not merged (STOP BEFORE MERGE) · **Merge SHA:** —
 
 ## Production
@@ -57,9 +57,11 @@ _Last updated: 2026-08-26._
 
 ## Tests
 
-- **Backend (N1 file):** _record result_ · **Full backend suite:** _record result_
-- **Frontend (vitest):** _n/a for N1 backend-first_ · **Typecheck:** PASS (0 errors) · **Build:** PASS
-- **E2E Chromium/Firefox/WebKit:** deferred to N8 (documented)
+- **Backend (N1 file):** `NominationFeatureAccessTest` — 12/12 PASS · **Full backend suite:** 1343 tests, 6437 assertions, **0 failures** (17 pre-existing PHPUnit deprecations).
+- **Frontend:** Typecheck PASS (0 errors) · Build PASS · lint n/a (no script; CI `--if-present`).
+- **Tenant-context safety guard:** PASS.
+- **E2E Chromium/Firefox/WebKit:** deferred to N8 (per delivery sequence).
+- **Pint:** my files clean; project-wide `--test` flags 579 pre-existing files (local Pint 1.29.3 vs main's preset) — not in InfluencerHub CI gate.
 
 ## Sources Used
 
