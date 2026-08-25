@@ -81,9 +81,12 @@ that is validated — not trusted — on every request.
   **real** cross-tenant counts + recent activity + security events (no fake KPIs), the
   `platform` mount prefix + `platformNav` + `isPlatformOwner` shared prop, and the secure
   `platform:provision-owner` command. Access is owner-only (403 otherwise) and audited.
-- **P2 — tenant switcher + real global search** (server-backed across tenants/orgs/users/
-  clients/brands/campaigns/creators/contracts/invoices/payouts) + a real command palette
-  (the current one is a client-only "jump to page" Alpine widget).
+- **P2 — tenant switcher + real global search (DONE).** `/platform/tenants` directory +
+  `/platform/tenants/{tenant}` platform-scoped detail (orgs/users/campaigns/subscription +
+  *available portals* + recent activity); `/platform/search` server endpoint across
+  tenants/orgs/users/clients/brands/campaigns/creators/contracts/invoices/payouts (no secrets),
+  each result linking into the correct tenant context; a real ⌘K command palette (React) that
+  queries it. `platform.tenants.view` + `platform.global_search` now live.
 - **P3 — read-only portal preview.** A per-guard "preview" branch that accepts an owner-signed
   target and populates `TenantContext` + the portal request attribute
   (`activeClient`/`creator`/`activeAgency`), reusing `isMethodSafe()` to stay read-only.
