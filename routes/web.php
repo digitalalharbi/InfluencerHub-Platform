@@ -86,7 +86,7 @@ Route::controller(JoinController::class)->group(function () {
 // المصادقة (جلسة الويب)
 Route::middleware('guest')->group(function () {
     Route::get('/login', [LoginController::class, 'show'])->name('login');
-    Route::post('/login', [LoginController::class, 'login']);
+    Route::post('/login', [LoginController::class, 'login'])->middleware('throttle:login');
 });
 Route::get('/auth/google/redirect', [\App\Http\Controllers\Auth\GoogleAuthController::class, 'redirect'])->name('auth.google.redirect')->middleware('guest');
 Route::get('/auth/google/callback', [\App\Http\Controllers\Auth\GoogleAuthController::class, 'callback'])->name('auth.google.callback')->middleware('guest');
@@ -96,7 +96,7 @@ Route::post('/logout', [LoginController::class, 'logout'])->middleware('auth');
 use App\Http\Controllers\Creator\{CreatorAuthController, CreatorPortalController};
 Route::middleware('guest')->group(function () {
     Route::get('/creator/login', [CreatorAuthController::class, 'show'])->name('creator.login');
-    Route::post('/creator/login', [CreatorAuthController::class, 'login']);
+    Route::post('/creator/login', [CreatorAuthController::class, 'login'])->middleware('throttle:login');
 
     // قبول دعوة صانع المحتوى — الرمز في الرابط هو الإذن، فلا مصادقة قبله
     Route::get('/creator/invitation/{token}', [\App\Http\Controllers\Creator\InvitationAcceptController::class, 'show'])
@@ -179,7 +179,7 @@ Route::middleware(['auth', 'creator'])->prefix('creator')->group(function () {
 use App\Http\Controllers\Client\{ClientAuthController, ClientPortalController};
 Route::middleware('guest')->group(function () {
     Route::get('/client/login', [ClientAuthController::class, 'show'])->name('client.login');
-    Route::post('/client/login', [ClientAuthController::class, 'login']);
+    Route::post('/client/login', [ClientAuthController::class, 'login'])->middleware('throttle:login');
 });
 Route::post('/client/logout', [ClientAuthController::class, 'logout'])->middleware('auth');
 Route::middleware(['auth', 'client_member'])->prefix('client')->group(function () {
@@ -265,7 +265,7 @@ Route::middleware(['auth', 'client_member'])->prefix('client')->group(function (
 use App\Http\Controllers\Partner\{PartnerAuthController, PartnerPortalController};
 Route::middleware('guest')->group(function () {
     Route::get('/partner/login', [PartnerAuthController::class, 'show'])->name('partner.login');
-    Route::post('/partner/login', [PartnerAuthController::class, 'login']);
+    Route::post('/partner/login', [PartnerAuthController::class, 'login'])->middleware('throttle:login');
     // قبول دعوة الشريك (عام، مُقيّد المعدّل، برمز بالـhash)
     Route::get('/partner/invite/{token}', [\App\Http\Controllers\Partner\PartnerInvitationController::class, 'show'])->middleware('throttle:20,1');
     Route::post('/partner/invite/{token}', [\App\Http\Controllers\Partner\PartnerInvitationController::class, 'accept'])->middleware('throttle:10,1');

@@ -42,20 +42,28 @@ staged plan P1–P6. No secrets are committed here.
 
 ## Capability model
 
-`App\Domain\Platform\Support\PlatformCapabilities` — explicit, testable capabilities layered
-**above** the existing `is_system_admin` anchor (we extend, not duplicate, per the owner's
-rule):
+`App\Domain\Platform\Support\PlatformCapabilities` — explicit, testable capabilities gated by
+a **dedicated** identity marker, **not** by `is_system_admin` alone:
 
 ```
 platform.owner · platform.tenants.view · platform.tenants.manage · platform.impersonate ·
 platform.portal.preview · platform.global_search · platform.system.manage
 ```
 
-`isOwner(user) = user.is_system_admin`. `can(user, cap)` currently grants all platform caps to
-an owner; the single check-point lets us split finer platform roles later without touching
-controllers/middleware. Every platform action routes through **authenticated owner →
-`platform_owner` middleware / capability check → audit** — no hidden URL, magic param, master
-password, secret cookie, or permission bypass (§11).
+**Dedicated identity — `users.is_platform_owner` (boolean, default false).** The hierarchy is
+**Platform Owner ⊃ System Admin ⊃ Tenant Admin**: an ordinary `is_system_admin` account is
+**not** a Platform Owner and is rejected from `/platform`; existing system-admin behavior
+(`/beta/admin`) is unchanged. `isOwner(user) = user.is_platform_owner`. A provisioned owner is
+also `is_system_admin=true` so `Gate::before`/`withBypass` work, but the `/platform` gate keys
+on the dedicated marker exclusively.
+
+`can(user, cap)` grants a capability only when its **feature slice is live** — P1 grants
+`platform.owner` (identity/access) only; `impersonate`/`portal.preview`/`global_search` are
+*defined* constants but return `false` until their slice ships, so P1 never implies unfinished
+functionality is operational (§4). The single check-point lets finer platform roles be added
+later without touching controllers/middleware. Every platform action routes through
+**authenticated owner → `platform_owner` middleware / capability check → audit** — no hidden
+URL, magic param, master password, secret cookie, or permission bypass (§11).
 
 ## Context & multi-tab model
 
@@ -88,22 +96,35 @@ that is validated — not trusted — on every request.
   Platform Owner credential is **never** rotated by Production Smoke, which keeps its own
   independent QA account — §19).
 
-## Visibility (§2)
+## Visibility (§2) — enforced, not aspirational
 
-The owner account is **invisible to tenants** — it holds no `OrganizationMembership` /
-`client_members` / `creators.user_id` / `external_agency_members` row, so it never appears in
-any tenant's Team/Client/Creator/Partner lists, seat counts, or billing user counts. It is
-**not** a stealth account: every access and (later) every impersonation is written to the
-append-only audit trail with actor + IP + UA + request-id.
+The owner account is **invisible to tenants** and must **stay** that way: it holds no
+`OrganizationMembership` / `client_members` / `creators.user_id` / `external_agency_members`
+row, so it never appears in any tenant's Team/Client/Creator/Partner lists, seat counts, or
+billing user counts. The provisioning command **hard-refuses** to promote a user that has any
+of those links (it does **not** silently delete them) — so a Platform Owner is always a
+**dedicated standalone account**. It is **not** a stealth account: every access and (later)
+every impersonation is written to the append-only audit trail with actor + IP + UA +
+request-id.
 
 ## Provisioning & recovery (§18)
 
 `php artisan platform:provision-owner {email} --name="…"` — password read from
 `PLATFORM_OWNER_PASSWORD` env (non-interactive deploy) or an interactive `secret()` prompt;
-minimum 16 chars enforced; sets `is_system_admin=true`; audited; **never printed, never
-committed, never seeded**. Idempotent (promotes an existing user). Recovery = re-run the
-command to reset the password from a fresh secret. This account is **separate** from the
-Production-Smoke QA account and is never rotated by CI.
+minimum 16 chars enforced; sets **`is_platform_owner=true` + `is_system_admin=true`**; audited;
+**never printed, never committed, never seeded**. **Refuses tenant-linked users** ("create a
+dedicated owner account instead") — never mutates their memberships. Idempotent for a
+standalone user. Recovery = re-run the command to reset the password from a fresh secret. This
+account is **separate** from the Production-Smoke QA account, the Showcase admin, and all
+tenant users — and is never rotated by CI.
+
+## Login security (§5)
+
+`/login` (and the creator/client/partner logins) are now rate-limited before the most
+privileged account is introduced: a composite **per-(hashed-email + IP)** limit (20/min) plus a
+generous **per-IP** limit (60/min), returning a uniform `429` that does **not** reveal whether
+an account exists (no enumeration). MFA is **not** added — the codebase has no Fortify/2FA
+implementation yet (only vestigial columns); it is a documented future item, not faked.
 
 ## Security boundaries
 

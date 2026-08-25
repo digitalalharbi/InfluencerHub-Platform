@@ -109,5 +109,13 @@ class AppServiceProvider extends ServiceProvider
         \Illuminate\Support\Facades\RateLimiter::for('join-op', fn ($r) => [
             \Illuminate\Cache\RateLimiting\Limit::perMinute(30)->by('ref:' . $r->route('reference')),
         ]);
+
+        // تحديد معدّل تسجيل الدخول (كل البوّابات) — يمنع التخمين العنيف. مفتاح مركّب
+        // (بريد مُجزّأ + IP) فلا يُقفل شبكة كاملة، ومفتاح IP فضفاض ضد التخمين الموزّع.
+        // الرسالة على القفل عامّة (429) ولا تكشف وجود بريد (لا account enumeration).
+        \Illuminate\Support\Facades\RateLimiter::for('login', fn ($r) => [
+            \Illuminate\Cache\RateLimiting\Limit::perMinute(20)->by('login:' . sha1((string) $r->input('email')) . '|' . $r->ip()),
+            \Illuminate\Cache\RateLimiting\Limit::perMinute(60)->by('login-ip:' . $r->ip()),
+        ]);
     }
 }
