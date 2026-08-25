@@ -76,22 +76,34 @@ mislabels payouts (المدفوعات = payments) as المستحقات. 5 of 7 
 
 | Role | Journey | Current pages | Current clicks/switches | Duplicate concepts | Problem | Proposed simplification | Implemented? | Prod verified? |
 |---|---|---|---|---|---|---|---|---|
-| Agency op | daily entry | Dashboard + `/my-tasks` | 2 surfaces | My Tasks ⊂ Dashboard myWork | two "what's mine" views | one **عملي** (My Work) built on `OperationalDashboard::myWork` | ⏳ | ⏳ |
-| Agency op | run a campaign | 7 modules | ≈7 switches | shortlist/content/contract/finance split | leaves campaign repeatedly | **Campaign Workspace** (Overview + 8 tabs) | ⏳ | ⏳ |
-| Agency op | navigate | 26 flat items | — | execution+finance+admin flat | no primary/secondary | role-aware nav: ~7 primary + Administration | ⏳ | ⏳ |
-| Agency | manage a client | `/clients` + `/brands` + `/campaigns` + `/invoices` | ≥4 modules | brands/campaigns/finance also top-level | client data scattered | Client workspace primary (already tabbed); demote globals | partial (page exists) | ⏳ |
-| Agency | manage a creator | `/creators` + `/collaborations` + `/contracts` + `/payouts` | ≥4 modules | same | creator data scattered | Creator workspace primary (already tabbed) | partial (page exists) | ⏳ |
+| Agency op | daily entry | Dashboard + `/my-tasks` → **1 (عملي)** | 2 surfaces → **1** | ~~My Tasks ⊂ Dashboard myWork~~ | ~~two "what's mine" views~~ | one **عملي** unified on `OperationalDashboard::myWork` (7 sources, priority-ranked) | ✅ #73 | local ✅ · prod smoke pending |
+| Agency op | run a campaign | 7 modules → **1 (Campaign Workspace)** | ≈7 → **≈1** | ~~shortlist/content/contract/finance split~~ | ~~leaves campaign repeatedly~~ | **Campaign Workspace**: العقود/التحصيل/المستحقات now tabs | ✅ #64 | ✅ **PRODUCTION_VERIFIED** |
+| Agency op | navigate | 26 flat → **9 primary** + 2 collapsible | — | ~~execution+finance+admin flat~~ | ~~no primary/secondary~~ | role-aware nav: 9 primary + المزيد/الإدارة (collapsed, auto-expand, pending badges) | ✅ #74 | local ✅ · prod smoke pending |
+| Agency | manage a client | `/clients` + `/brands` + `/campaigns` + `/invoices` | ≥4 modules | brands/campaigns/finance also top-level | client data scattered | Client workspace primary (already tabbed); brands/globals demoted to المزيد | partial (page tabbed; nest brands next) | ⏳ |
+| Agency | manage a creator | `/creators` + `/collaborations` + `/contracts` + `/payouts` | ≥4 modules | same | creator data scattered | Creator workspace primary (already tabbed); globals demoted to المزيد | partial (page tabbed; provenance/rates next) | ⏳ |
 | Client | decide | client portal 9 items | — | — | mostly OK, can tighten to decisions | client home = "needs my decision" | ⏳ | ⏳ |
 | Creator | deliver | creator portal 7 items | — | payouts mislabeled | terminology | fix label + tighten | ⏳ | ⏳ |
 | All | terminology | — | — | 5/7 concepts inconsistent | drift in lang files | reconcile `navigation.php`/`entities.php` to doc | ⏳ | ⏳ |
 
 ## Complexity targets (mission §53 — directional, not vanity)
 
-- Agency primary navigation: **26 → ~7** primary + Administration (authorized only).
-- Core campaign loop context switches: **≈7 → ≈1**.
-- Duplicate primary destinations removed (only after actions proven elsewhere, §64).
-- Statuses shown by default: technical enums → ≤5 human states with detail on demand.
-- One Arabic name per concept (0 banned forms in shipped lang files).
+- Agency primary navigation: **26 → ~7** primary + Administration (authorized only). → **DONE: 26 → 9 primary + 2 collapsible secondary groups (#74).**
+- Core campaign loop context switches: **≈7 → ≈1**. → **DONE via Campaign Workspace (#64), PRODUCTION_VERIFIED.**
+- "What's mine" surfaces: **2 → 1** (عملي). → **DONE (#73).**
+- Duplicate primary destinations removed (only after actions proven elsewhere, §64) → execution modules (shortlist/collab/content/contract) demoted to المزيد after landing as Campaign Workspace tabs.
+- Statuses shown by default: technical enums → ≤5 human states with detail on demand. → ⏳ next slices.
+- One Arabic name per concept (0 banned forms in shipped lang files). → ⏳ terminology reconciliation slice.
+
+## Slice log
+
+| # | Slice | PR | Status |
+|---|---|---|---|
+| 1 | Audit baseline (this doc + IA + journeys) | #64 | merged |
+| 2 | Campaign Workspace P1 (العقود/التحصيل/المستحقات tabs) | #64 | **PRODUCTION_VERIFIED** (smoke run) |
+| 3 | Authenticated production smoke infrastructure (ephemeral rotation) | #69–#72 | merged; reusable |
+| 4 | My Work (عملي) unified on one engine | #73 | merged |
+| 5 | Role-aware navigation 26 → 9 primary + collapsible secondary | #74 | merged |
+| — | Client/Creator workspace polish · terminology · status simplification · mobile | — | ⏳ next |
 
 *No capability is removed; every "demoted" module keeps a route (global index/search) and
 its actions remain reachable from the entity workspace before it leaves primary nav (§64).*
