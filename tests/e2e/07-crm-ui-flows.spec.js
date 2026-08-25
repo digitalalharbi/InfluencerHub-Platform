@@ -78,6 +78,8 @@ test.describe('تدفقات واجهة CRM', () => {
 
     test('37- رابط مركز المعاينة في القائمة الجانبية يعمل (لا رابط ميت)', async ({ page }) => {
         await page.goto('/app');
+        // «مركز المعاينة» ضمن مجموعة «الإدارة» الثانوية المطويّة افتراضيًّا — نفتحها أولًا
+        await page.click('button.ih-nav__group--toggle:has-text("الإدارة")');
         await page.click('a:has-text("مركز المعاينة")');
         await expect(page).toHaveURL(/\/app\/preview/);
         await expect(page.locator('body')).toContainText('Preview Center');
