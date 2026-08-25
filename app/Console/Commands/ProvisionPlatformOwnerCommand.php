@@ -41,6 +41,18 @@ class ProvisionPlatformOwnerCommand extends Command
 
         $user = User::withoutGlobalScopes()->where('email', $email)->first();
         $creating = $user === null;
+
+        // §2: مالك المنصّة لا يكون مرتبطًا بأي مستأجر إطلاقًا. لا نحذف روابط قائمة —
+        // نرفض الترقية بوضوح ونطلب حسابًا مستقلًّا.
+        if (! $creating) {
+            $links = $this->tenantLinks($user->id);
+            if ($links !== []) {
+                $this->error('لا يمكن ترقية مستخدم مرتبط بمستأجر إلى مالك منصّة (روابط قائمة: '
+                    . implode('، ', $links) . '). أنشئ حساب مالك منصّة مستقلًّا بدلًا من ذلك.');
+                return self::FAILURE;
+            }
+        }
+
         if ($creating) {
             $user = new User();
             $user->email = $email;
@@ -51,7 +63,8 @@ class ProvisionPlatformOwnerCommand extends Command
 
         $user->password = $password;          // cast=hashed يجزّئها
         $user->is_active = true;
-        $user->forceFill(['is_system_admin' => true]);   // خارج $fillable عمدًا
+        // Platform Owner ⊃ System Admin: كلا العلامتين، خارج $fillable عمدًا.
+        $user->forceFill(['is_system_admin' => true, 'is_platform_owner' => true]);
         $user->save();
 
         \App\Domain\Audit\Services\AuditLogger::log(
@@ -59,9 +72,31 @@ class ProvisionPlatformOwnerCommand extends Command
             $user, [], null, $user->id
         );
 
-        $this->info(($creating ? 'أُنشئ' : 'حُدّث') . " حساب مالك المنصّة: {$email} (is_system_admin=true).");
-        $this->line('لم تُطبع كلمة المرور. الحساب مستقلّ عن حساب Production Smoke.');
+        $this->info(($creating ? 'أُنشئ' : 'حُدّث') . " حساب مالك المنصّة: {$email} (is_platform_owner=true, is_system_admin=true).");
+        $this->line('لم تُطبع كلمة المرور. الحساب مستقلّ عن حساب Production Smoke وعن مستخدمي المستأجرين.');
 
         return self::SUCCESS;
+    }
+
+    /**
+     * أنواع الروابط التي تربط المستخدم بمستأجر (تجعله ظاهرًا/محسوبًا داخل مستأجر).
+     * @return list<string>
+     */
+    private function tenantLinks(int $userId): array
+    {
+        $found = [];
+        if (\App\Domain\Tenancy\Models\OrganizationMembership::withoutGlobalScopes()->where('user_id', $userId)->exists()) {
+            $found[] = 'OrganizationMembership';
+        }
+        if (\App\Domain\CRM\Models\ClientMember::withoutGlobalScopes()->where('user_id', $userId)->exists()) {
+            $found[] = 'ClientMember';
+        }
+        if (\App\Domain\Creators\Models\Creator::withoutGlobalScopes()->where('user_id', $userId)->exists()) {
+            $found[] = 'Creator';
+        }
+        if (\App\Domain\Partners\Models\ExternalAgencyMember::withoutGlobalScopes()->where('user_id', $userId)->exists()) {
+            $found[] = 'ExternalAgencyMember';
+        }
+        return $found;
     }
 }

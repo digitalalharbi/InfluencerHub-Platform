@@ -25,7 +25,7 @@ final class PlatformCapabilities
     public const GLOBAL_SEARCH = 'platform.global_search';
     public const SYSTEM_MANAGE = 'platform.system.manage';
 
-    /** @return list<string> */
+    /** كل القدرات المعرَّفة (تشمل قدرات مراحل لاحقة لم تُبنَ بعد). @return list<string> */
     public static function all(): array
     {
         return [
@@ -34,23 +34,31 @@ final class PlatformCapabilities
         ];
     }
 
-    /** هل هذا المستخدم مالك منصّة؟ (المرساة الحالية: is_system_admin). */
-    public static function isOwner(?User $user): bool
+    /**
+     * القدرات «الحيّة» — التي بُنيت شريحتها فعلًا. لا نمنح قدرة لميزة لم تُنفَّذ بعد
+     * حتى لا يُوحى بأنها عاملة (§4). تنمو هذه القائمة مع كل شريحة (P2 بحثًا، P3 معاينة…).
+     * @return list<string>
+     */
+    private static function live(): array
     {
-        return $user !== null && (bool) $user->is_system_admin;
+        return [self::OWNER];   // P1: الهوية/الوصول فقط
     }
 
     /**
-     * هل يملك المستخدم قدرة منصّة بعينها؟ في هذه المرحلة يملك المالكُ كلَّ القدرات؛
-     * نقطة الفحص المصرَّحة تبقى واحدة كي تتطوّر لأدوار منصّة أدقّ لاحقًا بلا تغيير
-     * في المتحكّمات/الـmiddleware.
+     * هل هذا المستخدم مالك منصّة؟ علامة مخصّصة `is_platform_owner` — لا يساوي كلَّ
+     * system admin. الهرمية: Platform Owner ⊃ System Admin. (المالك عادةً system admin
+     * أيضًا كي يعمل Gate::before/withBypass، لكن الفحص هنا على العلامة المخصّصة حصريًّا.)
+     */
+    public static function isOwner(?User $user): bool
+    {
+        return $user !== null && (bool) $user->is_platform_owner;
+    }
+
+    /**
+     * يملك المالكُ قدرةً إن كانت شريحتها حيّة فقط. نقطة فحص واحدة مركزية تتوسّع لاحقًا.
      */
     public static function can(?User $user, string $capability): bool
     {
-        if (! in_array($capability, self::all(), true)) {
-            return false;
-        }
-
-        return self::isOwner($user);
+        return self::isOwner($user) && in_array($capability, self::live(), true);
     }
 }

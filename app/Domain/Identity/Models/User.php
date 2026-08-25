@@ -29,6 +29,7 @@ class User extends Authenticatable
             'two_factor_confirmed_at' => 'datetime',
             'is_active' => 'boolean',
             'is_system_admin' => 'boolean',
+            'is_platform_owner' => 'boolean',
             'must_change_password' => 'boolean',
             'password' => 'hashed',
         ];

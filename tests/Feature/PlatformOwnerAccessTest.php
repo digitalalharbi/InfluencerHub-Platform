@@ -21,8 +21,17 @@ class PlatformOwnerAccessTest extends TestCase
 
     private function owner(): User
     {
+        // مالك المنصّة: العلامة المخصّصة (+is_system_admin للهرمية). لا روابط مستأجر.
         $u = User::create(['name' => 'Owner', 'email' => 'owner@platform.test', 'password' => bcrypt('x'), 'is_active' => true]);
-        $u->forceFill(['is_system_admin' => true])->save();
+        $u->forceFill(['is_system_admin' => true, 'is_platform_owner' => true])->save();
+        return $u;
+    }
+
+    /** system admin عادي (ليس مالك منصّة) — يجب أن يبقى سلوكه كما هو ويُمنع من /platform. */
+    private function systemAdminOnly(): User
+    {
+        $u = User::create(['name' => 'Sys', 'email' => 'sys@platform.test', 'password' => bcrypt('x'), 'is_active' => true]);
+        $u->forceFill(['is_system_admin' => true, 'is_platform_owner' => false])->save();
         return $u;
     }
 
@@ -52,6 +61,18 @@ class PlatformOwnerAccessTest extends TestCase
     {
         $u = User::create(['name' => 'P', 'email' => 'plain@ex.com', 'password' => bcrypt('x'), 'is_active' => true]);
         $this->actingAs($u)->get('/platform')->assertForbidden();
+    }
+
+    public function test_system_admin_without_platform_owner_is_forbidden(): void
+    {
+        // الفصل الجوهري: مالك المنصّة ≠ كل system admin.
+        $this->actingAs($this->systemAdminOnly())->get('/platform')->assertForbidden();
+    }
+
+    public function test_system_admin_only_still_reaches_its_own_admin_area(): void
+    {
+        // عدم انحدار: سلوك system admin القائم (/beta/admin) يبقى كما هو.
+        $this->actingAs($this->systemAdminOnly())->get('/beta/admin')->assertOk();
     }
 
     public function test_platform_owner_sees_control_center_with_real_counts(): void

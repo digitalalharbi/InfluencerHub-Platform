@@ -8,6 +8,8 @@ cd "$(dirname "$0")/../.."
 export APP_ENV=local
 export APP_DEBUG=true
 export DEV_TOOLS_ENABLED=true
+# E2E يسجّل الدخول مئات المرّات بحسابات قليلة عبر كاش مشترك — نعطّل حدّ الدخول هنا فقط.
+export DISABLE_LOGIN_THROTTLE=true
 export DB_CONNECTION=pgsql
 export DB_HOST=127.0.0.1
 export DB_PORT=5432
