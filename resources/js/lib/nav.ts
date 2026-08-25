@@ -234,7 +234,7 @@ export const brandNav: NavGroup[] = [
     items: [
       { key: 'contracts', label: 'العقود', route: '/contracts', icon: 'file-text' },
       { key: 'invoices', label: 'الفواتير', route: '/invoices', icon: 'receipt' },
-      { key: 'payouts', label: 'المدفوعات', route: '/payouts', icon: 'wallet' },
+      { key: 'payouts', label: 'المستحقات', route: '/payouts', icon: 'wallet' },
       { key: 'reports', label: 'التقارير', route: '/reports', icon: 'bar-chart-3' },
     ],
   },
