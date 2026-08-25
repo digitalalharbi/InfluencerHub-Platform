@@ -250,6 +250,27 @@ export const brandNav: NavGroup[] = [
   },
 ];
 
+/**
+ * قائمة «مالك المنصّة» (Platform Owner) — تظهر فقط في مساحة /platform لحساب المالك.
+ * P1: مركز التحكّم + روابط صفحات الإدارة القائمة (لا تُكرَّر). المبدّل/البحث/المعاينة
+ * تُضاف في المراحل اللاحقة. الروابط المطلقة (abs) تشير إلى صفحات نظام موجودة.
+ */
+export const platformNav: NavGroup[] = [
+  {
+    key: 'overview',
+    items: [{ key: 'home', label: 'مركز التحكّم', route: '', icon: 'layout-dashboard', match: '' }],
+  },
+  {
+    key: 'manage',
+    label: 'المنصّة',
+    items: [
+      { key: 'tenants', label: 'المستأجرون', route: '/beta/admin/tenants', icon: 'building-2', abs: true },
+      { key: 'subscriptions', label: 'الاشتراكات', route: '/beta/admin/subscriptions', icon: 'wallet', abs: true },
+      { key: 'audit', label: 'سجل التدقيق', route: '/beta/admin/audit', icon: 'file-text', abs: true },
+    ],
+  },
+];
+
 export const adminNav: NavGroup[] = [
   { key: 'pool', label: 'المؤثرون', items: [
     { key: 'shortlisting', label: 'ترشيح المؤثرين', route: '/shortlisting', icon: 'clipboard-check' },

@@ -36,6 +36,8 @@ class HandleInertiaRequests extends Middleware
             ],
             'workspace' => fn () => $this->workspaceName(),
             'showcase' => fn () => $this->isShowcase(),
+            // مالك المنصّة — عَلَم لعرض مدخل /platform في البوّابات العادية (لا يظهر لغيره).
+            'isPlatformOwner' => fn () => \App\Domain\Platform\Support\PlatformCapabilities::isOwner($request->user()),
             'nav' => fn () => [
                 'badges' => $request->user() ? NavigationBadges::all() : [],
                 'can' => $this->navCapabilities($request),

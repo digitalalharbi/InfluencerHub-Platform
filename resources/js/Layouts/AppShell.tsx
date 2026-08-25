@@ -25,7 +25,7 @@ export default function AppShell({
 }: {
   heading?: string; children: ReactNode; nav?: NavGroup[]; home?: string;
   wsName?: string; wsPlan?: string; brand?: string;
-  portal?: 'agency' | 'client' | 'creator' | 'partner' | 'admin' | 'brand';
+  portal?: 'agency' | 'client' | 'creator' | 'partner' | 'admin' | 'brand' | 'platform';
 }) {
   const page = usePage<SharedProps>();
   const { auth, workspace, showcase, nav, flash } = page.props;
