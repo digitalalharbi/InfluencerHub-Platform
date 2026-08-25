@@ -30,6 +30,17 @@ return Application::configure(basePath: dirname(__DIR__))
             'inertia' => \App\Http\Middleware\HandleInertiaRequests::class,
         ]);
 
+        // حارس معاينة عالميّ (§P3-hardening §4): أيّ طلب غير آمن يحمل منحة معاينة ⇒ 403
+        // قبل أي تحوّر — يغطّي مسارات الخروج/التبديل الواقعة خارج مجموعات البوّابات.
+        $middleware->web(append: [\App\Http\Middleware\PlatformPreviewGuard::class]);
+
+        // يجب أن يردّ الحارس **قبل** SubstituteBindings كي يكون الردّ 403 قبل أي ربط
+        // نموذج أو تحوّر (لا 404 يسبق الحظر) — الثابت: «403 قبل التحوّر» يتحقّق فعليًّا.
+        $middleware->prependToPriorityList(
+            before: \Illuminate\Routing\Middleware\SubstituteBindings::class,
+            prepend: \App\Http\Middleware\PlatformPreviewGuard::class,
+        );
+
         // حرِج: يجب أن يُضبط سياق المستأجر قبل SubstituteBindings، وإلا فإن
         // route-model binding يعمل بلا سياق → TenantScope يُغلق (fail-closed) حتى للمالك.
         $middleware->prependToPriorityList(

@@ -186,6 +186,123 @@ class PlatformPortalEligibilityService
     }
 
     /**
+     * بحث خادميّ مُصفَّح في السياقات المؤهَّلة لبوّابة داخل مستأجر (§P3-hardening §5) — بلا
+     * سقف ٢٥ الوظيفيّ ولا تحميل آلاف الصفوف: يبحث بالاسم/البريد/وسم الكيان ويُصفّح عند
+     * الخادم، فيبلغ المالك **أيّ** سياق مصرَّح لا الأوّل ٢٥ فقط. المستأجر مشتقّ من الكيان
+     * المرجعيّ، والمستخدم نشِط، وبوّابة المبدع تُحترم قاعدتها القانونية (portalEligible).
+     *
+     * @return array{items:list<array{userId:int,userName:string,entityId:int,entityLabel:string,organizationId:?int}>,total:int,page:int,perPage:int,hasMore:bool}
+     */
+    public function searchEligibleContexts(int $tenantId, string $portal, ?string $q = null, int $page = 1, int $perPage = 10): array
+    {
+        $page = max(1, $page);
+        $perPage = max(1, min(50, $perPage));
+        $term = $q !== null ? trim($q) : '';
+
+        return TenantContext::withBypass(function () use ($tenantId, $portal, $term, $page, $perPage) {
+            // بوّابة المبدع مُفعَّلة على مستوى المستأجر (org+خطة) — نُبوّبها مرّة لا لكل مبدع.
+            if ($portal === 'creator') {
+                $org = $this->entitlements->orgForTenant($tenantId);
+                if (! $org || ! $this->entitlements->portalEnabled($org)) {
+                    return ['items' => [], 'total' => 0, 'page' => $page, 'perPage' => $perPage, 'hasMore' => false];
+                }
+            }
+
+            $base = $this->eligibleContextQuery($tenantId, $portal, $term);
+            if ($base === null) {
+                return ['items' => [], 'total' => 0, 'page' => $page, 'perPage' => $perPage, 'hasMore' => false];
+            }
+
+            $total = (clone $base)->count();
+            $rows = $base->orderBy('users.name')->orderBy('entity_id')
+                ->forPage($page, $perPage)->get();
+
+            $items = $rows->map(fn ($r) => [
+                'userId' => (int) $r->user_id,
+                'userName' => (string) ($r->user_name ?? '—'),
+                'entityId' => (int) $r->entity_id,
+                'entityLabel' => (string) ($r->entity_label ?? '—'),
+                'organizationId' => $portal === 'agency' ? (int) $r->entity_id : null,
+            ])->all();
+
+            return [
+                'items' => $items,
+                'total' => (int) $total,
+                'page' => $page,
+                'perPage' => $perPage,
+                'hasMore' => $page * $perPage < $total,
+            ];
+        });
+    }
+
+    /**
+     * مُنشئ استعلام السياقات المؤهَّلة (مشترك للعدّ والتصفيح) — يربط عضوية البوّابة
+     * بجدول المستخدمين وجدول الكيان، ويُصفّي بالمستخدم النشِط والبحث. null لبوّابة مجهولة.
+     */
+    private function eligibleContextQuery(int $tenantId, string $portal, string $term): ?\Illuminate\Database\Query\Builder
+    {
+        $like = '%' . str_replace(['%', '_'], ['\%', '\_'], $term) . '%';
+        $applySearch = function ($query, array $cols) use ($term, $like) {
+            if ($term === '') {
+                return;
+            }
+            $query->where(function ($w) use ($cols, $like) {
+                foreach ($cols as $c) {
+                    $w->orWhere($c, 'ilike', $like);
+                }
+            });
+        };
+
+        switch ($portal) {
+            case 'agency':
+                $q = \DB::table('organization_memberships as m')
+                    ->join('users', 'users.id', '=', 'm.user_id')
+                    ->join('organizations as o', 'o.id', '=', 'm.organization_id')
+                    ->where('m.tenant_id', $tenantId)->where('m.status', 'active')
+                    ->where('o.tenant_id', $tenantId)
+                    ->whereNotIn('m.role', self::AGENCY_PORTAL_ROLES)
+                    ->where('users.is_active', true)
+                    ->select('m.user_id as user_id', 'users.name as user_name', 'm.organization_id as entity_id',
+                        \DB::raw("(o.name || ' · ' || m.role) as entity_label"));
+                $applySearch($q, ['users.name', 'users.email', 'o.name']);
+                return $q;
+            case 'client':
+                $q = \DB::table('client_members as m')
+                    ->join('users', 'users.id', '=', 'm.user_id')
+                    ->join('clients as c', 'c.id', '=', 'm.client_id')
+                    ->where('m.tenant_id', $tenantId)->where('m.status', 'active')
+                    ->where('c.tenant_id', $tenantId)
+                    ->where('users.is_active', true)
+                    ->select('m.user_id as user_id', 'users.name as user_name', 'm.client_id as entity_id',
+                        'c.display_name as entity_label');
+                $applySearch($q, ['users.name', 'users.email', 'c.display_name']);
+                return $q;
+            case 'creator':
+                $q = \DB::table('creators as c')
+                    ->join('users', 'users.id', '=', 'c.user_id')
+                    ->where('c.tenant_id', $tenantId)->whereNotNull('c.user_id')
+                    ->where('users.is_active', true)
+                    ->select('c.user_id as user_id', 'users.name as user_name', 'c.id as entity_id',
+                        'c.display_name as entity_label');
+                $applySearch($q, ['users.name', 'users.email', 'c.display_name']);
+                return $q;
+            case 'partner':
+                $q = \DB::table('external_agency_members as m')
+                    ->join('users', 'users.id', '=', 'm.user_id')
+                    ->join('external_agencies as a', 'a.id', '=', 'm.external_agency_id')
+                    ->where('m.tenant_id', $tenantId)->where('m.status', 'active')
+                    ->where('a.tenant_id', $tenantId)->where('a.status', 'approved')
+                    ->where('users.is_active', true)
+                    ->select('m.user_id as user_id', 'users.name as user_name', 'm.external_agency_id as entity_id',
+                        'a.name as entity_label');
+                $applySearch($q, ['users.name', 'users.email', 'a.name']);
+                return $q;
+            default:
+                return null;
+        }
+    }
+
+    /**
      * تحقّق دقيق من صحّة الرباعية الكاملة (لتفويض معاينة P3) — لا يكفي «المستخدم ينتمي
      * لمكان ما في المستأجر». يشترط: مستخدم موجود ونشِط + الرابط الدقيق للكيان
      * (entityId) + مطابقة مستأجر الكيان المرجعيّ + (للوكالة) مطابقة المؤسسة. fail-closed.
@@ -210,18 +327,28 @@ class PlatformPortalEligibilityService
                     return OrganizationMembership::where('user_id', $user->id)->where('organization_id', $entityId)
                         ->where('status', 'active')->whereNotIn('role', self::AGENCY_PORTAL_ROLES)->exists();
                 case 'client':
+                    // المؤسسة لا تنطبق على العميل: أي قيمة غير null رباعيةٌ غير متّسقة ⇒ حظر.
+                    if ($organizationId !== null) {
+                        return false;
+                    }
                     $client = Client::withoutGlobalScopes()->find($entityId);
                     if (! $client || (int) $client->tenant_id !== $tenantId) {
                         return false;
                     }
                     return ClientMember::where('user_id', $user->id)->where('client_id', $entityId)->where('status', 'active')->exists();
                 case 'creator':
+                    if ($organizationId !== null) {
+                        return false;
+                    }
                     $creator = Creator::withoutGlobalScopes()->find($entityId);
                     if (! $creator || (int) $creator->tenant_id !== $tenantId || (int) $creator->user_id !== $user->id) {
                         return false;
                     }
                     return $this->entitlements->portalEligible($creator);
                 case 'partner':
+                    if ($organizationId !== null) {
+                        return false;
+                    }
                     $agency = ExternalAgency::withoutGlobalScopes()->find($entityId);
                     if (! $agency || (int) $agency->tenant_id !== $tenantId || $agency->status !== 'approved') {
                         return false;

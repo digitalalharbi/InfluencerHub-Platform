@@ -104,6 +104,41 @@ that is validated — not trusted — on every request.
   read-only banner + "exit to platform" rides in `AppShell`; the token is threaded through
   in-portal links via `u()`. `platform.portal.preview` now live. Read-only preview only —
   interactive impersonation stays P4.
+- **P3-hardening (#82).** Four review blockers closed: **(1) exact selected context** — the
+  start route carries `{tenant}/{portal}/{user}/{entity}` (+`?organization=` for agency) and
+  validates the exact tuple via `isContextEligible` **before** issuing the token; no `first()`
+  picks a context for the owner, so a user with two clients/orgs opens the *selected* one, and
+  `isContextEligible` now fails closed when `organizationId` is non-null on a non-agency portal.
+  **(2) scoped dual identity** — `Auth::setUser($target)` runs inside `try`/`finally`, restoring
+  the owner on unwind, so audit/response/terminate observe the owner, never the target.
+  **(3) real context parity** — one set of resolvers (`ClientPortalContextResolver`/`Creator`/
+  `Partner`, under `app/Http/Portal`) is the single source both the real guard **and** preview
+  consume; preview reproduces every attribute/share the real user gets (`activeClient`,
+  `clientMembership`, `myClients`, `clientUnread`, `activeAgency`, `partnerMembership`,
+  `myAgencies`, `creator`) with **zero** session writes. **(4) mutation blocking everywhere** —
+  a global `PlatformPreviewGuard` (web group) returns 403 for *any* unsafe request carrying a
+  valid preview grant, covering logout/switch routes outside the portal groups; an Inertia
+  `before` interceptor threads `_pv` through every request (not just `u()` links); the preview
+  UI replaces logout with "exit preview". **Exit semantics (documented):** exit is
+  navigation-only + owner-checked audit; the token stays cryptographically valid until its
+  15-minute expiry — acceptable because preview is fully read-only; true grant revocation lands
+  with P4/P5, so no revocation is implied.
+  - **P3 acceptance pass (browser + privacy + scale).** (a) Dedicated Playwright specs drive the
+    **real UI** on Chromium/Firefox/WebKit: `19-platform-preview` (owner login → tenant → exact
+    context → click Preview → real portal + banner + target identity → multi-page nav keeps
+    preview → real mutation control → server 403 → owner session intact → exit) and
+    `20-preview-multitab` (two tabs on two client contexts stay independent across cross-tab
+    navigation). (b) Mutation-surface audit: every mutation in the portals is Inertia
+    (`useForm`/`router`) and carries `_pv` via the interceptor; the only `fetch` calls are two
+    GETs; no `axios` mutations, no native POST forms — and the global guard now runs **before**
+    `SubstituteBindings`, so any unsafe `_pv` request is 403 before binding/mutation, logout/
+    switch included. (c) Privacy regression (`PlatformPreviewPrivacyTest`) plants **populated**
+    sentinels (creator fee/payout/bank in one side, client selling price in the other) and proves
+    zero cross-side financial leakage and zero credential/secret leakage across every reachable
+    preview page — with a positive check that the sentinel *is* visible on its own side (not a
+    blank-field test). (d) Scale (`searchEligibleContexts` + `/platform/tenants/{t}/contexts`):
+    the 25-cap is gone — a server-side searchable, paginated picker (name/email/entity) reaches
+    **any** authorized context; a >25-context tenant proves #26 is discoverable and previewable.
 - **P4 — interactive impersonation + audit.** Explicit confirmation to go interactive; a
   short-lived (30–60 min) revocable impersonation session; the owner context bar; and the
   added audit columns (`acting_as_user_id`, `organization_id`, `session_id`, `reason`).

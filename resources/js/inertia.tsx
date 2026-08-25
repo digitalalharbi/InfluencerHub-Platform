@@ -2,7 +2,7 @@ import { createInertiaApp, router } from '@inertiajs/react';
 import { resolvePageComponent } from 'laravel-vite-plugin/inertia-helpers';
 import { createRoot } from 'react-dom/client';
 import type { ComponentType } from 'react';
-import { setBase, setPreviewToken } from '@/lib/href';
+import { setBase, setPreviewToken, previewToken } from '@/lib/href';
 
 const appName = 'InfluencerHub';
 
@@ -41,6 +41,16 @@ createInertiaApp({
     router.on('navigate', (e) => {
       setBase(e.detail.page.props.base);
       setPreviewToken((e.detail.page.props.preview as { token?: string } | null)?.token);
+    });
+
+    // أثناء معاينة نشطة: ألحِق `_pv` بكل طلب inertia (تنقّلات وأفعال ونماذج) لا روابط
+    // u() وحدها — فيبقى التنقّل داخل المعاينة، وأيّ فعل غير آمن يبلغ الحارس العالميّ
+    // فيُردّ 403 قبل أي تحوّر بدل أن يمسّ جلسة المالك (§P3-hardening §4).
+    router.on('before', (e) => {
+      const pv = previewToken();
+      if (!pv) return;
+      const url = (e.detail.visit as { url: unknown }).url;
+      if (url instanceof URL && !url.searchParams.has('_pv')) url.searchParams.set('_pv', pv);
     });
 
     // عطل الخادم كان يمرّ صامتًا: يضغط المستخدم «حفظ» فلا يحدث شيء ولا يُقال

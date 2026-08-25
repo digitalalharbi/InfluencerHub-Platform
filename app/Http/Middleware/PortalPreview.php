@@ -2,28 +2,26 @@
 
 namespace App\Http\Middleware;
 
-use App\Domain\CRM\Models\Client;
-use App\Domain\Creators\Models\Creator;
 use App\Domain\Identity\Models\User;
-use App\Domain\Partners\Models\ExternalAgency;
 use App\Domain\Platform\Services\PlatformPortalEligibilityService;
 use App\Domain\Platform\Support\{PlatformCapabilities, PlatformPreviewToken};
 use App\Domain\Tenancy\Support\TenantContext;
+use App\Http\Portal\{ClientPortalContextResolver, CreatorPortalContextResolver, PartnerPortalContextResolver};
 use Closure;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Symfony\Component\HttpFoundation\Response;
 
 /**
- * معاينة بوّابة للقراءة فقط لمالك المنصّة (§P3). يُشغَّل قبل حارس البوّابة. عند وجود
- * منحة معاينة موقَّعة صالحة (_pv) لمالك منصّة:
- *   - يتحقّق من التوقيع والانتهاء ومطابقة المالك والبوّابة، ومن الرباعية الدقيقة
- *     عبر isContextEligible (لا «ينتمي لمكان ما في المستأجر»).
- *   - يفرض القراءة فقط (GET/HEAD/OPTIONS) قبل أي شيء.
- *   - يضبط سياق المستأجر **للطلب فقط** (لا كتابة جلسة، لا active_client_id/agency)،
- *     ويطفئ bypass لعزلٍ حقيقي على المستأجر الهدف (متعدّد النوافذ آمن — الحالة في الـURL).
- *   - هوية مزدوجة: platform_owner_id يُحفظ قبل استبدال الفاعل بالهدف (Auth::setUser)،
- *     كي يظهر للمتحكّمات ما يراه المستخدم الهدف فعلًا بينما يبقى المالك هو المدقَّق.
+ * معاينة بوّابة للقراءة فقط لمالك المنصّة (§P3). يُشغَّل قبل حارس البوّابة. القراءة فقط
+ * وتحقّق المالك/التوقيع/الانتهاء يفرضهما PlatformPreviewGuard عالميًّا **قبل** أي طلب
+ * (حتّى تسجيل الخروج خارج مجموعات البوّابات). هنا نُكمل ما يخصّ البوّابة:
+ *   - مطابقة البوّابة + الرباعية الدقيقة عبر isContextEligible (لا «ينتمي لمكان ما»).
+ *   - **تكافؤ سياق حقيقي**: نستعمل نفس حلّالات الحارس (Client/Creator/Partner) بوضع
+ *     مطابقة-دقيقة، فيرى المعايِن ما يراه المستخدم الحقيقي (activeClient/clientMembership/
+ *     myClients/clientUnread…)، بلا كتابة جلسة (لا active_client_id/active_agency_id).
+ *   - **هوية مزدوجة مُحكمة النطاق**: نحفظ المالك ثم Auth::setUser(الهدف) داخل try، ونعيد
+ *     المالك في finally — فلا يتسرّب الهدف إلى فكّ المكدّس/التدقيق/المُنهيات.
  *   - يضع سمة platform_preview فيتخطّى الحارس حلَّه العادي (الذي يكتب الجلسة).
  * التدقيق (open/exit) في PlatformPreviewController؛ لا نُدقّق كل طلب معاينة (ضجيج).
  */
@@ -39,12 +37,13 @@ class PortalPreview
         $owner = $request->user();
         abort_unless(PlatformCapabilities::isOwner($owner), 403);
 
-        $claims = PlatformPreviewToken::verify($token, now()->timestamp);
+        // يُفضَّل إعادة استعمال ما تحقّق منه الحارس العالميّ؛ وإلا نتحقّق هنا (دفاع في العمق).
+        $claims = $request->attributes->get('_pv_claims') ?? PlatformPreviewToken::verify($token, now()->timestamp);
         abort_if($claims === null, 403, 'منحة معاينة غير صالحة أو منتهية.');
         abort_unless($claims['owner'] === (int) $owner->id, 403);
         abort_unless($claims['portal'] === $portal, 403);
 
-        // القراءة فقط — قبل أي إعداد أو تنفيذ متحكّم (§9).
+        // القراءة فقط — الحارس العالميّ فرضها، ونؤكّدها هنا أيضًا قبل أي إعداد.
         abort_unless($request->isMethodSafe(), 403, 'معاينة مالك المنصّة للقراءة فقط.');
 
         // تحقّق الرباعية الدقيقة (مستخدم نشِط + رابط الكيان + مطابقة مستأجر الكيان المرجعيّ).
@@ -61,26 +60,35 @@ class PortalPreview
             'entityId' => $claims['entity'], 'organizationId' => $claims['org'], 'jti' => $claims['jti'], 'token' => $token,
         ]);
 
-        // سياق المستأجر للطلب فقط — عزل حقيقي (bypass مطفأ، لا جلسة).
+        // تكافؤ السياق عبر نفس حلّال الحارس (مطابقة-دقيقة) — بلا كتابة جلسة.
+        $resolver = match ($portal) {
+            'client' => app(ClientPortalContextResolver::class),
+            'creator' => app(CreatorPortalContextResolver::class),
+            'partner' => app(PartnerPortalContextResolver::class),
+            default => null,   // الوكالة: السياق + roleIn(الهدف) يكفيان
+        };
+
         TenantContext::bypass(false);
-        TenantContext::set($claims['tenant'], $claims['org']);
-
-        // خصائص البوّابة التي تقرؤها متحكّماتها — بلا كتابة جلسة.
-        TenantContext::withBypass(function () use ($request, $portal, $claims) {
-            match ($portal) {
-                'client' => $request->attributes->set('activeClient', Client::withoutGlobalScopes()->find($claims['entity'])),
-                'creator' => $request->attributes->set('creator', Creator::withoutGlobalScopes()->find($claims['entity'])),
-                'partner' => $request->attributes->set('activeAgency', ExternalAgency::withoutGlobalScopes()->find($claims['entity'])),
-                default => null,   // الوكالة: السياق + roleIn يكفيان
-            };
-        });
-
-        // الفاعل الظاهر للمتحكّمات = الهدف (عرض حقيقي)؛ الأصل محفوظ في السمة أعلاه.
-        Auth::setUser($target);
+        if ($resolver !== null) {
+            $ctx = $resolver->resolve($target, $claims['entity'], true);   // exact=true: لا سقوط لكيان آخر
+            abort_if($ctx === null, 403, 'سياق المعاينة غير مؤهَّل.');
+            TenantContext::set($ctx->tenantId);
+            foreach ($ctx->attributes as $k => $v) { $request->attributes->set($k, $v); }
+            view()->share($ctx->share);   // بيانات Blade نفسها (myClients/clientUnread…) — بلا جلسة
+        } else {
+            TenantContext::set($claims['tenant'], $claims['org']);   // الوكالة
+        }
 
         // إشارة للحرّاس بتخطّي حلّهم العادي (الذي يكتب الجلسة).
         $request->attributes->set('platform_preview', true);
 
-        return $next($request);
+        // الفاعل الظاهر للمتحكّمات = الهدف (عرض حقيقي)، ثم يُستعاد المالك حتمًا في finally
+        // فلا يراه فكّ المكدّس/التدقيق/المُنهيات هدفًا (§P3-hardening §2).
+        Auth::setUser($target);
+        try {
+            return $next($request);
+        } finally {
+            Auth::setUser($owner);
+        }
     }
 }

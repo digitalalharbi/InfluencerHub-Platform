@@ -509,11 +509,13 @@ Route::middleware(['auth', 'platform_owner', 'inertia'])->prefix('platform')->gr
     // P2: مبدّل المستأجرين + البحث الشامل.
     Route::get('/tenants', [\App\Http\Controllers\Platform\PlatformTenantController::class, 'index'])->name('platform.tenants');
     Route::get('/tenants/{tenant}', [\App\Http\Controllers\Platform\PlatformTenantController::class, 'show'])->whereNumber('tenant')->name('platform.tenant');
+    // P3-hardening §5: بحث/تصفيح خادميّ في السياقات المؤهَّلة (بلا سقف ٢٥).
+    Route::get('/tenants/{tenant}/contexts', [\App\Http\Controllers\Platform\PlatformTenantController::class, 'contexts'])->whereNumber('tenant')->name('platform.tenant.contexts');
     Route::get('/search', \App\Http\Controllers\Platform\PlatformSearchController::class)->name('platform.search');
     // P3: بدء/إنهاء معاينة بوّابة للقراءة فقط. exit قبل النمط ذي المعاملات كي لا يُلتقط.
     Route::get('/preview/exit', [\App\Http\Controllers\Platform\PlatformPreviewController::class, 'exit'])->name('platform.preview.exit');
-    Route::get('/preview/{tenant}/{portal}/{user}', [\App\Http\Controllers\Platform\PlatformPreviewController::class, 'start'])
-        ->whereNumber(['tenant', 'user'])->whereIn('portal', ['agency', 'client', 'creator', 'partner'])->name('platform.preview.start');
+    Route::get('/preview/{tenant}/{portal}/{user}/{entity}', [\App\Http\Controllers\Platform\PlatformPreviewController::class, 'start'])
+        ->whereNumber(['tenant', 'user', 'entity'])->whereIn('portal', ['agency', 'client', 'creator', 'partner'])->name('platform.preview.start');
 });
 
 // بوابة الشريك — React/Inertia (بالتوازي مع Blade `/partner`)

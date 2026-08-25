@@ -1,5 +1,7 @@
 import { Head, Link } from '@inertiajs/react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import AppShell from '@/Layouts/AppShell';
+import { Icon } from '@/Components/Icon';
 import { platformNav } from '@/lib/nav';
 import { WorkspaceHeader, Kpi, Sec, StatusBadge } from '@/Components/ui';
 
@@ -8,12 +10,96 @@ interface Stats { organizations: number; users: number; campaigns: number; hasSu
 interface Org { id: number; name: string; type: string; status: string; members: number }
 interface Portals { agency: boolean; client: boolean; creator: boolean; partner: boolean }
 interface Activity { action: string; actor: string | null; at: string | null }
-interface PreviewCtx { userId: number; userName: string; entityLabel: string; startHref: string }
-interface PreviewPortal { portal: keyof Portals; label: string; contexts: PreviewCtx[] }
+interface PreviewCtx { userId: number; userName: string; entityLabel: string; entityId: number; organizationId: number | null; startHref: string }
+interface PreviewPortal { portal: keyof Portals; label: string; suggested: PreviewCtx[]; total: number; hasMore: boolean }
 interface Props { tenant: Tenant; stats: Stats; orgs: Org[]; portals: Portals; previewPortals: PreviewPortal[]; activity: Activity[] }
 
 const PORTAL_LABEL: Record<keyof Portals, string> = { agency: 'الوكالة', client: 'العميل', creator: 'صانع المحتوى', partner: 'الشريك' };
 const n = (v: number) => v.toLocaleString('en-US');
+const PER_PAGE = 10;
+
+/**
+ * مُنتقي سياق قابل للبحث والتصفيح (§P3-hardening §5) — يبلغ المالك **أيّ** سياق مصرَّح لا
+ * الأوّل ٢٥. البحث والتصفيح عند الخادم؛ القائمة الأوّليّة «مقترَحة» صغيرة لا الكون كاملًا.
+ */
+function PortalContextPicker({ tenantId, pp }: { tenantId: number; pp: PreviewPortal }) {
+  const [q, setQ] = useState('');
+  const [items, setItems] = useState<PreviewCtx[]>(pp.suggested);
+  const [page, setPage] = useState(1);
+  const [total, setTotal] = useState(pp.total);
+  const [hasMore, setHasMore] = useState(pp.hasMore);
+  const [loading, setLoading] = useState(false);
+  const [searching, setSearching] = useState(false);
+  const debounce = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const fetchPage = useCallback(async (term: string, nextPage: number, append: boolean) => {
+    setLoading(true);
+    try {
+      const url = `/platform/tenants/${tenantId}/contexts?portal=${pp.portal}&q=${encodeURIComponent(term)}&page=${nextPage}&perPage=${PER_PAGE}`;
+      const res = await fetch(url, { headers: { Accept: 'application/json' }, credentials: 'same-origin' });
+      if (!res.ok) return;
+      const data: { items: PreviewCtx[]; total: number; hasMore: boolean } = await res.json();
+      setItems((prev) => (append ? [...prev, ...data.items] : data.items));
+      setTotal(data.total);
+      setHasMore(data.hasMore);
+      setPage(nextPage);
+    } finally {
+      setLoading(false);
+    }
+  }, [tenantId, pp.portal]);
+
+  // بحث مُمهَل: يعيد للصفحة الأولى؛ الفراغ يعيد المقترَحات الأوّليّة بلا طلب.
+  useEffect(() => {
+    if (debounce.current) clearTimeout(debounce.current);
+    if (q.trim() === '') {
+      setSearching(false);
+      setItems(pp.suggested); setTotal(pp.total); setHasMore(pp.hasMore); setPage(1);
+      return;
+    }
+    setSearching(true);
+    debounce.current = setTimeout(() => fetchPage(q, 1, false), 300);
+    return () => { if (debounce.current) clearTimeout(debounce.current); };
+  }, [q, fetchPage, pp.suggested, pp.total, pp.hasMore]);
+
+  return (
+    <div>
+      <div style={{ fontWeight: 700, fontSize: '.82rem', marginBottom: '.4rem', display: 'flex', alignItems: 'center', gap: '.4rem' }}>
+        <span>{pp.label}</span>
+        <span style={{ color: 'var(--ih-text-muted)', fontWeight: 500, fontSize: '.72rem' }}>({n(total)})</span>
+      </div>
+      <div style={{ position: 'relative', marginBottom: '.5rem' }}>
+        <input
+          type="search" value={q} onChange={(e) => setQ(e.target.value)}
+          placeholder={`ابحث بالاسم أو البريد أو ${pp.portal === 'agency' ? 'المؤسسة' : pp.portal === 'client' ? 'العميل' : pp.portal === 'creator' ? 'المبدع' : 'الوكالة'}…`}
+          aria-label={`بحث في سياقات ${pp.label}`}
+          className="field" style={{ width: '100%', fontSize: '.8rem', paddingInlineStart: '2rem' }}
+        />
+        <Icon name="search" size={14} style={{ position: 'absolute', insetInlineStart: '.6rem', top: '50%', transform: 'translateY(-50%)', opacity: .5 }} />
+      </div>
+      {items.length === 0 ? (
+        <p className="pub-muted" style={{ fontSize: '.74rem' }}>{searching ? 'لا نتائج مطابقة.' : 'لا مستخدم مؤهَّل نشِط.'}</p>
+      ) : (
+        <div style={{ display: 'grid', gap: '.35rem' }}>
+          {!searching && <div style={{ fontSize: '.68rem', color: 'var(--ih-text-muted)' }}>مقترَحة — ابحث للوصول لأيّ سياق</div>}
+          {items.map((c) => (
+            <div key={`${pp.portal}:${c.userId}:${c.entityId}:${c.organizationId ?? 0}`} className="ih-risk" style={{ alignItems: 'center' }}>
+              <span style={{ fontWeight: 600 }}>{c.userName}</span>
+              <span style={{ color: 'var(--ih-text-muted)', fontSize: '.72rem' }}>{c.entityLabel}</span>
+              <span style={{ flex: 1 }} />
+              <a href={c.startHref} className="btn btn-xs btn-primary" data-testid={`preview-${pp.portal}`}>▶ معاينة</a>
+            </div>
+          ))}
+          {hasMore && (
+            <button type="button" className="btn btn-xs btn-ghost" disabled={loading}
+              onClick={() => fetchPage(q, page + 1, true)}>
+              {loading ? 'جارٍ التحميل…' : 'تحميل المزيد'}
+            </button>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
 
 export default function TenantDetail({ tenant, stats, orgs, portals, previewPortals, activity }: Props) {
   return (
@@ -51,25 +137,9 @@ export default function TenantDetail({ tenant, stats, orgs, portals, previewPort
           {previewPortals.length === 0 ? (
             <p className="pub-muted">لا بوّابة متاحة للمعاينة في هذا المستأجر.</p>
           ) : (
-            <div style={{ display: 'grid', gap: '.9rem' }}>
+            <div style={{ display: 'grid', gap: '1rem' }}>
               {previewPortals.map((pp) => (
-                <div key={pp.portal}>
-                  <div style={{ fontWeight: 700, fontSize: '.82rem', marginBottom: '.35rem' }}>{pp.label}</div>
-                  {pp.contexts.length === 0 ? (
-                    <p className="pub-muted" style={{ fontSize: '.74rem' }}>لا مستخدم مؤهَّل نشِط.</p>
-                  ) : (
-                    <div style={{ display: 'grid', gap: '.35rem' }}>
-                      {pp.contexts.map((c) => (
-                        <div key={c.userId} className="ih-risk" style={{ alignItems: 'center' }}>
-                          <span style={{ fontWeight: 600 }}>{c.userName}</span>
-                          <span style={{ color: 'var(--ih-text-muted)', fontSize: '.72rem' }}>{c.entityLabel}</span>
-                          <span style={{ flex: 1 }} />
-                          <a href={c.startHref} className="btn btn-xs btn-primary">▶ معاينة</a>
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                </div>
+                <PortalContextPicker key={pp.portal} tenantId={tenant.id} pp={pp} />
               ))}
             </div>
           )}

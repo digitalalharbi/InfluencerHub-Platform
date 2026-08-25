@@ -25,8 +25,39 @@ use Inertia\Response;
  */
 class PlatformTenantController extends Controller
 {
+    private const SUGGEST_PER_PAGE = 8;   // قائمة مقترَحة صغيرة، لا الكون كاملًا
+
     public function __construct(private PlatformPortalEligibilityService $eligibility)
     {
+    }
+
+    /** يبني رابط بدء المعاينة الحامل للسياق الدقيق (+المؤسسة للوكالة). */
+    private function withHref(int $tenantId, string $portal, array $c): array
+    {
+        $href = "/platform/preview/{$tenantId}/{$portal}/{$c['userId']}/{$c['entityId']}";
+        if (($c['organizationId'] ?? null) !== null) {
+            $href .= '?organization=' . $c['organizationId'];
+        }
+
+        return $c + ['startHref' => $href];
+    }
+
+    /**
+     * بحث خادميّ مُصفَّح في السياقات المؤهَّلة لبوّابة (§P3-hardening §5) — يبلغ المالك أيّ
+     * سياق مصرَّح لا الأوّل ٢٥. يُستدعى من مُنتقي السياق في صفحة التفصيل (JSON).
+     */
+    public function contexts(Request $r, Tenant $tenant): \Illuminate\Http\JsonResponse
+    {
+        $portal = (string) $r->query('portal');
+        abort_unless(in_array($portal, ['agency', 'client', 'creator', 'partner'], true), 404);
+
+        $res = $this->eligibility->searchEligibleContexts(
+            $tenant->id, $portal, $r->query('q'),
+            (int) $r->query('page', 1), (int) $r->query('perPage', 10),
+        );
+        $res['items'] = array_map(fn (array $c) => $this->withHref($tenant->id, $portal, $c), $res['items']);
+
+        return response()->json($res);
     }
 
     public function index(Request $r): Response
@@ -66,20 +97,20 @@ class PlatformTenantController extends Controller
             // (لا منطق أهلية مكرّر، §5/§ P2-hardening).
             $portals = $this->eligibility->tenantPortals($tenant->id);
 
-            // P3: لكل بوّابة متاحة، قائمة المستخدمين المؤهَّلين فعلًا كي يختار المالك
-            // هدفًا حقيقيًا بعينه (لا اختلاق هوية) — كلٌّ مع رابط بدء معاينة موقَّع لاحقًا.
+            // P3: لكل بوّابة متاحة، **قائمة مقترَحة صغيرة** أوّليّة (لا الكون كاملًا §5) —
+            // المالك يبحث/يُصفّح خادميًّا للوصول لأيّ سياق. كلٌّ مع رابط بدء معاينة موقَّع.
             $labels = ['agency' => 'الوكالة', 'client' => 'العميل', 'creator' => 'المبدع', 'partner' => 'الشريك'];
             $previewPortals = [];
             foreach (['agency', 'client', 'creator', 'partner'] as $portal) {
                 if (empty($portals[$portal])) {
                     continue;
                 }
-                $contexts = collect($this->eligibility->eligibleContextsForTenantPortal($tenant->id, $portal))
-                    ->map(fn (array $c) => [
-                        'userId' => $c['userId'], 'userName' => $c['userName'], 'entityLabel' => $c['entityLabel'],
-                        'startHref' => "/platform/preview/{$tenant->id}/{$portal}/{$c['userId']}",
-                    ])->values();
-                $previewPortals[] = ['portal' => $portal, 'label' => $labels[$portal], 'contexts' => $contexts];
+                $res = $this->eligibility->searchEligibleContexts($tenant->id, $portal, null, 1, self::SUGGEST_PER_PAGE);
+                $previewPortals[] = [
+                    'portal' => $portal, 'label' => $labels[$portal],
+                    'suggested' => array_map(fn (array $c) => $this->withHref($tenant->id, $portal, $c), $res['items']),
+                    'total' => $res['total'], 'hasMore' => $res['hasMore'],
+                ];
             }
 
             $sub = Subscription::withoutGlobalScopes()->where('tenant_id', $tenant->id)->whereIn('status', ['trialing', 'active'])->latest()->first();
