@@ -65,7 +65,7 @@ class SlaEngineService
     {
         $url = "/app/service-requests/{$sr->id}";
         if ($sr->assigned_to) {
-            $this->notifications->notify($sr->tenant_id, $sr->assigned_to, 'sla.alert', 'general', $title, $body, $url, ['request_id' => $sr->id], $sr);
+            $this->notifications->notify($sr->tenant_id, $sr->assigned_to, 'sla.alert', 'requests', $title, $body, $url, ['request_id' => $sr->id], $sr);
             return;
         }
         $adminIds = OrganizationMembership::withoutGlobalScopes()
@@ -73,7 +73,7 @@ class SlaEngineService
             ->whereIn('role', ['agency_admin', 'operations_manager'])
             ->pluck('user_id')->unique()->all();
         foreach ($adminIds as $uid) {
-            $this->notifications->notify($sr->tenant_id, (int) $uid, 'sla.alert', 'general', $title, $body, $url, ['request_id' => $sr->id], $sr);
+            $this->notifications->notify($sr->tenant_id, (int) $uid, 'sla.alert', 'requests', $title, $body, $url, ['request_id' => $sr->id], $sr);
         }
     }
 

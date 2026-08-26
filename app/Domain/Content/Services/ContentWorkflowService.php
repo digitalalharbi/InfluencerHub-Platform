@@ -272,7 +272,7 @@ class ContentWorkflowService
         $userId = $this->withinTenant($item, fn () => $item->creator_id ? Creator::find($item->creator_id)?->user_id : null);
 
         if ($userId) {
-            $this->notifications->notify($item->tenant_id, $userId, 'content.update', 'general', $title, $body, '/creator/content', ['objects' => [['type' => 'content', 'name' => $item->title]], 'cta_label' => 'عرض المحتوى', 'content_id' => $item->id], $item);
+            $this->notifications->notify($item->tenant_id, $userId, 'content.update', 'reviews', $title, $body, '/creator/content', ['objects' => [['type' => 'content', 'name' => $item->title]], 'cta_label' => 'عرض المحتوى', 'content_id' => $item->id], $item);
         }
     }
 
@@ -287,7 +287,7 @@ class ContentWorkflowService
             : null);
 
         if ($userId) {
-            $this->notifications->notify($item->tenant_id, (int) $userId, 'content.submitted', 'general', $title, $body, "/app/content/{$item->id}", ['objects' => [['type' => 'content', 'name' => $item->title]], 'cta_label' => 'مراجعة المحتوى', 'content_id' => $item->id], $item);
+            $this->notifications->notify($item->tenant_id, (int) $userId, 'content.submitted', 'reviews', $title, $body, "/app/content/{$item->id}", ['objects' => [['type' => 'content', 'name' => $item->title]], 'cta_label' => 'مراجعة المحتوى', 'content_id' => $item->id], $item);
         }
     }
 
@@ -300,7 +300,7 @@ class ContentWorkflowService
             : []);
 
         foreach ($userIds as $uid) {
-            $this->notifications->notify($item->tenant_id, (int) $uid, 'content.client_review', 'general', $title, $body, '/client/content', ['objects' => [['type' => 'content', 'name' => $item->title]], 'cta_label' => 'مراجعة المحتوى', 'content_id' => $item->id], $item);
+            $this->notifications->notify($item->tenant_id, (int) $uid, 'content.client_review', 'reviews', $title, $body, '/client/content', ['objects' => [['type' => 'content', 'name' => $item->title]], 'cta_label' => 'مراجعة المحتوى', 'content_id' => $item->id], $item);
         }
     }
 }

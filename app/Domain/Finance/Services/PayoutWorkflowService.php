@@ -180,7 +180,7 @@ class PayoutWorkflowService
         }
         $labels = ['approved' => 'اعتُمد مستحقك', 'scheduled' => 'جُدول مستحقك للدفع',
             'paid' => 'تم دفع مستحقك', 'failed' => 'تعذّر دفع مستحقك'];
-        $this->notifications->notify($p->tenant_id, $creator->user_id, "payout.$to", 'general',
+        $this->notifications->notify($p->tenant_id, $creator->user_id, "payout.$to", 'finance',
             $labels[$to] ?? 'تحديث مستحق', $p->description ?? $p->payout_number, '/creator/payouts', ['payout_id' => $p->id], $p);
     }
 

@@ -29,6 +29,12 @@ class NotificationMail extends Mailable implements ShouldQueue
         $locale = $n->user?->preferredLocale() ?: (string) config('app.locale', 'ar');
         $this->locale($locale); // يضبط لغة عرض القالب (lang/dir + __() داخل الـview)
 
+        // ترويسة ربط للإشعار — يستخدمها مستمع MessageSent لتقديم حالة التسليم queued→sent
+        // من حدث النقل الفعليّ (لا ادّعاء «سُلِّم» بلا برهان مزوّد).
+        if ($n->id) {
+            $this->withSymfonyMessage(fn ($message) => $message->getHeaders()->addTextHeader('X-IH-Notification-Id', (string) $n->id));
+        }
+
         // ترجمة نصوص البناء بلغة المستقبِل صراحةً (قد تختلف عن لغة الطلب الحالي).
         $t = fn (string $key, array $r = []) => trans($key, $r, $locale);
         $brand = Brand::name();

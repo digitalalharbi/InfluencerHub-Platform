@@ -174,7 +174,7 @@ class ShortlistService
             $campaign->tenant_id,
             (int) $campaign->created_by,
             "shortlist.item_{$decision}",
-            'general',
+            'campaigns',
             "العميل {$verb} {$creatorName}",
             $reason ? "{$body} السبب: {$reason}" : $body,
             "/app/campaigns/{$campaign->id}/shortlist",

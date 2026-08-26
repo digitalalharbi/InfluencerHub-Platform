@@ -136,7 +136,7 @@ class ContractWorkflowService
                 $this->recordStatus($c, $from, $to, $actorId, $actorType, $reason);
                 AuditLogger::log("contract.$to", $c, ['actor_type' => $actorType], $c->tenant_id, $actorId);
                 if ($actorType !== 'agency' && $c->created_by) {
-                    $this->notifications->notify($c->tenant_id, $c->created_by, "contract.$to", 'general', "تحديث عقد: {$c->title}", 'الحالة: ' . $to, "/app/contracts/{$c->id}", ['contract_id' => $c->id], $c);
+                    $this->notifications->notify($c->tenant_id, $c->created_by, "contract.$to", 'campaigns', "تحديث عقد: {$c->title}", 'الحالة: ' . $to, "/app/contracts/{$c->id}", ['contract_id' => $c->id], $c);
                 }
                 return $c;
             });
@@ -156,10 +156,10 @@ class ContractWorkflowService
         [$creatorUserId, $clientUserIds] = $this->partyRecipients($c);
 
         if ($creatorUserId) {
-            $this->notifications->notify($c->tenant_id, $creatorUserId, 'contract.sent', 'general', $title, $body, '/creator/contracts', ['contract_id' => $c->id], $c);
+            $this->notifications->notify($c->tenant_id, $creatorUserId, 'contract.sent', 'creators', $title, $body, '/creator/contracts', ['contract_id' => $c->id], $c);
         }
         foreach ($clientUserIds as $uid) {
-            $this->notifications->notify($c->tenant_id, $uid, 'contract.sent', 'general', $title, $body, '/client/contracts', ['contract_id' => $c->id], $c);
+            $this->notifications->notify($c->tenant_id, $uid, 'contract.sent', 'campaigns', $title, $body, '/client/contracts', ['contract_id' => $c->id], $c);
         }
     }
 

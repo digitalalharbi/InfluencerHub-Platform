@@ -162,10 +162,10 @@ class BrandDetailController extends Controller
         }
 
         if ($client && $action === 'approve') {
-            $notifier->toClientMembers($client, 'brand.approved', 'brands', "اعتُمدت علامتك: {$brand->name}",
+            $notifier->toClientMembers($client, 'brand.approved', 'reviews', "اعتُمدت علامتك: {$brand->name}",
                 'يمكنك الآن استخدام العلامة في الحملات.', "/client/brands/{$brand->id}", ['brand_id' => $brand->id], $brand);
         } elseif ($client && $action === 'request-changes') {
-            $notifier->toClientMembers($client, 'brand.changes_requested', 'brands', "مطلوب تعديل على علامتك: {$brand->name}",
+            $notifier->toClientMembers($client, 'brand.changes_requested', 'reviews', "مطلوب تعديل على علامتك: {$brand->name}",
                 $reason, "/client/brands/{$brand->id}", ['brand_id' => $brand->id], $brand);
         }
 

@@ -6,6 +6,6 @@ class NotificationPreference extends Model {
     use BelongsToTenant;
     protected $fillable = ['tenant_id','user_id','category','in_app','email','whatsapp','sms'];
     protected $casts = ['in_app'=>'boolean','email'=>'boolean','whatsapp'=>'boolean','sms'=>'boolean'];
-    /** الفئات القابلة للضبط (تظهر في الإعدادات). */
-    public const CATEGORIES = ['brands'=>'العلامات','documents'=>'المستندات','profile'=>'الملف القانوني','team'=>'الفريق','billing'=>'الفوترة','general'=>'عام'];
+    // الفئات القابلة للضبط أصبحت من المصدر القانونيّ الوحيد:
+    // {@see \App\Domain\Communications\Enums\NotificationCategory} (map()/values()).
 }

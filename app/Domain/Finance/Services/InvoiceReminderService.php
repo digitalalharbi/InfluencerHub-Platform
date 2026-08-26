@@ -74,7 +74,7 @@ final class InvoiceReminderService
             $inv->tenant_id,
             $recipients,
             'invoice.overdue',
-            'general',
+            'finance',
             "فاتورة متأخّرة: {$inv->invoice_number}",
             'تجاوزت الفاتورة موعد استحقاقها ولم تُحصَّل بعد. تابع التحصيل مع العميل.',
             "/app/invoices/{$inv->id}",
