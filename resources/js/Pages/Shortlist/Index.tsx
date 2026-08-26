@@ -14,7 +14,7 @@ interface Item {
 }
 interface Candidate {
   id: number; name: string; handle: string | null; platform: string | null; followers: number;
-  feeMinor: number; verified: boolean; score: number; reasons: string[];
+  feeMinor: number; verified: boolean; score: number; reasons: string[]; flags: string[];
 }
 interface CandidatePool { active: number; inactive: number }
 interface VersionRow { number: number; status: string; statusLabel: string; statusTone: string; items: number; isCurrent: boolean; submittedAt: string | null; decidedAt: string | null }
@@ -90,7 +90,9 @@ export default function ShortlistIndex({ campaign, version, items, candidates, f
             <button onClick={() => setProposalOpen(true)} className="btn btn-sm btn-outline" title="معاينة مقترح PDF آمن للعميل">
               <Icon name="file-text" size={13} /> مقترح للعميل{documents.proposal.stale && <span style={{ width: 7, height: 7, borderRadius: '50%', background: 'var(--ih-warning-ink, #B54708)', display: 'inline-block', marginInlineStart: 5 }} />}
             </button>
-            <a href={u(`${base}/export?format=xlsx`)} className="btn btn-sm btn-outline" title="تصدير داخلي (Excel)" download><Icon name="external-link" size={13} /> داخلي</a>
+            <a href={u(`${base}/export?format=xlsx`)} className="btn btn-sm btn-outline" title="تصدير داخلي (Excel)" download><Icon name="external-link" size={13} /> Excel</a>
+            <a href={u(`${base}/export?format=csv`)} className="btn btn-sm btn-outline" title="تصدير داخلي (CSV)" download>CSV</a>
+            <a href={u(`${base}/export?format=pdf`)} className="btn btn-sm btn-outline" title="تصدير داخلي (PDF)" download>PDF</a>
             {canEdit ? (
               <>
                 <button disabled={busy || primary.length === 0} onClick={() => post(`${base}/submit`)} className="btn btn-sm">إرسال لاعتماد العميل</button>
@@ -242,8 +244,15 @@ export default function ShortlistIndex({ campaign, version, items, candidates, f
                     <span style={{ fontWeight: 600, color: 'var(--ih-text)' }}>{money(c.feeMinor)}</span>
                   </div>
                   {c.reasons.length > 0 && (
-                    <div style={{ display: 'flex', gap: '.3rem', flexWrap: 'wrap', marginBottom: '.7rem' }}>
+                    <div style={{ display: 'flex', gap: '.3rem', flexWrap: 'wrap', marginBottom: c.flags.length ? '.35rem' : '.7rem' }}>
                       {c.reasons.map((r, i) => <span key={i} className="ih-tag" style={{ fontSize: '.66rem' }}>{r}</span>)}
+                    </div>
+                  )}
+                  {c.flags.length > 0 && (
+                    <div style={{ display: 'flex', gap: '.3rem', flexWrap: 'wrap', marginBottom: '.7rem' }} title="تنبيهات صادقة من بيانات ناقصة">
+                      {c.flags.map((f, i) => (
+                        <span key={i} className="ih-tag" style={{ fontSize: '.66rem', background: 'var(--ih-warning-soft, #FEF3C7)', color: 'var(--ih-warning-ink, #B54708)' }}>⚠ {f}</span>
+                      ))}
                     </div>
                   )}
                   <div style={{ display: 'flex', gap: '.4rem' }}>
