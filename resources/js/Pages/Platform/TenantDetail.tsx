@@ -1,4 +1,4 @@
-import { Head, Link } from '@inertiajs/react';
+import { Head, Link, router } from '@inertiajs/react';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import AppShell from '@/Layouts/AppShell';
 import { Icon } from '@/Components/Icon';
@@ -12,7 +12,9 @@ interface Portals { agency: boolean; client: boolean; creator: boolean; partner:
 interface Activity { action: string; actor: string | null; at: string | null }
 interface PreviewCtx { userId: number; userName: string; entityLabel: string; entityId: number; organizationId: number | null; startHref: string }
 interface PreviewPortal { portal: keyof Portals; label: string; suggested: PreviewCtx[]; total: number; hasMore: boolean }
-interface Props { tenant: Tenant; stats: Stats; orgs: Org[]; portals: Portals; previewPortals: PreviewPortal[]; activity: Activity[] }
+interface NominationFeature { key: string; label: string; agency: boolean; client: boolean }
+interface Features { influencer_nomination: NominationFeature }
+interface Props { tenant: Tenant; stats: Stats; orgs: Org[]; portals: Portals; previewPortals: PreviewPortal[]; activity: Activity[]; features: Features }
 
 const PORTAL_LABEL: Record<keyof Portals, string> = { agency: 'الوكالة', client: 'العميل', creator: 'صانع المحتوى', partner: 'الشريك' };
 const n = (v: number) => v.toLocaleString('en-US');
@@ -101,7 +103,11 @@ function PortalContextPicker({ tenantId, pp }: { tenantId: number; pp: PreviewPo
   );
 }
 
-export default function TenantDetail({ tenant, stats, orgs, portals, previewPortals, activity }: Props) {
+export default function TenantDetail({ tenant, stats, orgs, portals, previewPortals, activity, features }: Props) {
+  const nom = features.influencer_nomination;
+  const setNomination = (portal: 'agency' | 'client', enabled: boolean) => {
+    router.post(`/platform/tenants/${tenant.id}/features/nomination`, { portal, enabled }, { preserveScroll: true });
+  };
   return (
     <AppShell heading="مستأجر" nav={platformNav} portal="platform">
       <Head title={`${tenant.name} · المنصّة`} />
@@ -126,6 +132,34 @@ export default function TenantDetail({ tenant, stats, orgs, portals, previewPort
                 {portals[p] ? '● ' : '○ '}{PORTAL_LABEL[p]}
               </span>
             ))}
+          </div>
+        </Sec>
+
+        <Sec title="إتاحة الميزات (إدارة المنصّة)" icon="shield-check">
+          <p style={{ fontSize: '.76rem', color: 'var(--ih-text-muted)', marginBottom: '.6rem' }}>
+            التحكّم في إتاحة الميزات لهذا المستأجر من مصدر واحد. الإيقاف يُخفي الروابط ويمنع
+            الوصول المباشر (403) — دون حذف أي بيان؛ إعادة التفعيل تُرجع نفس السجلّات.
+          </p>
+          <div className="ih-risk" style={{ alignItems: 'center' }} data-testid="feature-nomination">
+            <span style={{ fontWeight: 600 }}>{nom.label}</span>
+            <span style={{ color: 'var(--ih-text-muted)', fontSize: '.72rem', fontFamily: 'monospace', direction: 'ltr' }}>{nom.key}</span>
+            <span style={{ flex: 1 }} />
+            <button
+              type="button"
+              className={`btn btn-xs ${nom.agency ? 'btn-ghost' : 'btn-primary'}`}
+              data-testid="toggle-nomination-agency"
+              onClick={() => setNomination('agency', !nom.agency)}
+            >
+              {nom.agency ? 'الوكالة: مُفعّلة — أوقِف' : 'الوكالة: موقوفة — فعّل'}
+            </button>
+            <button
+              type="button"
+              className={`btn btn-xs ${nom.client ? 'btn-ghost' : 'btn-primary'}`}
+              data-testid="toggle-nomination-client"
+              onClick={() => setNomination('client', !nom.client)}
+            >
+              {nom.client ? 'العميل: مُفعّلة — أوقِف' : 'العميل: موقوفة — فعّل'}
+            </button>
           </div>
         </Sec>
 

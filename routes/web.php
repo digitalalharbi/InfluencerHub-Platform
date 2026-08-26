@@ -215,8 +215,8 @@ Route::middleware(['auth', 'platform_preview:client', 'client_member'])->prefix(
         Route::post('/content/{content}/request-changes', [\App\Http\Controllers\Inertia\Client\ContentController::class, 'requestChanges']);
         Route::get('/campaigns', [\App\Http\Controllers\Inertia\Client\CampaignController::class, 'index']);
         Route::get('/campaigns/{campaign}', [\App\Http\Controllers\Inertia\Client\CampaignController::class, 'show']);
-        Route::get('/campaigns/{campaign}/shortlist', [\App\Http\Controllers\Inertia\Client\CampaignController::class, 'shortlist']);
-        Route::post('/campaigns/{campaign}/shortlist/items/{item}/decision', [\App\Http\Controllers\Inertia\Client\CampaignController::class, 'shortlistDecision']);
+        Route::get('/campaigns/{campaign}/shortlist', [\App\Http\Controllers\Inertia\Client\CampaignController::class, 'shortlist'])->middleware('nomination:client');
+        Route::post('/campaigns/{campaign}/shortlist/items/{item}/decision', [\App\Http\Controllers\Inertia\Client\CampaignController::class, 'shortlistDecision'])->middleware('nomination:client');
         Route::get('/contracts', [\App\Http\Controllers\Inertia\Client\ContractController::class, 'index']);
         Route::get('/contracts/{contract}', [\App\Http\Controllers\Inertia\Client\ContractController::class, 'show']);
         Route::post('/contracts/{contract}/sign', [\App\Http\Controllers\Inertia\Client\ContractController::class, 'sign']);
@@ -309,7 +309,7 @@ Route::middleware(['auth', 'tenant', 'platform_preview:agency', 'agency_member',
     Route::get('/creator-database', [\App\Http\Controllers\Inertia\CreatorDatabaseController::class, 'index']);
     Route::get('/creator-database/{poolCreator}', [\App\Http\Controllers\Inertia\CreatorDatabaseController::class, 'show']);
     Route::post('/creator-database/{poolCreator}/overlay', [\App\Http\Controllers\Inertia\CreatorDatabaseController::class, 'overlay']);
-    Route::post('/creator-database/{poolCreator}/nominate', [\App\Http\Controllers\Inertia\CreatorDatabaseController::class, 'nominate']);
+    Route::post('/creator-database/{poolCreator}/nominate', [\App\Http\Controllers\Inertia\CreatorDatabaseController::class, 'nominate'])->middleware('nomination:agency');
     Route::get('/creators', [\App\Http\Controllers\Inertia\CreatorsController::class, 'index']);
     Route::get('/creators/export', [\App\Http\Controllers\Inertia\CreatorsController::class, 'export']);
     Route::post('/creators', [\App\Http\Controllers\Inertia\CreatorsController::class, 'store']);
@@ -375,7 +375,7 @@ Route::middleware(['auth', 'tenant', 'platform_preview:agency', 'agency_member',
     Route::post('/creator-applications/{application}/financial-review', [\App\Http\Controllers\Inertia\CreatorApplicationsController::class, 'reviewFinancial']);
     Route::get('/creator-applications/{application}/documents/{document}/download', [\App\Http\Controllers\Inertia\CreatorApplicationsController::class, 'downloadDocument']);
     Route::get('/my-tasks', [\App\Http\Controllers\Inertia\MyTasksController::class, 'index']);
-    Route::get('/shortlisting', [\App\Http\Controllers\Inertia\ShortlistingController::class, 'index']);
+    Route::get('/shortlisting', [\App\Http\Controllers\Inertia\ShortlistingController::class, 'index'])->middleware('nomination:agency');
     Route::get('/partner-agencies', [\App\Http\Controllers\Inertia\PartnersController::class, 'index']);
     Route::post('/partner-agencies', [\App\Http\Controllers\Inertia\PartnersController::class, 'store']);
     Route::get('/partner-agencies/{partnerAgency}', [\App\Http\Controllers\Inertia\PartnersController::class, 'show']);
@@ -424,17 +424,20 @@ Route::middleware(['auth', 'tenant', 'platform_preview:agency', 'agency_member',
     Route::post('/automation/{rule}/toggle', [\App\Http\Controllers\Inertia\AutomationController::class, 'toggle'])->whereNumber('rule');
     Route::post('/automation/{rule}', [\App\Http\Controllers\Inertia\AutomationController::class, 'update'])->whereNumber('rule');
     Route::post('/settings', [\App\Http\Controllers\Inertia\SettingsController::class, 'update']);
-    Route::get('/campaigns/{campaign}/shortlist', [\App\Http\Controllers\Inertia\ShortlistController::class, 'index']);
-    // تصدير الترشيحات — داخلي (XLSX/CSV) ومقترح PDF آمن للعميل. GET فلا يتعارض مع POST catch-all.
-    Route::get('/campaigns/{campaign}/shortlist/export', [\App\Http\Controllers\Inertia\ShortlistController::class, 'export']);
-    Route::get('/campaigns/{campaign}/shortlist/proposal', [\App\Http\Controllers\Inertia\ShortlistController::class, 'exportClientPdf']);
-    Route::get('/campaigns/{campaign}/shortlist/proposal/preview', [\App\Http\Controllers\Inertia\ShortlistController::class, 'proposalPreview']);
-    Route::get('/campaigns/{campaign}/shortlist/proposal/download', [\App\Http\Controllers\Inertia\ShortlistController::class, 'proposalDownload']);
-    Route::post('/campaigns/{campaign}/shortlist/proposal/regenerate', [\App\Http\Controllers\Inertia\ShortlistController::class, 'proposalRegenerate']);
-    Route::post('/campaigns/{campaign}/shortlist/add', [\App\Http\Controllers\Inertia\ShortlistController::class, 'add']);
-    Route::post('/campaigns/{campaign}/shortlist/submit', [\App\Http\Controllers\Inertia\ShortlistController::class, 'submit']);
-    Route::post('/campaigns/{campaign}/shortlist/revise', [\App\Http\Controllers\Inertia\ShortlistController::class, 'revise']);
-    Route::post('/campaigns/{campaign}/shortlist/items/{item}/remove', [\App\Http\Controllers\Inertia\ShortlistController::class, 'remove']);
+    // ترشيح المؤثرين (بوّابة الوكالة) — محكوم بمصدر القرار الموحّد: مُطفأ ⇒ 403 لكل هذه المسارات.
+    Route::middleware('nomination:agency')->group(function () {
+        Route::get('/campaigns/{campaign}/shortlist', [\App\Http\Controllers\Inertia\ShortlistController::class, 'index']);
+        // تصدير الترشيحات — داخلي (XLSX/CSV) ومقترح PDF آمن للعميل. GET فلا يتعارض مع POST catch-all.
+        Route::get('/campaigns/{campaign}/shortlist/export', [\App\Http\Controllers\Inertia\ShortlistController::class, 'export']);
+        Route::get('/campaigns/{campaign}/shortlist/proposal', [\App\Http\Controllers\Inertia\ShortlistController::class, 'exportClientPdf']);
+        Route::get('/campaigns/{campaign}/shortlist/proposal/preview', [\App\Http\Controllers\Inertia\ShortlistController::class, 'proposalPreview']);
+        Route::get('/campaigns/{campaign}/shortlist/proposal/download', [\App\Http\Controllers\Inertia\ShortlistController::class, 'proposalDownload']);
+        Route::post('/campaigns/{campaign}/shortlist/proposal/regenerate', [\App\Http\Controllers\Inertia\ShortlistController::class, 'proposalRegenerate']);
+        Route::post('/campaigns/{campaign}/shortlist/add', [\App\Http\Controllers\Inertia\ShortlistController::class, 'add']);
+        Route::post('/campaigns/{campaign}/shortlist/submit', [\App\Http\Controllers\Inertia\ShortlistController::class, 'submit']);
+        Route::post('/campaigns/{campaign}/shortlist/revise', [\App\Http\Controllers\Inertia\ShortlistController::class, 'revise']);
+        Route::post('/campaigns/{campaign}/shortlist/items/{item}/remove', [\App\Http\Controllers\Inertia\ShortlistController::class, 'remove']);
+    });
     Route::post('/campaigns/{campaign}/{action}', [\App\Http\Controllers\Inertia\CampaignDetailController::class, 'transition'])
         ->whereIn('action', ['plan', 'activate', 'pause', 'resume', 'complete', 'cancel']);
 });
@@ -511,6 +514,8 @@ Route::middleware(['auth', 'platform_owner', 'inertia'])->prefix('platform')->gr
     Route::get('/tenants/{tenant}', [\App\Http\Controllers\Platform\PlatformTenantController::class, 'show'])->whereNumber('tenant')->name('platform.tenant');
     // P3-hardening §5: بحث/تصفيح خادميّ في السياقات المؤهَّلة (بلا سقف ٢٥).
     Route::get('/tenants/{tenant}/contexts', [\App\Http\Controllers\Platform\PlatformTenantController::class, 'contexts'])->whereNumber('tenant')->name('platform.tenant.contexts');
+    // influencer_nomination.manage_feature — إتاحة الميزة لكل مستأجر (Platform Owner فقط).
+    Route::post('/tenants/{tenant}/features/nomination', [\App\Http\Controllers\Platform\PlatformTenantController::class, 'setNominationAvailability'])->whereNumber('tenant')->name('platform.tenant.nomination');
     Route::get('/search', \App\Http\Controllers\Platform\PlatformSearchController::class)->name('platform.search');
     // P3: بدء/إنهاء معاينة بوّابة للقراءة فقط. exit قبل النمط ذي المعاملات كي لا يُلتقط.
     Route::get('/preview/exit', [\App\Http\Controllers\Platform\PlatformPreviewController::class, 'exit'])->name('platform.preview.exit');
@@ -536,8 +541,8 @@ Route::middleware(['auth', 'platform_preview:client', 'client_member', 'inertia'
     Route::post('/content/{content}/request-changes', [\App\Http\Controllers\Inertia\Client\ContentController::class, 'requestChanges']);
     Route::get('/campaigns', [\App\Http\Controllers\Inertia\Client\CampaignController::class, 'index']);
     Route::get('/campaigns/{campaign}', [\App\Http\Controllers\Inertia\Client\CampaignController::class, 'show']);
-    Route::get('/campaigns/{campaign}/shortlist', [\App\Http\Controllers\Inertia\Client\CampaignController::class, 'shortlist']);
-    Route::post('/campaigns/{campaign}/shortlist/items/{item}/decision', [\App\Http\Controllers\Inertia\Client\CampaignController::class, 'shortlistDecision']);
+    Route::get('/campaigns/{campaign}/shortlist', [\App\Http\Controllers\Inertia\Client\CampaignController::class, 'shortlist'])->middleware('nomination:client');
+    Route::post('/campaigns/{campaign}/shortlist/items/{item}/decision', [\App\Http\Controllers\Inertia\Client\CampaignController::class, 'shortlistDecision'])->middleware('nomination:client');
     Route::get('/contracts', [\App\Http\Controllers\Inertia\Client\ContractController::class, 'index']);
     Route::get('/contracts/{contract}', [\App\Http\Controllers\Inertia\Client\ContractController::class, 'show']);
     Route::post('/contracts/{contract}/sign', [\App\Http\Controllers\Inertia\Client\ContractController::class, 'sign']);
@@ -680,18 +685,20 @@ Route::middleware(['auth', 'tenant', 'platform_preview:agency', 'agency_member']
         // مطابقة المبدعين لمخرَج + عرض تعاون (قبل catch-all الإجراءات)
         Route::get('/campaigns/{campaign}/deliverables/{deliverable}/suggest', [\App\Http\Controllers\Inertia\DeliverableMatchController::class, 'suggest']);
         Route::post('/campaigns/{campaign}/deliverables/{deliverable}/offer', [\App\Http\Controllers\Inertia\DeliverableMatchController::class, 'offer']);
-        // محرّك الترشيح (قبل catch-all الإجراءات)
-        Route::get('/campaigns/{campaign}/shortlist', [\App\Http\Controllers\Inertia\ShortlistController::class, 'index']);
-        // تصدير الترشيحات — داخلي (XLSX/CSV) ومقترح PDF آمن للعميل. GET فلا يتعارض مع POST catch-all.
-        Route::get('/campaigns/{campaign}/shortlist/export', [\App\Http\Controllers\Inertia\ShortlistController::class, 'export']);
-        Route::get('/campaigns/{campaign}/shortlist/proposal', [\App\Http\Controllers\Inertia\ShortlistController::class, 'exportClientPdf']);
-        Route::get('/campaigns/{campaign}/shortlist/proposal/preview', [\App\Http\Controllers\Inertia\ShortlistController::class, 'proposalPreview']);
-        Route::get('/campaigns/{campaign}/shortlist/proposal/download', [\App\Http\Controllers\Inertia\ShortlistController::class, 'proposalDownload']);
-        Route::post('/campaigns/{campaign}/shortlist/proposal/regenerate', [\App\Http\Controllers\Inertia\ShortlistController::class, 'proposalRegenerate']);
-        Route::post('/campaigns/{campaign}/shortlist/add', [\App\Http\Controllers\Inertia\ShortlistController::class, 'add']);
-        Route::post('/campaigns/{campaign}/shortlist/submit', [\App\Http\Controllers\Inertia\ShortlistController::class, 'submit']);
-        Route::post('/campaigns/{campaign}/shortlist/revise', [\App\Http\Controllers\Inertia\ShortlistController::class, 'revise']);
-        Route::post('/campaigns/{campaign}/shortlist/items/{item}/remove', [\App\Http\Controllers\Inertia\ShortlistController::class, 'remove']);
+        // محرّك الترشيح (قبل catch-all الإجراءات) — محكوم بمصدر القرار الموحّد: مُطفأ ⇒ 403.
+        Route::middleware('nomination:agency')->group(function () {
+            Route::get('/campaigns/{campaign}/shortlist', [\App\Http\Controllers\Inertia\ShortlistController::class, 'index']);
+            // تصدير الترشيحات — داخلي (XLSX/CSV) ومقترح PDF آمن للعميل. GET فلا يتعارض مع POST catch-all.
+            Route::get('/campaigns/{campaign}/shortlist/export', [\App\Http\Controllers\Inertia\ShortlistController::class, 'export']);
+            Route::get('/campaigns/{campaign}/shortlist/proposal', [\App\Http\Controllers\Inertia\ShortlistController::class, 'exportClientPdf']);
+            Route::get('/campaigns/{campaign}/shortlist/proposal/preview', [\App\Http\Controllers\Inertia\ShortlistController::class, 'proposalPreview']);
+            Route::get('/campaigns/{campaign}/shortlist/proposal/download', [\App\Http\Controllers\Inertia\ShortlistController::class, 'proposalDownload']);
+            Route::post('/campaigns/{campaign}/shortlist/proposal/regenerate', [\App\Http\Controllers\Inertia\ShortlistController::class, 'proposalRegenerate']);
+            Route::post('/campaigns/{campaign}/shortlist/add', [\App\Http\Controllers\Inertia\ShortlistController::class, 'add']);
+            Route::post('/campaigns/{campaign}/shortlist/submit', [\App\Http\Controllers\Inertia\ShortlistController::class, 'submit']);
+            Route::post('/campaigns/{campaign}/shortlist/revise', [\App\Http\Controllers\Inertia\ShortlistController::class, 'revise']);
+            Route::post('/campaigns/{campaign}/shortlist/items/{item}/remove', [\App\Http\Controllers\Inertia\ShortlistController::class, 'remove']);
+        });
         Route::post('/campaigns/{campaign}/{action}', [\App\Http\Controllers\Inertia\CampaignDetailController::class, 'transition'])
             ->whereIn('action', ['plan', 'activate', 'pause', 'resume', 'complete', 'cancel']);
 
@@ -762,7 +769,7 @@ Route::middleware(['auth', 'tenant', 'platform_preview:agency', 'agency_member']
         Route::get('/creator-database', [\App\Http\Controllers\Inertia\CreatorDatabaseController::class, 'index']);
         Route::get('/creator-database/{poolCreator}', [\App\Http\Controllers\Inertia\CreatorDatabaseController::class, 'show']);
         Route::post('/creator-database/{poolCreator}/overlay', [\App\Http\Controllers\Inertia\CreatorDatabaseController::class, 'overlay']);
-        Route::post('/creator-database/{poolCreator}/nominate', [\App\Http\Controllers\Inertia\CreatorDatabaseController::class, 'nominate']);
+        Route::post('/creator-database/{poolCreator}/nominate', [\App\Http\Controllers\Inertia\CreatorDatabaseController::class, 'nominate'])->middleware('nomination:agency');
         // المبدعون — قُصّوا من Blade؛ الإضافة تعيد استخدام CreateCreator نفسه
         Route::get('/creators', [\App\Http\Controllers\Inertia\CreatorsController::class, 'index']);
         Route::get('/creators/export', [\App\Http\Controllers\Inertia\CreatorsController::class, 'export']);
@@ -798,7 +805,7 @@ Route::middleware(['auth', 'tenant', 'platform_preview:agency', 'agency_member']
 
         // صفحات React لا نسخة Blade لها — كانت متاحة تحت /beta فقط
         Route::get('/my-tasks', [\App\Http\Controllers\Inertia\MyTasksController::class, 'index']);
-        Route::get('/shortlisting', [\App\Http\Controllers\Inertia\ShortlistingController::class, 'index']);
+        Route::get('/shortlisting', [\App\Http\Controllers\Inertia\ShortlistingController::class, 'index'])->middleware('nomination:agency');
         Route::get('/integrations', [\App\Http\Controllers\Inertia\IntegrationsController::class, 'index']);
         Route::get('/integrations/{provider}', [\App\Http\Controllers\Inertia\IntegrationsController::class, 'show']);
         Route::post('/integrations/{provider}/sync', [\App\Http\Controllers\Inertia\IntegrationsController::class, 'syncNow']);
