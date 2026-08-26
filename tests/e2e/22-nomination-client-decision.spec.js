@@ -84,11 +84,12 @@ test.describe('N8 — قرار العميل على الترشيح (سلسلة ك
       await client.screenshot({ path: `${EV}/n8-03-client-alternative-requested.png`, fullPage: true });
     });
 
-    await test.step('الوكالة: القرار يعود كـ «مطلوب بديل» (الدور على الوكالة)', async () => {
+    await test.step('الوكالة: طلب البديل يظهر على بند المؤثّر (الدور على الوكالة)', async () => {
       await page.goto(shortlistPath);
-      // حالة الإصدار changes_requested → وسم «مطلوب بديل»
-      await expect(page.locator('body')).toContainText('مطلوب بديل');
-      await page.screenshot({ path: `${EV}/n8-04-agency-changes-requested.png`, fullPage: true });
+      // إشارة على مستوى البند نفسه — ثابتة بصرف النظر عن بنود أخرى قد يضيفها سياق مشترك:
+      // بند نورة يحمل وسم «طلب بديلًا» بعد قرار العميل.
+      await expect(page.locator('body')).toContainText('طلب بديلًا');
+      await page.screenshot({ path: `${EV}/n8-04-agency-alternative-requested.png`, fullPage: true });
     });
 
     await clientCtx.close();
