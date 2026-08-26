@@ -20,3 +20,7 @@ Schedule::command('ops:scheduler-heartbeat')->everyMinute();
 
 // التقارير المجدولة — كل ساعة؛ قفل قصير الصلاحية (50د) يتعافى ذاتيًّا.
 Schedule::command('reports:run-scheduled')->hourly()->withoutOverlapping(50);
+
+// متابعة الفواتير المتأخّرة — يوميًّا؛ تذكير مرّة واحدة لكل فاتورة (علامة overdue_notified_at
+// تمنع التكرار، فإعادة التشغيل آمنة). مبنيّ على due_date الحقيقيّة لا على موعد مُختلَق.
+Schedule::command('invoices:scan-overdue')->dailyAt('08:00')->withoutOverlapping(50);
