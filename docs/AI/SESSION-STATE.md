@@ -32,7 +32,7 @@ _Last updated: 2026-08-26._
 
 - **PR:** #83 — https://github.com/digitalalharbi/InfluencerHub-Platform/pull/83 (base `main`)
 - **Head SHA:** `c5912d8` (+ docs-update commit)
-- **CI run / state:** triggered on push (InfluencerHub CI/CD: backend + frontend + e2e) — verify on the PR
+- **CI run / state:** run `32912880013` — **SUCCESS** (Backend ✓ 2m30s · Frontend ✓ 18s · E2E Playwright cross-browser ✓ 14m20s · Deploy skipped — PRs don't deploy). Head `c5912d8`.
 - **Merge state:** not merged (STOP BEFORE MERGE) · **Merge SHA:** —
 
 ## Production
@@ -60,7 +60,7 @@ _Last updated: 2026-08-26._
 - **Backend (N1 file):** `NominationFeatureAccessTest` — 12/12 PASS · **Full backend suite:** 1343 tests, 6437 assertions, **0 failures** (17 pre-existing PHPUnit deprecations).
 - **Frontend:** Typecheck PASS (0 errors) · Build PASS · lint n/a (no script; CI `--if-present`).
 - **Tenant-context safety guard:** PASS.
-- **E2E Chromium/Firefox/WebKit:** deferred to N8 (per delivery sequence).
+- **E2E Chromium/Firefox/WebKit:** GREEN on CI run `32912880013` (existing Playwright suite; feature-specific nomination E2E still planned for N8).
 - **Pint:** my files clean; project-wide `--test` flags 579 pre-existing files (local Pint 1.29.3 vs main's preset) — not in InfluencerHub CI gate.
 
 ## Sources Used
