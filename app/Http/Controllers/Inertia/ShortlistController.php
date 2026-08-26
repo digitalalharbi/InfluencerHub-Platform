@@ -334,11 +334,11 @@ class ShortlistController extends Controller
 
     private function decisionLabel(?string $s): string
     {
-        return ['approved' => 'اعتمده العميل', 'rejected' => 'رفضه العميل', 'pending' => 'بانتظار القرار'][$s ?? 'pending'] ?? 'بانتظار القرار';
+        return ['approved' => 'اعتمده العميل', 'rejected' => 'رفضه العميل', 'needs_alternative' => 'طلب بديلًا', 'pending' => 'بانتظار القرار'][$s ?? 'pending'] ?? 'بانتظار القرار';
     }
 
     private function decisionTone(?string $s): string
     {
-        return ['approved' => 'approved', 'rejected' => 'rejected', 'pending' => 'draft'][$s ?? 'pending'] ?? 'draft';
+        return ['approved' => 'approved', 'rejected' => 'rejected', 'needs_alternative' => 'under_review', 'pending' => 'draft'][$s ?? 'pending'] ?? 'draft';
     }
 }
