@@ -34,8 +34,8 @@ final class ClientNominationView
             'score' => (int) $it->match_score,
             'reasons' => array_values($it->reasons ?? []),
             'decision' => $decision,
-            'decisionLabel' => ['approved' => 'اعتمدته', 'rejected' => 'رفضته'][$decision] ?? 'بانتظار قرارك',
-            'decisionTone' => ['approved' => 'approved', 'rejected' => 'rejected'][$decision] ?? 'draft',
+            'decisionLabel' => ['approved' => 'اعتمدته', 'rejected' => 'رفضته', 'needs_alternative' => 'طلبت بديلًا'][$decision] ?? 'بانتظار قرارك',
+            'decisionTone' => ['approved' => 'approved', 'rejected' => 'rejected', 'needs_alternative' => 'under_review'][$decision] ?? 'draft',
         ];
     }
 

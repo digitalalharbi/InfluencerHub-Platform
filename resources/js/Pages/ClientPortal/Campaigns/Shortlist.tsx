@@ -28,19 +28,23 @@ function ScorePill({ score }: { score: number }) {
   return <span className="badge" style={{ background: bg, color: fg, direction: 'ltr' }}>{score}٪ ملاءمة</span>;
 }
 
+type ClientDecision = 'approved' | 'rejected' | 'needs_alternative';
+
 export default function ClientShortlist({ clientName, campaign, version, items }: Props) {
   const [rejectFor, setRejectFor] = useState<number | null>(null);
+  const [modalDecision, setModalDecision] = useState<'rejected' | 'needs_alternative'>('rejected');
   const [reason, setReason] = useState('');
   const [busy, setBusy] = useState(false);
   const base = u(`/campaigns/${campaign.id}/shortlist`);
 
-  const decide = (itemId: number, decision: 'approved' | 'rejected', r = '') => {
+  const decide = (itemId: number, decision: ClientDecision, r = '') => {
     setBusy(true);
     router.post(`${base}/items/${itemId}/decision`, { decision, reason: r }, {
       preserveScroll: true,
       onFinish: () => { setBusy(false); setRejectFor(null); setReason(''); },
     });
   };
+  const openModal = (itemId: number, decision: 'rejected' | 'needs_alternative') => { setModalDecision(decision); setRejectFor(itemId); };
 
   const pending = items.filter((i) => i.decision === 'pending');
 
@@ -89,9 +93,10 @@ export default function ClientShortlist({ clientName, campaign, version, items }
                     </div>
                   )}
                   {it.decision === 'pending' ? (
-                    <div style={{ display: 'flex', gap: '.4rem' }}>
+                    <div style={{ display: 'flex', gap: '.4rem', flexWrap: 'wrap' }}>
                       <button disabled={busy} onClick={() => decide(it.id, 'approved')} className="btn btn-xs" style={{ flex: 1 }}>اعتماد</button>
-                      <button disabled={busy} onClick={() => setRejectFor(it.id)} className="btn btn-xs btn-outline" style={{ flex: 1 }}>رفض</button>
+                      <button disabled={busy} onClick={() => openModal(it.id, 'needs_alternative')} className="btn btn-xs btn-outline" style={{ flex: 1 }}>أحتاج بديلًا</button>
+                      <button disabled={busy} onClick={() => openModal(it.id, 'rejected')} className="btn btn-xs btn-outline" style={{ flex: 1 }}>رفض</button>
                     </div>
                   ) : (
                     <StatusBadge tone={it.decisionTone} label={it.decisionLabel} />
@@ -106,11 +111,16 @@ export default function ClientShortlist({ clientName, campaign, version, items }
       {rejectFor !== null && (
         <div className="modal-backdrop" onClick={(e) => e.target === e.currentTarget && !busy && setRejectFor(null)}>
           <div className="modal" style={{ padding: '1.3rem', maxWidth: 440 }}>
-            <h3 style={{ fontWeight: 800, margin: '0 0 1rem' }}>سبب الرفض (اختياري)</h3>
+            <h3 style={{ fontWeight: 800, margin: '0 0 1rem' }}>
+              {modalDecision === 'needs_alternative' ? 'طلب بديل (سبب اختياري)' : 'سبب الرفض (اختياري)'}
+            </h3>
             <textarea value={reason} onChange={(e) => setReason(e.target.value)} className="field" rows={3}
-              placeholder="اذكر سبب الرفض ليساعد الفريق في بديل أنسب…" style={{ width: '100%', resize: 'vertical' }} autoFocus />
+              placeholder={modalDecision === 'needs_alternative' ? 'ما الذي تريده في البديل؟ يساعد الفريق على اقتراح مرشّح أنسب…' : 'اذكر سبب الرفض ليساعد الفريق في بديل أنسب…'}
+              style={{ width: '100%', resize: 'vertical' }} autoFocus />
             <div style={{ marginTop: '1rem', display: 'flex', gap: '.5rem' }}>
-              <button disabled={busy} onClick={() => decide(rejectFor, 'rejected', reason)} className="btn btn-primary">تأكيد الرفض</button>
+              <button disabled={busy} onClick={() => decide(rejectFor, modalDecision, reason)} className="btn btn-primary">
+                {modalDecision === 'needs_alternative' ? 'طلب بديل' : 'تأكيد الرفض'}
+              </button>
               <button disabled={busy} onClick={() => setRejectFor(null)} className="btn btn-ghost">إلغاء</button>
             </div>
           </div>

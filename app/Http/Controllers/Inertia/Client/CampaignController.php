@@ -94,7 +94,7 @@ class CampaignController extends Controller
     public function shortlistDecision(Request $r, int $campaign, int $item, ShortlistService $svc)
     {
         $c = $r->attributes->get('activeClient');
-        $data = $r->validate(['decision' => 'required|in:approved,rejected', 'reason' => 'nullable|string|max:500']);
+        $data = $r->validate(['decision' => 'required|in:approved,rejected,needs_alternative', 'reason' => 'nullable|string|max:500']);
         $cm = Campaign::where('id', $campaign)->where('client_id', $c->id)->first();
         abort_unless($cm, 404);
         $it = CampaignShortlistItem::whereKey($item)
@@ -102,6 +102,12 @@ class CampaignController extends Controller
         abort_unless($it && $it->version->status !== 'draft', 404);
         $svc->clientDecision($it, $data['decision'], $data['reason'] ?? null);
 
-        return back()->with('ok', $data['decision'] === 'approved' ? 'اعتمدت المؤثر.' : 'رفضت المؤثر.');
+        $msg = match ($data['decision']) {
+            'approved' => 'اعتمدت المؤثر.',
+            'needs_alternative' => 'طلبت بديلًا — سيقترح الفريق مرشّحًا آخر.',
+            default => 'رفضت المؤثر.',
+        };
+
+        return back()->with('ok', $msg);
     }
 }
