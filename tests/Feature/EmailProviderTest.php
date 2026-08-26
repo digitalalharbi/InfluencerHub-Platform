@@ -81,6 +81,7 @@ class EmailProviderTest extends TestCase
         $this->assertStringContainsString('اعتُمد محتواك', $html);
         $this->assertStringContainsString('InfluencerHub', $html);
         $this->assertStringContainsString('https://influencerhub.io/app/content/8', $html);
-        $this->assertStringContainsString('فتح في InfluencerHub', $html);
+        // نصّ الزرّ العامّ صار «عرض التفاصيل» (بدل «فتح في InfluencerHub») — صياغة أوضح.
+        $this->assertStringContainsString('عرض التفاصيل', $html);
     }
 }
