@@ -35,3 +35,7 @@ Thumbs.db
 /storage/app/private/preview-credentials.txt
 .claude/settings.local.json
 storage/app/private/development-screenshots/
+
+# Local E2E QA iteration helper + visual evidence (not product)
+/playwright.n1.config.js
+/tests/e2e/evidence/
