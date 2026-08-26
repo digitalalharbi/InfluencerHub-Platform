@@ -2,9 +2,11 @@
 
 namespace App\Http\Controllers\Inertia\Client;
 
-use App\Domain\Campaigns\Models\{Campaign, CampaignShortlist, CampaignShortlistItem};
+use App\Domain\Campaigns\Models\Campaign;
+use App\Domain\Campaigns\Models\CampaignShortlist;
+use App\Domain\Campaigns\Models\CampaignShortlistItem;
 use App\Domain\Campaigns\Services\ShortlistService;
-use App\Domain\Tenancy\Support\TenantContext;
+use App\Domain\Nomination\Support\ClientNominationView;
 use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
@@ -76,15 +78,10 @@ class CampaignController extends Controller
         abort_unless($cm, 404);
         $sl = CampaignShortlist::where('campaign_id', $cm->id)->first();
         $version = $sl?->versions()->where('status', '!=', 'draft')->orderByDesc('version')->first();
-        $items = $version ? $version->items()->with('creator')->get()->map(fn (CampaignShortlistItem $it) => [
-            'id' => $it->id, 'creator' => $it->creator?->display_name ?? '—', 'handle' => $it->creator?->handle,
-            'platform' => $it->creator?->primary_platform, 'followers' => (int) ($it->creator?->followers_count ?? 0),
-            'isBackup' => (bool) $it->is_backup, 'feeMinor' => (int) $it->proposed_fee_minor,
-            'score' => (int) $it->match_score, 'reasons' => $it->reasons ?? [],
-            'decision' => $it->client_decision ?? 'pending',
-            'decisionLabel' => ['approved' => 'اعتمدته', 'rejected' => 'رفضته'][$it->client_decision ?? ''] ?? 'بانتظار قرارك',
-            'decisionTone' => ['approved' => 'approved', 'rejected' => 'rejected'][$it->client_decision ?? ''] ?? 'draft',
-        ])->values() : collect();
+        // الإسقاط الآمن للعميل من مصدر واحد (لا تكلفة/هامش/مستحقّات — تحصيل العميل ≠ مستحقّات المبدع).
+        $items = $version
+            ? collect(ClientNominationView::items($version->items()->with('creator')->get()))
+            : collect();
 
         return Inertia::render('ClientPortal/Campaigns/Shortlist', [
             'clientName' => $c->display_name,

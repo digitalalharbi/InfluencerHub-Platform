@@ -8,65 +8,41 @@ _Last updated: 2026-08-26._
 ## Repository
 
 - **Canonical repo:** `digitalalharbi/InfluencerHub-Platform`
-- **Working directory:** `/Users/mohammedalharbimacbook/Developer/InfluencerHub-nomination` (isolated worktree)
 - **Origin:** `https://github.com/digitalalharbi/InfluencerHub-Platform.git`
-- **Branch:** `feat/influencer-nomination-foundation`
-- **Base SHA:** `244851f6b13e39c429807cd156f9e4977e1abcd8` (origin/main, #82 Platform Owner P3-hardening)
-- **HEAD SHA:** `c5912d8` (N1 feature commit) + this docs-update commit on top
-- **origin/main SHA:** `244851f6b13e39c429807cd156f9e4977e1abcd8`
-- **Working tree:** clean after commit (N1 work — additive only)
-- **Other worktrees (do not disturb):**
-  - `/Users/mohammedalharbimacbook/Developer/InfluencerHub-Platform` → `fix/security-advisories-guzzle-commonmark` (has protected uncommitted work: `composer.lock`, `.claude/`, `.env.e2e` — DO NOT touch)
-  - `/Users/mohammedalharbimacbook/Developer/ih-autopilot` → `main`
+- **main = deployed = `b52f77cfd271f5e24b97e53ecfdfe8308f392c36`** (VPS deploy SUCCESS + authenticated production smoke SUCCESS).
+- **Active working directory:** `/Users/mohammedalharbimacbook/Developer/InfluencerHub-nomination` (worktree; branch `feat/nomination-n2`).
+- **Other worktrees:** `InfluencerHub-Platform` (holds protected uncommitted security-advisory work — do not touch), `InfluencerHub-comms`, `ih-autopilot`.
+
+## Shipped (merged + deployed + production-verified)
+
+- **#83 N1 — Influencer Nomination foundation** (`influencer_nomination`): single canonical access decision `App\Domain\Nomination\Access\NominationAccess` (feature + scope-entitlement + surface + role + context); `feature_availabilities` (platform-managed, default-ON, most-specific-scope-wins); `EnsureNominationEnabled` middleware on all nomination routes (OFF ⇒ 403, data preserved); nav single-source; Platform-Owner `manage_feature` toggle (audited). Live cross-browser verified.
+- **#84 Notifications & Email — professional bilingual experience + human copy:** recipient-locale-aware `NotificationMail` (ar/en, dynamic lang/dir), `<x-mail.button>`, structured business-object cards (no "السياق"), personalized greeting, dev email gallery (`/app/preview/mail`, dev-only), `CopyQualityTest` (no internal-term leakage), real emitters (shortlist/content/service-request) emit business-object copy.
+- **#85 Follow-up — overdue-invoice reminders:** `invoices.overdue_notified_at` one-shot marker, `InvoiceReminderService` + `invoices:scan-overdue` daily schedule, idempotent (no spam), real `due_date` only.
 
 ## Active Task
 
-- **Task:** Influencer Nomination (ترشيح المؤثرين), feature key `influencer_nomination`.
-- **Phase:** **N1** — feature/entitlement architecture + current-state audit.
-- **Goal:** ONE canonical access decision (feature enabled AND tenant/scope entitled AND surface enabled AND role permitted AND context valid) consumed by every reachable surface; feature-OFF ⇒ 403 + nav hidden + data preserved; Platform-Owner-managed availability.
-- **Acceptance:** feature OFF nav hidden · direct access 403 · tenant isolation · permission isolation · existing data preserved · backend/frontend/typecheck/build green.
-- **Explicit user decisions:** stop before merge; additive-only (no rebuild/schema redesign of the baseline); reuse/extend/consolidate not duplicate; CampaignsHub firewall (0 cross-project).
-- **Prohibitions:** no auto-merge · no reset/clean/force-push · no fake completion/KPIs/AI · no P4/P5/P6 now.
+- **Phase:** **N2** — consolidate the canonical Nomination domain; unify parallel recommendation/matching paths; extract a shared client-safe nomination serializer. Then N3→N8.
+- **Prohibitions:** no CampaignsHub; no rebuild/duplicate systems; no invented deadlines/escalation; no destructive prod ops; preserve tenant + Platform-Owner isolation.
 
-## PR / CI
+## Delivery sequence status
 
-- **PR:** #83 — https://github.com/digitalalharbi/InfluencerHub-Platform/pull/83 (base `main`)
-- **Head SHA:** `c5912d8` (+ docs-update commit)
-- **CI run / state:** run `32912880013` — **SUCCESS** (Backend ✓ 2m30s · Frontend ✓ 18s · E2E Playwright cross-browser ✓ 14m20s · Deploy skipped — PRs don't deploy). Head `c5912d8`.
-- **Merge state:** not merged (STOP BEFORE MERGE) · **Merge SHA:** —
+N1 ✅ · **N2 → in progress** · N3 Nomination Workspace + matching · N4 contextual mounts · N5 exports · N6 client decision + conversion · N7 admin feature management · N8 role-based cross-browser E2E + production verification — all pending.
 
-## Production
+## Tests / gates (last full run on main)
 
-- **Deployed SHA:** unknown/unverified (do not assume main = deployed)
-- **Deploy run:** — · **Verification:** not performed for N1 · **Blockers:** —
+- Backend `vendor/bin/phpunit`: green (1361 on the #84/#85 line) · Frontend typecheck + build: green · Playwright Chromium/Firefox/WebKit: green · VPS deploy: success · production smoke: success.
 
-## Completed (N1)
+## Known open items (honest)
 
-- Isolated worktree/branch created from `origin/main@244851f`; old working tree protected.
-- Four-agent current-state audit (shortlist flows · AdminPool/PoolMatchService/CreatorDB · entitlements/RBAC/Platform Owner · exports).
-- New domain `app/Domain/Nomination`: `Support/NominationAbilities` (9 capabilities), `Access/FeatureAvailabilityResolver`, `Access/NominationAccess` (single decision) + `Access/NominationDecision`, `Models/FeatureAvailability`.
-- Migration `feature_availabilities` (platform-managed, default-ON, most-specific-scope-wins).
-- Middleware `EnsureNominationEnabled` (alias `nomination`); wired onto all agency + client nomination routes (beta + app mirrors) → OFF = 403.
-- Nav single-source: `HandleInertiaRequests::navCapabilities` + `nav.ts` `can:'influencer_nomination'`.
-- Platform Owner `manage_feature`: `PlatformTenantController::setNominationAvailability` + route + toggle UI in `Platform/TenantDetail.tsx`; audited.
-- Tests `tests/Feature/NominationFeatureAccessTest.php`.
+- Category taxonomy still three lists (canonical `NotificationCategory` = an N-track cleanup).
+- Email delivery status advances queued→? only to `queued` (sent-advancement is a documented enhancement).
+- Real external inbox delivery: **BLOCKED_EXTERNAL_REAL_INBOX** (no sanctioned SMTP/mailbox).
+- Real follow-up beyond SLA + invoice needs per-domain reminder columns; shortlist/content have no persisted deadline.
 
-## Open Blockers
+## QA/test accounts (E2E seed — non-production)
 
-- `/recommendations` (PoolRecommendation / `admin_pool_recommendations`) is a parallel client-nomination path — flagged for **CONSOLIDATE in N2**; intentionally not gated in N1.
-
-## Tests
-
-- **Backend (N1 file):** `NominationFeatureAccessTest` — 12/12 PASS · **Full backend suite:** 1343 tests, 6437 assertions, **0 failures** (17 pre-existing PHPUnit deprecations).
-- **Frontend:** Typecheck PASS (0 errors) · Build PASS · lint n/a (no script; CI `--if-present`).
-- **Tenant-context safety guard:** PASS.
-- **E2E Chromium/Firefox/WebKit:** GREEN on CI run `32912880013` (existing Playwright suite; feature-specific nomination E2E still planned for N8).
-- **Pint:** my files clean; project-wide `--test` flags 579 pre-existing files (local Pint 1.29.3 vs main's preset) — not in InfluencerHub CI gate.
-
-## Sources Used
-
-See `docs/AI/SOURCES.md`.
+`owner@platform.test` (Platform Owner), `admin@a.test` (agency admin, tenant A), `viewer@a.test`, `finance@a.test` (no nomination view), `admin@b.test` (tenant B), `client@a.test`, `creator@a.test`, `partner@a.test` — all with `E2E_PASSWORD`. Seed via `php artisan e2e:seed` (DB `influencerhub_e2e`).
 
 ## Next Exact Step
 
-Finish N1: Pint `--test` + Larastan on changed scope → full backend suite → commit → push branch → open PR (no merge) → record PR/CI here → produce N1 acceptance report. Then N2 (canonical Nomination domain + consolidation of PoolRecommendation & the two match engines).
+Audit the canonical nomination domain + parallel paths on `b52f77c`, then implement N2 consolidation (unify matching, extract client-safe serializer, route recommendation client-decision through shared notification/copy), with regression tests; commit → PR → CI green → merge → continue N3.

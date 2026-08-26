@@ -6,13 +6,22 @@
 ## Canonical
 
 - **Repository:** `digitalalharbi/InfluencerHub-Platform` — sole source of truth.
-- **Production:** https://influencerhub.io/ (deployed/verified state is independent of `main`).
-- **Baseline commit:** `origin/main@244851f6b13e39c429807cd156f9e4977e1abcd8` = #82 "Platform Owner P3-hardening".
+- **Production:** https://influencerhub.io/ — **deployed = main = `b52f77cfd271f5e24b97e53ecfdfe8308f392c36`** (VPS deploy + authenticated production smoke both SUCCESS on this SHA).
+- **Baseline history:** `244851f` (#82 Platform Owner P3-hardening) → `e66a6fa` (#83 N1) → `b43abfa` (#84 comms email/copy) → `b52f77c` (#85 follow-up).
+
+## Shipped PRs (merged + deployed)
+
+- **#83** N1 Influencer Nomination foundation · **#84** Notifications & Email professional bilingual experience + human copy · **#85** overdue-invoice follow-up reminders. All squash-merged to main, CI green (backend/frontend/e2e cross-browser), deployed, production-smoke verified.
 
 ## Active work
 
-- **Branch:** `feat/influencer-nomination-foundation` (N1 — Influencer Nomination foundation).
-- **PR:** _pending push._
+- **Branch:** `feat/nomination-n2` from `b52f77c` — **N2** consolidation (canonical nomination domain, unify matching, client-safe serializer).
+
+## Communications code paths (N1/N2 track)
+
+- Email: `app/Mail/NotificationMail.php` (recipient-locale + structured business-object copy), `resources/views/components/mail/{layout,button}.blade.php`, `resources/views/mail/notification.blade.php`, `lang/{ar,en}/mail.php`, gallery `app/Http/Controllers/Web/DevMailGalleryController.php` (`/app/preview/mail`, dev-only). Copy guard: `tests/Feature/CopyQualityTest.php`.
+- Follow-up: `app/Domain/Finance/Services/InvoiceReminderService.php` + `app/Console/Commands/ScanOverdueInvoicesCommand.php` + `routes/console.php` (daily 08:00). SLA reference: `app/Domain/Automation/Services/SlaEngineService.php`.
+- Real emitters emitting business-object copy: `ShortlistService::announceDecision`, `ContentWorkflowService::notify{Creator,Agency,Client}`, `ServiceRequestWorkflowService::assign`.
 
 ## Nomination — critical code paths (verified by audit 2026-08-26)
 

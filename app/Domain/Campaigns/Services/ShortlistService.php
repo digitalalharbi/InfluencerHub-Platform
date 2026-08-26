@@ -9,6 +9,7 @@ use App\Domain\Campaigns\Models\CampaignShortlistItem;
 use App\Domain\Campaigns\Models\CampaignShortlistVersion;
 use App\Domain\Communications\Services\NotificationService;
 use App\Domain\Creators\Models\Creator;
+use App\Domain\Nomination\Services\NominationMatchService;
 use Illuminate\Support\Facades\DB;
 
 /** محرّك الترشيح — قائمة أساسية/احتياطية بإصدارات + درجة ملاءمة + قرار العميل. */
@@ -34,41 +35,15 @@ class ShortlistService
         });
     }
 
-    /** درجة ملاءمة مبدع للحملة (0..100) + أسباب — من بيانات فعلية. */
+    /**
+     * درجة ملاءمة مبدع للحملة (0..100) + أسباب — عبر المُطابِق القانونيّ الموحّد
+     * ({@see NominationMatchService}). لا منطق تسجيل مكرّر.
+     */
     public function matchScore(Campaign $campaign, Creator $creator): array
     {
-        $reasons = [];
-        $score = 0;
-        $platforms = $campaign->deliverables->pluck('platform')->filter()->unique();
-        if ($platforms->isEmpty() || $platforms->contains($creator->primary_platform)) {
-            $score += 40;
-            $reasons[] = 'المنصّة مطابقة';
-        }
-        $followers = (int) $creator->followers_count;
-        if ($followers >= 500000) {
-            $score += 25;
-            $reasons[] = 'وصول واسع';
-        } elseif ($followers >= 100000) {
-            $score += 15;
-            $reasons[] = 'وصول جيد';
-        } else {
-            $score += 8;
-        }
-        if ($creator->mowthooq_status === 'verified') {
-            $score += 20;
-            $reasons[] = 'موثّق';
-        }
-        if (! empty($creator->rate_per_post_minor)) {
-            $score += 10;
-            $reasons[] = 'سعر محدّد';
-        } else {
-            $reasons[] = 'سعر غير محدّد';
-        }
-        if ($creator->status === 'active') {
-            $score += 5;
-        }
+        $r = app(NominationMatchService::class)->score($campaign, $creator);
 
-        return ['score' => min(100, $score), 'reasons' => $reasons];
+        return ['score' => $r['score'], 'reasons' => $r['reasons']];
     }
 
     public function addCreator(CampaignShortlistVersion $version, Creator $creator, bool $backup = false): CampaignShortlistItem
