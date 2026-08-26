@@ -45,16 +45,20 @@ test.describe('N6 — تحويل المعتمَدين للتنفيذ (سلسلة
       campaignId = (shortlistPath.match(/campaigns\/(\d+)\/shortlist/) || [])[1] || '';
       expect(campaignId).not.toBe('');
       await page.goto(shortlistPath);
-      // في سلسلة CI قد يكون اختبار سابق حسم الإصدار — نبدأ نظيفًا بإصدار جديد (مسودة).
-      const revise = page.getByRole('button', { name: 'إنشاء إصدار جديد' });
-      if (await revise.count()) {
-        await revise.click();
-        await expect(page.getByRole('button', { name: 'إرسال لاعتماد العميل' })).toBeVisible();
-      }
       const submit = page.getByRole('button', { name: 'إرسال لاعتماد العميل' });
-      await expect(submit).toBeVisible();
+      const cantEdit = page.getByText('لا يمكن تعديله');
+      // في سلسلة CI قد يكون اختبار سابق حسم الإصدار — نبدأ نظيفًا بإصدار جديد (مسودة).
+      // نُعيد المحاولة عبر toPass لأن نقرة «إصدار جديد» قد تضيع قبل اكتمال hydration على
+      // عدّاء firefox البطيء (يبقى الإصدار «مطلوب بديل» بلا زرّ إرسال). الحارس على إشعار
+      // «لا يمكن تعديله» يمنع إنشاء إصدارات زائدة بعد نجاح أوّل إعادة.
+      await expect(async () => {
+        if (await cantEdit.count()) {
+          await page.getByRole('button', { name: 'إنشاء إصدار جديد' }).first().click();
+        }
+        await expect(submit).toBeVisible({ timeout: 2500 });
+      }).toPass({ timeout: 30000 });
       await submit.click();
-      await page.waitForLoadState('networkidle');
+      await expect(submit).toHaveCount(0); // تأكيد الإرسال: لم يعُد الإصدار مسودة
     });
 
     const clientCtx = await browser.newContext();
