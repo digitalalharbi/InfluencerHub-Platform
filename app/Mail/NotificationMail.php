@@ -43,9 +43,24 @@ class NotificationMail extends Mailable implements ShouldQueue
 
         $data = is_array($n->data) ? $n->data : [];
 
-        // بطاقة سياق اختياريّة — تُبنى من الحقول الموجودة فقط.
+        // تحيّة باسم المستقبِل الحقيقي (لا نستخرج اسمًا من البريد، ولا نختلق اسمًا).
+        $name = $n->user?->name;
+        $name = ($name && ! str_contains($name, '@') && trim($name) !== '') ? trim($name) : null;
+        $greeting = $name ? $t('mail.greeting', ['name' => $name]) : $t('mail.greeting_generic');
+
+        // بطاقة معلومات — كائنات أعمال بتسمياتها البشريّة (الحملة/العميل/صانع المحتوى...) ثم
+        // حقول الحالة/الطالب/الموعد. تُعرض الحقول الموجودة فقط، بلا أي مصطلح تقنيّ («سياق» مُزال).
         $meta = [];
-        foreach (['context', 'status', 'requester', 'due'] as $key) {
+        foreach (($data['objects'] ?? []) as $o) {
+            if (! empty($o['type']) && ! empty($o['name'])) {
+                $key = "mail.object.{$o['type']}";
+                $label = trans($key, [], $locale);
+                $label = $label === $key ? $t('mail.object.nomination') : $label; // fallback آمن
+                $value = (string) $o['name'].(! empty($o['ref']) ? " ({$o['ref']})" : '');
+                $meta[] = ['label' => $label, 'value' => $value];
+            }
+        }
+        foreach (['status', 'requester', 'due'] as $key) {
             if (! empty($data[$key])) {
                 $meta[] = ['label' => $t("mail.meta.$key"), 'value' => (string) $data[$key]];
             }
@@ -73,13 +88,17 @@ class NotificationMail extends Mailable implements ShouldQueue
             ];
         }
 
+        // نصّ الزرّ خاصّ بالحدث حين يُمرَّر (مثال: «مراجعة الترشيحات»)، وإلا عامّ.
+        $cta = ! empty($data['cta_label']) ? (string) $data['cta_label'] : $t('mail.cta_open', ['brand' => $brand]);
+
         return $this->subject($n->title.$t('mail.subject_suffix', ['brand' => $brand]))
             ->view('mail.notification', [
                 'locale' => $locale, // يُمرَّر صراحةً كي يكون العرض حتميًّا (render وsend سواء)
+                'greeting' => $greeting,
                 'title' => $n->title,
                 'body' => $n->body,
                 'url' => $url,
-                'cta' => $t('mail.cta_open', ['brand' => $brand]),
+                'cta' => $cta,
                 'meta' => $meta,
                 'priority' => $priority,
                 'secondary' => $secondary,

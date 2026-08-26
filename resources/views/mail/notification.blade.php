@@ -14,6 +14,10 @@
     </div>
   @endif
 
+  @isset($greeting)
+    <p style="margin:0 0 10px;font-size:15px;line-height:1.8;color:#101828;font-weight:600;">{{ $greeting }}</p>
+  @endisset
+
   <h1 style="margin:0 0 14px;font-size:20px;line-height:1.4;font-weight:800;color:#101828;">{{ $title }}</h1>
 
   @if($body)

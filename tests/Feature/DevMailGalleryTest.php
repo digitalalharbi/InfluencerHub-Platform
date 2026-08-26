@@ -39,8 +39,8 @@ class DevMailGalleryTest extends TestCase
         config(['app.dev_tools' => true]);
         $u = $this->agencyUser();
         $this->actingAs($u)->get('/app/preview/mail')->assertOk()->assertSee('معرض بريد');
-        $this->actingAs($u)->get('/app/preview/mail/action_required?locale=en')->assertOk()->assertSee('Open in', false);
-        $this->actingAs($u)->get('/app/preview/mail/action_required?locale=ar')->assertOk()->assertSee('الفتح في', false);
+        $this->actingAs($u)->get('/app/preview/mail/approval_required?locale=en')->assertOk()->assertSee('Review shortlist', false);
+        $this->actingAs($u)->get('/app/preview/mail/approval_required?locale=ar')->assertOk()->assertSee('مراجعة الترشيحات', false);
     }
 
     public function test_gallery_hidden_when_dev_tools_disabled(): void
@@ -48,6 +48,6 @@ class DevMailGalleryTest extends TestCase
         config(['app.dev_tools' => false]);
         $u = $this->agencyUser();
         $this->actingAs($u)->get('/app/preview/mail')->assertNotFound();
-        $this->actingAs($u)->get('/app/preview/mail/action_required')->assertNotFound();
+        $this->actingAs($u)->get('/app/preview/mail/approval_required')->assertNotFound();
     }
 }
