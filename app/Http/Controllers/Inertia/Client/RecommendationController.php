@@ -2,10 +2,17 @@
 
 namespace App\Http\Controllers\Inertia\Client;
 
-use App\Domain\AdminPool\Models\{PoolCreator, PoolRecommendation};
+use App\Domain\AdminPool\Models\PoolCreator;
+use App\Domain\AdminPool\Models\PoolRecommendation;
+use App\Domain\Communications\Enums\NotificationCategory;
+use App\Domain\Communications\Services\NotificationService;
+use App\Domain\CRM\Models\Client;
+use App\Domain\Tenancy\Models\OrganizationMembership;
 use App\Http\Controllers\Controller;
-use Illuminate\Http\{RedirectResponse, Request};
-use Inertia\{Inertia, Response};
+use Illuminate\Http\RedirectResponse;
+use Illuminate\Http\Request;
+use Inertia\Inertia;
+use Inertia\Response;
 
 /**
  * ترشيحات المؤثرين في بوابة العميل — يقرّ العميل (قبول/رفض) ما حوّله مدير النظام.
@@ -15,9 +22,11 @@ use Inertia\{Inertia, Response};
  */
 class RecommendationController extends Controller
 {
+    public function __construct(private NotificationService $notifications) {}
+
     public function index(Request $r): Response
     {
-        /** @var \App\Domain\CRM\Models\Client $c */
+        /** @var Client $c */
         $c = $r->attributes->get('activeClient');
 
         $base = PoolRecommendation::where('client_id', $c->id);
@@ -58,7 +67,7 @@ class RecommendationController extends Controller
 
     public function decision(Request $r, int $recommendation): RedirectResponse
     {
-        /** @var \App\Domain\CRM\Models\Client $c */
+        /** @var Client $c */
         $c = $r->attributes->get('activeClient');
         $data = $r->validate([
             'decision' => 'required|in:approved,rejected',
@@ -75,6 +84,62 @@ class RecommendationController extends Controller
             'decided_at' => now(),
         ]);
 
+        $this->announceRecommendationDecision($rec, $c->display_name, $data['decision'], $data['reason'] ?? null);
+
         return back()->with('ok', $data['decision'] === 'approved' ? 'اعتمدت المؤثر المرشّح.' : 'رفضت المؤثر المرشّح.');
+    }
+
+    /**
+     * يُشعِر فريق الوكالة (agency_admin) في مستأجر الترشيح بقرار العميل عبر نظام الإشعارات
+     * المشترك — الوكالة هي المالك التشغيلي للعميل والطرف الوحيد المضمون رؤيته للإشعار داخل
+     * نطاق المستأجر (مالك المنصّة عابر للمستأجرين وبلا مركز إشعارات، فلا يُرسَل إليه). لا
+     * مصطلحات تقنية في النص — أسماء أعمال فقط (العميل/المؤثّر/الحملة).
+     */
+    private function announceRecommendationDecision(PoolRecommendation $rec, string $clientName, string $decision, ?string $reason): void
+    {
+        $recipients = OrganizationMembership::where('tenant_id', $rec->tenant_id)
+            ->where('role', 'agency_admin')
+            ->where('status', 'active')
+            ->pluck('user_id')
+            ->unique()
+            ->values()
+            ->all();
+
+        if (empty($recipients)) {
+            return; // لا فريق وكالة نشِط — لا مستقبِل مضمون الرؤية، فلا نُصدِر إشعارًا خفيًّا
+        }
+
+        $verb = $decision === 'approved' ? 'اعتمد' : 'رفض';
+        $title = "{$verb} العميل المؤثّر المرشّح: {$rec->name}";
+        $body = $decision === 'approved'
+            ? "العميل «{$clientName}» جاهز لإدراج المؤثّر ضمن حملته."
+            : "العميل «{$clientName}» طلب بديلًا عن هذا المؤثّر.";
+        if ($decision === 'rejected' && filled($reason)) {
+            $body .= " السبب: {$reason}";
+        }
+
+        // رابط آمن فقط حين يرتبط الترشيح بحملة فعلية — نتجنّب روابط عميقة إلى صفحة غير موجودة
+        $actionUrl = $rec->campaign_id ? "/app/campaigns/{$rec->campaign_id}" : null;
+        $data = [
+            'objects' => [
+                ['type' => 'creator', 'name' => $rec->name],
+                ['type' => 'client', 'name' => $clientName],
+            ],
+        ];
+        if ($actionUrl) {
+            $data['cta_label'] = 'عرض الحملة';
+        }
+
+        $this->notifications->notifyMany(
+            $rec->tenant_id,
+            $recipients,
+            "pool_recommendation.{$decision}",
+            NotificationCategory::Creators->value,
+            $title,
+            $body,
+            $actionUrl,
+            $data,
+            $rec,
+        );
     }
 }
