@@ -7,9 +7,11 @@ use App\Domain\Campaigns\Models\Campaign;
 use App\Domain\Campaigns\Models\CampaignShortlist;
 use App\Domain\Campaigns\Models\CampaignShortlistItem;
 use App\Domain\Campaigns\Models\CampaignShortlistVersion;
+use App\Domain\Collaborations\Models\Collaboration;
 use App\Domain\Communications\Services\NotificationService;
 use App\Domain\Creators\Models\Creator;
 use App\Domain\Nomination\Services\NominationMatchService;
+use Illuminate\Database\QueryException;
 use Illuminate\Support\Facades\DB;
 
 /** محرّك الترشيح — قائمة أساسية/احتياطية بإصدارات + درجة ملاءمة + قرار العميل. */
@@ -129,6 +131,68 @@ class ShortlistService
         $v->shortlist->update(['status' => $status]);
 
         $this->announceDecision($item, $v, $decision, $reason, $status, $pending);
+    }
+
+    /**
+     * N6 — تحويل المعتمَدين للتنفيذ: يُحوّل كل بند اعتمده العميل (أساسيّ، غير احتياط)
+     * في الإصدار الحالي إلى «تعاون» عبر الخدمة القانونية الوحيدة للتنفيذ
+     * ({@see CollaborationWorkflowService::offer}) — لا نطاق تنفيذ جديد.
+     *
+     * قواعد الأهلية (صارمة): المعتمَد فقط؛ المرفوض وطالب البديل لا يُحوَّلان أبدًا؛
+     * والاحتياط لا يُحوَّل. إن بقي أيّ بند «بانتظار قرار العميل» تُمنع العملية (الرحلة
+     * لم تكتمل بعد). Idempotent: البند المرتبط بتعاون مسبق يُتخطّى، والفهرس الفريد
+     * (tenant_id, shortlist_item_id) يمنع الازدواج حتى عند التزامن/النقر المزدوج.
+     *
+     * @return array{created:int, skipped:int, eligible:int}
+     */
+    public function convertApprovedToCollaborations(CampaignShortlist $sl, int $actorId): array
+    {
+        $campaign = $sl->campaign;
+        $v = $sl->currentVersion();
+        $items = $v->items()->get();
+
+        if ($items->where('client_decision', 'pending')->isNotEmpty()) {
+            throw new \RuntimeException('لا يزال بعض المرشّحين بانتظار قرار العميل — أكمِل القرارات قبل التحويل للتنفيذ.');
+        }
+
+        $eligible = $items->where('client_decision', 'approved')->where('is_backup', false);
+        if ($eligible->isEmpty()) {
+            return ['created' => 0, 'skipped' => 0, 'eligible' => 0];
+        }
+
+        // البنود المحوّلة مسبقًا (لها تعاون) تُستبعَد — إعادة التشغيل لا تُنشئ ازدواجًا.
+        $already = Collaboration::whereIn('shortlist_item_id', $eligible->pluck('id'))
+            ->pluck('shortlist_item_id')->all();
+        $todo = $eligible->whereNotIn('id', $already);
+
+        $wf = app(\App\Domain\Collaborations\Services\CollaborationWorkflowService::class);
+        $created = 0;
+        foreach ($todo as $item) {
+            try {
+                $wf->offer($sl->tenant_id, [
+                    'creator_id' => $item->creator_id,
+                    'campaign_id' => $campaign->id,
+                    'client_id' => $campaign->client_id,
+                    'shortlist_item_id' => $item->id,
+                    'title' => $campaign->name,
+                    'brief' => $campaign->brief,
+                    'fee_minor' => (int) $item->proposed_fee_minor,
+                    'currency' => $campaign->currency,
+                ], $actorId);
+                $created++;
+            } catch (QueryException $e) {
+                // سباق نادر: نقر مزدوج تجاوز الفحص المسبق فاصطدم بالفهرس الفريد — تخطٍّ آمن.
+                if (! str_contains($e->getMessage(), 'shortlist_item')) {
+                    throw $e;
+                }
+            }
+        }
+
+        AuditLogger::log('nomination.converted', $campaign, [
+            'created' => $created, 'eligible' => $eligible->count(), 'version' => (int) $v->version,
+        ], $sl->tenant_id, $actorId);
+
+        return ['created' => $created, 'skipped' => $eligible->count() - $created, 'eligible' => $eligible->count()];
     }
 
     /**

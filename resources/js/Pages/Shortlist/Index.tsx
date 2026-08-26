@@ -18,11 +18,12 @@ interface Candidate {
 }
 interface CandidatePool { active: number; inactive: number }
 interface VersionRow { number: number; status: string; statusLabel: string; statusTone: string; items: number; isCurrent: boolean; submittedAt: string | null; decidedAt: string | null }
+interface Conversion { approved: number; pending: number; converted: number; eligible: number; canConvert: boolean; blockedReason: string | null }
 interface Props {
   campaign: Campaign; version: Version; items: Item[]; candidates: Candidate[];
   filters: { q: string | null; platform: string | null };
   canEdit: boolean; budgetPct: number; overBudget: boolean; versions: VersionRow[];
-  candidatePool: CandidatePool;
+  candidatePool: CandidatePool; conversion: Conversion;
   documents: { proposal: PreviewDoc };
 }
 
@@ -44,7 +45,7 @@ function DataTable({ head, children }: { head: string[]; children: ReactNode }) 
   );
 }
 
-export default function ShortlistIndex({ campaign, version, items, candidates, filters, canEdit, budgetPct, overBudget, versions, candidatePool, documents }: Props) {
+export default function ShortlistIndex({ campaign, version, items, candidates, filters, canEdit, budgetPct, overBudget, versions, candidatePool, conversion, documents }: Props) {
   const [proposalOpen, setProposalOpen] = useState(false);
   const [tab, setTab] = useState(canEdit ? 'list' : 'list');
   useEffect(() => {
@@ -103,7 +104,22 @@ export default function ShortlistIndex({ campaign, version, items, candidates, f
                 )}
               </>
             ) : version.status !== 'draft' ? (
-              <button disabled={busy} onClick={() => post(`${base}/revise`)} className="btn btn-sm btn-outline">إنشاء إصدار جديد</button>
+              <>
+                {conversion.canConvert && (
+                  <button disabled={busy} onClick={() => post(`${base}/convert`)} className="btn btn-sm" title="إنشاء تعاون تنفيذ لكل مؤثّر اعتمده العميل">
+                    <Icon name="clipboard-check" size={13} /> تحويل المعتمَدين للتنفيذ ({conversion.eligible})
+                  </button>
+                )}
+                {!conversion.canConvert && conversion.converted > 0 && conversion.eligible === 0 && (
+                  <span className="badge" style={{ background: 'var(--ih-success-soft)', color: 'var(--ih-success-ink)' }}>
+                    <Icon name="clipboard-check" size={12} /> حُوِّل {conversion.converted} معتمَد للتنفيذ
+                  </span>
+                )}
+                {!conversion.canConvert && conversion.blockedReason && conversion.approved > 0 && (
+                  <span style={{ fontSize: '.74rem', color: 'var(--ih-warning-ink)' }}>{conversion.blockedReason}</span>
+                )}
+                <button disabled={busy} onClick={() => post(`${base}/revise`)} className="btn btn-sm btn-outline">إنشاء إصدار جديد</button>
+              </>
             ) : null}
           </>
         }

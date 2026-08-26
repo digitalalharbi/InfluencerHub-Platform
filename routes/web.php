@@ -436,6 +436,7 @@ Route::middleware(['auth', 'tenant', 'platform_preview:agency', 'agency_member',
         Route::post('/campaigns/{campaign}/shortlist/add', [\App\Http\Controllers\Inertia\ShortlistController::class, 'add']);
         Route::post('/campaigns/{campaign}/shortlist/submit', [\App\Http\Controllers\Inertia\ShortlistController::class, 'submit']);
         Route::post('/campaigns/{campaign}/shortlist/revise', [\App\Http\Controllers\Inertia\ShortlistController::class, 'revise']);
+        Route::post('/campaigns/{campaign}/shortlist/convert', [\App\Http\Controllers\Inertia\ShortlistController::class, 'convert']);
         Route::post('/campaigns/{campaign}/shortlist/items/{item}/remove', [\App\Http\Controllers\Inertia\ShortlistController::class, 'remove']);
     });
     Route::post('/campaigns/{campaign}/{action}', [\App\Http\Controllers\Inertia\CampaignDetailController::class, 'transition'])
@@ -697,6 +698,7 @@ Route::middleware(['auth', 'tenant', 'platform_preview:agency', 'agency_member']
             Route::post('/campaigns/{campaign}/shortlist/add', [\App\Http\Controllers\Inertia\ShortlistController::class, 'add']);
             Route::post('/campaigns/{campaign}/shortlist/submit', [\App\Http\Controllers\Inertia\ShortlistController::class, 'submit']);
             Route::post('/campaigns/{campaign}/shortlist/revise', [\App\Http\Controllers\Inertia\ShortlistController::class, 'revise']);
+            Route::post('/campaigns/{campaign}/shortlist/convert', [\App\Http\Controllers\Inertia\ShortlistController::class, 'convert']);
             Route::post('/campaigns/{campaign}/shortlist/items/{item}/remove', [\App\Http\Controllers\Inertia\ShortlistController::class, 'remove']);
         });
         Route::post('/campaigns/{campaign}/{action}', [\App\Http\Controllers\Inertia\CampaignDetailController::class, 'transition'])

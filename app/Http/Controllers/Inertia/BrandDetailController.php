@@ -2,6 +2,10 @@
 
 namespace App\Http\Controllers\Inertia;
 
+use App\Domain\Campaigns\Models\Campaign;
+use App\Domain\Campaigns\Models\CampaignShortlist;
+use App\Domain\Campaigns\Models\CampaignShortlistVersion;
+use App\Domain\Content\Models\ContentItem;
 use App\Domain\CRM\Models\Brand;
 use App\Domain\CRM\Services\BrandWorkflowService;
 use App\Domain\CRM\Support\ClientNotifier;
@@ -65,9 +69,12 @@ class BrandDetailController extends Controller
         $b = $brand->load('client', 'statusHistory', 'decisions', 'socialAccounts', 'versions');
 
         // شخصية العلامة التشغيلية: حملاتها ومحتواها المرتبط (بيانات فعلية)
-        $brandCampaigns = \App\Domain\Campaigns\Models\Campaign::where('brand_id', $b->id)
+        $brandCampaigns = Campaign::where('brand_id', $b->id)
             ->withCount('deliverables')->latest()->get();
-        $brandContent = \App\Domain\Content\Models\ContentItem::whereIn('campaign_id', $brandCampaigns->pluck('id'))
+        // سياق الترشيح على مستوى العلامة (N4) — حالة ترشيح كل حملة، من محرّك الترشيح الوحيد.
+        $brandShortlists = CampaignShortlist::whereIn('campaign_id', $brandCampaigns->pluck('id'))
+            ->get()->keyBy('campaign_id');
+        $brandContent = ContentItem::whereIn('campaign_id', $brandCampaigns->pluck('id'))
             ->with('creator')->latest()->limit(30)->get();
         $activeCampaigns = $brandCampaigns->whereNotIn('status', ['draft', 'completed', 'cancelled'])->count();
         $awaitingContent = $brandContent->whereIn('status', ['agency_review', 'client_review'])->count();
@@ -75,8 +82,8 @@ class BrandDetailController extends Controller
         // التعليق إجراء هدّام ببوابة أعلى — لا يُعرض لمن لا يملكه
         $canSuspend = $r->user()->can('delete', $b);
         $actorNames = User::whereIn('id', $b->statusHistory->pluck('actor_id')->merge($b->decisions->pluck('reviewer_id'))->filter()->unique())->pluck('name', 'id');
-        $st = fn ($s) => __('statuses.' . $s);
-        $tone = fn ($s) => __('statuses.tone.' . $s);
+        $st = fn ($s) => __('statuses.'.$s);
+        $tone = fn ($s) => __('statuses.tone.'.$s);
 
         return Inertia::render('Brands/Show', [
             'brand' => [
@@ -101,9 +108,12 @@ class BrandDetailController extends Controller
                 'awaitingContent' => $awaitingContent,
                 'budgetMinor' => (int) $brandCampaigns->sum('budget_minor'),
             ],
-            'campaigns' => $brandCampaigns->map(function ($c) use ($st, $tone, $brandContent) {
+            'campaigns' => $brandCampaigns->map(function ($c) use ($st, $tone, $brandContent, $brandShortlists) {
                 $cc = $brandContent->where('campaign_id', $c->id);
                 $pub = $cc->where('status', 'published')->count();
+                $sl = $brandShortlists->get($c->id);
+                $slStatus = $sl?->currentVersion()?->status;
+
                 return [
                     'id' => $c->id, 'name' => $c->name, 'deliverables' => (int) $c->deliverables_count,
                     'budgetMinor' => (int) $c->budget_minor,
@@ -111,6 +121,10 @@ class BrandDetailController extends Controller
                     'progress' => $cc->count() ? (int) round($pub / max(1, $cc->count()) * 100) : 0,
                     'startDate' => $c->start_date?->format('Y-m-d'), 'endDate' => $c->end_date?->format('Y-m-d'),
                     'status' => $c->status, 'statusLabel' => $st($c->status), 'statusTone' => $tone($c->status),
+                    // سياق الترشيح — حالة القائمة إن وُجدت (رابط الـworkspace محميّ بـnomination:agency).
+                    'nomination' => $sl
+                        ? ['has' => true, 'statusLabel' => CampaignShortlistVersion::statusLabel($slStatus)]
+                        : ['has' => false, 'statusLabel' => null],
                 ];
             })->values(),
             'content' => $brandContent->map(fn ($c) => [

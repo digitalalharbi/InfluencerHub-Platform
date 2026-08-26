@@ -1,13 +1,35 @@
 <?php
+
 namespace App\Domain\Campaigns\Models;
+
+use App\Domain\Collaborations\Models\Collaboration;
 use App\Domain\Creators\Models\Creator;
 use App\Domain\Tenancy\Concerns\BelongsToTenant;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
-class CampaignShortlistItem extends Model {
+use Illuminate\Database\Eloquent\Relations\HasOne;
+
+class CampaignShortlistItem extends Model
+{
     use BelongsToTenant;
-    protected $fillable = ['tenant_id','shortlist_version_id','creator_id','is_backup','proposed_fee_minor','match_score','reasons','client_decision','decision_reason'];
-    protected $casts = ['is_backup'=>'boolean','reasons'=>'array','proposed_fee_minor'=>'integer','match_score'=>'integer'];
-    public function creator(): BelongsTo { return $this->belongsTo(Creator::class); }
-    public function version(): BelongsTo { return $this->belongsTo(CampaignShortlistVersion::class, 'shortlist_version_id'); }
+
+    protected $fillable = ['tenant_id', 'shortlist_version_id', 'creator_id', 'is_backup', 'proposed_fee_minor', 'match_score', 'reasons', 'client_decision', 'decision_reason'];
+
+    protected $casts = ['is_backup' => 'boolean', 'reasons' => 'array', 'proposed_fee_minor' => 'integer', 'match_score' => 'integer'];
+
+    public function creator(): BelongsTo
+    {
+        return $this->belongsTo(Creator::class);
+    }
+
+    public function version(): BelongsTo
+    {
+        return $this->belongsTo(CampaignShortlistVersion::class, 'shortlist_version_id');
+    }
+
+    /** التعاون الناتج عن تحويل هذا البند المعتمَد للتنفيذ (N6) — أثر رجعي دائم، تحويل واحد لكل بند. */
+    public function collaboration(): HasOne
+    {
+        return $this->hasOne(Collaboration::class, 'shortlist_item_id');
+    }
 }

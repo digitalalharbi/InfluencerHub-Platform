@@ -9,7 +9,7 @@ _Last updated: 2026-08-26._
 
 - **Canonical repo:** `digitalalharbi/InfluencerHub-Platform`
 - **Origin:** `https://github.com/digitalalharbi/InfluencerHub-Platform.git`
-- **main = `5ca6a4f` (#91)** — Influencer Nomination mission N1–N8 complete + notification/email hardening. VPS deploy + authenticated production smoke verified per-merge through the pipeline (last fully-verified prior SHA `a2cc80f`/#89; `5f300d9`/#90 + `5ca6a4f`/#91 deploys ride the same non-destructive pipeline).
+- **main = `09c6de1` (#92)** — Influencer Nomination mission N1–N8 complete + notification/email hardening; N4 Brand mount + **N6 conversion** landing via the follow-up PR (updated to the merged SHA on completion). VPS deploy + authenticated production smoke verified per-merge (last fully-verified `09c6de1`/#92: `/up` 200, nomination routes 302 auth-gated, Vite build shipped).
 - **Active working directory:** `/Users/mohammedalharbimacbook/Developer/InfluencerHub-nomination` (worktree).
 - **Other worktrees:** `InfluencerHub-Platform` (holds protected uncommitted security-advisory work — do not touch), `InfluencerHub-comms`, `ih-autopilot`.
 
@@ -32,7 +32,7 @@ _Last updated: 2026-08-26._
 
 ## Delivery sequence status
 
-N1 ✅ · N2 ✅ (incl. deferred PoolRecommendation notification, #91) · N3 ✅ (#89) · N4 ✅ (surfaces 1–4 route through the single scorer; admin pool uses `PoolMatchService` on `PoolCreator` by design — a distinct entity/flow, not a duplicate) · N5 ✅ (#89) · N6 ✅ (#88/#90) · N7 ✅ (owner-only audited `feature_availabilities` toggle + 4-dimension `nomination` middleware + `withBypass` isolation + `platform_owner` RBAC) · N8 ✅ (#90 cross-browser E2E).
+N1 ✅ · N2 ✅ (incl. deferred PoolRecommendation notification, #91) · N3 ✅ (#89) · N4 ✅ (Campaign/Client-portal/Agency/Platform mounts through the single engine; **Brand** context now surfaced too — brand detail shows each campaign's nomination status + link, gated on the feature flag; admin pool uses `PoolMatchService` on `PoolCreator` by design — a distinct entity/flow, not a duplicate) · N5 ✅ (#89) · **N6 ✅ INCLUDING CONVERSION** (#88/#90 decision + client alternative; conversion: approved shortlist items → canonical `Collaboration` execution objects via `CollaborationWorkflowService::offer`, durable `collaborations.shortlist_item_id` back-reference + unique index for idempotency, approved-only/no-backup, pending blocks, audited `nomination.converted`, cross-browser E2E `23-nomination-conversion`) · N7 ✅ (owner-only audited `feature_availabilities` toggle + 4-dimension `nomination` middleware + `withBypass` isolation + `platform_owner` RBAC) · N8 ✅ (#90 + conversion E2E cross-browser; production authenticated nomination QA = BLOCKED_PRODUCTION_NOMINATION_QA_DATA — sanctioned Showcase QA tenant has no seeded shortlist data).
 
 ## Tests / gates (last full run on main)
 
@@ -51,4 +51,4 @@ N1 ✅ · N2 ✅ (incl. deferred PoolRecommendation notification, #91) · N3 ✅
 
 ## Next Exact Step
 
-Nomination mission complete (N1–N8 + notification/email hardening + deferred PoolRecommendation). Optional future increments if requested: campaign conversion of an approved shortlist into live deliverables (N6 stretch), an agency-side surface for admin-pool recommendations (today the agency is only notified, no dedicated view), and lifting the BLOCKED_EXTERNAL_REAL_INBOX email-delivery gate once a sanctioned SMTP/mailbox exists. Each: focused PR → full gates → merge → deploy → smoke.
+Nomination mission complete (N1–N8 incl. N6 conversion + notification/email hardening + deferred PoolRecommendation). Optional future increments if requested: auto-generating per-creator deliverables at conversion time (today conversion creates the `Collaboration` execution object tied to the campaign; deliverables stay a separate planning step), an agency-side list surface for admin-pool recommendations (today the agency is notified, no dedicated view), and lifting BLOCKED_EXTERNAL_REAL_INBOX / BLOCKED_PRODUCTION_NOMINATION_QA_DATA once a sanctioned SMTP/mailbox and seeded QA-tenant nomination data exist. Each: focused PR → full gates → merge → deploy → smoke.
