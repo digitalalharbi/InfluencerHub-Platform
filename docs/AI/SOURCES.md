@@ -6,8 +6,8 @@
 ## Canonical
 
 - **Repository:** `digitalalharbi/InfluencerHub-Platform` — sole source of truth.
-- **Production:** https://influencerhub.io/ — **deployed = main = `09c6de1` (#92)** (updated to the N4/N6-conversion merge SHA on completion). Non-destructive pipeline (`migrate --force` additive + `db:seed --force` reference-only); per-merge VPS deploy + unauthenticated production smoke SUCCESS. Authenticated production **nomination** QA: BLOCKED_PRODUCTION_NOMINATION_QA_DATA — the sanctioned Showcase QA tenant (`showcase_admin@showcase.test`) has no seeded shortlist/nomination data (`ShowcaseBuilder` seeds none); the mutation chain is proven by cross-browser CI E2E instead.
-- **Baseline history:** `244851f` (#82) → `e66a6fa` (#83 N1) → `b43abfa` (#84 comms) → `b52f77c` (#85 follow-up) → `c54c1ef` (#86 N2) → #87 categories/email-lifecycle → `3d26b3e` (#88 N6 decision) → `a2cc80f` (#89 N3/N5) → `5f300d9` (#90 N8 E2E) → `5ca6a4f` (#91 N2 pool-rec notify) → `09c6de1` (#92 docs) → N4 Brand + N6 conversion (this PR).
+- **Production:** https://influencerhub.io/ — **deployed = main = `c0b5af6` (#94)**. Non-destructive pipeline (`migrate --force` additive + `db:seed --force` reference-only); VPS deploy SUCCESS + production-safe smoke SUCCESS on this SHA (health 200; nomination agency/client/platform routes 302 auth-gated; `POST …/shortlist/convert` 419 CSRF = live; build shipped). Authenticated production **nomination** QA: BLOCKED_PRODUCTION_NOMINATION_QA_DATA — the sanctioned Showcase QA tenant (`showcase_admin@showcase.test`) has no seeded shortlist/nomination data (`ShowcaseBuilder` seeds none); the mutation chain is proven by cross-browser CI E2E instead.
+- **Baseline history:** `244851f` (#82) → `e66a6fa` (#83 N1) → `b43abfa` (#84 comms) → `b52f77c` (#85 follow-up) → `c54c1ef` (#86 N2) → #87 categories/email-lifecycle → `3d26b3e` (#88 N6 decision) → `a2cc80f` (#89 N3/N5) → `5f300d9` (#90 N8 E2E) → `5ca6a4f` (#91 N2 pool-rec notify) → `09c6de1` (#92 docs) → `aebc674` (#93 N4 Brand + N6 conversion) → `c0b5af6` (#94 e2e flake fix; **deployed**).
 
 ## Shipped PRs (merged + deployed + production-verified)
 
