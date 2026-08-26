@@ -3,16 +3,19 @@
 namespace App\Http\Controllers\Platform;
 
 use App\Domain\Audit\Models\AuditLog;
+use App\Domain\Audit\Services\AuditLogger;
 use App\Domain\Billing\Models\Subscription;
 use App\Domain\Campaigns\Models\Campaign;
-use App\Domain\CRM\Models\ClientMember;
-use App\Domain\Creators\Models\Creator;
-use App\Domain\Identity\Models\User;
-use App\Domain\Partners\Models\ExternalAgencyMember;
-use App\Domain\Tenancy\Models\{Organization, OrganizationMembership, Tenant};
+use App\Domain\Nomination\Access\FeatureAvailabilityResolver;
+use App\Domain\Nomination\Support\NominationAbilities;
 use App\Domain\Platform\Services\PlatformPortalEligibilityService;
+use App\Domain\Tenancy\Models\Organization;
+use App\Domain\Tenancy\Models\OrganizationMembership;
+use App\Domain\Tenancy\Models\Tenant;
 use App\Domain\Tenancy\Support\TenantContext;
 use App\Http\Controllers\Controller;
+use Illuminate\Http\JsonResponse;
+use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Inertia\Response;
@@ -27,16 +30,14 @@ class PlatformTenantController extends Controller
 {
     private const SUGGEST_PER_PAGE = 8;   // قائمة مقترَحة صغيرة، لا الكون كاملًا
 
-    public function __construct(private PlatformPortalEligibilityService $eligibility)
-    {
-    }
+    public function __construct(private PlatformPortalEligibilityService $eligibility) {}
 
     /** يبني رابط بدء المعاينة الحامل للسياق الدقيق (+المؤسسة للوكالة). */
     private function withHref(int $tenantId, string $portal, array $c): array
     {
         $href = "/platform/preview/{$tenantId}/{$portal}/{$c['userId']}/{$c['entityId']}";
         if (($c['organizationId'] ?? null) !== null) {
-            $href .= '?organization=' . $c['organizationId'];
+            $href .= '?organization='.$c['organizationId'];
         }
 
         return $c + ['startHref' => $href];
@@ -46,7 +47,7 @@ class PlatformTenantController extends Controller
      * بحث خادميّ مُصفَّح في السياقات المؤهَّلة لبوّابة (§P3-hardening §5) — يبلغ المالك أيّ
      * سياق مصرَّح لا الأوّل ٢٥. يُستدعى من مُنتقي السياق في صفحة التفصيل (JSON).
      */
-    public function contexts(Request $r, Tenant $tenant): \Illuminate\Http\JsonResponse
+    public function contexts(Request $r, Tenant $tenant): JsonResponse
     {
         $portal = (string) $r->query('portal');
         abort_unless(in_array($portal, ['agency', 'client', 'creator', 'partner'], true), 404);
@@ -76,6 +77,7 @@ class PlatformTenantController extends Controller
                 'orgs' => Organization::withoutGlobalScopes()->where('tenant_id', $t->id)->count(),
                 'href' => "/platform/tenants/{$t->id}",
             ]);
+
             return ['tenants' => $tenants, 'total' => Tenant::count()];
         });
 
@@ -134,11 +136,65 @@ class PlatformTenantController extends Controller
                 'portals' => $portals,
                 'previewPortals' => $previewPortals,
                 'activity' => $activity,
+                // إتاحة الميزات المُدارة من المنصّة لهذا المستأجر (مصدر القرار الموحّد).
+                // التعطيل يُخفي/يمنع (403) ولا يمحو البيانات؛ إعادة التفعيل تُرجعها.
+                'features' => [
+                    'influencer_nomination' => [
+                        'key' => NominationAbilities::KEY,
+                        'label' => 'ترشيح المؤثرين',
+                        'agency' => app(FeatureAvailabilityResolver::class)
+                            ->enabled(NominationAbilities::KEY, $tenant->id, null, 'agency'),
+                        'client' => app(FeatureAvailabilityResolver::class)
+                            ->enabled(NominationAbilities::KEY, $tenant->id, null, 'client'),
+                    ],
+                ],
             ];
         });
 
-        \App\Domain\Audit\Services\AuditLogger::log('platform.tenant.view', $tenant, [], $tenant->id, request()->user()?->id);
+        AuditLogger::log('platform.tenant.view', $tenant, [], $tenant->id, request()->user()?->id);
 
         return Inertia::render('Platform/TenantDetail', $data);
+    }
+
+    /**
+     * influencer_nomination.manage_feature — إدارة إتاحة «ترشيح المؤثرين» لمستأجر.
+     *
+     * صلاحية على مستوى المنصّة (يفرضها حارس platform_owner على المسار). تكتب صفّ إتاحة
+     * صريحًا (tenant، اختياريًّا portal) عبر المصدر الموحّد. التعطيل إخفاءٌ فقط — لا يمحو
+     * أي بيان ترشيح، وإعادة التفعيل تُرجع نفس السجلّات. الفعل مُدقَّق (هوية الفاعل محفوظة).
+     */
+    public function setNominationAvailability(Request $r, Tenant $tenant, FeatureAvailabilityResolver $resolver): RedirectResponse
+    {
+        $data = $r->validate([
+            'enabled' => 'required|boolean',
+            'portal' => 'nullable|in:agency,client', // null = كل البوّابات لهذا المستأجر
+            'reason' => 'nullable|string|max:500',
+        ], [], ['enabled' => 'الإتاحة', 'portal' => 'البوّابة']);
+
+        $portal = ($data['portal'] ?? null) ?: null;
+
+        TenantContext::withBypass(function () use ($resolver, $tenant, $data, $portal, $r) {
+            $resolver->set(
+                NominationAbilities::KEY,
+                $tenant->id,
+                null, // workspace: على مستوى المستأجر في N1
+                $portal,
+                (bool) $data['enabled'],
+                $r->user()?->id,
+                $data['reason'] ?? null,
+            );
+
+            AuditLogger::log(
+                $data['enabled'] ? 'nomination.feature_enabled' : 'nomination.feature_disabled',
+                $tenant,
+                ['portal' => $portal ?? 'all'],
+                $tenant->id,
+                $r->user()?->id,
+            );
+        });
+
+        return back()->with('ok', $data['enabled']
+            ? 'فُعِّلت ميزة ترشيح المؤثرين لهذا المستأجر.'
+            : 'أُوقفت ميزة ترشيح المؤثرين لهذا المستأجر (البيانات محفوظة).');
     }
 }

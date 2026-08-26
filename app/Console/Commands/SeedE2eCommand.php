@@ -27,6 +27,9 @@ class SeedE2eCommand extends Command {
         $viewer = $this->user('مشاهد', 'viewer@a.test');
         $this->member($tA, $orgA, $admin, 'agency_admin');
         $this->member($tA, $orgA, $viewer, 'viewer');
+        // دور مالية — عضو وكالة صحيح لكنّه خارج صلاحية عرض «ترشيح المؤثرين» (لإثبات عزل الصلاحية حيًّا)
+        $finance = $this->user('محاسب الوكالة', 'finance@a.test');
+        $this->member($tA, $orgA, $finance, 'finance');
         $plan = Plan::create(['key' => 'pro', 'name' => 'احترافي', 'is_active' => true]);
         $v = PlanVersion::create(['plan_id' => $plan->id, 'version' => 1, 'is_active' => true]);
         PlanEntitlement::create(['plan_version_id' => $v->id, 'feature_key' => 'customers.max', 'value' => 50]);
@@ -68,8 +71,12 @@ class SeedE2eCommand extends Command {
         $firstCreator->update(['user_id' => $creatorUser->id]);
 
         // حملة لاختبار ترشيح مبدع من قاعدة المؤثرين (المرحلة 2)
-        \App\Domain\Campaigns\Models\Campaign::create(['tenant_id' => $tA->id, 'campaign_number' => 'CM-' . $tA->id . '-1',
+        $summerCampaign = \App\Domain\Campaigns\Models\Campaign::create(['tenant_id' => $tA->id, 'campaign_number' => 'CM-' . $tA->id . '-1',
             'client_id' => $nikeClient->id, 'name' => 'حملة الصيف', 'status' => 'active', 'budget_minor' => 5000000, 'currency' => 'SAR']);
+        // مرشّح فعليّ على قائمة الحملة — سجلّ مُخزَّن يثبت «حفظ البيانات عند إطفاء الميزة» حيًّا (N1).
+        $slSvc = app(\App\Domain\Campaigns\Services\ShortlistService::class);
+        $slModel = $slSvc->getOrCreate($summerCampaign, $admin->id);
+        $slSvc->addCreator($slModel->currentVersion(), $firstCreator);
 
         return [$nikeClient, $firstCreator];
         }, $orgA->id);

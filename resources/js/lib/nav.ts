@@ -79,7 +79,7 @@ export const agencyNav: NavGroup[] = [
     collapsible: true,
     items: [
       { key: 'content', label: 'المحتوى', route: '/content', icon: 'image', badge: 'content' },
-      { key: 'shortlisting', label: 'الترشيحات', route: '/shortlisting', icon: 'list-checks' },
+      { key: 'shortlisting', label: 'الترشيحات', route: '/shortlisting', icon: 'list-checks', can: 'influencer_nomination' },
       { key: 'collaborations', label: 'التعاونات', route: '/collaborations', icon: 'git-merge' },
       { key: 'contracts', label: 'العقود', route: '/contracts', icon: 'file-text' },
       { key: 'brands', label: 'العلامات', route: '/brands', icon: 'bookmark' },
