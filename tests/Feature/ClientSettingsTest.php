@@ -52,16 +52,17 @@ class ClientSettingsTest extends TestCase
     public function test_update_notification_preferences(): void
     {
         [$t, $c, $u] = $this->ctx();
+        // فئات قانونيّة من NotificationCategory (المصدر الموحّد) — reviews/finance بدل brands/documents.
         $this->actingAs($u)->post('/client/settings/notifications', [
-            'prefs' => ['brands' => ['in_app' => '1', 'email' => '1'], 'documents' => ['in_app' => '1', 'sms' => '1']],
+            'prefs' => ['reviews' => ['in_app' => '1', 'email' => '1'], 'finance' => ['in_app' => '1', 'sms' => '1']],
         ])->assertRedirect();
         TenantContext::bypass(true);
-        $brands = NotificationPreference::where('user_id', $u->id)->where('category', 'brands')->first();
-        $docs = NotificationPreference::where('user_id', $u->id)->where('category', 'documents')->first();
+        $reviews = NotificationPreference::where('user_id', $u->id)->where('category', 'reviews')->first();
+        $finance = NotificationPreference::where('user_id', $u->id)->where('category', 'finance')->first();
         TenantContext::reset();
-        $this->assertTrue($brands->email);
-        $this->assertFalse($brands->sms);
-        $this->assertTrue($docs->sms);
+        $this->assertTrue($reviews->email);
+        $this->assertFalse($reviews->sms);
+        $this->assertTrue($finance->sms);
     }
 
     public function test_change_password_requires_correct_current(): void

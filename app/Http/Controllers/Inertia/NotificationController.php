@@ -2,6 +2,8 @@
 
 namespace App\Http\Controllers\Inertia;
 
+use App\Domain\Communications\Enums\NotificationCategory;
+
 use App\Domain\Communications\Models\{Notification, NotificationDeliveryAttempt};
 use App\Domain\Communications\Services\NotificationService;
 use App\Domain\Tenancy\Support\TenantContext;
@@ -19,18 +21,6 @@ use Inertia\Response;
 class NotificationController extends Controller
 {
     /** فئات الإشعارات الحقيقية (تُطابق سير العمل). */
-    public const CATEGORIES = [
-        'tasks' => 'المهام والإسناد',
-        'campaigns' => 'الحملات',
-        'client_approvals' => 'موافقات العملاء',
-        'creator_invitations' => 'دعوات المبدعين',
-        'content_reviews' => 'مراجعة المحتوى',
-        'publishing' => 'النشر',
-        'finance' => 'المالية',
-        'integrations' => 'التكاملات',
-        'system' => 'تنبيهات النظام',
-        'general' => 'عام',
-    ];
 
     private const CHANNEL_LABEL = ['in_app' => 'داخل التطبيق', 'email' => 'البريد', 'whatsapp' => 'واتساب', 'sms' => 'رسالة'];
 
@@ -61,7 +51,7 @@ class NotificationController extends Controller
 
         $items->through(fn (Notification $n) => [
             'id' => $n->id, 'title' => $n->title, 'body' => $n->body,
-            'category' => self::CATEGORIES[$n->category] ?? $n->category,
+            'category' => NotificationCategory::map()[$n->category] ?? $n->category,
             'actionUrl' => $n->action_url, 'read' => $n->read_at !== null,
             'at' => $n->created_at?->format('Y-m-d H:i'),
             'delivery' => $attempts[$n->id] ?? [],
@@ -100,7 +90,7 @@ class NotificationController extends Controller
         $tid = TenantContext::tenantId();
         $svc = app(NotificationService::class);
 
-        $rows = collect(self::CATEGORIES)->map(function ($label, $key) use ($svc, $tid, $uid) {
+        $rows = collect(NotificationCategory::map())->map(function ($label, $key) use ($svc, $tid, $uid) {
             $p = $svc->preference($tid, $uid, $key);
             return ['key' => $key, 'label' => $label, 'in_app' => $p->in_app, 'email' => $p->email, 'whatsapp' => $p->whatsapp, 'sms' => $p->sms];
         })->values();
@@ -119,7 +109,7 @@ class NotificationController extends Controller
     public function updatePreferences(Request $r): RedirectResponse
     {
         $data = $r->validate([
-            'category' => 'required|string|in:' . implode(',', array_keys(self::CATEGORIES)),
+            'category' => 'required|string|in:' . implode(',', NotificationCategory::values()),
             'in_app' => 'required|boolean', 'email' => 'required|boolean',
             'whatsapp' => 'required|boolean', 'sms' => 'required|boolean',
         ]);

@@ -70,7 +70,7 @@ class ServiceRequestWorkflowService
             // (لا نُخطر من أسند لنفسه، ولا نُعيد الإخطار إن لم يتغيّر المسؤول.)
             if ($assigneeId !== $actorId && $assigneeId !== $previous) {
                 $this->notifications->notify(
-                    $sr->tenant_id, $assigneeId, 'service_request.assigned', 'general',
+                    $sr->tenant_id, $assigneeId, 'service_request.assigned', 'requests',
                     'أُسند إليك طلب خدمة',
                     $sr->title ?: ($sr->request_number ?? 'طلب خدمة'),
                     "/app/service-requests/{$sr->id}", ['objects' => [['type' => 'service_request', 'name' => ($sr->title ?: ($sr->request_number ?? 'طلب خدمة'))]], 'cta_label' => 'عرض الطلب', 'service_request_id' => $sr->id], $sr,

@@ -58,7 +58,7 @@ class ClientReviewsController extends Controller
             return back()->withErrors(['cr' => 'هذا الطلب لم يعد قابلًا للمراجعة.']);
         }
         $svc->approveChangeRequest($changeRequest, $r->user()->id, 'approved', $r->input('note'));
-        $this->notifier->toUser($changeRequest->tenant_id, $changeRequest->requested_by, 'profile.change_approved', 'profile',
+        $this->notifier->toUser($changeRequest->tenant_id, $changeRequest->requested_by, 'profile.change_approved', 'reviews',
             'اعتُمد طلب تعديل بياناتك القانونية', 'طُبّقت البيانات المطلوبة على ملف العميل.', '/client/profile', ['change_request_id' => $changeRequest->id], $changeRequest);
         return back()->with('ok', 'اعتُمد طلب التعديل وطُبّقت البيانات القانونية.');
     }
@@ -72,7 +72,7 @@ class ClientReviewsController extends Controller
             return back()->withErrors(['cr' => 'هذا الطلب لم يعد قابلًا للمراجعة.']);
         }
         $svc->approveChangeRequest($changeRequest, $r->user()->id, 'rejected', $data['note']);
-        $this->notifier->toUser($changeRequest->tenant_id, $changeRequest->requested_by, 'profile.change_rejected', 'profile',
+        $this->notifier->toUser($changeRequest->tenant_id, $changeRequest->requested_by, 'profile.change_rejected', 'reviews',
             'رُفض طلب تعديل بياناتك القانونية', $data['note'], '/client/profile', ['change_request_id' => $changeRequest->id], $changeRequest);
         return back()->with('ok', 'رُفض طلب التعديل ولم تُطبَّق البيانات.');
     }
@@ -87,7 +87,7 @@ class ClientReviewsController extends Controller
         }
         $svc->review($document, $r->user()->id, $data['decision'], $data['note'] ?? null);
         $labels = ['approved' => 'اعتُمد مستندك', 'changes_requested' => 'مطلوب تعديل على مستندك', 'rejected' => 'رُفض مستندك'];
-        $this->notifier->toClientMembers($client, "document.{$data['decision']}", 'documents',
+        $this->notifier->toClientMembers($client, "document.{$data['decision']}", 'reviews',
             "{$labels[$data['decision']]}: {$document->title}", $data['note'] ?? null, '/client/documents', ['document_id' => $document->id], $document);
         return back()->with('ok', 'سُجّلت مراجعة المستند.');
     }

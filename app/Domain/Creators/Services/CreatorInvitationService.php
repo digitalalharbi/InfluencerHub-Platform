@@ -238,7 +238,7 @@ class CreatorInvitationService
 
                 if ($inv->invited_by) {
                     $this->notifications->notify($inv->tenant_id, (int) $inv->invited_by,
-                        'creator_invitation.accepted', 'general',
+                        'creator_invitation.accepted', 'creators',
                         'فُعِّلت بوابة صانع محتوى',
                         "{$creator->display_name} أنشأ حسابه ويستطيع الآن قبول التعاونات وتوقيع العقود.",
                         "/app/creators/{$creator->id}", ['creator_id' => $creator->id], $inv);

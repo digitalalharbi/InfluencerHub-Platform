@@ -9,8 +9,8 @@ _Last updated: 2026-08-26._
 
 - **Canonical repo:** `digitalalharbi/InfluencerHub-Platform`
 - **Origin:** `https://github.com/digitalalharbi/InfluencerHub-Platform.git`
-- **main = deployed = `b52f77cfd271f5e24b97e53ecfdfe8308f392c36`** (VPS deploy SUCCESS + authenticated production smoke SUCCESS).
-- **Active working directory:** `/Users/mohammedalharbimacbook/Developer/InfluencerHub-nomination` (worktree; branch `feat/nomination-n2`).
+- **main = deployed = `c54c1ef97f61fe6f7eb258450300a3d86564e59e`** (VPS deploy SUCCESS + authenticated production smoke SUCCESS on this SHA).
+- **Active working directory:** `/Users/mohammedalharbimacbook/Developer/InfluencerHub-nomination` (worktree; current branch continues N3–N8 + notification gaps).
 - **Other worktrees:** `InfluencerHub-Platform` (holds protected uncommitted security-advisory work — do not touch), `InfluencerHub-comms`, `ih-autopilot`.
 
 ## Shipped (merged + deployed + production-verified)
@@ -18,19 +18,20 @@ _Last updated: 2026-08-26._
 - **#83 N1 — Influencer Nomination foundation** (`influencer_nomination`): single canonical access decision `App\Domain\Nomination\Access\NominationAccess` (feature + scope-entitlement + surface + role + context); `feature_availabilities` (platform-managed, default-ON, most-specific-scope-wins); `EnsureNominationEnabled` middleware on all nomination routes (OFF ⇒ 403, data preserved); nav single-source; Platform-Owner `manage_feature` toggle (audited). Live cross-browser verified.
 - **#84 Notifications & Email — professional bilingual experience + human copy:** recipient-locale-aware `NotificationMail` (ar/en, dynamic lang/dir), `<x-mail.button>`, structured business-object cards (no "السياق"), personalized greeting, dev email gallery (`/app/preview/mail`, dev-only), `CopyQualityTest` (no internal-term leakage), real emitters (shortlist/content/service-request) emit business-object copy.
 - **#85 Follow-up — overdue-invoice reminders:** `invoices.overdue_notified_at` one-shot marker, `InvoiceReminderService` + `invoices:scan-overdue` daily schedule, idempotent (no spam), real `due_date` only.
+- **#86 N2 — canonical matcher + client-safe presenter:** `App\Domain\Nomination\Services\NominationMatchService` (single scorer, score/reasons/flags; ShortlistService + CreatorMatchingService delegate to it); `App\Domain\Nomination\Support\ClientNominationView` (single client-safe projection, no cost/margin).
 
 ## Active Task
 
-- **Phase:** **N2** — consolidate the canonical Nomination domain; unify parallel recommendation/matching paths; extract a shared client-safe nomination serializer. Then N3→N8.
-- **Prohibitions:** no CampaignsHub; no rebuild/duplicate systems; no invented deadlines/escalation; no destructive prod ops; preserve tenant + Platform-Owner isolation.
+- **Phase:** N3→N8 + notification-gap closure. Current unit: canonical `NotificationCategory` + emitter/preference remap.
+- **Prohibitions:** no CampaignsHub; no rebuild/duplicate systems; no invented deadlines/escalation; no destructive prod ops; preserve tenant + Platform-Owner isolation; keep personalized copy (no technical labels/«السياق»).
 
 ## Delivery sequence status
 
-N1 ✅ · **N2 → in progress** · N3 Nomination Workspace + matching · N4 contextual mounts · N5 exports · N6 client decision + conversion · N7 admin feature management · N8 role-based cross-browser E2E + production verification — all pending.
+N1 ✅ · **N2 core ✅** (deferred: safe PoolRecommendation consolidation) · N3 Workspace+matching UX · N4 contextual mounts · N5 exports · N6 client decision+conversion · N7 admin management hardening · N8 role-based cross-browser E2E — N3–N8 pending.
 
 ## Tests / gates (last full run on main)
 
-- Backend `vendor/bin/phpunit`: green (1361 on the #84/#85 line) · Frontend typecheck + build: green · Playwright Chromium/Firefox/WebKit: green · VPS deploy: success · production smoke: success.
+- Backend `vendor/bin/phpunit`: green (1369 on the #86/N2 line) · Frontend typecheck + build: green · Playwright Chromium/Firefox/WebKit: green · VPS deploy: success · production smoke: success on `c54c1ef`.
 
 ## Known open items (honest)
 
@@ -45,4 +46,4 @@ N1 ✅ · **N2 → in progress** · N3 Nomination Workspace + matching · N4 con
 
 ## Next Exact Step
 
-Audit the canonical nomination domain + parallel paths on `b52f77c`, then implement N2 consolidation (unify matching, extract client-safe serializer, route recommendation client-decision through shared notification/copy), with regression tests; commit → PR → CI green → merge → continue N3.
+Canonical `NotificationCategory` enum (single source) + safe emitter/preference remap; then N5 export wiring, N6 client alternative-request + conversion, N7 admin hardening, N3/N4 UX, N8 role-based E2E, and the safe PoolRecommendation consolidation. Each: focused PR → full gates → merge → deploy → smoke → continue.

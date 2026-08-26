@@ -82,14 +82,14 @@ class NotificationCenterTest extends TestCase
 
         // فعّل البريد لفئة المهام
         $this->actingAs($u)->post('/app/notifications/preferences', [
-            'category' => 'tasks', 'in_app' => true, 'email' => true, 'whatsapp' => false, 'sms' => false,
+            'category' => 'requests', 'in_app' => true, 'email' => true, 'whatsapp' => false, 'sms' => false,
         ])->assertRedirect()->assertSessionHas('ok');
 
-        $pref = TenantContext::withBypass(fn () => NotificationPreference::where('user_id', $u->id)->where('category', 'tasks')->first());
+        $pref = TenantContext::withBypass(fn () => NotificationPreference::where('user_id', $u->id)->where('category', 'requests')->first());
         $this->assertTrue($pref->email);
 
         // الآن إشعار في فئة tasks يسجّل محاولة بريد (waiting_for_credentials — لا مزوّد)
-        $n = app(NotificationService::class)->notify($t->id, $u->id, 'task.assigned', 'tasks', 'مهمة');
+        $n = app(NotificationService::class)->notify($t->id, $u->id, 'task.assigned', 'requests', 'مهمة');
         $emailAttempt = TenantContext::withBypass(fn () => NotificationDeliveryAttempt::where('notification_id', $n->id)->where('channel', 'email')->first());
         $this->assertNotNull($emailAttempt, 'تفعيل التفضيل غيّر سلوك التسليم فعليًّا');
     }

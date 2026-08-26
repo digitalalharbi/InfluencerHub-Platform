@@ -2,6 +2,8 @@
 
 namespace App\Http\Controllers\Concerns;
 
+use App\Domain\Communications\Enums\NotificationCategory;
+
 use App\Domain\Communications\Models\NotificationPreference;
 use App\Domain\Communications\Services\NotificationService;
 use Illuminate\Http\RedirectResponse;
@@ -29,7 +31,7 @@ trait ManagesAccountSecurity
     {
         $tenantId = $this->securityTenantId($r);
         $prefs = [];
-        foreach (array_keys(NotificationPreference::CATEGORIES) as $cat) {
+        foreach (NotificationCategory::values() as $cat) {
             $p = $svc->preference($tenantId, $r->user()->id, $cat);
             $prefs[$cat] = [
                 'in_app' => (bool) ($p->in_app ?? true),
@@ -40,7 +42,7 @@ trait ManagesAccountSecurity
 
         return [
             'prefs' => $prefs,
-            'categories' => NotificationPreference::CATEGORIES,
+            'categories' => NotificationCategory::map(),
             'sessions' => $this->activeSessions($r),
             'twoFactorEnabled' => (bool) $r->user()->two_factor_confirmed_at,
         ];
@@ -50,7 +52,7 @@ trait ManagesAccountSecurity
     {
         $tenantId = $this->securityTenantId($r);
         $on = $r->input('prefs', []);
-        foreach (array_keys(NotificationPreference::CATEGORIES) as $cat) {
+        foreach (NotificationCategory::values() as $cat) {
             $svc->setPreference($tenantId, $r->user()->id, $cat,
                 (bool) data_get($on, "$cat.in_app", true),
                 (bool) data_get($on, "$cat.email"),

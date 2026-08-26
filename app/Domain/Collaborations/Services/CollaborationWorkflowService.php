@@ -171,7 +171,7 @@ class CollaborationWorkflowService
                 AuditLogger::log("collaboration.$to", $c, ['actor_type' => $actorType], $c->tenant_id, $actorId);
                 // إشعار الطرف المقابل
                 if ($actorType === 'creator' && $c->created_by) {
-                    $this->notifications->notify($c->tenant_id, $c->created_by, "collaboration.$to", 'general', "تحديث تعاون: {$c->title}", 'الحالة: '.$to, "/app/collaborations/{$c->id}", ['collaboration_id' => $c->id], $c);
+                    $this->notifications->notify($c->tenant_id, $c->created_by, "collaboration.$to", 'creators', "تحديث تعاون: {$c->title}", 'الحالة: '.$to, "/app/collaborations/{$c->id}", ['collaboration_id' => $c->id], $c);
                 } elseif ($actorType === 'agency') {
                     $this->notifyCreator($c, 'تحديث تعاون', $c->title);
                 }
@@ -185,7 +185,7 @@ class CollaborationWorkflowService
     {
         $creator = Creator::find($c->creator_id);
         if ($creator?->user_id) {
-            $this->notifications->notify($c->tenant_id, $creator->user_id, 'collaboration.update', 'general', $title, $body, '/creator/collaborations', ['collaboration_id' => $c->id], $c);
+            $this->notifications->notify($c->tenant_id, $creator->user_id, 'collaboration.update', 'creators', $title, $body, '/creator/collaborations', ['collaboration_id' => $c->id], $c);
         }
     }
 

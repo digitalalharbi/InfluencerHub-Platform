@@ -6,16 +6,16 @@
 ## Canonical
 
 - **Repository:** `digitalalharbi/InfluencerHub-Platform` — sole source of truth.
-- **Production:** https://influencerhub.io/ — **deployed = main = `b52f77cfd271f5e24b97e53ecfdfe8308f392c36`** (VPS deploy + authenticated production smoke both SUCCESS on this SHA).
-- **Baseline history:** `244851f` (#82 Platform Owner P3-hardening) → `e66a6fa` (#83 N1) → `b43abfa` (#84 comms email/copy) → `b52f77c` (#85 follow-up).
+- **Production:** https://influencerhub.io/ — **deployed = main = `c54c1ef97f61fe6f7eb258450300a3d86564e59e`** (VPS deploy + authenticated production smoke both SUCCESS on this SHA).
+- **Baseline history:** `244851f` (#82) → `e66a6fa` (#83 N1) → `b43abfa` (#84 comms) → `b52f77c` (#85 follow-up) → `c54c1ef` (#86 N2 matcher/presenter).
 
-## Shipped PRs (merged + deployed)
+## Shipped PRs (merged + deployed + production-verified)
 
-- **#83** N1 Influencer Nomination foundation · **#84** Notifications & Email professional bilingual experience + human copy · **#85** overdue-invoice follow-up reminders. All squash-merged to main, CI green (backend/frontend/e2e cross-browser), deployed, production-smoke verified.
+- **#83** N1 foundation · **#84** email/copy · **#85** follow-up · **#86** N2 canonical matcher (`app/Domain/Nomination/Services/NominationMatchService.php`) + client-safe presenter (`app/Domain/Nomination/Support/ClientNominationView.php`). All squash-merged, CI green (backend/frontend/e2e cross-browser), deployed, smoke-verified.
 
 ## Active work
 
-- **Branch:** `feat/nomination-n2` from `b52f77c` — **N2** consolidation (canonical nomination domain, unify matching, client-safe serializer).
+- Branch continues **N3–N8 + notification-gap closure**. Current unit: canonical `NotificationCategory` enum + safe emitter/preference remap.
 
 ## Communications code paths (N1/N2 track)
 
