@@ -2,9 +2,15 @@
 
 namespace Tests\Feature;
 
-use App\Domain\CRM\Models\{Brand, Client};
+use App\Domain\Campaigns\Models\Campaign;
+use App\Domain\Campaigns\Services\ShortlistService;
+use App\Domain\CRM\Models\Brand;
+use App\Domain\CRM\Models\Client;
+use App\Domain\CRM\Models\ClientMember;
 use App\Domain\Identity\Models\User;
-use App\Domain\Tenancy\Models\{Organization, OrganizationMembership, Tenant};
+use App\Domain\Tenancy\Models\Organization;
+use App\Domain\Tenancy\Models\OrganizationMembership;
+use App\Domain\Tenancy\Models\Tenant;
 use App\Domain\Tenancy\Support\TenantContext;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Str;
@@ -15,20 +21,26 @@ use Tests\TestCase;
 class InertiaBrandsTest extends TestCase
 {
     use RefreshDatabase;
-    protected function tearDown(): void { TenantContext::reset(); parent::tearDown(); }
+
+    protected function tearDown(): void
+    {
+        TenantContext::reset();
+        parent::tearDown();
+    }
 
     private function agency(array $brandStatuses = [], string $role = 'agency_admin'): array
     {
         $t = Tenant::create(['name' => 't', 'slug' => Str::random(8), 'deployment_mode' => 'saas', 'status' => 'active']);
         TenantContext::bypass(true);
         $org = Organization::create(['tenant_id' => $t->id, 'name' => 'وكالة', 'slug' => Str::random(8), 'type' => 'agency', 'status' => 'active']);
-        $u = User::create(['name' => 'أحمد', 'email' => Str::random(6) . '@ex.com', 'password' => bcrypt('x'), 'is_active' => true]);
+        $u = User::create(['name' => 'أحمد', 'email' => Str::random(6).'@ex.com', 'password' => bcrypt('x'), 'is_active' => true]);
         OrganizationMembership::create(['tenant_id' => $t->id, 'organization_id' => $org->id, 'user_id' => $u->id, 'role' => $role, 'status' => 'active']);
-        $cl = Client::create(['tenant_id' => $t->id, 'client_number' => 'CL-' . $t->id, 'display_name' => 'عميل', 'type' => 'company', 'status' => 'active']);
+        $cl = Client::create(['tenant_id' => $t->id, 'client_number' => 'CL-'.$t->id, 'display_name' => 'عميل', 'type' => 'company', 'status' => 'active']);
         foreach ($brandStatuses as $i => $st) {
-            Brand::create(['tenant_id' => $t->id, 'client_id' => $cl->id, 'name' => 'علامة' . $i, 'slug' => Str::random(6), 'status' => $st, 'current_version' => 1]);
+            Brand::create(['tenant_id' => $t->id, 'client_id' => $cl->id, 'name' => 'علامة'.$i, 'slug' => Str::random(6), 'status' => $st, 'current_version' => 1]);
         }
         TenantContext::reset();
+
         return [$t, $org, $u];
     }
 
@@ -37,6 +49,7 @@ class InertiaBrandsTest extends TestCase
         TenantContext::bypass(true);
         $b = Brand::where('tenant_id', $tenantId)->first();
         TenantContext::reset();
+
         return $b;
     }
 
@@ -66,6 +79,25 @@ class InertiaBrandsTest extends TestCase
             ->assertInertia(fn (Assert $page) => $page
                 ->component('Brands/Show')->where('brand.id', $b->id)
                 ->where('canReview', true)->has('actions')->has('decisions')->has('history'));
+    }
+
+    /** N4 — سياق الترشيح على مستوى العلامة: كل حملة تعرض حالة قائمتها من المحرّك الوحيد. */
+    public function test_detail_exposes_nomination_status_per_brand_campaign(): void
+    {
+        [$t, , $u] = $this->agency(['approved']);
+        $b = $this->brand($t->id);
+        TenantContext::withBypass(function () use ($t, $b) {
+            $cm = Campaign::create(['tenant_id' => $t->id, 'campaign_number' => 'CM-'.$t->id, 'client_id' => $b->client_id, 'brand_id' => $b->id, 'name' => 'حملة العلامة', 'status' => 'active', 'currency' => 'SAR']);
+            $sl = app(ShortlistService::class)->getOrCreate($cm);
+            $sl->currentVersion()->update(['status' => 'submitted', 'submitted_at' => now()]);
+        });
+
+        $this->actingAs($u)->get("/beta/brands/{$b->id}")
+            ->assertOk()
+            ->assertInertia(fn (Assert $page) => $page
+                ->component('Brands/Show')
+                ->where('campaigns.0.nomination.has', true)
+                ->where('campaigns.0.nomination.statusLabel', 'بانتظار العميل'));
     }
 
     public function test_approve_action_via_workflow(): void
@@ -123,7 +155,7 @@ class InertiaBrandsTest extends TestCase
     public function test_app_brands_name_search_still_works(): void
     {
         [, , $u] = $this->agency(['approved', 'approved']);
-        $this->actingAs($u)->get('/app/brands?q=' . urlencode('علامة0'))->assertOk()
+        $this->actingAs($u)->get('/app/brands?q='.urlencode('علامة0'))->assertOk()
             ->assertInertia(fn (Assert $page) => $page->has('brands.data', 1));
     }
 
@@ -192,8 +224,8 @@ class InertiaBrandsTest extends TestCase
         $b = $this->brand($t->id);
 
         TenantContext::bypass(true);
-        $member = User::create(['name' => 'عضو', 'email' => Str::random(6) . '@ex.com', 'password' => bcrypt('x'), 'is_active' => true]);
-        \App\Domain\CRM\Models\ClientMember::create([
+        $member = User::create(['name' => 'عضو', 'email' => Str::random(6).'@ex.com', 'password' => bcrypt('x'), 'is_active' => true]);
+        ClientMember::create([
             'tenant_id' => $t->id, 'client_id' => $b->client_id, 'user_id' => $member->id,
             'role' => 'client_admin', 'status' => 'active',
         ]);
@@ -212,8 +244,8 @@ class InertiaBrandsTest extends TestCase
         $b = $this->brand($t->id);
 
         TenantContext::bypass(true);
-        $member = User::create(['name' => 'عضو', 'email' => Str::random(6) . '@ex.com', 'password' => bcrypt('x'), 'is_active' => true]);
-        \App\Domain\CRM\Models\ClientMember::create([
+        $member = User::create(['name' => 'عضو', 'email' => Str::random(6).'@ex.com', 'password' => bcrypt('x'), 'is_active' => true]);
+        ClientMember::create([
             'tenant_id' => $t->id, 'client_id' => $b->client_id, 'user_id' => $member->id,
             'role' => 'client_admin', 'status' => 'active',
         ]);
@@ -241,8 +273,7 @@ class InertiaBrandsTest extends TestCase
                 ->has('checklist.completeness')
                 ->where('checklist.ready', fn ($v) => is_bool($v))
                 // الاسم موجود دائمًا (بند حرِج) → حاضر
-                ->where('checklist.items', fn ($items) =>
-                    collect($items)->firstWhere('key', 'name')['present'] === true));
+                ->where('checklist.items', fn ($items) => collect($items)->firstWhere('key', 'name')['present'] === true));
     }
 
     /** بند حرِج ناقص (لا وصف/قطاع) يجعل الجاهزية غير مكتملة. */

@@ -5,7 +5,9 @@ namespace App\Http\Controllers\Inertia;
 use App\Domain\Audit\Services\AuditLogger;
 use App\Domain\Campaigns\Models\Campaign;
 use App\Domain\Campaigns\Models\CampaignShortlistItem;
+use App\Domain\Campaigns\Models\CampaignShortlistVersion;
 use App\Domain\Campaigns\Services\ShortlistService;
+use App\Domain\Collaborations\Models\Collaboration;
 use App\Domain\Creators\Models\Creator;
 use App\Domain\Exports\DocumentArtifactService;
 use App\Domain\Exports\ExportService;
@@ -64,6 +66,23 @@ class ShortlistController extends Controller
         $budget = (int) $campaign->budget_minor;
         $canEdit = $r->user()->can('update', $campaign) && $version->status === 'draft';
 
+        // N6 — حالة تحويل المعتمَدين للتنفيذ (من نفس بنود الإصدار الحالي، مصدر واحد).
+        $approvedItems = $primary->where('client_decision', 'approved');
+        $pendingCount = $items->where('client_decision', 'pending')->count();
+        $convertedIds = Collaboration::whereIn('shortlist_item_id', $items->pluck('id'))
+            ->pluck('shortlist_item_id')->all();
+        $convertedCount = $approvedItems->whereIn('id', $convertedIds)->count();
+        $eligibleCount = $approvedItems->whereNotIn('id', $convertedIds)->count();
+        $canConvertRole = $r->user()->can('update', $campaign) && $r->user()->can('create', Collaboration::class);
+        $conversion = [
+            'approved' => $approvedItems->count(),
+            'pending' => $pendingCount,
+            'converted' => $convertedCount,
+            'eligible' => $eligibleCount,
+            'canConvert' => $canConvertRole && $pendingCount === 0 && $eligibleCount > 0,
+            'blockedReason' => $pendingCount > 0 ? 'أكمِل قرارات العميل أولًا' : ($approvedItems->isEmpty() ? 'لا مؤثّر معتمَد بعد' : null),
+        ];
+
         return Inertia::render('Shortlist/Index', [
             'campaign' => [
                 'id' => $campaign->id, 'name' => $campaign->name, 'number' => $campaign->campaign_number,
@@ -102,6 +121,7 @@ class ShortlistController extends Controller
             ])->values(),
             'filters' => ['q' => $r->query('q'), 'platform' => $r->query('platform')],
             'canEdit' => $canEdit,
+            'conversion' => $conversion,
             'budgetPct' => ($budget > 0) ? (int) round(min(100, $committed / $budget * 100)) : 0,
             'overBudget' => $budget > 0 && $committed > $budget,
             // مستند المقترح — معاينة/تنزيل نفس الأثر + كشف القِدَم (نفس معمارية الحملة)
@@ -320,10 +340,33 @@ class ShortlistController extends Controller
         return back()->with('ok', 'أُنشئ إصدار جديد للترشيح.');
     }
 
+    /**
+     * N6 — تحويل المعتمَدين للتنفيذ: يُنشئ تعاونًا لكل مؤثّر اعتمده العميل، عبر الخدمة
+     * القانونية الوحيدة. يتطلّب صلاحية تعديل الحملة + صلاحية إنشاء تعاون (منع بالدور).
+     */
+    public function convert(Request $r, Campaign $campaign)
+    {
+        $this->authorize('update', $campaign);
+        $this->authorize('create', Collaboration::class);
+        $sl = $this->svc->getOrCreate($campaign, $r->user()->id);
+        try {
+            $res = $this->svc->convertApprovedToCollaborations($sl, $r->user()->id);
+        } catch (\RuntimeException $e) {
+            return back()->withErrors(['convert' => $e->getMessage()]);
+        }
+        if ($res['created'] === 0 && $res['eligible'] === 0) {
+            return back()->withErrors(['convert' => 'لا يوجد مؤثّر معتمَد قابل للتحويل بعد.']);
+        }
+        $msg = $res['created'] > 0
+            ? "حُوِّل {$res['created']} مؤثّرًا معتمَدًا إلى تعاون تنفيذ."
+            : 'المعتمَدون محوّلون للتنفيذ بالفعل — لا جديد.';
+
+        return back()->with('ok', $msg);
+    }
+
     private function versionLabel(string $s): string
     {
-        return ['draft' => 'مسودة', 'submitted' => 'بانتظار العميل', 'approved' => 'مُعتمَد',
-            'partially_approved' => 'اعتماد جزئي', 'changes_requested' => 'مطلوب بديل', 'rejected' => 'مرفوض'][$s] ?? $s;
+        return CampaignShortlistVersion::statusLabel($s);
     }
 
     private function versionTone(string $s): string

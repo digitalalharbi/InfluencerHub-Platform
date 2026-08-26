@@ -16,7 +16,7 @@ interface Brand {
 type Action = [string, string, string, 'none' | 'reason' | 'note'];
 interface Decision { decision: string; note: string | null; version: number; by: string; at: string | null }
 interface History { from: string; to: string; by: string; reason: string | null; at: string | null }
-interface BrandCampaign { id: number; name: string; deliverables: number; budgetMinor: number; content: number; published: number; progress: number; startDate: string | null; endDate: string | null; status: string; statusLabel: string; statusTone: string }
+interface BrandCampaign { id: number; name: string; deliverables: number; budgetMinor: number; content: number; published: number; progress: number; startDate: string | null; endDate: string | null; status: string; statusLabel: string; statusTone: string; nomination?: { has: boolean; statusLabel: string | null } }
 interface BrandContent { id: number; title: string; creator: string | null; platform: string | null; mediaUrl: string | null; version: number; type: string; publishedAt: string | null; needsAction: boolean; status: string; statusLabel: string; statusTone: string }
 interface Metrics { campaigns: number; activeCampaigns: number; content: number; awaitingContent: number; budgetMinor: number }
 interface ChecklistItem { key: string; label: string; present: boolean; critical: boolean }
@@ -36,6 +36,8 @@ const DECISION_LABEL: Record<string, string> = { approved: 'موافقة', chang
 
 export default function BrandShow({ brand, canReview, actions, checklist, socialAccounts, decisions, history, metrics, campaigns, content }: Props) {
   const { props } = usePage<SharedProps>();
+  const canNom = !!props.nav?.can?.influencer_nomination;
+  const openShortlist = (e: React.MouseEvent, id: number) => { e.preventDefault(); e.stopPropagation(); router.visit(u(`/campaigns/${id}/shortlist`)); };
   const [tab, setTab] = useState('overview');
   useEffect(() => {
     const applyHash = () => {
@@ -128,6 +130,11 @@ export default function BrandShow({ brand, canReview, actions, checklist, social
                   <StatusBadge tone={c.statusTone} label={c.statusLabel} />
                 </div>
                 <div className="ih-wcard__meta">{c.startDate ?? '—'} → {c.endDate ?? '—'}</div>
+                {canNom && c.nomination?.has && (
+                  <button onClick={(e) => openShortlist(e, c.id)} className="badge" style={{ marginTop: '.4rem', background: 'var(--ih-info-soft)', color: 'var(--ih-info-ink)', cursor: 'pointer', border: 0 }} title="فتح ترشيح هذه الحملة">
+                    <Icon name="clipboard-check" size={11} /> الترشيح: {c.nomination.statusLabel}
+                  </button>
+                )}
                 {c.content > 0 && (
                   <div style={{ marginTop: '.55rem' }}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '.7rem', color: 'var(--ih-text-muted)', marginBottom: '.2rem' }}>
