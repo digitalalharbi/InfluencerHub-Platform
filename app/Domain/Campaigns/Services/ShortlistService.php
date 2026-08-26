@@ -111,9 +111,13 @@ class ShortlistService
         $total = $all->count();
         $approved = $all->where('client_decision', 'approved')->count();
         $pending = $all->where('client_decision', 'pending')->count();
-        // كل الحالات محسومة: اعتماد كامل / رفض كامل / مزيج. مع بقاء معلّقات: قيد المراجعة (partially_approved).
+        $needsAlt = $all->where('client_decision', 'needs_alternative')->count();
+        // بقاء معلّقات: الدور على العميل. طلب بديل: الدور على الوكالة (changes_requested).
+        // ثم اعتماد كامل / رفض كامل / مزيج.
         if ($pending > 0) {
             $status = 'partially_approved';
+        } elseif ($needsAlt > 0) {
+            $status = 'changes_requested';      // طلب العميل بديلًا لمرشّح أو أكثر → على الوكالة الاستبدال
         } elseif ($approved === $total) {
             $status = 'approved';
         } elseif ($approved === 0) {
@@ -162,13 +166,20 @@ class ShortlistService
             return;
         }
 
-        $verb = $decision === 'approved' ? 'اعتمد' : 'رفض';
+        $verb = match ($decision) {
+            'approved' => 'اعتمد',
+            'needs_alternative' => 'طلب بديلًا عن',
+            default => 'رفض',
+        };
         // بقاء معلّقات يعني أن الدور ما زال على العميل — لا تُستدعى الوكالة بعد.
         $body = $pending > 0
             ? "ما زال {$pending} مرشّحًا بانتظار قرار العميل."
-            : ($versionStatus === 'rejected'
-                ? 'رُفض كل المرشّحين — يلزم إصدار ترشيح جديد.'
-                : 'اكتملت قرارات هذا الإصدار — أنشئ التعاون مع المعتمَدين.');
+            : match ($versionStatus) {
+                'rejected' => 'رُفض كل المرشّحين — يلزم إصدار ترشيح جديد.',
+                'changes_requested' => 'طلب العميل بديلًا عن مرشّح أو أكثر — اقترح بدائل مناسبة.',
+                default => 'اكتملت قرارات هذا الإصدار — أنشئ التعاون مع المعتمَدين.',
+            };
+        $cta = $decision === 'needs_alternative' ? 'اقتراح بديل' : 'مراجعة الترشيحات';
 
         $this->notifications->notify(
             $campaign->tenant_id,
@@ -184,7 +195,7 @@ class ShortlistService
                     ['type' => 'campaign', 'name' => $campaign->name],
                     ['type' => 'creator', 'name' => $creatorName],
                 ],
-                'cta_label' => 'مراجعة الترشيحات',
+                'cta_label' => $cta,
                 'campaign_id' => $campaign->id,
                 'shortlist_item_id' => $item->id,
             ],

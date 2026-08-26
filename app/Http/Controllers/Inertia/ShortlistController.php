@@ -286,13 +286,13 @@ class ShortlistController extends Controller
     private function versionLabel(string $s): string
     {
         return ['draft' => 'مسودة', 'submitted' => 'بانتظار العميل', 'approved' => 'مُعتمَد',
-            'partially_approved' => 'اعتماد جزئي', 'rejected' => 'مرفوض'][$s] ?? $s;
+            'partially_approved' => 'اعتماد جزئي', 'changes_requested' => 'مطلوب بديل', 'rejected' => 'مرفوض'][$s] ?? $s;
     }
 
     private function versionTone(string $s): string
     {
         return ['draft' => 'draft', 'submitted' => 'submitted', 'approved' => 'approved',
-            'partially_approved' => 'under_review', 'rejected' => 'rejected'][$s] ?? 'draft';
+            'partially_approved' => 'under_review', 'changes_requested' => 'under_review', 'rejected' => 'rejected'][$s] ?? 'draft';
     }
 
     private function decisionLabel(?string $s): string

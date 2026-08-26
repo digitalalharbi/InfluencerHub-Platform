@@ -14,8 +14,8 @@ use Inertia\Response;
  */
 class ShortlistingController extends Controller
 {
-    private const V_LABEL = ['draft' => 'مسودة', 'submitted' => 'بانتظار العميل', 'approved' => 'مُعتمَد', 'partially_approved' => 'اعتماد جزئي', 'rejected' => 'مرفوض'];
-    private const V_TONE = ['draft' => 'draft', 'submitted' => 'submitted', 'approved' => 'approved', 'partially_approved' => 'under_review', 'rejected' => 'rejected'];
+    private const V_LABEL = ['draft' => 'مسودة', 'submitted' => 'بانتظار العميل', 'approved' => 'مُعتمَد', 'partially_approved' => 'اعتماد جزئي', 'changes_requested' => 'مطلوب بديل', 'rejected' => 'مرفوض'];
+    private const V_TONE = ['draft' => 'draft', 'submitted' => 'submitted', 'approved' => 'approved', 'partially_approved' => 'under_review', 'changes_requested' => 'under_review', 'rejected' => 'rejected'];
 
     public function index(Request $r): Response
     {
