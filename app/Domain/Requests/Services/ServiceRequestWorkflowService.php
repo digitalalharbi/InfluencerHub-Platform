@@ -3,6 +3,7 @@
 namespace App\Domain\Requests\Services;
 
 use App\Domain\Audit\Services\AuditLogger;
+use App\Domain\Automation\Automation;
 use App\Domain\Communications\Services\NotificationService;
 use App\Domain\Requests\Enums\ServiceRequestPriority;
 use App\Domain\Requests\Models\ServiceRequest;
@@ -48,10 +49,10 @@ class ServiceRequestWorkflowService
                 AuditLogger::log('service_request.created', $sr, ['type' => $sr->type], $tenantId, $actorId);
 
                 // أتمتة: حدث إنشاء الطلب (بمفتاح ثابت — لا تكرار عند إعادة المحاولة).
-                \App\Domain\Automation\Automation::fire('service_request.created', [
+                Automation::fire('service_request.created', [
                     'requested_by' => $actorId, 'id' => $sr->id, 'number' => $sr->request_number,
                     'title' => $sr->title, 'priority' => $sr->priority,
-                ], $tenantId, 'service_request.created:' . $sr->id);
+                ], $tenantId, 'service_request.created:'.$sr->id);
 
                 return $sr;
             });
@@ -72,7 +73,7 @@ class ServiceRequestWorkflowService
                     $sr->tenant_id, $assigneeId, 'service_request.assigned', 'general',
                     'أُسند إليك طلب خدمة',
                     $sr->title ?: ($sr->request_number ?? 'طلب خدمة'),
-                    "/app/service-requests/{$sr->id}", ['service_request_id' => $sr->id], $sr,
+                    "/app/service-requests/{$sr->id}", ['objects' => [['type' => 'service_request', 'name' => ($sr->title ?: ($sr->request_number ?? 'طلب خدمة'))]], 'cta_label' => 'عرض الطلب', 'service_request_id' => $sr->id], $sr,
                 );
             }
 

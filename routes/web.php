@@ -836,6 +836,9 @@ Route::middleware(['auth', 'tenant', 'platform_preview:agency', 'agency_member']
     Route::get('/preview/design-system', [PreviewCenterController::class, 'designSystem']);
     Route::post('/preview/showcase/seed', [PreviewCenterController::class, 'seedShowcase']);
     Route::post('/preview/showcase/reset', [PreviewCenterController::class, 'resetShowcase']);
+    // معرض البريد (تطوير فقط) — فحص بصريّ لحالات البريد بلغتَي ar/en. المسارات الثابتة قبل {state}.
+    Route::get('/preview/mail', [\App\Http\Controllers\Web\DevMailGalleryController::class, 'index']);
+    Route::get('/preview/mail/{state}', [\App\Http\Controllers\Web\DevMailGalleryController::class, 'show'])->where('state', '[a-z_]+');
 });
 
 /*

@@ -1,11 +1,14 @@
 <?php
+
 namespace App\Domain\Campaigns\Services;
 
 use App\Domain\Audit\Services\AuditLogger;
-use App\Domain\Campaigns\Models\{Campaign, CampaignShortlist, CampaignShortlistVersion, CampaignShortlistItem};
+use App\Domain\Campaigns\Models\Campaign;
+use App\Domain\Campaigns\Models\CampaignShortlist;
+use App\Domain\Campaigns\Models\CampaignShortlistItem;
+use App\Domain\Campaigns\Models\CampaignShortlistVersion;
 use App\Domain\Communications\Services\NotificationService;
 use App\Domain\Creators\Models\Creator;
-use App\Domain\Tenancy\Support\TenantContext;
 use Illuminate\Support\Facades\DB;
 
 /** محرّك الترشيح — قائمة أساسية/احتياطية بإصدارات + درجة ملاءمة + قرار العميل. */
@@ -26,6 +29,7 @@ class ShortlistService
                 $v = CampaignShortlistVersion::create(['tenant_id' => $sl->tenant_id, 'shortlist_id' => $sl->id, 'version' => 1, 'status' => 'draft']);
                 $sl->update(['current_version' => 1]);
             }
+
             return $sl->fresh();
         });
     }
@@ -37,16 +41,33 @@ class ShortlistService
         $score = 0;
         $platforms = $campaign->deliverables->pluck('platform')->filter()->unique();
         if ($platforms->isEmpty() || $platforms->contains($creator->primary_platform)) {
-            $score += 40; $reasons[] = 'المنصّة مطابقة';
+            $score += 40;
+            $reasons[] = 'المنصّة مطابقة';
         }
         $followers = (int) $creator->followers_count;
-        if ($followers >= 500000) { $score += 25; $reasons[] = 'وصول واسع'; }
-        elseif ($followers >= 100000) { $score += 15; $reasons[] = 'وصول جيد'; }
-        else { $score += 8; }
-        if ($creator->mowthooq_status === 'verified') { $score += 20; $reasons[] = 'موثّق'; }
-        if (! empty($creator->rate_per_post_minor)) { $score += 10; $reasons[] = 'سعر محدّد'; }
-        else { $reasons[] = 'سعر غير محدّد'; }
-        if ($creator->status === 'active') { $score += 5; }
+        if ($followers >= 500000) {
+            $score += 25;
+            $reasons[] = 'وصول واسع';
+        } elseif ($followers >= 100000) {
+            $score += 15;
+            $reasons[] = 'وصول جيد';
+        } else {
+            $score += 8;
+        }
+        if ($creator->mowthooq_status === 'verified') {
+            $score += 20;
+            $reasons[] = 'موثّق';
+        }
+        if (! empty($creator->rate_per_post_minor)) {
+            $score += 10;
+            $reasons[] = 'سعر محدّد';
+        } else {
+            $reasons[] = 'سعر غير محدّد';
+        }
+        if ($creator->status === 'active') {
+            $score += 5;
+        }
+
         return ['score' => min(100, $score), 'reasons' => $reasons];
     }
 
@@ -54,15 +75,19 @@ class ShortlistService
     {
         $campaign = $version->shortlist->campaign;
         $m = $this->matchScore($campaign, $creator);
+
         return CampaignShortlistItem::updateOrCreate(
             ['shortlist_version_id' => $version->id, 'creator_id' => $creator->id],
             ['tenant_id' => $version->tenant_id, 'is_backup' => $backup,
-             'proposed_fee_minor' => (int) ($creator->rate_per_post_minor ?? 0),
-             'match_score' => $m['score'], 'reasons' => $m['reasons']]
+                'proposed_fee_minor' => (int) ($creator->rate_per_post_minor ?? 0),
+                'match_score' => $m['score'], 'reasons' => $m['reasons']]
         );
     }
 
-    public function removeItem(CampaignShortlistItem $item): void { $item->delete(); }
+    public function removeItem(CampaignShortlistItem $item): void
+    {
+        $item->delete();
+    }
 
     /** إرسال للعميل: يقفل الإصدار الحالي كـsubmitted. */
     /**
@@ -98,6 +123,7 @@ class ShortlistService
                 }
             }
             $sl->update(['current_version' => $n, 'status' => 'draft']);
+
             return $v;
         });
     }
@@ -177,7 +203,16 @@ class ShortlistService
             "العميل {$verb} {$creatorName}",
             $reason ? "{$body} السبب: {$reason}" : $body,
             "/app/campaigns/{$campaign->id}/shortlist",
-            ['campaign_id' => $campaign->id, 'shortlist_item_id' => $item->id],
+            [
+                // كائنات أعمال بأسمائها + زرّ خاصّ بالحدث — لبريد بشريّ واضح (بلا مصطلح تقنيّ).
+                'objects' => [
+                    ['type' => 'campaign', 'name' => $campaign->name],
+                    ['type' => 'creator', 'name' => $creatorName],
+                ],
+                'cta_label' => 'مراجعة الترشيحات',
+                'campaign_id' => $campaign->id,
+                'shortlist_item_id' => $item->id,
+            ],
             $item,
         );
     }

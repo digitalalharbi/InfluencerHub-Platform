@@ -3,6 +3,7 @@
 namespace App\Domain\Content\Services;
 
 use App\Domain\Audit\Services\AuditLogger;
+use App\Domain\Automation\Automation;
 use App\Domain\Campaigns\Models\Campaign;
 use App\Domain\Communications\Services\NotificationService;
 use App\Domain\Content\Models\ContentApproval;
@@ -164,9 +165,9 @@ class ContentWorkflowService
         // أتمتة: يُخطر صاحب الحملة (مستفيد لا يُخطَر بالإشعار المباشر أعلاه).
         $ownerId = $this->withinTenant($item, fn () => $item->campaign_id ? Campaign::find($item->campaign_id)?->created_by : null);
         if ($ownerId) {
-            \App\Domain\Automation\Automation::fire('content.approved', [
+            Automation::fire('content.approved', [
                 'campaign_owner_id' => (int) $ownerId, 'content_id' => $item->id, 'title' => $item->title,
-            ], $item->tenant_id, 'content.approved:' . $item->id . ':' . $item->version);
+            ], $item->tenant_id, 'content.approved:'.$item->id.':'.$item->version);
         }
 
         return $r;
@@ -271,7 +272,7 @@ class ContentWorkflowService
         $userId = $this->withinTenant($item, fn () => $item->creator_id ? Creator::find($item->creator_id)?->user_id : null);
 
         if ($userId) {
-            $this->notifications->notify($item->tenant_id, $userId, 'content.update', 'general', $title, $body, '/creator/content', ['content_id' => $item->id], $item);
+            $this->notifications->notify($item->tenant_id, $userId, 'content.update', 'general', $title, $body, '/creator/content', ['objects' => [['type' => 'content', 'name' => $item->title]], 'cta_label' => 'عرض المحتوى', 'content_id' => $item->id], $item);
         }
     }
 
@@ -286,7 +287,7 @@ class ContentWorkflowService
             : null);
 
         if ($userId) {
-            $this->notifications->notify($item->tenant_id, (int) $userId, 'content.submitted', 'general', $title, $body, "/app/content/{$item->id}", ['content_id' => $item->id], $item);
+            $this->notifications->notify($item->tenant_id, (int) $userId, 'content.submitted', 'general', $title, $body, "/app/content/{$item->id}", ['objects' => [['type' => 'content', 'name' => $item->title]], 'cta_label' => 'مراجعة المحتوى', 'content_id' => $item->id], $item);
         }
     }
 
@@ -299,7 +300,7 @@ class ContentWorkflowService
             : []);
 
         foreach ($userIds as $uid) {
-            $this->notifications->notify($item->tenant_id, (int) $uid, 'content.client_review', 'general', $title, $body, '/client/content', ['content_id' => $item->id], $item);
+            $this->notifications->notify($item->tenant_id, (int) $uid, 'content.client_review', 'general', $title, $body, '/client/content', ['objects' => [['type' => 'content', 'name' => $item->title]], 'cta_label' => 'مراجعة المحتوى', 'content_id' => $item->id], $item);
         }
     }
 }

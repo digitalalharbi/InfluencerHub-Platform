@@ -1,28 +1,43 @@
 <?php
+
 namespace App\Domain\Identity\Models;
 
-use App\Domain\Tenancy\Models\{OrganizationMembership, Organization, Workspace};
-use App\Domain\Tenancy\Support\TenantContext;
+use App\Domain\Tenancy\Models\OrganizationMembership;
+use App\Domain\Tenancy\Models\Workspace;
+use Database\Factories\UserFactory;
+use Illuminate\Contracts\Translation\HasLocalePreference;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Laravel\Sanctum\HasApiTokens;
-use Illuminate\Database\Eloquent\Relations\HasMany;
 
-class User extends Authenticatable
+class User extends Authenticatable implements HasLocalePreference
 {
     use HasApiTokens, HasFactory, Notifiable, SoftDeletes;
 
-    /** الـFactory خارج مسار الاسم القياسي (النموذج داخل Domain). */
-    protected static function newFactory(): \Database\Factories\UserFactory
+    /**
+     * لغة المستقبِل المفضّلة — تقود لغة البريد. null ⇒ لغة المنصّة الافتراضية
+     * (لا نخترع تفضيلًا). يحترمها Laravel تلقائيًّا في البريد/الإشعارات المُترجَمة.
+     */
+    public function preferredLocale(): ?string
     {
-        return \Database\Factories\UserFactory::new();
+        return $this->locale;
     }
 
-    protected $fillable = ['name','email','phone','password','is_active','google_id','google_avatar'];
-    protected $hidden = ['password','remember_token','two_factor_secret'];
-    protected function casts(): array {
+    /** الـFactory خارج مسار الاسم القياسي (النموذج داخل Domain). */
+    protected static function newFactory(): UserFactory
+    {
+        return UserFactory::new();
+    }
+
+    protected $fillable = ['name', 'email', 'locale', 'phone', 'password', 'is_active', 'google_id', 'google_avatar'];
+
+    protected $hidden = ['password', 'remember_token', 'two_factor_secret'];
+
+    protected function casts(): array
+    {
         return [
             'email_verified_at' => 'datetime',
             'last_login_at' => 'datetime',
@@ -35,7 +50,10 @@ class User extends Authenticatable
         ];
     }
 
-    public function memberships(): HasMany { return $this->hasMany(OrganizationMembership::class); }
+    public function memberships(): HasMany
+    {
+        return $this->hasMany(OrganizationMembership::class);
+    }
 
     /** دور المستخدم داخل مؤسسة/workspace (أو سياق المستأجر الحالي). */
     /**
@@ -51,7 +69,7 @@ class User extends Authenticatable
 
     public function roleIn(int $organizationId, ?int $workspaceId = null): ?string
     {
-        $key = $organizationId . ':' . ($workspaceId ?? '-');
+        $key = $organizationId.':'.($workspaceId ?? '-');
 
         return $this->roleCache[$key] ??= $this->memberships()
             ->where('organization_id', $organizationId)

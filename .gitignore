@@ -36,6 +36,14 @@ Thumbs.db
 .claude/settings.local.json
 storage/app/private/development-screenshots/
 
-# Local E2E QA iteration helper + visual evidence (not product)
+# Local QA iteration helpers + visual evidence (not product)
 /playwright.n1.config.js
+/playwright.gallery.config.js
+/playwright.inapp.config.js
+/playwright.mobile.config.js
+/playwright.one.config.js
+/tests/e2e/gallery.screens.js
+/tests/e2e/inapp.screens.js
+/tests/e2e/mail-mobile.screens.js
+/tests/e2e/one.screens.js
 /tests/e2e/evidence/
