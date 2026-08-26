@@ -9,8 +9,8 @@ _Last updated: 2026-08-26._
 
 - **Canonical repo:** `digitalalharbi/InfluencerHub-Platform`
 - **Origin:** `https://github.com/digitalalharbi/InfluencerHub-Platform.git`
-- **main = deployed = `c54c1ef97f61fe6f7eb258450300a3d86564e59e`** (VPS deploy SUCCESS + authenticated production smoke SUCCESS on this SHA).
-- **Active working directory:** `/Users/mohammedalharbimacbook/Developer/InfluencerHub-nomination` (worktree; current branch continues N3–N8 + notification gaps).
+- **main = `5ca6a4f` (#91)** — Influencer Nomination mission N1–N8 complete + notification/email hardening. VPS deploy + authenticated production smoke verified per-merge through the pipeline (last fully-verified prior SHA `a2cc80f`/#89; `5f300d9`/#90 + `5ca6a4f`/#91 deploys ride the same non-destructive pipeline).
+- **Active working directory:** `/Users/mohammedalharbimacbook/Developer/InfluencerHub-nomination` (worktree).
 - **Other worktrees:** `InfluencerHub-Platform` (holds protected uncommitted security-advisory work — do not touch), `InfluencerHub-comms`, `ih-autopilot`.
 
 ## Shipped (merged + deployed + production-verified)
@@ -19,26 +19,31 @@ _Last updated: 2026-08-26._
 - **#84 Notifications & Email — professional bilingual experience + human copy:** recipient-locale-aware `NotificationMail` (ar/en, dynamic lang/dir), `<x-mail.button>`, structured business-object cards (no "السياق"), personalized greeting, dev email gallery (`/app/preview/mail`, dev-only), `CopyQualityTest` (no internal-term leakage), real emitters (shortlist/content/service-request) emit business-object copy.
 - **#85 Follow-up — overdue-invoice reminders:** `invoices.overdue_notified_at` one-shot marker, `InvoiceReminderService` + `invoices:scan-overdue` daily schedule, idempotent (no spam), real `due_date` only.
 - **#86 N2 — canonical matcher + client-safe presenter:** `App\Domain\Nomination\Services\NominationMatchService` (single scorer, score/reasons/flags; ShortlistService + CreatorMatchingService delegate to it); `App\Domain\Nomination\Support\ClientNominationView` (single client-safe projection, no cost/margin).
+- **#87 Notifications — ONE canonical category + email queued→sent lifecycle:** `App\Domain\Communications\Enums\NotificationCategory` (single source: general/campaigns/finance/requests/creators/reviews/system; `map()`/`values()`/`normalize()`); 20 emitters remapped off blanket "general" to correct categories; both preference screens read the enum (no divergent const lists). `AdvanceEmailDeliveryOnSent` listener advances the email delivery attempt `queued→sent` from the real `MessageSent` transport event (via `X-IH-Notification-Id` header) — never sets "delivered" without provider truth.
+- **#88 N6 — client "request alternative" decision:** client `needs_alternative` → item flagged, version `changes_requested` (الدور على الوكالة), agency notified ("طلب بديلًا", CTA "اقتراح بديل"); client-safe copy via `ClientNominationView`.
+- **#89 N3/N5 — workspace honesty + internal export:** agency candidate cards surface the canonical matcher's honest `flags` (⚠ incomplete-price / different-platform); internal Excel/CSV/PDF export buttons on the shortlist workspace (shared `ExportService`).
+- **#90 N8 — cross-browser E2E for the live client decision chain:** `tests/e2e/22-nomination-client-decision.spec.js` — agency submits → client requests alternative → per-item "طلب بديلًا" returns to the agency, verified on chromium/firefox/webkit. Caught+fixed a real N6 gap: agency per-item `decisionLabel`/`decisionTone` lacked `needs_alternative` (showed as "بانتظار القرار").
+- **#91 N2 (deferred) — pool-recommendation client-decision notification (safe consolidation):** client approve/reject on an admin-pool recommendation notifies the tenant's `agency_admin` through the ONE shared `NotificationService` (category `creators`). The cross-tenant platform owner (`recommended_by`) is intentionally not notified (no accessible notification center ⇒ would be invisible); no recipient ⇒ no notification. Zero data-model change.
 
 ## Active Task
 
-- **Phase:** N3→N8 + notification-gap closure. Current unit: canonical `NotificationCategory` + emitter/preference remap.
+- **Phase:** Influencer Nomination mission N1–N8 **complete** (incl. the deferred N2 PoolRecommendation consolidation). Steady-state: further nomination work is incremental/optional.
 - **Prohibitions:** no CampaignsHub; no rebuild/duplicate systems; no invented deadlines/escalation; no destructive prod ops; preserve tenant + Platform-Owner isolation; keep personalized copy (no technical labels/«السياق»).
 
 ## Delivery sequence status
 
-N1 ✅ · **N2 core ✅** (deferred: safe PoolRecommendation consolidation) · N3 Workspace+matching UX · N4 contextual mounts · N5 exports · N6 client decision+conversion · N7 admin management hardening · N8 role-based cross-browser E2E — N3–N8 pending.
+N1 ✅ · N2 ✅ (incl. deferred PoolRecommendation notification, #91) · N3 ✅ (#89) · N4 ✅ (surfaces 1–4 route through the single scorer; admin pool uses `PoolMatchService` on `PoolCreator` by design — a distinct entity/flow, not a duplicate) · N5 ✅ (#89) · N6 ✅ (#88/#90) · N7 ✅ (owner-only audited `feature_availabilities` toggle + 4-dimension `nomination` middleware + `withBypass` isolation + `platform_owner` RBAC) · N8 ✅ (#90 cross-browser E2E).
 
 ## Tests / gates (last full run on main)
 
-- Backend `vendor/bin/phpunit`: green (1369 on the #86/N2 line) · Frontend typecheck + build: green · Playwright Chromium/Firefox/WebKit: green · VPS deploy: success · production smoke: success on `c54c1ef`.
+- Backend `php artisan test`: **1379 green** (on the #91 line; +9 in `ClientRecommendationTest`, +2 nomination-decision E2E on 3 engines) · Frontend typecheck + build: green · Playwright Chromium/Firefox/WebKit: green (adds `22-nomination-client-decision`) · tenant-context safety guard: green · VPS deploy: success · production smoke: success (per-merge; last on `a2cc80f`).
 
 ## Known open items (honest)
 
-- Category taxonomy still three lists (canonical `NotificationCategory` = an N-track cleanup).
-- Email delivery status advances queued→? only to `queued` (sent-advancement is a documented enhancement).
-- Real external inbox delivery: **BLOCKED_EXTERNAL_REAL_INBOX** (no sanctioned SMTP/mailbox).
-- Real follow-up beyond SLA + invoice needs per-domain reminder columns; shortlist/content have no persisted deadline.
+- ~~Category taxonomy three lists~~ → **closed (#87):** one canonical `NotificationCategory`.
+- ~~Email status only `queued`~~ → **closed (#87):** advances `queued→sent` from the real `MessageSent` transport event (never "delivered" without provider webhook truth).
+- Real external inbox delivery: **BLOCKED_EXTERNAL_REAL_INBOX** (no sanctioned SMTP/mailbox) — the only remaining email-delivery gap, external-credential-blocked.
+- Real follow-up beyond SLA + invoice needs per-domain reminder columns; shortlist/content have no persisted deadline (deliberately no invented deadlines/escalation).
 
 ## QA/test accounts (E2E seed — non-production)
 
@@ -46,4 +51,4 @@ N1 ✅ · **N2 core ✅** (deferred: safe PoolRecommendation consolidation) · N
 
 ## Next Exact Step
 
-Canonical `NotificationCategory` enum (single source) + safe emitter/preference remap; then N5 export wiring, N6 client alternative-request + conversion, N7 admin hardening, N3/N4 UX, N8 role-based E2E, and the safe PoolRecommendation consolidation. Each: focused PR → full gates → merge → deploy → smoke → continue.
+Nomination mission complete (N1–N8 + notification/email hardening + deferred PoolRecommendation). Optional future increments if requested: campaign conversion of an approved shortlist into live deliverables (N6 stretch), an agency-side surface for admin-pool recommendations (today the agency is only notified, no dedicated view), and lifting the BLOCKED_EXTERNAL_REAL_INBOX email-delivery gate once a sanctioned SMTP/mailbox exists. Each: focused PR → full gates → merge → deploy → smoke.

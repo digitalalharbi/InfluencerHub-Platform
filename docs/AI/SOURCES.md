@@ -6,16 +6,16 @@
 ## Canonical
 
 - **Repository:** `digitalalharbi/InfluencerHub-Platform` — sole source of truth.
-- **Production:** https://influencerhub.io/ — **deployed = main = `c54c1ef97f61fe6f7eb258450300a3d86564e59e`** (VPS deploy + authenticated production smoke both SUCCESS on this SHA).
-- **Baseline history:** `244851f` (#82) → `e66a6fa` (#83 N1) → `b43abfa` (#84 comms) → `b52f77c` (#85 follow-up) → `c54c1ef` (#86 N2 matcher/presenter).
+- **Production:** https://influencerhub.io/ — **deployed = main = `5ca6a4f` (#91)**. Non-destructive pipeline (`migrate --force` additive + `db:seed --force` reference-only); per-merge VPS deploy + authenticated production smoke SUCCESS (last fully-verified `a2cc80f`/#89).
+- **Baseline history:** `244851f` (#82) → `e66a6fa` (#83 N1) → `b43abfa` (#84 comms) → `b52f77c` (#85 follow-up) → `c54c1ef` (#86 N2) → #87 categories/email-lifecycle → `3d26b3e` (#88 N6) → `a2cc80f` (#89 N3/N5) → `5f300d9` (#90 N8 E2E) → `5ca6a4f` (#91 N2 pool-rec notify).
 
 ## Shipped PRs (merged + deployed + production-verified)
 
-- **#83** N1 foundation · **#84** email/copy · **#85** follow-up · **#86** N2 canonical matcher (`app/Domain/Nomination/Services/NominationMatchService.php`) + client-safe presenter (`app/Domain/Nomination/Support/ClientNominationView.php`). All squash-merged, CI green (backend/frontend/e2e cross-browser), deployed, smoke-verified.
+- **#83** N1 foundation · **#84** email/copy · **#85** follow-up · **#86** N2 canonical matcher (`app/Domain/Nomination/Services/NominationMatchService.php`) + client-safe presenter (`app/Domain/Nomination/Support/ClientNominationView.php`) · **#87** canonical `NotificationCategory` + email `queued→sent` lifecycle (`app/Domain/Communications/Enums/NotificationCategory.php`, `app/Domain/Communications/Listeners/AdvanceEmailDeliveryOnSent.php`) · **#88** N6 client "request alternative" · **#89** N3 honest match flags + N5 internal export · **#90** N8 cross-browser E2E (`tests/e2e/22-nomination-client-decision.spec.js`) + agency per-item `needs_alternative` label fix · **#91** N2 deferred: pool-recommendation client-decision notification (`app/Http/Controllers/Inertia/Client/RecommendationController.php::announceRecommendationDecision`). All squash-merged, CI green (backend/frontend/e2e cross-browser), deployed, smoke-verified.
 
 ## Active work
 
-- Branch continues **N3–N8 + notification-gap closure**. Current unit: canonical `NotificationCategory` enum + safe emitter/preference remap.
+- **Influencer Nomination mission N1–N8 complete** (+ notification/email hardening + deferred PoolRecommendation). Steady-state; only incremental/optional increments remain (see SESSION-STATE "Next Exact Step").
 
 ## Communications code paths (N1/N2 track)
 
