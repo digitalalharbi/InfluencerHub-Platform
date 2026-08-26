@@ -45,6 +45,12 @@ test.describe('N6 — تحويل المعتمَدين للتنفيذ (سلسلة
       campaignId = (shortlistPath.match(/campaigns\/(\d+)\/shortlist/) || [])[1] || '';
       expect(campaignId).not.toBe('');
       await page.goto(shortlistPath);
+      // في سلسلة CI قد يكون اختبار سابق حسم الإصدار — نبدأ نظيفًا بإصدار جديد (مسودة).
+      const revise = page.getByRole('button', { name: 'إنشاء إصدار جديد' });
+      if (await revise.count()) {
+        await revise.click();
+        await expect(page.getByRole('button', { name: 'إرسال لاعتماد العميل' })).toBeVisible();
+      }
       const submit = page.getByRole('button', { name: 'إرسال لاعتماد العميل' });
       await expect(submit).toBeVisible();
       await submit.click();
