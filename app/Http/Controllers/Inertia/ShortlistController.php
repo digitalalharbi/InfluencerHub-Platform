@@ -8,6 +8,7 @@ use App\Domain\Campaigns\Models\CampaignShortlistItem;
 use App\Domain\Campaigns\Models\CampaignShortlistVersion;
 use App\Domain\Campaigns\Services\ShortlistService;
 use App\Domain\Collaborations\Models\Collaboration;
+use App\Domain\Creators\Enums\CreatorType;
 use App\Domain\Creators\Models\Creator;
 use App\Domain\Exports\DocumentArtifactService;
 use App\Domain\Exports\ExportService;
@@ -57,6 +58,9 @@ class ShortlistController extends Controller
                 'platform' => $cr->primary_platform, 'followers' => (int) $cr->followers_count,
                 'feeMinor' => (int) ($cr->rate_per_post_minor ?? 0),
                 'verified' => $cr->mowthooq_status === 'verified',
+                'avatar' => $cr->avatar_path, // مسار الصورة إن وُجد، وإلا null → أحرف أولى
+                'categories' => $cr->content_categories ?? [],
+                'creatorType' => CreatorType::tryFrom((string) $cr->type)?->label(),
                 'score' => $m['score'], 'reasons' => $m['reasons'], 'flags' => $m['flags'],
             ];
         })->sortByDesc('score')->values();

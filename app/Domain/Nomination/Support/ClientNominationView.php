@@ -27,6 +27,9 @@ final class ClientNominationView
             'handle' => $it->creator?->handle,
             'platform' => $it->creator?->primary_platform,
             'followers' => (int) ($it->creator?->followers_count ?? 0),
+            // سمات عامّة آمنة للعميل — صورة وتصنيف محتوى (لا تكلفة/هامش/مصدر).
+            'avatar' => $it->creator?->avatar_path,
+            'categories' => array_values($it->creator?->content_categories ?? []),
             'isBackup' => (bool) $it->is_backup,
             // السعر المخصّص للعميل (proposed_fee_minor) = سعر البيع فقط — لا تكلفة ولا هامش.
             'feeMinor' => (int) $it->proposed_fee_minor,

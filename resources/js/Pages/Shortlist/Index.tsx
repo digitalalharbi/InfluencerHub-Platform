@@ -15,6 +15,7 @@ interface Item {
 interface Candidate {
   id: number; name: string; handle: string | null; platform: string | null; followers: number;
   feeMinor: number; verified: boolean; score: number; reasons: string[]; flags: string[];
+  avatar: string | null; categories: string[]; creatorType: string | null;
 }
 interface CandidatePool { active: number; inactive: number }
 interface VersionRow { number: number; status: string; statusLabel: string; statusTone: string; items: number; isCurrent: boolean; submittedAt: string | null; decidedAt: string | null }
@@ -245,19 +246,33 @@ export default function ShortlistIndex({ campaign, version, items, candidates, f
               {candidates.map((c) => (
                 <div key={c.id} className="card" style={{ padding: '.9rem 1rem' }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '.5rem', marginBottom: '.5rem' }}>
-                    <div>
-                      <div style={{ fontWeight: 700, display: 'flex', alignItems: 'center', gap: '.35rem' }}>
-                        {c.name}
-                        {c.verified && <Icon name="shield-check" size={14} />}
+                    <div style={{ display: 'flex', gap: '.55rem', alignItems: 'center', minWidth: 0 }}>
+                      <span className="ih-idc__av" style={{ width: 40, height: 40, flexShrink: 0, overflow: 'hidden' }} aria-hidden={!!c.avatar}>
+                        {c.avatar ? <img src={c.avatar} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : c.name.slice(0, 1)}
+                      </span>
+                      <div style={{ minWidth: 0 }}>
+                        <div style={{ fontWeight: 700, display: 'flex', alignItems: 'center', gap: '.35rem' }}>
+                          <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{c.name}</span>
+                          {c.verified && <Icon name="shield-check" size={14} />}
+                        </div>
+                        <div style={{ fontSize: '.72rem', color: 'var(--ih-text-muted)', direction: 'ltr', textAlign: 'right' }}>
+                          {c.handle ?? '—'}{c.creatorType ? <span style={{ marginInlineStart: 6 }} className="ih-tag">{c.creatorType}</span> : null}
+                        </div>
                       </div>
-                      {c.handle && <div style={{ fontSize: '.72rem', color: 'var(--ih-text-muted)', direction: 'ltr' }}>{c.handle}</div>}
                     </div>
                     <ScorePill score={c.score} />
                   </div>
-                  <div style={{ display: 'flex', gap: '.8rem', fontSize: '.76rem', color: 'var(--ih-text-muted)', marginBottom: '.6rem', direction: 'ltr', justifyContent: 'flex-end' }}>
+                  <div style={{ display: 'flex', gap: '.8rem', fontSize: '.76rem', color: 'var(--ih-text-muted)', marginBottom: '.6rem', direction: 'ltr', justifyContent: 'flex-end', alignItems: 'center' }}>
                     <span>{c.platform ?? '—'}</span>
                     <span>{fmt(c.followers)} متابع</span>
-                    <span style={{ fontWeight: 600, color: 'var(--ih-text)' }}>{money(c.feeMinor)}</span>
+                    {c.feeMinor > 0
+                      ? <span style={{ fontWeight: 600, color: 'var(--ih-text)' }}>{money(c.feeMinor)}</span>
+                      : <span className="ih-tag" style={{ color: 'var(--ih-warning-ink)' }}>السعر غير مضاف</span>}
+                  </div>
+                  <div style={{ display: 'flex', gap: '.3rem', flexWrap: 'wrap', marginBottom: '.55rem' }}>
+                    {c.categories.length > 0
+                      ? c.categories.slice(0, 4).map((cat, i) => <span key={i} className="ih-tag" style={{ fontSize: '.66rem' }}>{cat}</span>)
+                      : <span style={{ fontSize: '.68rem', color: 'var(--ih-text-muted)' }}>بيانات التصنيف غير مكتملة</span>}
                   </div>
                   {c.reasons.length > 0 && (
                     <div style={{ display: 'flex', gap: '.3rem', flexWrap: 'wrap', marginBottom: c.flags.length ? '.35rem' : '.7rem' }}>
