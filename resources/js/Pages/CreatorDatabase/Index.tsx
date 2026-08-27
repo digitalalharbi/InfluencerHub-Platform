@@ -14,14 +14,14 @@ interface Creator {
   referenceRate: number | null; referenceRateNote: string; dataFreshness: string; lastImportedAt: string | null;
   contact?: Contact;
 }
-interface Filters { platform?: string; creator_type?: string; city?: string; region?: string; gender?: string; shows_face?: string; tier?: string; min_followers?: string; q?: string }
+interface Filters { platform?: string; creator_type?: string; category?: string; city?: string; region?: string; gender?: string; shows_face?: string; tier?: string; min_followers?: string; has_price?: string; q?: string }
 interface Props {
   base: string;
   creators: Paginated<Creator>;
   filters: Filters;
   canContact: boolean;
   canUseInCampaign: boolean;
-  facets: { platforms: Record<string, number>; creatorTypes: Record<string, number>; regions: Record<string, number>; tiers: Record<string, number> };
+  facets: { platforms: Record<string, number>; creatorTypes: Record<string, number>; categories: Record<string, number>; regions: Record<string, number>; tiers: Record<string, number> };
   summary: { total: number };
 }
 
@@ -47,6 +47,9 @@ export default function CreatorDatabaseIndex({ creators, filters, canContact, ca
     return () => clearTimeout(t);
   }, [q]);
   const update = (patch: Filters) => router.get(u('/creator-database'), clean({ ...filters, ...patch }), { preserveState: true, replace: true, preserveScroll: true });
+  const resetAll = () => { setQ(''); router.get(u('/creator-database'), {}, { preserveScroll: true }); };
+  const activeCount = Object.entries(filters).filter(([, v]) => v !== '' && v != null).length;
+  const categoryEntries = Object.entries(facets.categories ?? {});
 
   const copyPhone = (p: string) => navigator.clipboard?.writeText(p);
   const waLink = (p: string) => `https://wa.me/${p}`;
@@ -90,7 +93,43 @@ export default function CreatorDatabaseIndex({ creators, filters, canContact, ca
           <option value="female">أنثى</option>
           <option value="male">ذكر</option>
         </select>
+        <select className="field" style={{ maxWidth: 130 }} value={filters.has_price ?? ''} onChange={(e) => update({ has_price: e.target.value })}>
+          <option value="">السعر</option>
+          <option value="1">سعر متاح</option>
+        </select>
+        {activeCount > 0 && (
+          <button onClick={resetAll} className="btn btn-sm btn-outline" title="مسح كل الفلاتر">
+            <Icon name="x" size={14} /> مسح الفلاتر ({activeCount})
+          </button>
+        )}
       </div>
+
+      {categoryEntries.length > 0 && (
+        <div style={{ display: 'flex', gap: '.4rem', flexWrap: 'wrap', margin: '.2rem 0 1rem', overflowX: 'auto' }}>
+          <button
+            onClick={() => update({ category: '' })}
+            className="ih-chip"
+            aria-pressed={!filters.category}
+            style={!filters.category ? { background: 'var(--ih-primary)', color: '#fff', borderColor: 'var(--ih-primary)' } : undefined}
+          >
+            الكل
+          </button>
+          {categoryEntries.map(([cat, count]) => {
+            const active = filters.category === cat;
+            return (
+              <button
+                key={cat}
+                onClick={() => update({ category: active ? '' : cat })}
+                className="ih-chip"
+                aria-pressed={active}
+                style={active ? { background: 'var(--ih-primary)', color: '#fff', borderColor: 'var(--ih-primary)' } : undefined}
+              >
+                {cat} <span className="ih-chip__count">{count.toLocaleString('en-US')}</span>
+              </button>
+            );
+          })}
+        </div>
+      )}
 
       {creators.data.length === 0 ? (
         <div className="ih-dt-wrap"><div className="ih-empty">
@@ -121,9 +160,17 @@ export default function CreatorDatabaseIndex({ creators, filters, canContact, ca
               </div>
               {c.categories.length > 0 && (
                 <div style={{ marginTop: '.5rem', display: 'flex', gap: '.3rem', flexWrap: 'wrap' }}>
-                  {c.categories.slice(0, 4).map((cat, i) => <span key={i} className="ih-tag">{cat}</span>)}
+                  {c.categories.slice(0, 4).map((cat, i) => (
+                    <button key={i} onClick={() => update({ category: cat })} className="ih-tag" style={{ cursor: 'pointer', border: 0 }} title={`تصفية: ${cat}`}>{cat}</button>
+                  ))}
                 </div>
               )}
+              <div style={{ marginTop: '.5rem', fontSize: '.8rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <span style={{ color: 'var(--ih-text-muted)' }} title={c.referenceRateNote}>السعر المرجعي</span>
+                {c.referenceRate != null
+                  ? <span style={{ fontWeight: 700 }}>{c.referenceRate.toLocaleString('en-US')} ر.س</span>
+                  : <span className="ih-tag" style={{ color: 'var(--ih-warning-ink)' }}>السعر غير مضاف</span>}
+              </div>
               <div style={{ marginTop: '.6rem', display: 'flex', gap: '.4rem', alignItems: 'center', flexWrap: 'wrap' }}>
                 <a href={u(`/creator-database/${c.id}`)} className="btn btn-xs btn-outline">الملف</a>
                 {c.accountUrl && <a href={c.accountUrl} target="_blank" rel="noreferrer" className="btn btn-xs btn-outline">الحساب</a>}
