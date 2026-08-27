@@ -4,9 +4,16 @@ namespace Tests\Feature;
 
 use App\Domain\AdminPool\Models\PoolCreator;
 use App\Domain\Billing\Actions\CreateSubscription;
-use App\Domain\Billing\Models\{AddOn, OrganizationAddOn, Plan, PlanEntitlement, PlanVersion, Subscription};
+use App\Domain\Billing\Models\AddOn;
+use App\Domain\Billing\Models\OrganizationAddOn;
+use App\Domain\Billing\Models\Plan;
+use App\Domain\Billing\Models\PlanEntitlement;
+use App\Domain\Billing\Models\PlanVersion;
+use App\Domain\Billing\Models\Subscription;
 use App\Domain\Identity\Models\User;
-use App\Domain\Tenancy\Models\{Organization, OrganizationMembership, Tenant};
+use App\Domain\Tenancy\Models\Organization;
+use App\Domain\Tenancy\Models\OrganizationMembership;
+use App\Domain\Tenancy\Models\Tenant;
 use App\Domain\Tenancy\Support\TenantContext;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Str;
@@ -25,7 +32,11 @@ class CreatorDatabaseTest extends TestCase
 {
     use RefreshDatabase;
 
-    protected function tearDown(): void { TenantContext::reset(); parent::tearDown(); }
+    protected function tearDown(): void
+    {
+        TenantContext::reset();
+        parent::tearDown();
+    }
 
     /** ينشئ مؤسسة وكالة + مستخدمًا بدور، مع/بلا استحقاق قاعدة المؤثرين. @return array{0:User,1:Organization,2:PlanVersion} */
     private function agency(bool $access, string $role = 'agency_admin'): array
@@ -38,7 +49,7 @@ class CreatorDatabaseTest extends TestCase
             $pv = PlanVersion::create(['plan_id' => $plan->id, 'version' => 1, 'is_active' => true]);
             PlanEntitlement::create(['plan_version_id' => $pv->id, 'feature_key' => 'creator_database.access', 'value' => $access ? 1 : 0]);
             (new CreateSubscription)->handle($org, $pv);
-            $u = User::create(['name' => 'م', 'email' => Str::random(6) . '@ex.com', 'password' => bcrypt('x'), 'is_active' => true]);
+            $u = User::create(['name' => 'م', 'email' => Str::random(6).'@ex.com', 'password' => bcrypt('x'), 'is_active' => true]);
             OrganizationMembership::create(['tenant_id' => $t->id, 'organization_id' => $org->id, 'user_id' => $u->id, 'role' => $role, 'status' => 'active']);
 
             return [$u, $org, $pv];
@@ -50,7 +61,7 @@ class CreatorDatabaseTest extends TestCase
     {
         return PoolCreator::create(array_merge([
             'name' => 'مبدع تجريبي', 'phone' => '0501234567', 'platform' => 'tiktok',
-            'account_url' => 'https://www.tiktok.com/@demo' . Str::random(4), 'followers' => 120000,
+            'account_url' => 'https://www.tiktok.com/@demo'.Str::random(4), 'followers' => 120000,
             'tier' => 'B', 'gender' => 'female', 'categories' => ['أسلوب حياة', 'تغطية'],
             'price_post_minor' => 300000, 'price_coverage_minor' => 500000,
             'cost_post_minor' => 150000, 'cost_coverage_minor' => 250000, // تكلفة داخلية — يجب ألّا تظهر
@@ -121,7 +132,7 @@ class CreatorDatabaseTest extends TestCase
     public function test_non_member_denied(): void
     {
         // مستخدم بلا عضوية وكالة — الوسيط/الحارس يمنعه
-        $u = User::create(['name' => 'x', 'email' => Str::random(6) . '@ex.com', 'password' => bcrypt('x'), 'is_active' => true]);
+        $u = User::create(['name' => 'x', 'email' => Str::random(6).'@ex.com', 'password' => bcrypt('x'), 'is_active' => true]);
         $this->actingAs($u)->get('/app/creator-database')->assertForbidden();
     }
 
@@ -137,7 +148,7 @@ class CreatorDatabaseTest extends TestCase
 
         // لا مفاتيح مصدر/متجر/موظّف/بنك/تكلفة
         foreach (['store', 'sourceType', 'source_type', 'costPost', 'costCoverage', 'cost_post_minor', 'employee', 'sellPost'] as $forbidden) {
-            $this->assertStringNotContainsString('"' . $forbidden . '"', $json, "المفتاح المحظور {$forbidden} ظهر في الحمولة");
+            $this->assertStringNotContainsString('"'.$forbidden.'"', $json, "المفتاح المحظور {$forbidden} ظهر في الحمولة");
         }
         // لا قيم مصدر/بنك/عنوان
         foreach (['وزنة', 'اسم الموظف', 'المتجر', 'IBAN', 'رقم الحساب'] as $val) {
@@ -151,7 +162,7 @@ class CreatorDatabaseTest extends TestCase
     {
         [$u] = $this->agency(access: true);
         $c = $this->poolCreator();
-        $res = $this->actingAs($u)->get('/app/creator-database/' . $c->id);
+        $res = $this->actingAs($u)->get('/app/creator-database/'.$c->id);
         $res->assertOk();
         $json = json_encode($res->viewData('page')['props'], JSON_UNESCAPED_UNICODE);
         $this->assertStringNotContainsString('وزنة', $json);
@@ -164,9 +175,45 @@ class CreatorDatabaseTest extends TestCase
     {
         [$u] = $this->agency(access: true);
         for ($i = 0; $i < 30; $i++) {
-            $this->poolCreator(['account_url' => 'https://www.tiktok.com/@p' . $i]);
+            $this->poolCreator(['account_url' => 'https://www.tiktok.com/@p'.$i]);
         }
         $this->actingAs($u)->get('/app/creator-database')->assertOk()
             ->assertInertia(fn (Assert $p) => $p->has('creators.data', 24)->where('creators.total', 30));
+    }
+
+    // ==================== تصنيف المحتوى (اكتشاف) ====================
+
+    public function test_category_facet_reports_real_counts(): void
+    {
+        [$u] = $this->agency(access: true);
+        $this->poolCreator(['account_url' => 'https://tt/@a', 'categories' => ['أزياء', 'جمال']]);
+        $this->poolCreator(['account_url' => 'https://tt/@b', 'categories' => ['أزياء']]);
+        $this->poolCreator(['account_url' => 'https://tt/@c', 'categories' => ['تقنية']]);
+
+        $this->actingAs($u)->get('/app/creator-database')->assertOk()
+            ->assertInertia(fn (Assert $p) => $p
+                ->where('facets.categories.أزياء', 2)
+                ->where('facets.categories.جمال', 1)
+                ->where('facets.categories.تقنية', 1));
+    }
+
+    public function test_category_filter_narrows_to_real_matches(): void
+    {
+        [$u] = $this->agency(access: true);
+        $this->poolCreator(['account_url' => 'https://tt/@a', 'categories' => ['أزياء']]);
+        $this->poolCreator(['account_url' => 'https://tt/@b', 'categories' => ['تقنية']]);
+
+        $this->actingAs($u)->get('/app/creator-database?category='.urlencode('أزياء'))->assertOk()
+            ->assertInertia(fn (Assert $p) => $p->where('creators.total', 1)->where('filters.category', 'أزياء'));
+    }
+
+    public function test_has_price_filter_only_priced_creators(): void
+    {
+        [$u] = $this->agency(access: true);
+        $this->poolCreator(['account_url' => 'https://tt/@priced', 'price_post_minor' => 300000, 'price_coverage_minor' => 0]);
+        $this->poolCreator(['account_url' => 'https://tt/@free', 'price_post_minor' => 0, 'price_coverage_minor' => 0]);
+
+        $this->actingAs($u)->get('/app/creator-database?has_price=1')->assertOk()
+            ->assertInertia(fn (Assert $p) => $p->where('creators.total', 1));
     }
 }

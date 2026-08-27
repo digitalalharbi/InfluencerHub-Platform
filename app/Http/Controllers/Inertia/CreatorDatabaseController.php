@@ -13,8 +13,11 @@ use App\Domain\Tenancy\Models\Organization;
 use App\Domain\Tenancy\Support\TenantContext;
 use App\Http\Controllers\Controller;
 use App\Support\Http\MountPrefix;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\DB;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -34,7 +37,7 @@ class CreatorDatabaseController extends Controller
         [$org, $role] = $this->guard();
         $canContact = Ability::can($role, Ability::VIEW_CONTACT);
 
-        $filters = $r->only('platform', 'creator_type', 'city', 'region', 'gender', 'shows_face', 'tier', 'min_followers', 'q');
+        $filters = $r->only('platform', 'creator_type', 'category', 'city', 'region', 'gender', 'shows_face', 'tier', 'min_followers', 'has_price', 'q');
         $q = $this->baseQuery($filters);
 
         $page = $q->orderByRaw('followers DESC NULLS LAST')->paginate(24)->withQueryString();
@@ -118,7 +121,7 @@ class CreatorDatabaseController extends Controller
     /**
      * @param  array<string,mixed>  $filters
      */
-    private function baseQuery(array $filters): \Illuminate\Database\Eloquent\Builder
+    private function baseQuery(array $filters): Builder
     {
         $q = PoolCreator::query();
 
@@ -128,6 +131,16 @@ class CreatorDatabaseController extends Controller
         // «نوع المبدع» تصنيف (celebrity|ugc) لا مصدر
         if ($ct = ($filters['creator_type'] ?? null)) {
             $q->where('source_type', $ct === 'ugc' ? 'ugc' : 'celebrity');
+        }
+        // تصنيف المحتوى — من عمود categories الحقيقي (jsonb)، لا قيَم مُختلَقة
+        if ($cat = ($filters['category'] ?? null)) {
+            $q->whereJsonContains('categories', $cat);
+        }
+        // توفّر السعر — سعر منشور أو تغطية فعليّ (> 0)
+        if (($filters['has_price'] ?? null) !== null && $filters['has_price'] !== '') {
+            if (filter_var($filters['has_price'], FILTER_VALIDATE_BOOL)) {
+                $q->where(fn ($w) => $w->where('price_post_minor', '>', 0)->orWhere('price_coverage_minor', '>', 0));
+            }
         }
         if ($t = ($filters['tier'] ?? null)) {
             $q->where('tier', $t);
@@ -139,7 +152,7 @@ class CreatorDatabaseController extends Controller
             $q->where('shows_face', filter_var($filters['shows_face'], FILTER_VALIDATE_BOOL));
         }
         if ($city = ($filters['city'] ?? null)) {
-            $q->whereRaw($this->arNorm('city') . ' ILIKE ' . $this->arNorm('?'), [$city]);
+            $q->whereRaw($this->arNorm('city').' ILIKE '.$this->arNorm('?'), [$city]);
         }
         if ($region = ($filters['region'] ?? null)) {
             $q->where('region', $region);
@@ -149,10 +162,10 @@ class CreatorDatabaseController extends Controller
         }
         if ($term = trim((string) ($filters['q'] ?? ''))) {
             // بحث عربي مطبَّع على الطرفين (ألف/ياء/تاء مربوطة/تطويل) — لا مصدر ضمن أبعاد البحث
-            $like = '%' . $term . '%';
+            $like = '%'.$term.'%';
             $q->where(function ($w) use ($like) {
-                $w->whereRaw($this->arNorm('name') . ' ILIKE ' . $this->arNorm('?'), [$like])
-                    ->orWhereRaw($this->arNorm('city') . ' ILIKE ' . $this->arNorm('?'), [$like])
+                $w->whereRaw($this->arNorm('name').' ILIKE '.$this->arNorm('?'), [$like])
+                    ->orWhereRaw($this->arNorm('city').' ILIKE '.$this->arNorm('?'), [$like])
                     ->orWhere('account_url', 'ILIKE', $like);
             });
         }
@@ -167,15 +180,29 @@ class CreatorDatabaseController extends Controller
         return "translate(replace(lower($expr),'ـ',''),'أإآىة','اااية')";
     }
 
-    /** @return array{platforms:array,creatorTypes:array,regions:array,tiers:array} */
+    /** @return array{platforms:array,creatorTypes:array,categories:array,regions:array,tiers:array} */
     private function facets(): array
     {
         return [
             'platforms' => PoolCreator::selectRaw('platform, count(*) c')->groupBy('platform')->pluck('c', 'platform'),
             'creatorTypes' => PoolCreator::selectRaw('source_type, count(*) c')->groupBy('source_type')->pluck('c', 'source_type'),
+            // تصنيفات حقيقية بأعداد حقيقية — توسيع عناصر مصفوفة jsonb ثم group by (لا أعداد مُختلَقة)
+            'categories' => $this->categoryFacet(),
             'regions' => PoolCreator::whereNotNull('region')->selectRaw('region, count(*) c')->groupBy('region')->orderByDesc('c')->limit(20)->pluck('c', 'region'),
             'tiers' => PoolCreator::whereNotNull('tier')->selectRaw('tier, count(*) c')->groupBy('tier')->pluck('c', 'tier'),
         ];
+    }
+
+    /** عدد المبدعين الحقيقي لكل تصنيف محتوى، من عمود categories (jsonb) مباشرةً. */
+    private function categoryFacet(): Collection
+    {
+        $table = (new PoolCreator)->getTable();
+        $sub = "(SELECT jsonb_array_elements_text(categories) AS cat FROM {$table} "
+            ."WHERE categories IS NOT NULL AND jsonb_typeof(categories) = 'array') t";
+
+        return DB::table(DB::raw($sub))
+            ->selectRaw('cat, count(*) c')->groupBy('cat')->orderByDesc('c')->limit(24)
+            ->pluck('c', 'cat');
     }
 
     /**
