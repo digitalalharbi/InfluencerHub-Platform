@@ -9,7 +9,7 @@ _Last updated: 2026-08-26._
 
 - **Canonical repo:** `digitalalharbi/InfluencerHub-Platform`
 - **Origin:** `https://github.com/digitalalharbi/InfluencerHub-Platform.git`
-- **main = deployed = `c0b5af6` (#94)** — Influencer Nomination mission **N1–N8 complete incl. N6 conversion** + N4 Brand mount + notification/email hardening. VPS deploy SUCCESS + production-safe smoke SUCCESS on this SHA (`/up` 200 ×3; nomination routes `/app/shortlisting`, `/app/campaigns/{id}/shortlist`, `/client/campaigns/{id}/shortlist`, `/platform/tenants`, `/beta/client/recommendations` all 302 auth-gated; `POST …/shortlist/convert` 419 CSRF-protected = live; Vite build shipped). N6-conversion code merged in `aebc674` (#93); `c0b5af6` (#94) fixed a firefox E2E hydration flake that had skipped the #93 deploy.
+- **main = deployed = `9e90c42` (#97)** — Nomination N1–N8 complete; + internal-staff provisioning tool (#96) and Creator-Database category browsing (#97). VPS deploy SUCCESS + production-safe smoke SUCCESS on this SHA (`/up` 200 ×3; auth-gated routes 302; `POST …/shortlist/convert` 419 CSRF-live; Vite build shipped). Production-ops note: internal @influencerhub.io accounts are provisioned by the OPERATOR via `php artisan identity:provision-staff` (Claude cannot access prod DB or handle credentials). N6-conversion code merged in `aebc674` (#93); `c0b5af6` (#94) fixed a firefox E2E hydration flake that had skipped the #93 deploy.
 - **Active working directory:** `/Users/mohammedalharbimacbook/Developer/InfluencerHub-nomination` (worktree).
 - **Other worktrees:** `InfluencerHub-Platform` (holds protected uncommitted security-advisory work — do not touch), `InfluencerHub-comms`, `ih-autopilot`.
 
