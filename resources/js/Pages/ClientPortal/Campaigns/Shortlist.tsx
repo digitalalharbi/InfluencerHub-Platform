@@ -10,6 +10,7 @@ interface Item {
   id: number; creator: string; handle: string | null; platform: string | null; followers: number;
   isBackup: boolean; feeMinor: number; score: number; reasons: string[];
   decision: string; decisionLabel: string; decisionTone: string;
+  avatar: string | null; categories: string[];
 }
 interface Props {
   clientName: string;
@@ -75,18 +76,28 @@ export default function ClientShortlist({ clientName, campaign, version, items }
             {items.map((it) => (
               <div key={it.id} className="ih-sec" style={{ opacity: it.decision === 'rejected' ? 0.7 : 1 }}>
                 <div className="ih-sec__head">
-                  <span className="ih-sec__title">
+                  <span className="ih-sec__title" style={{ display: 'flex', alignItems: 'center', gap: '.55rem' }}>
+                    <span className="ih-idc__av" style={{ width: 38, height: 38, flexShrink: 0, overflow: 'hidden' }} aria-hidden={!!it.avatar}>
+                      {it.avatar ? <img src={it.avatar} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : it.creator.slice(0, 1)}
+                    </span>
                     {it.creator}
                     {it.isBackup && <span className="ih-tag" style={{ fontSize: '.64rem' }}>احتياط</span>}
                   </span>
                   <ScorePill score={it.score} />
                 </div>
                 <div className="ih-sec__body">
-                  <div style={{ display: 'flex', gap: '.8rem', fontSize: '.76rem', color: 'var(--ih-text-muted)', marginBottom: '.6rem', direction: 'ltr', justifyContent: 'flex-end' }}>
+                  <div style={{ display: 'flex', gap: '.8rem', fontSize: '.76rem', color: 'var(--ih-text-muted)', marginBottom: '.6rem', direction: 'ltr', justifyContent: 'flex-end', alignItems: 'center' }}>
                     <span>{it.platform ?? '—'}</span>
                     <span>{fmt(it.followers)} متابع</span>
-                    <span style={{ fontWeight: 600, color: 'var(--ih-text)' }}>{money(it.feeMinor)}</span>
+                    {it.feeMinor > 0
+                      ? <span style={{ fontWeight: 600, color: 'var(--ih-text)' }}>{money(it.feeMinor)}</span>
+                      : <span className="ih-tag" style={{ color: 'var(--ih-warning-ink)' }}>السعر غير مضاف</span>}
                   </div>
+                  {it.categories.length > 0 && (
+                    <div style={{ display: 'flex', gap: '.3rem', flexWrap: 'wrap', marginBottom: '.6rem' }}>
+                      {it.categories.slice(0, 4).map((cat, i) => <span key={i} className="ih-tag" style={{ fontSize: '.64rem' }}>{cat}</span>)}
+                    </div>
+                  )}
                   {it.reasons.length > 0 && (
                     <div style={{ display: 'flex', gap: '.3rem', flexWrap: 'wrap', marginBottom: '.8rem' }}>
                       {it.reasons.map((r, i) => <span key={i} className="ih-tag" style={{ fontSize: '.66rem' }}>{r}</span>)}

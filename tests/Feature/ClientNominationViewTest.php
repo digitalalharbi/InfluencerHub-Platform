@@ -61,7 +61,7 @@ class ClientNominationViewTest extends TestCase
         // مجموعة المفاتيح مقيّدة ومعروفة (whitelist)
         sort($keys);
         $this->assertSame(
-            ['creator', 'decision', 'decisionLabel', 'decisionTone', 'feeMinor', 'followers', 'handle', 'id', 'isBackup', 'platform', 'reasons', 'score'],
+            ['avatar', 'categories', 'creator', 'decision', 'decisionLabel', 'decisionTone', 'feeMinor', 'followers', 'handle', 'id', 'isBackup', 'platform', 'reasons', 'score'],
             $keys,
         );
     }
