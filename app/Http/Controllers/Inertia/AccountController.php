@@ -6,6 +6,7 @@ use App\Domain\Communications\Services\NotificationService;
 use App\Domain\Tenancy\Support\TenantContext;
 use App\Http\Controllers\Concerns\ManagesAccountSecurity;
 use App\Http\Controllers\Controller;
+use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Inertia\Response;
@@ -35,5 +36,16 @@ class AccountController extends Controller
             ],
             ...$this->securityPayload($r, $svc),
         ]);
+    }
+
+    /** تحديث الاسم المعروض للمستخدم — حقّ كل مستخدم على اسمه. */
+    public function updateName(Request $r): RedirectResponse
+    {
+        $data = $r->validate(['name' => 'required|string|min:2|max:120'], [], ['name' => 'الاسم']);
+        $user = $r->user();
+        $user->name = trim($data['name']);
+        $user->save();
+
+        return back()->with('ok', 'حُدِّث اسمك.');
     }
 }

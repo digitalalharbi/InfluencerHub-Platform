@@ -2,14 +2,23 @@
 
 namespace Tests\Feature;
 
+use App\Domain\Billing\Actions\CreateSubscription;
+use App\Domain\Billing\Models\Plan;
+use App\Domain\Billing\Models\PlanEntitlement;
+use App\Domain\Billing\Models\PlanVersion;
 use App\Domain\Creators\Models\Creator;
-use App\Domain\CRM\Models\{Client, ClientMember};
+use App\Domain\CRM\Models\Client;
+use App\Domain\CRM\Models\ClientMember;
 use App\Domain\Identity\Models\User;
-use App\Domain\Partners\Models\{ExternalAgency, ExternalAgencyMember};
-use App\Domain\Tenancy\Models\{Organization, OrganizationMembership, Tenant};
+use App\Domain\Partners\Models\ExternalAgency;
+use App\Domain\Partners\Models\ExternalAgencyMember;
+use App\Domain\Tenancy\Models\Organization;
+use App\Domain\Tenancy\Models\OrganizationMembership;
+use App\Domain\Tenancy\Models\Tenant;
 use App\Domain\Tenancy\Support\TenantContext;
 use Illuminate\Foundation\Testing\RefreshDatabase;
-use Illuminate\Support\Facades\{DB, Hash};
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Str;
 use Inertia\Testing\AssertableInertia as Assert;
 use Tests\TestCase;
@@ -42,7 +51,7 @@ class AccountSecurityTest extends TestCase
         $t = $this->tenant();
         TenantContext::bypass(true);
         $org = Organization::create(['tenant_id' => $t->id, 'name' => 'و', 'slug' => Str::random(8), 'type' => 'agency', 'status' => 'active']);
-        $u = User::create(['name' => 'موظّف', 'email' => Str::random(6) . '@ex.com', 'password' => Hash::make('OldPass123'), 'is_active' => true]);
+        $u = User::create(['name' => 'موظّف', 'email' => Str::random(6).'@ex.com', 'password' => Hash::make('OldPass123'), 'is_active' => true]);
         OrganizationMembership::create(['tenant_id' => $t->id, 'organization_id' => $org->id, 'user_id' => $u->id, 'role' => $role, 'status' => 'active']);
         TenantContext::reset();
 
@@ -55,12 +64,12 @@ class AccountSecurityTest extends TestCase
         TenantContext::bypass(true);
         $org = Organization::create(['tenant_id' => $t->id, 'name' => 'و', 'slug' => Str::random(8), 'type' => 'agency', 'status' => 'active']);
         // بوابة المبدع محكومة بحقّ الخطة — بلا اشتراك مفعِّل لها يُرفض الدخول
-        $plan = \App\Domain\Billing\Models\Plan::create(['key' => Str::random(6), 'name' => 'P', 'is_active' => true]);
-        $pv = \App\Domain\Billing\Models\PlanVersion::create(['plan_id' => $plan->id, 'version' => 1, 'is_active' => true]);
-        \App\Domain\Billing\Models\PlanEntitlement::create(['plan_version_id' => $pv->id, 'feature_key' => 'creator_portal.enabled', 'value' => 1]);
-        (new \App\Domain\Billing\Actions\CreateSubscription)->handle($org, $pv);
-        $u = User::create(['name' => 'مبدع', 'email' => Str::random(6) . '@ex.com', 'password' => Hash::make('OldPass123'), 'is_active' => true]);
-        Creator::create(['tenant_id' => $t->id, 'creator_number' => 'CR-' . $t->id, 'type' => 'influencer',
+        $plan = Plan::create(['key' => Str::random(6), 'name' => 'P', 'is_active' => true]);
+        $pv = PlanVersion::create(['plan_id' => $plan->id, 'version' => 1, 'is_active' => true]);
+        PlanEntitlement::create(['plan_version_id' => $pv->id, 'feature_key' => 'creator_portal.enabled', 'value' => 1]);
+        (new CreateSubscription)->handle($org, $pv);
+        $u = User::create(['name' => 'مبدع', 'email' => Str::random(6).'@ex.com', 'password' => Hash::make('OldPass123'), 'is_active' => true]);
+        Creator::create(['tenant_id' => $t->id, 'creator_number' => 'CR-'.$t->id, 'type' => 'influencer',
             'display_name' => 'مبدع', 'status' => 'active', 'user_id' => $u->id]);
         TenantContext::reset();
 
@@ -72,8 +81,8 @@ class AccountSecurityTest extends TestCase
         $t = $this->tenant();
         TenantContext::bypass(true);
         Organization::create(['tenant_id' => $t->id, 'name' => 'و', 'slug' => Str::random(8), 'type' => 'agency', 'status' => 'active']);
-        $u = User::create(['name' => 'عميل', 'email' => Str::random(6) . '@ex.com', 'password' => Hash::make('OldPass123'), 'is_active' => true]);
-        $c = Client::create(['tenant_id' => $t->id, 'client_number' => 'CL-' . $t->id, 'display_name' => 'ع', 'type' => 'company', 'status' => 'active']);
+        $u = User::create(['name' => 'عميل', 'email' => Str::random(6).'@ex.com', 'password' => Hash::make('OldPass123'), 'is_active' => true]);
+        $c = Client::create(['tenant_id' => $t->id, 'client_number' => 'CL-'.$t->id, 'display_name' => 'ع', 'type' => 'company', 'status' => 'active']);
         ClientMember::create(['tenant_id' => $t->id, 'client_id' => $c->id, 'user_id' => $u->id, 'role' => 'client_admin', 'status' => 'active', 'accepted_at' => now()]);
         TenantContext::reset();
 
@@ -123,7 +132,7 @@ class AccountSecurityTest extends TestCase
     {
         $u = $this->userFor($page);
         DB::table('sessions')->insert([
-            'id' => 'stale-' . $u->id, 'user_id' => $u->id, 'ip_address' => '1.1.1.1',
+            'id' => 'stale-'.$u->id, 'user_id' => $u->id, 'ip_address' => '1.1.1.1',
             'user_agent' => 'x', 'payload' => 'x', 'last_activity' => now()->timestamp,
         ]);
 
@@ -133,7 +142,7 @@ class AccountSecurityTest extends TestCase
 
         $this->assertTrue(Hash::check('NewPass123', $u->fresh()->password));
         // الجلسة القديمة تموت مع تغيير كلمة المرور — وإلا بقيت الجلسة المسروقة صالحة
-        $this->assertDatabaseMissing('sessions', ['id' => 'stale-' . $u->id]);
+        $this->assertDatabaseMissing('sessions', ['id' => 'stale-'.$u->id]);
     }
 
     /** @dataProvider surfaces */
@@ -150,12 +159,12 @@ class AccountSecurityTest extends TestCase
     {
         $u = $this->userFor($page);
         DB::table('sessions')->insert([
-            'id' => 'other-' . $u->id, 'user_id' => $u->id, 'ip_address' => '2.2.2.2',
+            'id' => 'other-'.$u->id, 'user_id' => $u->id, 'ip_address' => '2.2.2.2',
             'user_agent' => 'x', 'payload' => 'x', 'last_activity' => now()->timestamp,
         ]);
 
         $this->actingAs($u)->post("{$actionBase}/sessions/revoke-others")->assertRedirect();
-        $this->assertDatabaseMissing('sessions', ['id' => 'other-' . $u->id]);
+        $this->assertDatabaseMissing('sessions', ['id' => 'other-'.$u->id]);
     }
 
     /** @dataProvider surfaces */
@@ -200,8 +209,8 @@ class AccountSecurityTest extends TestCase
         $t = $this->tenant();
         TenantContext::bypass(true);
         $org = Organization::create(['tenant_id' => $t->id, 'name' => 'و', 'slug' => Str::random(8), 'type' => 'agency', 'status' => 'active']);
-        $u = User::create(['name' => 'شريك', 'email' => Str::random(6) . '@ex.com', 'password' => Hash::make('OldPass123'), 'is_active' => true]);
-        $a = ExternalAgency::create(['tenant_id' => $t->id, 'agency_number' => 'PA-' . $t->id, 'name' => 'ش', 'status' => 'approved']);
+        $u = User::create(['name' => 'شريك', 'email' => Str::random(6).'@ex.com', 'password' => Hash::make('OldPass123'), 'is_active' => true]);
+        $a = ExternalAgency::create(['tenant_id' => $t->id, 'agency_number' => 'PA-'.$t->id, 'name' => 'ش', 'status' => 'approved']);
         ExternalAgencyMember::create(['tenant_id' => $t->id, 'external_agency_id' => $a->id, 'user_id' => $u->id,
             'role' => 'partner_admin', 'status' => 'active', 'accepted_at' => now()]);
         OrganizationMembership::create(['tenant_id' => $t->id, 'organization_id' => $org->id, 'user_id' => $u->id, 'role' => 'viewer', 'status' => 'active']);
@@ -211,5 +220,25 @@ class AccountSecurityTest extends TestCase
             'current_password' => 'OldPass123', 'password' => 'NewPass123', 'password_confirmation' => 'NewPass123',
         ])->assertRedirect()->assertSessionHasNoErrors();
         $this->assertTrue(Hash::check('NewPass123', $u->fresh()->password));
+    }
+
+    /** كل مستخدم يحقّ له تعديل اسمه المعروض من صفحة الحساب. */
+    public function test_agency_user_can_update_own_name(): void
+    {
+        $u = $this->agencyStaff();
+        TenantContext::reset();
+
+        $this->actingAs($u)->post('/app/account/profile', ['name' => 'اسم جديد'])
+            ->assertRedirect()->assertSessionHasNoErrors();
+        $this->assertSame('اسم جديد', $u->fresh()->name);
+    }
+
+    public function test_name_update_rejects_empty(): void
+    {
+        $u = $this->agencyStaff();
+        TenantContext::reset();
+
+        $this->actingAs($u)->post('/app/account/profile', ['name' => ' '])
+            ->assertSessionHasErrors('name');
     }
 }

@@ -42,6 +42,23 @@ export default function AppShell({
   const can = nav?.can ?? {};
   const wsLabel = wsName ?? workspace ?? 'مساحة العمل';
 
+  // قائمة الحساب المنسدلة — تعمل في كل البوّابات. صفحة الحساب لكل بوّابة، ومالك المنصّة
+  // (مساحة /platform بلا صفحة حساب) يُوجَّه إلى /app/account التي يملك الوصول إليها.
+  const accountHref = portal === 'platform' ? '/app/account'
+    : portal === 'client' ? '/client/account'
+      : portal === 'creator' ? '/creator/account'
+        : portal === 'partner' ? '/partner/account'
+          : u('/account');
+  const [userMenu, setUserMenu] = useState(false);
+  useEffect(() => {
+    if (!userMenu) return;
+    const onDoc = (e: MouseEvent) => { if (!(e.target as HTMLElement)?.closest?.('.ih-usermenu')) setUserMenu(false); };
+    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') setUserMenu(false); };
+    document.addEventListener('mousedown', onDoc);
+    document.addEventListener('keydown', onKey);
+    return () => { document.removeEventListener('mousedown', onDoc); document.removeEventListener('keydown', onKey); };
+  }, [userMenu]);
+
   // طيّ المجموعات الثانوية (المزيد/الإدارة) — مطويّة افتراضيًّا لتقليل الوجهات الظاهرة،
   // وتُفتح تلقائيًّا إن كانت تحوي الصفحة الحالية، ويُحفظ تفضيل المستخدم محليًّا.
   const [collapsed, setCollapsed] = useState<Record<string, boolean>>({});
@@ -206,9 +223,55 @@ export default function AppShell({
               </span>
             )}
           </Link>
-          <div className="ih-topbar__user">
-            <span className="ih-topbar__user-name ih-only-desktop">{auth.user?.name}</span>
-            <span className="ih-topbar__avatar">{(auth.user?.name ?? '؟').slice(0, 1)}</span>
+          <div className="ih-usermenu" style={{ position: 'relative' }}>
+            <button
+              type="button"
+              className="ih-topbar__user"
+              onClick={() => setUserMenu((v) => !v)}
+              aria-haspopup="menu"
+              aria-expanded={userMenu}
+              title="حسابي"
+              style={{ background: 'none', border: 0, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '.5rem' }}
+            >
+              <span className="ih-topbar__user-name ih-only-desktop">{auth.user?.name}</span>
+              <span className="ih-topbar__avatar">{(auth.user?.name ?? '؟').slice(0, 1)}</span>
+              <Icon name="chevron-down" size={14} />
+            </button>
+            {userMenu && (
+              <div
+                role="menu"
+                className="card"
+                style={{ position: 'absolute', insetInlineEnd: 0, top: 'calc(100% + 8px)', width: 260, padding: 0, zIndex: 60, boxShadow: 'var(--ih-shadow-lg, 0 12px 32px rgba(16,24,40,.16))', overflow: 'hidden' }}
+              >
+                <div style={{ padding: '.9rem 1rem', display: 'flex', gap: '.6rem', alignItems: 'center', borderBottom: '1px solid var(--ih-border)' }}>
+                  <span className="ih-topbar__avatar" style={{ width: 40, height: 40, fontSize: '1rem' }}>{(auth.user?.name ?? '؟').slice(0, 1)}</span>
+                  <div style={{ minWidth: 0 }}>
+                    <div style={{ fontWeight: 700, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{auth.user?.name}</div>
+                    <div style={{ fontSize: '.72rem', color: 'var(--ih-text-muted)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', direction: 'ltr', textAlign: 'right' }}>{auth.user?.email}</div>
+                    {wsPlan && <div style={{ fontSize: '.68rem', color: 'var(--ih-primary-700, var(--ih-primary))', marginTop: 2 }}>{wsPlan}</div>}
+                  </div>
+                </div>
+                <div style={{ padding: '.35rem' }}>
+                  <Link href={accountHref} className="ih-menuitem" role="menuitem" onClick={() => setUserMenu(false)}
+                    style={{ display: 'flex', alignItems: 'center', gap: '.55rem', padding: '.55rem .6rem', borderRadius: 8, color: 'var(--ih-text)', textDecoration: 'none', fontSize: '.85rem' }}>
+                    <Icon name="user" size={16} /> الملف الشخصي
+                  </Link>
+                  <Link href={`${accountHref}#security`} className="ih-menuitem" role="menuitem" onClick={() => setUserMenu(false)}
+                    style={{ display: 'flex', alignItems: 'center', gap: '.55rem', padding: '.55rem .6rem', borderRadius: 8, color: 'var(--ih-text)', textDecoration: 'none', fontSize: '.85rem' }}>
+                    <Icon name="shield-check" size={16} /> تغيير كلمة المرور
+                  </Link>
+                  <Link href={`${accountHref}#security`} className="ih-menuitem" role="menuitem" onClick={() => setUserMenu(false)}
+                    style={{ display: 'flex', alignItems: 'center', gap: '.55rem', padding: '.55rem .6rem', borderRadius: 8, color: 'var(--ih-text)', textDecoration: 'none', fontSize: '.85rem' }}>
+                    <Icon name="clipboard-check" size={16} /> الجلسات والإشعارات
+                  </Link>
+                  <div style={{ height: 1, background: 'var(--ih-border)', margin: '.35rem 0' }} />
+                  <Link href="/logout" method="post" as="button" role="menuitem"
+                    style={{ width: '100%', display: 'flex', alignItems: 'center', gap: '.55rem', padding: '.55rem .6rem', borderRadius: 8, color: 'var(--ih-danger-ink, #B42318)', background: 'none', border: 0, cursor: 'pointer', fontSize: '.85rem', textAlign: 'start' }}>
+                    <Icon name="log-out" size={16} /> تسجيل الخروج
+                  </Link>
+                </div>
+              </div>
+            )}
           </div>
         </header>
 

@@ -662,6 +662,7 @@ Route::middleware(['auth', 'tenant', 'platform_preview:agency', 'agency_member']
 
         // حساب المستخدم (أمان) — متاح لكل الأدوار، لا يخصّ الإدارة وحدها
         Route::get('/account', [\App\Http\Controllers\Inertia\AccountController::class, 'index']);
+        Route::post('/account/profile', [\App\Http\Controllers\Inertia\AccountController::class, 'updateName']);
         Route::post('/account/notifications', [\App\Http\Controllers\Inertia\AccountController::class, 'updateNotificationPrefs']);
         Route::post('/account/password', [\App\Http\Controllers\Inertia\AccountController::class, 'changePassword']);
         Route::post('/account/sessions/revoke-others', [\App\Http\Controllers\Inertia\AccountController::class, 'revokeOtherSessions']);

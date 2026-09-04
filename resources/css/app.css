@@ -693,6 +693,9 @@ button.ih-nav__group--toggle:focus-visible { outline: 2px solid var(--ih-primary
 .ih-topbar__user { display: inline-flex; align-items: center; gap: .55rem; padding: .3rem .3rem .3rem .7rem; border-radius: var(--ih-radius-pill); border: 1px solid var(--ih-border); background: var(--ih-surface); }
 .ih-topbar__user-name { font-size: .82rem; font-weight: 600; color: var(--ih-text-secondary); }
 .ih-topbar__avatar { width: 30px; height: 30px; border-radius: 50%; background: var(--ih-primary-soft); color: var(--ih-primary-700); font-weight: 800; display: inline-flex; align-items: center; justify-content: center; font-size: .8rem; }
+.ih-usermenu .ih-topbar__user:hover { border-color: var(--ih-primary-300, var(--ih-primary)); }
+.ih-menuitem { transition: background .12s ease; }
+.ih-menuitem:hover { background: var(--ih-surface-2, rgba(16,24,40,.05)); }
 
 /* content container width */
 .ih-content { padding: 1.5rem; flex: 1; min-width: 0; }
