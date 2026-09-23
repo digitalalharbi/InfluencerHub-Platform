@@ -14,7 +14,14 @@ interface Creator {
   referenceRate: number | null; referenceRateNote: string; dataFreshness: string; lastImportedAt: string | null;
   contact?: Contact;
 }
-interface Filters { platform?: string; creator_type?: string; category?: string; city?: string; region?: string; gender?: string; shows_face?: string; tier?: string; min_followers?: string; has_price?: string; q?: string }
+interface Filters { platform?: string; creator_type?: string; category?: string; city?: string; region?: string; gender?: string; shows_face?: string; tier?: string; min_followers?: string; has_price?: string; q?: string; sort?: string }
+
+const SORTS: { value: string; label: string }[] = [
+  { value: 'followers', label: 'الأكثر متابعة' },
+  { value: 'price', label: 'الأعلى سعرًا' },
+  { value: 'recent', label: 'الأحدث بيانات' },
+];
+const TOP_CATEGORIES = 8;
 interface Props {
   base: string;
   creators: Paginated<Creator>;
@@ -40,6 +47,10 @@ function clean(obj: Record<string, unknown>): Record<string, string> {
 
 export default function CreatorDatabaseIndex({ creators, filters, canContact, canUseInCampaign, facets, summary }: Props) {
   const [q, setQ] = useState(filters.q ?? '');
+  // فلاتر متقدّمة مخفية افتراضيًّا (تقليل العبء البصري) — تُفتح تلقائيًّا إن كان أحدها مفعّلًا
+  const advActive = Boolean(filters.creator_type || filters.tier || filters.gender || filters.has_price);
+  const [showAdvanced, setShowAdvanced] = useState(advActive);
+  const [showAllCats, setShowAllCats] = useState(false);
   const first = useRef(true);
   useEffect(() => {
     if (first.current) { first.current = false; return; }
@@ -47,9 +58,12 @@ export default function CreatorDatabaseIndex({ creators, filters, canContact, ca
     return () => clearTimeout(t);
   }, [q]);
   const update = (patch: Filters) => router.get(u('/creator-database'), clean({ ...filters, ...patch }), { preserveState: true, replace: true, preserveScroll: true });
-  const resetAll = () => { setQ(''); router.get(u('/creator-database'), {}, { preserveScroll: true }); };
-  const activeCount = Object.entries(filters).filter(([, v]) => v !== '' && v != null).length;
+  const resetAll = () => { setQ(''); setShowAdvanced(false); setShowAllCats(false); router.get(u('/creator-database'), {}, { preserveScroll: true }); };
+  // «الترتيب» ليس فلترًا نشطًا — يُستثنى من عدّاد الفلاتر ومن «مسح الكل»
+  const activeCount = Object.entries(filters).filter(([k, v]) => k !== 'sort' && v !== '' && v != null).length;
   const categoryEntries = Object.entries(facets.categories ?? {});
+  const shownCats = showAllCats ? categoryEntries : categoryEntries.slice(0, TOP_CATEGORIES);
+  const currentSort = filters.sort ?? 'followers';
 
   const copyPhone = (p: string) => navigator.clipboard?.writeText(p);
   const waLink = (p: string) => `https://wa.me/${p}`;
@@ -67,36 +81,30 @@ export default function CreatorDatabaseIndex({ creators, filters, canContact, ca
         <div className="ih-listhead__meta" style={{ color: 'var(--ih-text-muted)', fontSize: '.82rem' }}>{summary.total.toLocaleString('en-US')} مبدع</div>
       </div>
 
+      {/* الشريط الأساسي: عناصر التحكّم الأعلى قيمة فقط — بحث · منصّة · موقع · ترتيب · فلاتر إضافية */}
       <div className="ih-filterbar">
         <label className="ih-search"><Icon name="search" size={16} />
           <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="ابحث بالاسم أو المدينة أو الحساب…" />
         </label>
-        <select className="field" style={{ maxWidth: 130 }} value={filters.platform ?? ''} onChange={(e) => update({ platform: e.target.value })}>
+        <select className="field" style={{ maxWidth: 130 }} value={filters.platform ?? ''} onChange={(e) => update({ platform: e.target.value })} aria-label="المنصّة">
           <option value="">كل المنصّات</option>
           {Object.keys(facets.platforms).map((p) => <option key={p} value={p}>{PLATFORM_LABELS[p] ?? p}</option>)}
         </select>
-        <select className="field" style={{ maxWidth: 140 }} value={filters.creator_type ?? ''} onChange={(e) => update({ creator_type: e.target.value })}>
-          <option value="">كل الأنواع</option>
-          <option value="celebrity">مؤثّر</option>
-          <option value="ugc">صانع UGC</option>
-        </select>
-        <select className="field" style={{ maxWidth: 110 }} value={filters.tier ?? ''} onChange={(e) => update({ tier: e.target.value })}>
-          <option value="">كل الفئات</option>
-          {Object.keys(facets.tiers).map((t) => <option key={t} value={t}>فئة {t}</option>)}
-        </select>
-        <select className="field" style={{ maxWidth: 130 }} value={filters.region ?? ''} onChange={(e) => update({ region: e.target.value })}>
+        <select className="field" style={{ maxWidth: 130 }} value={filters.region ?? ''} onChange={(e) => update({ region: e.target.value })} aria-label="الموقع">
           <option value="">كل المناطق</option>
           {Object.keys(facets.regions).map((rg) => <option key={rg} value={rg}>{rg}</option>)}
         </select>
-        <select className="field" style={{ maxWidth: 110 }} value={filters.gender ?? ''} onChange={(e) => update({ gender: e.target.value })}>
-          <option value="">الجنس</option>
-          <option value="female">أنثى</option>
-          <option value="male">ذكر</option>
+        <select className="field" style={{ maxWidth: 150 }} value={currentSort} onChange={(e) => update({ sort: e.target.value })} aria-label="ترتيب النتائج" title="ترتيب النتائج">
+          {SORTS.map((s) => <option key={s.value} value={s.value}>{s.label}</option>)}
         </select>
-        <select className="field" style={{ maxWidth: 130 }} value={filters.has_price ?? ''} onChange={(e) => update({ has_price: e.target.value })}>
-          <option value="">السعر</option>
-          <option value="1">سعر متاح</option>
-        </select>
+        <button
+          onClick={() => setShowAdvanced((v) => !v)}
+          className={`btn btn-sm btn-outline${advActive ? ' active' : ''}`}
+          aria-expanded={showAdvanced}
+          title="فلاتر إضافية"
+        >
+          <Icon name="sliders-horizontal" size={14} /> فلاتر إضافية{advActive ? ' •' : ''}
+        </button>
         {activeCount > 0 && (
           <button onClick={resetAll} className="btn btn-sm btn-outline" title="مسح كل الفلاتر">
             <Icon name="x" size={14} /> مسح الفلاتر ({activeCount})
@@ -104,8 +112,33 @@ export default function CreatorDatabaseIndex({ creators, filters, canContact, ca
         )}
       </div>
 
+      {/* لوحة الفلاتر المتقدّمة — مخفيّة افتراضيًّا كي لا يُغرَق الشريط الأساسي */}
+      {showAdvanced && (
+        <div className="ih-filterbar" style={{ marginTop: '.4rem', paddingTop: '.6rem', borderTop: '1px solid var(--ih-border)' }}>
+          <select className="field" style={{ maxWidth: 140 }} value={filters.creator_type ?? ''} onChange={(e) => update({ creator_type: e.target.value })} aria-label="نوع المبدع">
+            <option value="">كل الأنواع</option>
+            <option value="celebrity">مؤثّر</option>
+            <option value="ugc">صانع UGC</option>
+          </select>
+          <select className="field" style={{ maxWidth: 110 }} value={filters.tier ?? ''} onChange={(e) => update({ tier: e.target.value })} aria-label="الفئة">
+            <option value="">كل الفئات</option>
+            {Object.keys(facets.tiers).map((t) => <option key={t} value={t}>فئة {t}</option>)}
+          </select>
+          <select className="field" style={{ maxWidth: 110 }} value={filters.gender ?? ''} onChange={(e) => update({ gender: e.target.value })} aria-label="الجنس">
+            <option value="">الجنس</option>
+            <option value="female">أنثى</option>
+            <option value="male">ذكر</option>
+          </select>
+          <select className="field" style={{ maxWidth: 130 }} value={filters.has_price ?? ''} onChange={(e) => update({ has_price: e.target.value })} aria-label="توفّر السعر">
+            <option value="">السعر</option>
+            <option value="1">سعر متاح</option>
+          </select>
+        </div>
+      )}
+
+      {/* التصنيفات: الأكثر استخدامًا فقط + «عرض الكل» — لا جدار رقائق. أعداد حقيقية. */}
       {categoryEntries.length > 0 && (
-        <div style={{ display: 'flex', gap: '.4rem', flexWrap: 'wrap', margin: '.2rem 0 1rem', overflowX: 'auto' }}>
+        <div style={{ display: 'flex', gap: '.4rem', flexWrap: 'wrap', margin: '.6rem 0 1rem', alignItems: 'center' }}>
           <button
             onClick={() => update({ category: '' })}
             className="ih-chip"
@@ -114,7 +147,7 @@ export default function CreatorDatabaseIndex({ creators, filters, canContact, ca
           >
             الكل
           </button>
-          {categoryEntries.map(([cat, count]) => {
+          {shownCats.map(([cat, count]) => {
             const active = filters.category === cat;
             return (
               <button
@@ -128,6 +161,11 @@ export default function CreatorDatabaseIndex({ creators, filters, canContact, ca
               </button>
             );
           })}
+          {categoryEntries.length > TOP_CATEGORIES && (
+            <button onClick={() => setShowAllCats((v) => !v)} className="ih-chip" style={{ borderStyle: 'dashed' }}>
+              {showAllCats ? 'عرض أقل' : `عرض جميع التصنيفات (${categoryEntries.length})`}
+            </button>
+          )}
         </div>
       )}
 
