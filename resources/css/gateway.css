@@ -382,11 +382,10 @@
 }
 
 .gw-hero h2 em {
+  /* قاعدة الهوية: لا يُلوَّن اسم InfluencerHub بالسماوي أبدًا — السماوي للنقطة فقط.
+     على تدرّج البطل الداكن يكون الاسم أبيض بالكامل. */
   font-style: normal;
-  background: linear-gradient(90deg, var(--ih-accent-400), #fff);
-  -webkit-background-clip: text;
-  background-clip: text;
-  color: transparent;
+  color: #fff;
 }
 
 .gw-hero p {

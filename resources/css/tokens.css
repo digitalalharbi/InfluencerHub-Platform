@@ -82,7 +82,7 @@
   --ih-accent-soft:   var(--ih-accent-50);
 
   /* ---- Typography ---- */
-  --ih-font-sans: "IBM Plex Sans Arabic", "Inter", "Tajawal", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --ih-font-sans: "IBM Plex Sans Arabic", "IBM Plex Sans", "Tajawal", system-ui, -apple-system, "Segoe UI", sans-serif;
   --ih-font-mono: "IBM Plex Mono", ui-monospace, "SF Mono", Menlo, monospace;
   /* سلّم ثابت لا سائل: الفروق بين الصفحات كانت تأتي من clamp لا من القصد.
      الأرقام بالبكسل كما اعتُمدت، والجذر 16px فالتحويل مباشر. */

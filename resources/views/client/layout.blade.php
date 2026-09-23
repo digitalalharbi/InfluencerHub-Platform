@@ -11,7 +11,7 @@
 <body>
 <div class="ih-shell has-bottom-nav" x-data="{ nav:false }" :class="{ 'nav-open': nav }" @keydown.escape.window="nav=false"><div class="ih-scrim" @click="nav=false"></div>
     <aside class="sidebar" style="display:flex; flex-direction:column; padding:1.2rem 1rem;" @click="nav=false">
-        <div style="font-weight:800; font-size:1.1rem; color:var(--brand); padding:.4rem .5rem 1rem;">◆ بوابة العميل</div>
+        <div style="display:flex; align-items:center; gap:.5rem; font-weight:800; font-size:1.05rem; color:var(--brand); padding:.4rem .5rem 1rem;"><x-ih-logo :size="22" /> بوابة العميل</div>
         {{-- مبدّل العميل --}}
         <div x-data="{ open:false }" style="position:relative; margin-bottom:.8rem;">
             <button @click="open=!open" class="card" style="width:100%; padding:.6rem .8rem; text-align:right; cursor:pointer; border:1px solid var(--border);">
@@ -30,7 +30,7 @@
         <form method="POST" action="/client/logout">@csrf<button class="nav-link" style="width:100%; border:0; background:none; cursor:pointer; text-align:right;">تسجيل الخروج</button></form>
     </aside>
     <main style="flex:1; display:flex; flex-direction:column; min-width:0;">
-        <div class="ih-topbar-mobile"><button class="ih-icon-btn" @click="nav=true" aria-label="فتح القائمة"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="3" x2="21" y1="6" y2="6"/><line x1="3" x2="21" y1="12" y2="12"/><line x1="3" x2="21" y1="18" y2="18"/></svg></button><span style="font-weight:800; color:var(--ih-primary);">◆ InfluencerHub</span><span style="margin-inline-start:auto; font-weight:700; font-size:.9rem;">@yield('heading','')</span></div>
+        <div class="ih-topbar-mobile"><button class="ih-icon-btn" @click="nav=true" aria-label="فتح القائمة"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="3" x2="21" y1="6" y2="6"/><line x1="3" x2="21" y1="12" y2="12"/><line x1="3" x2="21" y1="18" y2="18"/></svg></button><x-ih-logo :size="22" :withWordmark="true" color="var(--ih-primary)" /><span style="margin-inline-start:auto; font-weight:700; font-size:.9rem;">@yield('heading','')</span></div>
         <header style="height:62px; background:var(--surface); border-bottom:1px solid var(--border); display:flex; align-items:center; padding:0 1.5rem; gap:1rem;">
             <div style="font-weight:700;">@yield('heading','')</div>
             <button type="button" class="ih-cmdk__trigger" style="margin-inline-start:auto;" @click="$dispatch('ih-open-command-palette')" aria-label="لوحة الأوامر">

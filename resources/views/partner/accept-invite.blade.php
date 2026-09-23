@@ -3,7 +3,7 @@
     @vite(['resources/css/app.css','resources/js/app.js'])</head>
 <body style="display:flex; align-items:center; justify-content:center; min-height:100vh; background:linear-gradient(180deg,#eef2ff,#f8fafc);">
 <div class="card" style="width:min(420px,92vw); padding:2rem;">
-    <div style="text-align:center; margin-bottom:1.3rem;"><div style="font-weight:800; font-size:1.25rem; color:var(--brand);">◆ قبول دعوة الشريك</div>
+    <div style="text-align:center; margin-bottom:1.3rem;"><div style="display:inline-flex; align-items:center; gap:.5rem; font-weight:800; font-size:1.15rem; color:var(--brand);"><x-ih-logo :size="24" /> قبول دعوة الشريك</div>
         <div style="color:var(--text-muted); font-size:.85rem; margin-top:.3rem;">أنشئ حسابك للانضمام لبوابة الشريك</div></div>
     @if($errors->any())<div class="card" style="padding:.7rem; margin-bottom:1rem; border-inline-start:3px solid var(--danger); color:#b91c1c; font-size:.85rem;">{{ $errors->first() }}</div>@endif
     <form method="POST" action="/partner/invite/{{ $token }}">@csrf
