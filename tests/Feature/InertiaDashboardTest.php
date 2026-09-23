@@ -2,6 +2,9 @@
 
 namespace Tests\Feature;
 
+use App\Domain\Campaigns\Models\Campaign;
+use App\Domain\Campaigns\Models\CampaignShortlist;
+use App\Domain\Campaigns\Models\CampaignShortlistVersion;
 use App\Domain\CRM\Models\Client;
 use App\Domain\Identity\Models\User;
 use App\Domain\Tenancy\Models\{Organization, OrganizationMembership, Tenant};
@@ -70,5 +73,38 @@ class InertiaDashboardTest extends TestCase
         [, , $u2] = $this->agency(2); // المستأجر الحالي لديه 2
         $this->actingAs($u2)->get('/beta')
             ->assertInertia(fn (Assert $page) => $page->where('overview.kpis.clientsTotal', 2));
+    }
+
+    /** «المطلوب مني الآن» يُبرز إجراء الترشيح الحتميّ حين يطلب العميل بديلًا. */
+    public function test_mywork_surfaces_nomination_alternative_action(): void
+    {
+        [$t, , $u] = $this->agency(0, 'campaign_manager');
+        TenantContext::bypass(true);
+        $cm = Campaign::create(['tenant_id' => $t->id, 'campaign_number' => 'CM-N-' . $t->id,
+            'name' => 'حملة الترشيح', 'status' => 'active', 'budget_minor' => 5000000, 'currency' => 'SAR', 'created_by' => $u->id]);
+        $sl = CampaignShortlist::create(['tenant_id' => $t->id, 'campaign_id' => $cm->id, 'current_version' => 1, 'status' => 'active', 'created_by' => $u->id]);
+        CampaignShortlistVersion::create(['tenant_id' => $t->id, 'shortlist_id' => $sl->id, 'version' => 1, 'status' => 'changes_requested']);
+        TenantContext::reset();
+
+        $res = $this->actingAs($u)->get('/beta')->assertOk();
+        $work = collect($res->viewData('page')['props']['myWork']);
+        $this->assertTrue($work->contains(fn ($w) => str_contains($w['title'], 'العميل طلب بديلًا')),
+            '«العميل طلب بديلًا» غائب عن المطلوب مني الآن');
+    }
+
+    /** المُطّلع لا يرى إجراءات الترشيح (ليست من صلاحيته). */
+    public function test_viewer_does_not_see_nomination_actions(): void
+    {
+        [$t, , $u] = $this->agency(0, 'viewer');
+        TenantContext::bypass(true);
+        $cm = Campaign::create(['tenant_id' => $t->id, 'campaign_number' => 'CM-NV-' . $t->id,
+            'name' => 'ح', 'status' => 'active', 'budget_minor' => 100000, 'currency' => 'SAR', 'created_by' => $u->id]);
+        $sl = CampaignShortlist::create(['tenant_id' => $t->id, 'campaign_id' => $cm->id, 'current_version' => 1, 'status' => 'active', 'created_by' => $u->id]);
+        CampaignShortlistVersion::create(['tenant_id' => $t->id, 'shortlist_id' => $sl->id, 'version' => 1, 'status' => 'changes_requested']);
+        TenantContext::reset();
+
+        $res = $this->actingAs($u)->get('/beta')->assertOk();
+        $work = collect($res->viewData('page')['props']['myWork']);
+        $this->assertFalse($work->contains(fn ($w) => str_contains($w['title'], 'العميل طلب بديلًا')));
     }
 }
