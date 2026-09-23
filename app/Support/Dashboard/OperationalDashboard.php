@@ -3,6 +3,8 @@
 namespace App\Support\Dashboard;
 
 use App\Domain\Campaigns\Models\Campaign;
+use App\Domain\Campaigns\Models\CampaignShortlistItem;
+use App\Domain\Campaigns\Models\CampaignShortlistVersion;
 use App\Domain\Content\Models\ContentItem;
 use App\Domain\CRM\Models\{Brand, ClientDocument, ClientProfileChangeRequest};
 use App\Domain\Creators\Models\CreatorApplication;
@@ -26,6 +28,8 @@ class OperationalDashboard
     private const FINANCE = ['super_admin', 'agency_admin', 'operations_manager', 'finance'];
     private const CREATOR_MGMT = ['super_admin', 'agency_admin', 'operations_manager', 'creator_manager'];
     private const CAMPAIGN_VIEW = ['super_admin', 'agency_admin', 'operations_manager', 'campaign_manager', 'agency_employee', 'creator_manager', 'content_reviewer', 'finance', 'viewer'];
+    // من يُدير الترشيح فعليًّا (إرسال/بديل/تحويل) — لا المُطّلع ولا المالية
+    private const NOMINATION = ['super_admin', 'agency_admin', 'operations_manager', 'campaign_manager'];
     private const TEAM_VIEW = ['super_admin', 'agency_admin', 'operations_manager'];
 
     private const ROLE_LABEL = [
@@ -140,6 +144,30 @@ class OperationalDashboard
             $late = Campaign::query()->whereIn('status', ['active', 'paused'])
                 ->whereNotNull('end_date')->whereDate('end_date', '<', $now)->count();
             if ($late > 0) $items[] = $this->group('late_campaigns', 'حملات متأخرة عن الموعد', "$late حملة تجاوزت تاريخ الانتهاء", 'critical', $late, 'عرض الحملات', '/app/campaigns?seg=late');
+        }
+
+        // 4) مراحل الترشيح — إجراءات حتمية من حالة الإصدار الحالي (لا حالة مُختلَقة).
+        // كل عدّاد لقوائم إصدارها الحالي في تلك الحالة؛ لا صفوف = لا عنصر (غير مزعج).
+        if ($this->can(self::NOMINATION)) {
+            $current = CampaignShortlistVersion::query()
+                ->whereIn('status', ['draft', 'changes_requested', 'approved', 'partially_approved'])
+                ->whereExists(fn ($q) => $q->from('campaign_shortlists as sl')
+                    ->whereColumn('sl.id', 'campaign_shortlist_versions.shortlist_id')
+                    ->whereColumn('sl.current_version', 'campaign_shortlist_versions.version'))
+                ->get(['id', 'status']);
+
+            $changes = $current->where('status', 'changes_requested')->count();
+            if ($changes > 0) $items[] = $this->group('nom_alt', 'العميل طلب بديلًا', "$changes قائمة ترشيح يطلب العميل لها بديلًا", 'today', $changes, 'راجع الطلب', '/app/shortlisting');
+
+            $toConvert = $current->whereIn('status', ['approved', 'partially_approved'])->count();
+            if ($toConvert > 0) $items[] = $this->group('nom_convert', 'معتمَدون جاهزون للتنفيذ', "$toConvert قائمة معتمدة بانتظار تحويل المعتمَدين", 'today', $toConvert, 'تحويل للتنفيذ', '/app/shortlisting');
+
+            $draftIds = $current->where('status', 'draft')->pluck('id');
+            if ($draftIds->isNotEmpty()) {
+                $ready = CampaignShortlistItem::whereIn('shortlist_version_id', $draftIds)
+                    ->where('is_backup', false)->distinct()->count('shortlist_version_id');
+                if ($ready > 0) $items[] = $this->group('nom_send', 'قوائم ترشيح جاهزة للإرسال', "$ready قائمة فيها مرشّحون بانتظار الإرسال للعميل", 'normal', $ready, 'مراجعة القوائم', '/app/shortlisting');
+            }
         }
 
         usort($items, fn ($a, $b) => [$a['prioRank'], $a['dueTs'] ?? PHP_INT_MAX] <=> [$b['prioRank'], $b['dueTs'] ?? PHP_INT_MAX]);
