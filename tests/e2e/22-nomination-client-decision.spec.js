@@ -68,6 +68,9 @@ test.describe('N8 — قرار العميل على الترشيح (سلسلة ك
       await loginClient(client);
       await client.goto(`/client/campaigns/${campaignId}/shortlist`);
       await expect(client.locator('body')).toContainText('نورة القحطاني');
+      // ملخّص القرارات ظاهر أعلى الصفحة (معتمَد/يحتاج بديلًا/مرفوض/بانتظار) — UX5
+      await expect(client.locator('.ih-summary')).toContainText('معتمَد');
+      await expect(client.locator('.ih-summary')).toContainText('بانتظار قرارك');
       await client.screenshot({ path: `${EV}/n8-02-client-shortlist.png`, fullPage: true });
 
       // ثلاثة خيارات: اعتماد / أحتاج بديلًا / رفض
