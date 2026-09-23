@@ -65,10 +65,8 @@ test.describe('N1 — قبول حيّ لترشيح المؤثرين', () => {
       await page.goto(shortlistUrl);
       await expect(page.locator('body')).toContainText('نورة القحطاني');
       await page.screenshot({ path: `${EV}/n1-01-agency-shortlist-ON.png`, fullPage: true });
-      // رابط «الترشيحات» ظاهر في القائمة (ضمن مجموعة «المزيد» القابلة للطي)
-      const more = page.getByRole('button', { name: 'المزيد' });
-      if (await more.count()) await more.first().click();
-      await expect(page.getByRole('link', { name: 'الترشيحات', exact: true })).toBeVisible();
+      // رابط «الترشيحات» ظاهر مباشرةً في مساحة «المؤثرون» (لم يعد مطويًّا داخل «المزيد» — UX1)
+      await expect(page.locator('aside').getByRole('link', { name: 'الترشيحات', exact: true })).toBeVisible();
     });
 
     await test.step('مالك المنصّة يطفئ الميزة لبوّابة وكالة المستأجر A', async () => {
@@ -91,11 +89,9 @@ test.describe('N1 — قبول حيّ لترشيح المؤثرين', () => {
       // تصدير
       const r3 = await page.goto(`${shortlistUrl}/export`);
       expect(r3.status()).toBe(403);
-      // القائمة اختفت من التنقّل
+      // القائمة اختفت من التنقّل (المؤثرون → الترشيحات محجوبة بالصلاحية عند الإطفاء — UX1)
       await page.goto('/app');
-      const more = page.getByRole('button', { name: 'المزيد' });
-      if (await more.count()) await more.first().click();
-      await expect(page.getByRole('link', { name: 'الترشيحات', exact: true })).toHaveCount(0);
+      await expect(page.locator('aside').getByRole('link', { name: 'الترشيحات', exact: true })).toHaveCount(0);
       await page.screenshot({ path: `${EV}/n1-05-agency-nav-hidden.png`, fullPage: true });
     });
 
