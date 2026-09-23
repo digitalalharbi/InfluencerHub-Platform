@@ -71,14 +71,13 @@ class ProvisionInternalStaffTest extends TestCase
         Artisan::call('identity:provision-staff', ['--tenant' => 'influencerhub', '--yes' => true]);
         $out = Artisan::output();
 
-        // نلتقط كلمة مرور «operations@» المطبوعة مرّة واحدة، ونثبت أنها تسجّل الدخول فعليًّا.
+        // نلتقط كلمة مرور «operations@» من سطر الاعتماد فقط (يبدأ بالبريد بعد التشذيب)،
+        // لا من سطر «✚ أُنشئ …@… (دور)» الذي يحوي البريد أيضًا — تفاديًا لالتقاط الرمز الخطأ.
         $pw = null;
         foreach (preg_split('/\R/', $out) as $line) {
-            if (str_contains($line, 'operations@influencerhub.io')) {
-                $parts = preg_split('/\s+/', trim($line));
-                if (count($parts) >= 2) {
-                    $pw = $parts[1];
-                }
+            $parts = preg_split('/\s+/', trim($line));
+            if (($parts[0] ?? null) === 'operations@influencerhub.io' && isset($parts[1])) {
+                $pw = $parts[1];
             }
         }
         $this->assertNotNull($pw, 'طُبعت كلمة مرور operations@ مرّة واحدة');
@@ -93,17 +92,17 @@ class ProvisionInternalStaffTest extends TestCase
     {
         $this->agencyTenant();
         Artisan::call('identity:provision-staff', ['--tenant' => 'influencerhub', '--yes' => true]);
-        $out1 = Artisan::output();
-        $pw = null;
-        foreach (preg_split('/\R/', $out1) as $line) {
-            if (str_contains($line, 'finance@influencerhub.io')) {
-                $pw = preg_split('/\s+/', trim($line))[1] ?? null;
-            }
-        }
-        // إعادة التشغيل: لا حسابات جديدة، وكلمة المرور القديمة ما زالت تعمل
+        // تجزئة كلمة المرور بعد الإنشاء الأوّل — الثابت الأمني: لا تتغيّر عند إعادة التشغيل.
+        // نقارن التجزئة مباشرةً (حتميّ) بدل إعادة تحليل المُخرَج ثم تسجيل الدخول (هشّ).
+        // إثبات أنّ كلمة المرور المولّدة تسجّل الدخول فعليًّا يغطّيه اختبار مستقلّ.
+        $hashBefore = TenantContext::withBypass(fn () => User::where('email', 'finance@influencerhub.io')->value('password'));
+        $this->assertNotNull($hashBefore, 'لم يُنشأ حساب المالية');
+
+        // إعادة التشغيل: لا حسابات جديدة، وتجزئة كلمة مرور الحساب القائم لم تتغيّر
         Artisan::call('identity:provision-staff', ['--tenant' => 'influencerhub', '--yes' => true]);
         $this->assertStringContainsString('لا حسابات جديدة', Artisan::output());
-        $this->assertTrue(Auth::attempt(['email' => 'finance@influencerhub.io', 'password' => $pw]));
+        $hashAfter = TenantContext::withBypass(fn () => User::where('email', 'finance@influencerhub.io')->value('password'));
+        $this->assertSame($hashBefore, $hashAfter, 'تغيّرت كلمة مرور الحساب القائم عند إعادة التشغيل');
     }
 
     public function test_never_touches_external_real_users(): void
