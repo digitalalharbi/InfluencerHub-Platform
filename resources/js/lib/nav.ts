@@ -25,10 +25,11 @@ export interface NavGroup {
  * تُصفّى بالدور/الصلاحية عبر `nav.can` المشتركة؛ المجموعة الفارغة تُخفى في AppShell.
  * لا يُعرض عنصر لوحدة غير مبنية. ما لم يُهاجَر بعد يشير إلى Blade `/app` (لا حذف لأي وحدة).
  */
-// بنية مبسّطة (تقليل العبء الإدراكي): وجهات أساسية يوميّة قليلة + مجموعتان ثانويتان
-// تُطويان افتراضيًّا («المزيد» و«الإدارة»). لا تُحذف أي وجهة — تُنقَل الوحدات التي صارت
-// جزءًا من مساحة عمل الكيان (الحملة/العميل) إلى «المزيد» كفهارس عبر-الكيانات، وتبقى
-// روابطها ومساراتها كما هي (توافق الروابط العميقة).
+// بنية مساحات العمل (UX1) — سبع مساحات عمل رئيسية تعكس رحلة منتج التسويق عبر المؤثرين
+// بدل تشتيت الوحدات: الرئيسية · العمل · المؤثرون · التنفيذ · العملاء والعلامات · المالية · التقارير.
+// كل قدرة موضوعة داخل مساحتها الصحيحة (المؤثرون تجمع الاكتشاف/القاعدة/الترشيح/الانضمام؛
+// التنفيذ يجمع التعاون/المحتوى/العقود). لا تُحذف أي وجهة، وتبقى روابطها ومساراتها وصلاحياتها
+// كما هي (توافق الروابط العميقة). «الإدارة» وحدها مطويّة افتراضيًّا وللمخوّلين فقط.
 export const agencyNav: NavGroup[] = [
   {
     key: 'main',
@@ -46,14 +47,38 @@ export const agencyNav: NavGroup[] = [
     ],
   },
   {
+    // المؤثرون — مساحة الاكتشاف والعلاقة: دليل صناع المحتوى + قاعدة الاكتشاف المميّزة +
+    // الترشيحات + طلبات الانضمام. كل ما يخصّ اختيار المؤثر في مكان واحد.
+    key: 'creators',
+    label: 'المؤثرون',
+    items: [
+      { key: 'creators', label: 'صناع المحتوى', route: '/creators', icon: 'users' },
+      { key: 'creator_database', label: 'قاعدة المؤثرين', route: '/creator-database', icon: 'radar', can: 'creator_database' },
+      { key: 'shortlisting', label: 'الترشيحات', route: '/shortlisting', icon: 'list-checks', can: 'influencer_nomination' },
+      { key: 'publishers', label: 'الناشرون', route: '/publishers', icon: 'radar' },
+      { key: 'applications', label: 'طلبات الانضمام', route: '/creator-applications', icon: 'user-plus', badge: 'creator_applications', can: 'reviews' },
+    ],
+  },
+  {
+    // التنفيذ — ما يجري بعد الاعتماد: التعاونات ثم المحتوى ثم العقود (سلسلة تشغيلية واحدة).
+    key: 'execution',
+    label: 'التنفيذ',
+    items: [
+      { key: 'collaborations', label: 'التعاونات', route: '/collaborations', icon: 'git-merge' },
+      { key: 'content', label: 'المحتوى', route: '/content', icon: 'image', badge: 'content' },
+      { key: 'contracts', label: 'العقود', route: '/contracts', icon: 'file-text' },
+    ],
+  },
+  {
+    // العملاء والعلامات — جهة الطلب: العميل وعلاماته والوكالات الشريكة وطوابير مراجعتها.
     key: 'relationships',
-    label: 'العلاقات',
+    label: 'العملاء والعلامات',
     items: [
       { key: 'clients', label: 'العملاء', route: '/clients', icon: 'building-2' },
-      // وجهة واحدة لصناع المحتوى (الترشيح/التعاون/المحتوى يُدار من داخل الحملة أو الملفّ).
-      { key: 'creators', label: 'صناع المحتوى', route: '/creators', icon: 'users' },
-      // قاعدة المؤثرين (منتج مميّز · اكتشاف) — يظهر فقط للمؤسسات المستحقّة.
-      { key: 'creator_database', label: 'قاعدة المؤثرين', route: '/creator-database', icon: 'radar', can: 'creator_database' },
+      { key: 'brands', label: 'العلامات', route: '/brands', icon: 'bookmark' },
+      { key: 'partners', label: 'الوكالات الشريكة', route: '/partner-agencies', icon: 'handshake', can: 'admin' },
+      { key: 'brand_reviews', label: 'مراجعة العلامات', route: '/brands?seg=needs_review', match: '/brands', icon: 'shield-check', badge: 'brand_reviews', can: 'reviews' },
+      { key: 'client_reviews', label: 'مراجعات العملاء', route: '/client-reviews', icon: 'clipboard-check', badge: 'client_reviews', can: 'reviews' },
     ],
   },
   {
@@ -69,24 +94,6 @@ export const agencyNav: NavGroup[] = [
     label: 'التقارير',
     items: [
       { key: 'reports', label: 'التقارير', route: '/reports', icon: 'bar-chart-3' },
-    ],
-  },
-  {
-    // «المزيد» — فهارس عبر-الكيانات + طوابير مراجعة. عمليّاتها اليومية تُدار من داخل
-    // الحملة/العميل/الملفّ ومن «عملي»؛ تبقى هنا للبحث والإدارة العرضيّة. مطويّة افتراضيًّا.
-    key: 'more',
-    label: 'المزيد',
-    collapsible: true,
-    items: [
-      { key: 'content', label: 'المحتوى', route: '/content', icon: 'image', badge: 'content' },
-      { key: 'shortlisting', label: 'الترشيحات', route: '/shortlisting', icon: 'list-checks', can: 'influencer_nomination' },
-      { key: 'collaborations', label: 'التعاونات', route: '/collaborations', icon: 'git-merge' },
-      { key: 'contracts', label: 'العقود', route: '/contracts', icon: 'file-text' },
-      { key: 'brands', label: 'العلامات', route: '/brands', icon: 'bookmark' },
-      { key: 'publishers', label: 'الناشرون', route: '/publishers', icon: 'radar' },
-      { key: 'applications', label: 'طلبات الانضمام', route: '/creator-applications', icon: 'user-plus', badge: 'creator_applications', can: 'reviews' },
-      { key: 'brand_reviews', label: 'مراجعة العلامات', route: '/brands?seg=needs_review', match: '/brands', icon: 'shield-check', badge: 'brand_reviews', can: 'reviews' },
-      { key: 'client_reviews', label: 'مراجعات العملاء', route: '/client-reviews', icon: 'clipboard-check', badge: 'client_reviews', can: 'reviews' },
       { key: 'exports', label: 'مركز التصدير', route: '/exports', icon: 'file-text' },
     ],
   },
@@ -96,7 +103,6 @@ export const agencyNav: NavGroup[] = [
     label: 'الإدارة',
     collapsible: true,
     items: [
-      { key: 'partners', label: 'الوكالات الشريكة', route: '/partner-agencies', icon: 'handshake', can: 'admin' },
       { key: 'automation', label: 'الأتمتة', route: '/automation', icon: 'sparkles', can: 'admin' },
       { key: 'integrations', label: 'التكاملات', route: '/integrations', icon: 'plug', can: 'admin' },
       { key: 'team', label: 'الفريق', route: '/team', icon: 'users', can: 'admin' },
