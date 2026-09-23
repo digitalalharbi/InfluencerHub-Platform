@@ -52,6 +52,7 @@ interface CampaignInvoice {
 }
 type CampaignContract = Row & { number: string; title: string; party: string | null; partyType: string; valueMinor: number; currency: string };
 type CampaignPayout = Row & { number: string; creator: string | null; description: string | null; amountMinor: number; currency: string; dueDate: string | null };
+interface Nomination { stage: string; stageLabel: string; primary: number; backup: number; approved: number; pending: number }
 interface Props {
   campaign: Campaign; metrics: Metrics; command: Command; lifecycle: Lifecycle; readiness: Readiness; timeline: TL[];
   deliverables: Deliverable[]; collaborations: Collab[]; content: Content[];
@@ -59,6 +60,7 @@ interface Props {
   invoices: CampaignInvoice[]; canInvoice: boolean;
   contracts: CampaignContract[]; payouts: CampaignPayout[]; canManagePayouts: boolean;
   documents: { clientBrief: PreviewDoc };
+  nomination: Nomination | null;
 }
 /** [action, label, tone, needsReason] — تأتي من الخادم حسب الحالة الفعلية. */
 type CampaignAction = [string, string, string, boolean];
@@ -90,7 +92,7 @@ function EmptyRow({ span, text }: { span: number; text: string }) {
   return <tr><td colSpan={span} style={{ textAlign: 'center', color: 'var(--ih-text-muted)', padding: '1.6rem' }}>{text}</td></tr>;
 }
 
-export default function CampaignShow({ campaign, metrics, command, lifecycle, readiness, timeline, deliverables, collaborations, content, canManage, deliverableTypes, actions, invoices, canInvoice, contracts, payouts, documents }: Props) {
+export default function CampaignShow({ campaign, metrics, command, lifecycle, readiness, timeline, deliverables, collaborations, content, canManage, deliverableTypes, actions, invoices, canInvoice, contracts, payouts, documents, nomination }: Props) {
   const [briefOpen, setBriefOpen] = useState(false);
   const [actionFor, setActionFor] = useState<CampaignAction | null>(null);
   const [actionReason, setActionReason] = useState('');
@@ -302,6 +304,30 @@ export default function CampaignShow({ campaign, metrics, command, lifecycle, re
           </div>
         );
       })()}
+
+      {/* المؤثرون — تقدّم الترشيح داخل مساحة الحملة (يقلّل القفز للقائمة) */}
+      <div className="card" style={{ padding: '.9rem 1.1rem', marginBottom: '1.1rem' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '.5rem', flexWrap: 'wrap', marginBottom: nomination ? '.75rem' : 0 }}>
+          <Icon name="users" size={16} />
+          <span style={{ fontWeight: 800, fontSize: '.92rem' }}>المؤثرون</span>
+          {nomination && <StatusBadge tone={nomination.stage === 'draft' ? 'draft' : nomination.stage === 'submitted' ? 'submitted' : 'approved'} label={nomination.stageLabel} />}
+          <div style={{ marginInlineStart: 'auto', display: 'flex', gap: '.4rem', flexWrap: 'wrap' }}>
+            <a href={u(`/campaigns/${campaign.id}/shortlist`)} className="btn btn-xs btn-primary">{nomination ? 'مراجعة القائمة' : 'ابدأ الترشيح'}</a>
+          </div>
+        </div>
+        {nomination ? (
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(110px, 1fr))', gap: '.7rem' }}>
+            {([['الأساسيون', nomination.primary], ['الاحتياط', nomination.backup], ['معتمَد', nomination.approved], ['بانتظار العميل', nomination.pending]] as [string, number][]).map(([k, v]) => (
+              <div key={k}>
+                <div style={{ fontSize: '.72rem', color: 'var(--ih-text-muted)' }}>{k}</div>
+                <div style={{ fontWeight: 800, fontVariantNumeric: 'tabular-nums' }}>{v}</div>
+              </div>
+            ))}
+          </div>
+        ) : (
+          <div style={{ fontSize: '.82rem', color: 'var(--ih-text-muted)' }}>لم تبدأ الترشيحات لهذه الحملة بعد — ابدأ باختيار المؤثرين المناسبين.</div>
+        )}
+      </div>
 
       <div style={{ display: 'grid', gridTemplateColumns: '1.3fr .7fr', gap: '1.1rem', alignItems: 'start' }} className="ih-overview-grid">
         <div style={{ display: 'grid', gap: '1.1rem' }}>
