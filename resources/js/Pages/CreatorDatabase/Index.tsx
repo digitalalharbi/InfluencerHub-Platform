@@ -65,6 +65,13 @@ export default function CreatorDatabaseIndex({ creators, filters, canContact, ca
   const shownCats = showAllCats ? categoryEntries : categoryEntries.slice(0, TOP_CATEGORIES);
   const currentSort = filters.sort ?? 'followers';
 
+  // مقارنة خفيفة: حتى 4 مؤثرين. الحالة محليّة وتبقى عبر الترقيم/التصفية (preserveState).
+  const [compare, setCompare] = useState<Creator[]>([]);
+  const [showCompare, setShowCompare] = useState(false);
+  const inCompare = (id: number) => compare.some((x) => x.id === id);
+  const toggleCompare = (cr: Creator) =>
+    setCompare((prev) => (inCompare(cr.id) ? prev.filter((x) => x.id !== cr.id) : prev.length >= 4 ? prev : [...prev, cr]));
+
   const copyPhone = (p: string) => navigator.clipboard?.writeText(p);
   const waLink = (p: string) => `https://wa.me/${p}`;
 
@@ -211,6 +218,15 @@ export default function CreatorDatabaseIndex({ creators, filters, canContact, ca
               </div>
               <div style={{ marginTop: '.6rem', display: 'flex', gap: '.4rem', alignItems: 'center', flexWrap: 'wrap' }}>
                 <a href={u(`/creator-database/${c.id}`)} className="btn btn-xs btn-outline">الملف</a>
+                <button
+                  onClick={() => toggleCompare(c)}
+                  disabled={!inCompare(c.id) && compare.length >= 4}
+                  className={`btn btn-xs${inCompare(c.id) ? ' btn-primary' : ' btn-outline'}`}
+                  aria-pressed={inCompare(c.id)}
+                  title={!inCompare(c.id) && compare.length >= 4 ? 'الحد الأقصى 4 للمقارنة' : 'أضِف للمقارنة'}
+                >
+                  {inCompare(c.id) ? '✓ في المقارنة' : 'قارن'}
+                </button>
                 {c.accountUrl && <a href={c.accountUrl} target="_blank" rel="noreferrer" className="btn btn-xs btn-outline">الحساب</a>}
                 {canContact && c.contact?.hasPhone && (
                   <>
@@ -225,7 +241,78 @@ export default function CreatorDatabaseIndex({ creators, filters, canContact, ca
         </div>
       )}
 
-      <div style={{ marginTop: '1rem' }}><Pagination links={creators.links} /></div>
+      <div style={{ marginTop: '1rem', paddingBottom: compare.length > 0 ? 72 : 0 }}><Pagination links={creators.links} /></div>
+
+      {/* شريط المقارنة اللاصق — يظهر عند اختيار مؤثر واحد على الأقل */}
+      {compare.length > 0 && (
+        <div className="ih-comparebar" role="region" aria-label="شريط المقارنة">
+          <span style={{ fontWeight: 700 }}>{`تم اختيار ${compare.length} ${compare.length === 1 ? 'مؤثر' : 'مؤثرين'}`}</span>
+          <div style={{ display: 'flex', gap: '.4rem', alignItems: 'center', flexWrap: 'wrap' }}>
+            {compare.map((cr) => (
+              <span key={cr.id} className="ih-tag" style={{ display: 'inline-flex', alignItems: 'center', gap: '.25rem' }}>
+                {cr.name}
+                <button onClick={() => toggleCompare(cr)} aria-label={`إزالة ${cr.name}`} style={{ border: 0, background: 'none', cursor: 'pointer', lineHeight: 1, padding: 0 }}>
+                  <Icon name="x" size={12} />
+                </button>
+              </span>
+            ))}
+          </div>
+          <div style={{ marginInlineStart: 'auto', display: 'flex', gap: '.4rem' }}>
+            <button onClick={() => setShowCompare(true)} disabled={compare.length < 2} className="btn btn-sm btn-primary" title={compare.length < 2 ? 'اختر مؤثرَين على الأقل' : 'قارن'}>
+              مقارنة ({compare.length})
+            </button>
+            <button onClick={() => { setCompare([]); setShowCompare(false); }} className="btn btn-sm btn-outline">إلغاء التحديد</button>
+          </div>
+        </div>
+      )}
+
+      {/* لوحة المقارنة — أبعاد قرارية من بيانات حقيقية فقط (لا مقاييس مُختلَقة) */}
+      {showCompare && compare.length >= 2 && (
+        <div className="ih-modal-backdrop" role="dialog" aria-modal="true" aria-label="مقارنة المؤثرين" onClick={() => setShowCompare(false)}>
+          <div className="ih-modal" style={{ maxWidth: 860 }} onClick={(e) => e.stopPropagation()}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '.8rem' }}>
+              <h3 style={{ fontWeight: 800, margin: 0 }}>مقارنة {compare.length} مؤثرين</h3>
+              <button onClick={() => setShowCompare(false)} className="ih-icon-btn" aria-label="إغلاق"><Icon name="x" size={18} /></button>
+            </div>
+            <div style={{ overflowX: 'auto' }}>
+              <table className="ih-compare-table">
+                <thead>
+                  <tr>
+                    <th style={{ textAlign: 'start' }}>البُعد</th>
+                    {compare.map((cr) => (
+                      <th key={cr.id} style={{ minWidth: 140 }}>
+                        <a href={u(`/creator-database/${cr.id}`)} style={{ textDecoration: 'none', fontWeight: 700 }}>{cr.name}</a>
+                      </th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody>
+                  {([
+                    ['المنصّة', (cr: Creator) => cr.platformLabel],
+                    ['النوع', (cr: Creator) => cr.creatorTypeLabel],
+                    ['المتابعون', (cr: Creator) => kfmt(cr.followers)],
+                    ['الإعجابات', (cr: Creator) => kfmt(cr.likes)],
+                    ['الفئة', (cr: Creator) => (cr.tier ? `فئة ${cr.tier}` : '—')],
+                    ['الموقع', (cr: Creator) => cr.city || cr.region || '—'],
+                    ['يظهر الوجه', (cr: Creator) => (cr.showsFace === null ? '—' : cr.showsFace ? 'نعم' : 'لا')],
+                    ['التقييم', (cr: Creator) => cr.rating || '—'],
+                    ['التصنيفات', (cr: Creator) => (cr.categories.length ? cr.categories.slice(0, 3).join('، ') : '—')],
+                    ['السعر المرجعي', (cr: Creator) => (cr.referenceRate != null ? `${cr.referenceRate.toLocaleString('en-US')} ر.س` : 'غير مضاف')],
+                  ] as [string, (cr: Creator) => string][]).map(([label, val]) => (
+                    <tr key={label}>
+                      <td style={{ color: 'var(--ih-text-muted)', fontWeight: 600 }}>{label}</td>
+                      {compare.map((cr) => <td key={cr.id} style={{ textAlign: 'center' }}>{val(cr)}</td>)}
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+            <p style={{ color: 'var(--ih-text-muted)', fontSize: '.74rem', marginTop: '.7rem' }}>
+              أبعاد من بيانات القاعدة الفعلية فقط. القيم الغائبة تظهر «—» ولا تُقدَّر.
+            </p>
+          </div>
+        </div>
+      )}
     </AppShell>
   );
 }

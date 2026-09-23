@@ -66,6 +66,28 @@ test.describe('قاعدة المؤثرين', () => {
         expect(res.status()).toBe(403);
     });
 
+    test('81- مقارنة: اختيار مؤثرَين وفتح لوحة المقارنة بأبعاد حقيقية', async ({ page }) => {
+        await login(page, 'admin@a.test');
+        await page.goto('/app/creator-database');
+        // زرّ «قارن» بالنصّ الدقيق؛ بعد الاختيار يصير «✓ في المقارنة» فلا يعود يطابق
+        const add = page.getByRole('button', { name: 'قارن', exact: true });
+        await add.first().click();
+        await add.first().click(); // الأوّل خرج من المطابقة، فهذا هو المؤثّر الثاني
+        // شريط المقارنة اللاصق يعرض العدد
+        await expect(page.getByText('تم اختيار 2 مؤثرين')).toBeVisible();
+        // فتح لوحة المقارنة
+        await page.getByRole('button', { name: /^مقارنة \(2\)/ }).click();
+        const dialog = page.getByRole('dialog', { name: 'مقارنة المؤثرين' });
+        await expect(dialog).toBeVisible();
+        // أبعاد قرارية من بيانات حقيقية فقط
+        await expect(dialog).toContainText('المتابعون');
+        await expect(dialog).toContainText('السعر المرجعي');
+        // إلغاء التحديد يُخفي الشريط
+        await page.getByRole('button', { name: 'إغلاق' }).click();
+        await page.getByRole('button', { name: 'إلغاء التحديد' }).click();
+        await expect(page.getByText('تم اختيار 2 مؤثرين')).toHaveCount(0);
+    });
+
     test('80- بوابة العميل لا تتصفّح قاعدة المؤثرين', async ({ page }) => {
         await page.goto('/client/login');
         await page.fill('input[name="email"]', 'client@a.test');

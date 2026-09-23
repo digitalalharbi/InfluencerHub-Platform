@@ -477,6 +477,22 @@ button.ih-nav__group--toggle:focus-visible { outline: 2px solid var(--ih-primary
 @keyframes ih-fade { from { opacity: 0; } to { opacity: 1; } }
 @keyframes ih-pop { from { opacity: 0; transform: translateY(8px) scale(.98); } to { opacity: 1; transform: none; } }
 
+/* ---------- Creator comparison tray + table (Creator Database) ---------- */
+.ih-comparebar {
+  position: fixed; inset-inline: 0; bottom: 0; z-index: var(--ih-z-modal);
+  display: flex; align-items: center; gap: .8rem; flex-wrap: wrap;
+  padding: .7rem 1rem; background: var(--ih-surface);
+  border-top: 1px solid var(--ih-border); box-shadow: var(--ih-shadow-lg);
+  animation: ih-pop var(--ih-motion) var(--ih-ease);
+}
+/* لا يحجب شريطُ المقارنة تنقّلَ الجوال السفلي (56px): يرتفع فوقه على الشاشات الصغيرة */
+@media (max-width: 767.98px) {
+  .has-bottom-nav .ih-comparebar { bottom: calc(56px + var(--ih-safe-bottom)); }
+}
+.ih-compare-table { width: 100%; border-collapse: collapse; font-size: .85rem; }
+.ih-compare-table th, .ih-compare-table td { padding: .55rem .6rem; border-bottom: 1px solid var(--ih-border); }
+.ih-compare-table tbody tr:nth-child(odd) td { background: var(--ih-surface-2, rgba(127,127,127,.04)); }
+
 /* ---------- Responsive App Shell (mobile drawer + hamburger topbar) ---------- */
 .ih-shell { display: flex; min-height: 100vh; min-height: 100dvh; }
 .ih-topbar-mobile { display: none; }
