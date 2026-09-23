@@ -36,7 +36,8 @@ test.describe('قاعدة المؤثرين', () => {
         // قسم الترشيح لحملة موجود لمن يملك الصلاحية
         await expect(page.locator('body')).toContainText('ترشيح لحملة');
         await page.click('button:has-text("إضافة وترشيح")');
-        await expect(page.locator('body')).toContainText('رُشِّح المبدع للحملة');
+        // يُضاف كأساسيّ افتراضيًّا (نسخة موحّدة مع تدفّق الاكتشاف — UX4a)
+        await expect(page.locator('body')).toContainText('أُضيف كأساسيّ للحملة');
     });
 
     test('77- خصوصية المصدر: لا متجر/مصدر في القاعدة ولا الملف', async ({ page }) => {
