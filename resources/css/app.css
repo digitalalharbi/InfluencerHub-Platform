@@ -508,6 +508,33 @@ button.ih-nav__group--toggle:focus-visible { outline: 2px solid var(--ih-primary
   padding: .5rem .7rem;
 }
 
+/* ---------- Nomination journey stepper (Shortlist workspace) ---------- */
+.ih-journey-wrap { margin-bottom: 1rem; }
+.ih-journey {
+  display: flex; align-items: center; gap: .3rem; flex-wrap: nowrap;
+  list-style: none; margin: 0 0 .5rem; padding: 0; overflow-x: auto;
+}
+.ih-journey__step { display: flex; align-items: center; gap: .4rem; white-space: nowrap; color: var(--ih-text-muted); }
+.ih-journey__step:not(:last-child)::after {
+  content: ''; width: 1.4rem; height: 2px; background: var(--ih-border); margin-inline: .1rem; flex: none;
+}
+.ih-journey__dot {
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 1.5rem; height: 1.5rem; border-radius: 50%; font-size: .72rem; font-weight: 700;
+  background: var(--ih-surface-2, rgba(127,127,127,.08)); color: var(--ih-text-muted);
+  border: 1px solid var(--ih-border);
+}
+.ih-journey__label { font-size: .78rem; }
+.ih-journey__step.is-current .ih-journey__dot { background: var(--ih-primary); color: #fff; border-color: var(--ih-primary); }
+.ih-journey__step.is-current .ih-journey__label { color: var(--ih-text); font-weight: 700; }
+.ih-journey__step.is-done .ih-journey__dot { background: var(--ih-success, #16a34a); color: #fff; border-color: var(--ih-success, #16a34a); }
+.ih-journey__step.is-done .ih-journey__label { color: var(--ih-text); }
+.ih-journey-next {
+  display: flex; align-items: center; gap: .4rem; font-size: .82rem;
+  color: var(--ih-primary-700); background: var(--ih-primary-soft);
+  border-radius: var(--ih-radius); padding: .45rem .7rem;
+}
+
 /* ---------- Responsive App Shell (mobile drawer + hamburger topbar) ---------- */
 .ih-shell { display: flex; min-height: 100vh; min-height: 100dvh; }
 .ih-topbar-mobile { display: none; }

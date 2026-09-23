@@ -64,6 +64,9 @@ test.describe('N1 — قبول حيّ لترشيح المؤثرين', () => {
       // صفحة القائمة تعرض المرشّح المزروع (نورة القحطاني)
       await page.goto(shortlistUrl);
       await expect(page.locator('body')).toContainText('نورة القحطاني');
+      // مسار الترشيح ظاهر ويجيب «ما المطلوب الآن؟» (UX4b)
+      await expect(page.locator('.ih-journey')).toBeVisible();
+      await expect(page.locator('body')).toContainText('المطلوب الآن');
       await page.screenshot({ path: `${EV}/n1-01-agency-shortlist-ON.png`, fullPage: true });
       // رابط «الترشيحات» ظاهر مباشرةً في مساحة «المؤثرون» (لم يعد مطويًّا داخل «المزيد» — UX1)
       await expect(page.locator('aside').getByRole('link', { name: 'الترشيحات', exact: true })).toBeVisible();
