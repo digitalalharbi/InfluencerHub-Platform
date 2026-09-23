@@ -3,6 +3,10 @@
 namespace Tests\Feature;
 
 use App\Domain\AdminPool\Models\PoolCreator;
+use App\Domain\Campaigns\Models\Campaign;
+use App\Domain\Campaigns\Models\CampaignShortlist;
+use App\Domain\Campaigns\Models\CampaignShortlistItem;
+use App\Domain\Campaigns\Services\ShortlistService;
 use App\Domain\Billing\Actions\CreateSubscription;
 use App\Domain\Billing\Models\AddOn;
 use App\Domain\Billing\Models\OrganizationAddOn;
@@ -252,5 +256,84 @@ class CreatorDatabaseTest extends TestCase
         // قيمة غير مسموحة (حقن محتمل) لا تصل إلى SQL — تُطبَّع إلى الافتراضي
         $this->actingAs($u)->get('/app/creator-database?sort=price;DROP')->assertOk()
             ->assertInertia(fn (Assert $p) => $p->where('filters.sort', 'followers'));
+    }
+
+    // ==================== الترشيح من الاكتشاف (سياق الحملة) ====================
+
+    /** حملة في مستأجر المؤسسة المستحقّة. */
+    private function campaignFor(Organization $org, User $creator): Campaign
+    {
+        return TenantContext::withBypass(fn () => Campaign::create([
+            'tenant_id' => $org->tenant_id, 'campaign_number' => 'CM-'.Str::random(5),
+            'name' => 'حملة الاكتشاف', 'status' => 'active', 'budget_minor' => 5000000,
+            'currency' => 'SAR', 'created_by' => $creator->id,
+        ]));
+    }
+
+    public function test_nominate_defaults_to_primary(): void
+    {
+        [$u, $org] = $this->agency(access: true);
+        $cm = $this->campaignFor($org, $u);
+        $c = $this->poolCreator(['account_url' => 'https://tt/@nom1']);
+
+        $this->actingAs($u)->post("/app/creator-database/{$c->id}/nominate", ['campaign_id' => $cm->id])
+            ->assertRedirect();
+        $item = TenantContext::withBypass(fn () => CampaignShortlistItem::first());
+        $this->assertNotNull($item);
+        $this->assertFalse($item->is_backup, 'الافتراضي أساسي لا احتياط');
+    }
+
+    public function test_nominate_as_backup_sets_flag(): void
+    {
+        [$u, $org] = $this->agency(access: true);
+        $cm = $this->campaignFor($org, $u);
+        $c = $this->poolCreator(['account_url' => 'https://tt/@nom2']);
+
+        $this->actingAs($u)->post("/app/creator-database/{$c->id}/nominate", ['campaign_id' => $cm->id, 'role' => 'backup'])
+            ->assertRedirect();
+        $item = TenantContext::withBypass(fn () => CampaignShortlistItem::first());
+        $this->assertTrue($item->is_backup, 'الاحتياط يُعلَّم');
+    }
+
+    public function test_campaign_context_reports_counts_and_role(): void
+    {
+        [$u, $org] = $this->agency(access: true);
+        $cm = $this->campaignFor($org, $u);
+        $c = $this->poolCreator(['account_url' => 'https://tt/@nom3']);
+        $this->actingAs($u)->post("/app/creator-database/{$c->id}/nominate", ['campaign_id' => $cm->id]);
+
+        $this->actingAs($u)->get("/app/creator-database?campaign={$cm->id}")->assertOk()
+            ->assertInertia(fn (Assert $p) => $p
+                ->where('campaignContext.id', $cm->id)
+                ->where('campaignContext.primaryCount', 1)
+                ->where('campaignContext.backupCount', 0)
+                ->where('campaignContext.editable', true)
+                // المبدع المُرشَّح يظهر دوره في القائمة
+                ->where('creators.data.0.shortlistRole', 'primary'));
+    }
+
+    public function test_no_campaign_context_when_param_absent(): void
+    {
+        [$u] = $this->agency(access: true);
+        $this->poolCreator();
+        $this->actingAs($u)->get('/app/creator-database')->assertOk()
+            ->assertInertia(fn (Assert $p) => $p->where('campaignContext', null));
+    }
+
+    public function test_cannot_nominate_into_submitted_version(): void
+    {
+        [$u, $org] = $this->agency(access: true);
+        $cm = $this->campaignFor($org, $u);
+        $c = $this->poolCreator(['account_url' => 'https://tt/@nom4']);
+        // أرسِل القائمة أوّلًا (الإصدار الحالي يصبح submitted)
+        $this->actingAs($u)->post("/app/creator-database/{$c->id}/nominate", ['campaign_id' => $cm->id]);
+        TenantContext::withBypass(function () use ($cm) {
+            $sl = CampaignShortlist::where('campaign_id', $cm->id)->first();
+            app(ShortlistService::class)->submit($sl);
+        });
+        $c2 = $this->poolCreator(['account_url' => 'https://tt/@nom5']);
+        // إضافة إلى إصدار مُرسَل تُرفض (422) — يجب إنشاء إصدار جديد
+        $this->actingAs($u)->post("/app/creator-database/{$c2->id}/nominate", ['campaign_id' => $cm->id])
+            ->assertStatus(422);
     }
 }

@@ -493,6 +493,21 @@ button.ih-nav__group--toggle:focus-visible { outline: 2px solid var(--ih-primary
 .ih-compare-table th, .ih-compare-table td { padding: .55rem .6rem; border-bottom: 1px solid var(--ih-border); }
 .ih-compare-table tbody tr:nth-child(odd) td { background: var(--ih-surface-2, rgba(127,127,127,.04)); }
 
+/* ---------- Campaign nomination context bar (Creator Database) ---------- */
+.ih-nom-context {
+  position: sticky; top: .4rem; z-index: var(--ih-z-sticky);
+  display: flex; align-items: center; gap: .7rem; flex-wrap: wrap;
+  padding: .6rem .9rem; margin-bottom: .7rem;
+  background: var(--ih-primary-soft); border: 1px solid var(--ih-primary);
+  border-radius: var(--ih-radius); box-shadow: var(--ih-shadow-sm, 0 1px 3px rgba(16,24,40,.08));
+}
+.ih-note {
+  display: flex; align-items: center; gap: .4rem; font-size: .8rem;
+  color: var(--ih-warning-ink); background: var(--ih-warning-soft, rgba(234,179,8,.1));
+  border: 1px solid var(--ih-warning, rgba(234,179,8,.4)); border-radius: var(--ih-radius);
+  padding: .5rem .7rem;
+}
+
 /* ---------- Responsive App Shell (mobile drawer + hamburger topbar) ---------- */
 .ih-shell { display: flex; min-height: 100vh; min-height: 100dvh; }
 .ih-topbar-mobile { display: none; }

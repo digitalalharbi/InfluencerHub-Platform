@@ -8,6 +8,7 @@ use App\Domain\AdminPool\Models\PoolCreator;
 use App\Domain\AdminPool\Support\CreatorDatabaseAbilities as Ability;
 use App\Domain\Billing\Services\EntitlementService;
 use App\Domain\Campaigns\Models\Campaign;
+use App\Domain\Campaigns\Models\CampaignShortlist;
 use App\Domain\Campaigns\Services\ShortlistService;
 use App\Domain\Tenancy\Models\Organization;
 use App\Domain\Tenancy\Support\TenantContext;
@@ -50,7 +51,14 @@ class CreatorDatabaseController extends Controller
         $filters['sort'] = $sort;
         $page = $q->orderByRaw($order)->paginate(24)->withQueryString();
         $overlays = $this->overlaysFor($org, collect($page->items())->pluck('id')->all());
-        $rows = $page->through(fn (PoolCreator $c) => $c->toSharedArray($canContact) + ['overlay' => $overlays[$c->id] ?? null]);
+
+        // سياق الحملة (اختياري): الاكتشاف يتدفّق مباشرةً إلى الترشيح بلا قفزات صفحات.
+        [$context, $roleByPool] = $this->campaignContext($r, $org, $role);
+
+        $rows = $page->through(fn (PoolCreator $c) => $c->toSharedArray($canContact) + [
+            'overlay' => $overlays[$c->id] ?? null,
+            'shortlistRole' => $context ? ($roleByPool[$c->id] ?? null) : null,
+        ]);
 
         return Inertia::render('CreatorDatabase/Index', [
             'base' => $this->mountBase($r),
@@ -60,7 +68,52 @@ class CreatorDatabaseController extends Controller
             'canUseInCampaign' => Ability::can($role, Ability::USE_IN_CAMPAIGN),
             'facets' => $this->facets(),
             'summary' => ['total' => PoolCreator::count()],
+            'campaignContext' => $context,
         ]);
+    }
+
+    /**
+     * سياق الترشيح لحملة عند وجود `?campaign=`: يُرجِع [الحملة أو null، خريطة الدور حسب pool_creator_id].
+     * آمن-مستأجريًّا (Campaign محكوم بالنطاق) ولا يكشف أي بيانات داخلية — أعداد وأسماء فقط.
+     *
+     * @return array{0: array<string,mixed>|null, 1: array<int,string>}
+     */
+    private function campaignContext(Request $r, Organization $org, ?string $role): array
+    {
+        $cid = (int) $r->integer('campaign');
+        if ($cid <= 0 || ! Ability::can($role, Ability::USE_IN_CAMPAIGN)) {
+            return [null, []];
+        }
+        $campaign = Campaign::find($cid); // محكوم بالمستأجر عبر TenantScope
+        if ($campaign === null) {
+            return [null, []];
+        }
+
+        $version = null;
+        $roleByPool = [];
+        $primary = 0;
+        $backup = 0;
+        $shortlist = CampaignShortlist::where('campaign_id', $campaign->id)->first();
+        if ($shortlist !== null && ($version = $shortlist->currentVersion()) !== null) {
+            $items = $version->items()->with('creator:id,pool_creator_id')->get(['id', 'creator_id', 'is_backup']);
+            foreach ($items as $it) {
+                $it->is_backup ? $backup++ : $primary++;
+                $pid = $it->creator?->pool_creator_id;
+                if ($pid) {
+                    $roleByPool[$pid] = $it->is_backup ? 'backup' : 'primary';
+                }
+            }
+        }
+
+        return [[
+            'id' => $campaign->id,
+            'name' => $campaign->name,
+            'primaryCount' => $primary,
+            'backupCount' => $backup,
+            // لا إصدار بعد = مسوّدة ستُنشأ عند أوّل إضافة؛ غير المسوّدة لا تُعدَّل.
+            'editable' => $version === null || $version->status === 'draft',
+            'shortlistUrl' => $this->mountBase($r).'/campaigns/'.$campaign->id.'/shortlist',
+        ], $roleByPool];
     }
 
     public function show(Request $r, PoolCreator $poolCreator): Response
@@ -114,16 +167,24 @@ class CreatorDatabaseController extends Controller
     {
         [$org, $role] = $this->guard();
         abort_unless(Ability::can($role, Ability::USE_IN_CAMPAIGN), 403);
-        $data = $r->validate(['campaign_id' => 'required|integer'], [], ['campaign_id' => 'الحملة']);
+        $data = $r->validate([
+            'campaign_id' => 'required|integer',
+            'role' => 'sometimes|in:primary,backup', // أساسي/احتياط — الافتراضي أساسي
+        ], [], ['campaign_id' => 'الحملة']);
 
         $campaign = Campaign::find($data['campaign_id']);
         abort_unless($campaign !== null, 404, 'الحملة غير موجودة.');
 
         $creator = $materialize->handle($poolCreator, $org, $r->user());
         $sl = $shortlist->getOrCreate($campaign, $r->user()->id);
-        $shortlist->addCreator($sl->currentVersion(), $creator);
+        $version = $sl->currentVersion();
+        // لا يُضاف مرشّح إلى إصدار مُرسَل/محسوم — يُنشأ إصدار جديد أوّلًا من مساحة الترشيح.
+        abort_unless($version->status === 'draft', 422, 'القائمة أُرسلت — أنشئ إصدارًا جديدًا لتعديلها.');
 
-        return back()->with('ok', 'رُشِّح المبدع للحملة وأُضيف إلى قاعدة علاقاتك.');
+        $backup = ($data['role'] ?? 'primary') === 'backup';
+        $shortlist->addCreator($version, $creator, $backup);
+
+        return back()->with('ok', $backup ? 'أُضيف كاحتياط للحملة.' : 'أُضيف كأساسيّ للحملة.');
     }
 
     /**

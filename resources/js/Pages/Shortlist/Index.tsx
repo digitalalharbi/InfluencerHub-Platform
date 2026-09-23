@@ -1,4 +1,4 @@
-import { Head, router } from '@inertiajs/react';
+import { Head, router, usePage } from '@inertiajs/react';
 import { useEffect, useState, type ReactNode } from 'react';
 import AppShell from '@/Layouts/AppShell';
 import { Sec, StatusBadge, SummaryStrip, WorkTabs, WorkspaceHeader, Bar, type WorkTab } from '@/Components/ui';
@@ -47,6 +47,9 @@ function DataTable({ head, children }: { head: string[]; children: ReactNode }) 
 }
 
 export default function ShortlistIndex({ campaign, version, items, candidates, filters, canEdit, budgetPct, overBudget, versions, candidatePool, conversion, documents }: Props) {
+  // إتاحة «قاعدة المؤثرين» من القدرات المشتركة (نفس بوّابة الاكتشاف) — لا رابط لسطح غير مستحقّ
+  const navCan = (usePage().props as { nav?: { can?: Record<string, boolean> } }).nav?.can ?? {};
+  const hasCreatorDatabase = Boolean(navCan.creator_database);
   const [proposalOpen, setProposalOpen] = useState(false);
   const [tab, setTab] = useState(canEdit ? 'list' : 'list');
   useEffect(() => {
@@ -204,6 +207,14 @@ export default function ShortlistIndex({ campaign, version, items, candidates, f
           المستخدم واقف على تبويب آخر. */}
       {tab === 'candidates' && canEdit ? (
         <Sec title="المرشّحون" icon="users">
+          {hasCreatorDatabase && (
+            <div style={{ marginBottom: '.9rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '.6rem', flexWrap: 'wrap' }}>
+              <span style={{ fontSize: '.82rem', color: 'var(--ih-text-muted)' }}>اكتشف مؤثرين جددًا وأضِفهم مباشرةً لهذه الحملة (أساسي/احتياط بنقرة).</span>
+              <a href={u(`/creator-database?campaign=${campaign.id}`)} className="btn btn-sm btn-primary">
+                <Icon name="radar" size={14} /> اكتشف من قاعدة المؤثرين
+              </a>
+            </div>
+          )}
           <div className="ih-filterbar" style={{ marginBottom: '1rem' }}>
             <div className="ih-search">
               <Icon name="search" size={15} />
