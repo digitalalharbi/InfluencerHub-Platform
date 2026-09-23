@@ -13,7 +13,9 @@ interface Creator {
   rating: string | null; creatorType: string; creatorTypeLabel: string;
   referenceRate: number | null; referenceRateNote: string; dataFreshness: string; lastImportedAt: string | null;
   contact?: Contact;
+  shortlistRole?: 'primary' | 'backup' | null;
 }
+interface CampaignContext { id: number; name: string; primaryCount: number; backupCount: number; editable: boolean; shortlistUrl: string }
 interface Filters { platform?: string; creator_type?: string; category?: string; city?: string; region?: string; gender?: string; shows_face?: string; tier?: string; min_followers?: string; has_price?: string; q?: string; sort?: string }
 
 const SORTS: { value: string; label: string }[] = [
@@ -30,6 +32,7 @@ interface Props {
   canUseInCampaign: boolean;
   facets: { platforms: Record<string, number>; creatorTypes: Record<string, number>; categories: Record<string, number>; regions: Record<string, number>; tiers: Record<string, number> };
   summary: { total: number };
+  campaignContext?: CampaignContext | null;
 }
 
 const PLATFORM_LABELS: Record<string, string> = { snapchat: 'سناب شات', tiktok: 'تيك توك', linkedin: 'لينكدإن', x: 'إكس', instagram: 'إنستغرام' };
@@ -45,20 +48,31 @@ function clean(obj: Record<string, unknown>): Record<string, string> {
   return out;
 }
 
-export default function CreatorDatabaseIndex({ creators, filters, canContact, canUseInCampaign, facets, summary }: Props) {
+export default function CreatorDatabaseIndex({ creators, filters, canContact, canUseInCampaign, facets, summary, campaignContext }: Props) {
   const [q, setQ] = useState(filters.q ?? '');
   // فلاتر متقدّمة مخفية افتراضيًّا (تقليل العبء البصري) — تُفتح تلقائيًّا إن كان أحدها مفعّلًا
   const advActive = Boolean(filters.creator_type || filters.tier || filters.gender || filters.has_price);
   const [showAdvanced, setShowAdvanced] = useState(advActive);
   const [showAllCats, setShowAllCats] = useState(false);
+  // سياق الحملة يُحفَظ في كل تنقّل تصفية/ترتيب حتى لا يضيع التدفّق نحو الترشيح
+  const ctx = campaignContext ? { campaign: String(campaignContext.id) } : {};
   const first = useRef(true);
   useEffect(() => {
     if (first.current) { first.current = false; return; }
-    const t = setTimeout(() => router.get(u('/creator-database'), clean({ ...filters, q }), { preserveState: true, replace: true, preserveScroll: true }), 350);
+    const t = setTimeout(() => router.get(u('/creator-database'), clean({ ...filters, ...ctx, q }), { preserveState: true, replace: true, preserveScroll: true }), 350);
     return () => clearTimeout(t);
   }, [q]);
-  const update = (patch: Filters) => router.get(u('/creator-database'), clean({ ...filters, ...patch }), { preserveState: true, replace: true, preserveScroll: true });
-  const resetAll = () => { setQ(''); setShowAdvanced(false); setShowAllCats(false); router.get(u('/creator-database'), {}, { preserveScroll: true }); };
+  const update = (patch: Filters) => router.get(u('/creator-database'), clean({ ...filters, ...ctx, ...patch }), { preserveState: true, replace: true, preserveScroll: true });
+  const resetAll = () => { setQ(''); setShowAdvanced(false); setShowAllCats(false); router.get(u('/creator-database'), clean({ ...ctx }), { preserveScroll: true }); };
+
+  // ترشيح مباشر من الاكتشاف (أساسي/احتياط) بلا قفزة صفحة — back() يُحدِّث الأعداد والحالة
+  const [nomBusy, setNomBusy] = useState(0);
+  const nominate = (cr: Creator, role: 'primary' | 'backup') => {
+    if (!campaignContext) return;
+    setNomBusy(cr.id);
+    router.post(u(`/creator-database/${cr.id}/nominate`), { campaign_id: campaignContext.id, role },
+      { preserveScroll: true, preserveState: true, onFinish: () => setNomBusy(0) });
+  };
   // «الترتيب» ليس فلترًا نشطًا — يُستثنى من عدّاد الفلاتر ومن «مسح الكل»
   const activeCount = Object.entries(filters).filter(([k, v]) => k !== 'sort' && v !== '' && v != null).length;
   const categoryEntries = Object.entries(facets.categories ?? {});
@@ -87,6 +101,28 @@ export default function CreatorDatabaseIndex({ creators, filters, canContact, ca
         </div>
         <div className="ih-listhead__meta" style={{ color: 'var(--ih-text-muted)', fontSize: '.82rem' }}>{summary.total.toLocaleString('en-US')} مبدع</div>
       </div>
+
+      {/* شريط سياق الحملة — لاصق أعلى الصفحة: الاكتشاف يتدفّق مباشرةً إلى الترشيح */}
+      {campaignContext && (
+        <div className="ih-nom-context" role="region" aria-label="سياق الترشيح للحملة">
+          <div style={{ minWidth: 0 }}>
+            <div style={{ fontSize: '.72rem', color: 'var(--ih-text-muted)' }}>ترشيح لحملة</div>
+            <div style={{ fontWeight: 800, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{campaignContext.name}</div>
+          </div>
+          <div style={{ display: 'flex', gap: '.5rem', alignItems: 'center' }}>
+            <span className="ih-tag" title="المرشّحون الأساسيّون">الأساسي {campaignContext.primaryCount}</span>
+            <span className="ih-tag" title="مرشّحو الاحتياط">الاحتياط {campaignContext.backupCount}</span>
+          </div>
+          <a href={campaignContext.shortlistUrl} className="btn btn-sm btn-primary" style={{ marginInlineStart: 'auto' }}>
+            <Icon name="clipboard-check" size={14} /> مراجعة القائمة
+          </a>
+        </div>
+      )}
+      {campaignContext && !campaignContext.editable && (
+        <div className="ih-note" style={{ marginBottom: '.6rem' }}>
+          <Icon name="clipboard-check" size={14} /> هذه القائمة أُرسلت للعميل — لإضافة مرشّحين أنشئ إصدارًا جديدًا من مساحة الترشيح.
+        </div>
+      )}
 
       {/* الشريط الأساسي: عناصر التحكّم الأعلى قيمة فقط — بحث · منصّة · موقع · ترتيب · فلاتر إضافية */}
       <div className="ih-filterbar">
@@ -234,7 +270,22 @@ export default function CreatorDatabaseIndex({ creators, filters, canContact, ca
                     <a href={waLink(c.contact.whatsapp!)} target="_blank" rel="noreferrer" className="btn btn-xs btn-primary">واتساب</a>
                   </>
                 )}
-                {canUseInCampaign && <a href={u(`/creator-database/${c.id}`)} className="btn btn-xs btn-secondary">ترشيح لحملة</a>}
+                {/* بسياق حملة: ترشيح بنقرة (أساسي/احتياط)؛ بلا سياق: انتقال للملف لاختيار حملة */}
+                {canUseInCampaign && campaignContext && campaignContext.editable && (
+                  c.shortlistRole ? (
+                    <span className="ih-tag" style={{ background: 'var(--ih-primary-soft)', color: 'var(--ih-primary-700)', fontWeight: 700 }}>
+                      ✓ {c.shortlistRole === 'backup' ? 'احتياط' : 'أساسي'} — اضغط للتبديل
+                      <button onClick={() => nominate(c, c.shortlistRole === 'backup' ? 'primary' : 'backup')} disabled={nomBusy === c.id}
+                        className="btn btn-xs" style={{ marginInlineStart: '.3rem', padding: '0 .3rem' }} title="بدّل بين أساسي/احتياط">↺</button>
+                    </span>
+                  ) : (
+                    <>
+                      <button onClick={() => nominate(c, 'primary')} disabled={nomBusy === c.id} className="btn btn-xs btn-primary">+ أساسي</button>
+                      <button onClick={() => nominate(c, 'backup')} disabled={nomBusy === c.id} className="btn btn-xs btn-secondary">+ احتياط</button>
+                    </>
+                  )
+                )}
+                {canUseInCampaign && !campaignContext && <a href={u(`/creator-database/${c.id}`)} className="btn btn-xs btn-secondary">ترشيح لحملة</a>}
               </div>
             </div>
           ))}

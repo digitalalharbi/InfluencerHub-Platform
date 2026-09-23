@@ -1,4 +1,4 @@
-import { Head, router } from '@inertiajs/react';
+import { Head, router, usePage } from '@inertiajs/react';
 import { useEffect, useState, type ReactNode } from 'react';
 import AppShell from '@/Layouts/AppShell';
 import { Sec, StatusBadge, SummaryStrip, WorkTabs, WorkspaceHeader, Bar, type WorkTab } from '@/Components/ui';
@@ -46,7 +46,45 @@ function DataTable({ head, children }: { head: string[]; children: ReactNode }) 
   );
 }
 
+// مسار الترشيح — ست مراحل تُجيب دائمًا: أين نحن؟ ما المطلوب الآن؟
+const JOURNEY = ['اكتشاف', 'اختيار', 'مراجعة القائمة', 'إرسال للعميل', 'قرار العميل', 'التنفيذ'] as const;
+
+/** يحسب المرحلة الحالية والإجراء المطلوب من حالة الإصدار الحقيقية (لا حالة مُختلَقة). */
+function journeyState(status: string, primaryCount: number, conv: Conversion): { idx: number; next: string; done?: boolean } {
+  if (status === 'draft') {
+    return primaryCount === 0
+      ? { idx: 1, next: 'أضِف مرشّحين أساسيين — من قائمة المرشّحين أو من قاعدة المؤثرين.' }
+      : { idx: 2, next: 'راجِع القائمة ثم أرسِلها لاعتماد العميل.' };
+  }
+  if (status === 'submitted') return { idx: 4, next: 'بانتظار قرار العميل على القائمة المُرسَلة.' };
+  if (status === 'changes_requested') return { idx: 4, next: 'العميل طلب بديلًا — أنشئ إصدارًا جديدًا وقدِّم البدائل.' };
+  if (status === 'rejected') return { idx: 4, next: 'القائمة مرفوضة — أنشئ إصدارًا جديدًا بمرشّحين مختلفين.' };
+  // approved / partially_approved
+  if (conv.canConvert) return { idx: 5, next: `حوِّل ${conv.eligible} معتمَدًا للتنفيذ.` };
+  if (conv.converted > 0 && conv.eligible === 0) return { idx: 5, next: 'اكتمل التحويل — المعتمَدون في مرحلة التنفيذ.', done: true };
+  return { idx: 5, next: 'راجِع قرارات العميل على القائمة.' };
+}
+
+function JourneyStepper({ idx, allDone }: { idx: number; allDone?: boolean }) {
+  return (
+    <ol className="ih-journey" aria-label="مسار الترشيح">
+      {JOURNEY.map((label, i) => {
+        const state = (allDone && i <= idx) || i < idx ? 'done' : i === idx ? 'current' : 'todo';
+        return (
+          <li key={label} className={`ih-journey__step is-${state}`} aria-current={state === 'current' ? 'step' : undefined}>
+            <span className="ih-journey__dot">{state === 'done' ? <Icon name="check" size={12} /> : i + 1}</span>
+            <span className="ih-journey__label">{label}</span>
+          </li>
+        );
+      })}
+    </ol>
+  );
+}
+
 export default function ShortlistIndex({ campaign, version, items, candidates, filters, canEdit, budgetPct, overBudget, versions, candidatePool, conversion, documents }: Props) {
+  // إتاحة «قاعدة المؤثرين» من القدرات المشتركة (نفس بوّابة الاكتشاف) — لا رابط لسطح غير مستحقّ
+  const navCan = (usePage().props as { nav?: { can?: Record<string, boolean> } }).nav?.can ?? {};
+  const hasCreatorDatabase = Boolean(navCan.creator_database);
   const [proposalOpen, setProposalOpen] = useState(false);
   const [tab, setTab] = useState(canEdit ? 'list' : 'list');
   useEffect(() => {
@@ -65,6 +103,7 @@ export default function ShortlistIndex({ campaign, version, items, candidates, f
 
   const primary = items.filter((i) => !i.isBackup);
   const backups = items.filter((i) => i.isBackup);
+  const journey = journeyState(version.status, primary.length, conversion);
   const base = u(`/campaigns/${campaign.id}/shortlist`);
 
   const post = (url: string, data: Record<string, string | number | boolean> = {}) => {
@@ -125,6 +164,12 @@ export default function ShortlistIndex({ campaign, version, items, candidates, f
           </>
         }
       />
+
+      {/* مسار الترشيح — أين نحن + المطلوب الآن، من الحالة الحقيقية */}
+      <div className="ih-journey-wrap">
+        <JourneyStepper idx={journey.idx} allDone={journey.done} />
+        <div className="ih-journey-next"><Icon name="rocket" size={14} /> <strong>المطلوب الآن:</strong> {journey.next}</div>
+      </div>
 
       <SummaryStrip
         items={[
@@ -204,6 +249,14 @@ export default function ShortlistIndex({ campaign, version, items, candidates, f
           المستخدم واقف على تبويب آخر. */}
       {tab === 'candidates' && canEdit ? (
         <Sec title="المرشّحون" icon="users">
+          {hasCreatorDatabase && (
+            <div style={{ marginBottom: '.9rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '.6rem', flexWrap: 'wrap' }}>
+              <span style={{ fontSize: '.82rem', color: 'var(--ih-text-muted)' }}>اكتشف مؤثرين جددًا وأضِفهم مباشرةً لهذه الحملة (أساسي/احتياط بنقرة).</span>
+              <a href={u(`/creator-database?campaign=${campaign.id}`)} className="btn btn-sm btn-primary">
+                <Icon name="radar" size={14} /> اكتشف من قاعدة المؤثرين
+              </a>
+            </div>
+          )}
           <div className="ih-filterbar" style={{ marginBottom: '1rem' }}>
             <div className="ih-search">
               <Icon name="search" size={15} />
