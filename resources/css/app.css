@@ -9,7 +9,7 @@
 @source '../**/*.js';
 
 @theme {
-  --font-sans: "IBM Plex Sans Arabic", "Inter", "Tajawal", system-ui, sans-serif;
+  --font-sans: "IBM Plex Sans Arabic", "IBM Plex Sans", "Tajawal", system-ui, sans-serif;
 }
 
 /* ============================================================================

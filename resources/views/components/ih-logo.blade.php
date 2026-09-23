@@ -1,16 +1,17 @@
-@props(['size' => 28, 'color' => 'currentColor', 'withWordmark' => false])
-{{-- علامة InfluencerHub الأصلية: عقدة Hub مركزية تربط عقدتين (علامة ↔ مبدع). قابلة للاستبدال بـSVG لاحقًا دون تعديل الصفحات. --}}
+@props(['size' => 28, 'color' => 'currentColor', 'withWordmark' => false, 'inverted' => false])
+{{-- الهوية الرسمية «الجسر (H)»: بلاطة إنديغو + عمودان أبيضان + نقطة سماوية.
+     مصدر واحد للشعار في أسطح Blade. البلاطة ثابتة اللون (تصلح على الفاتح والداكن)؛
+     على أسطح الإنديغو/التدرّج مرّر inverted لعكسها (بلاطة بيضاء + أعمدة إنديغو). --}}
 <span {{ $attributes->merge(['style' => 'display:inline-flex; align-items:center; gap:.5rem;']) }}>
-    <svg width="{{ $size }}" height="{{ $size }}" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
-        <rect x="1.25" y="1.25" width="29.5" height="29.5" rx="8.5" stroke="{{ $color }}" stroke-width="1.6" opacity=".28"/>
-        <path d="M9 22V10" stroke="{{ $color }}" stroke-width="2.4" stroke-linecap="round"/>
-        <path d="M23 10v12" stroke="{{ $color }}" stroke-width="2.4" stroke-linecap="round"/>
-        <path d="M9 16h14" stroke="{{ $color }}" stroke-width="2.4" stroke-linecap="round" opacity=".55"/>
-        <circle cx="16" cy="16" r="3.4" fill="{{ $color }}"/>
-        <circle cx="9" cy="10" r="2" fill="{{ $color }}"/>
-        <circle cx="23" cy="22" r="2" fill="{{ $color }}"/>
+    <svg width="{{ $size }}" height="{{ $size }}" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" style="display:block; flex-shrink:0">
+        <rect width="100" height="100" rx="23.33" fill="{{ $inverted ? '#FFFFFF' : '#5B45E0' }}"/>
+        <g transform="translate(20 20) scale(.6)">
+            <rect x="14" y="12" width="22" height="76" rx="7" fill="{{ $inverted ? '#5B45E0' : '#FFFFFF' }}"/>
+            <rect x="64" y="12" width="22" height="76" rx="7" fill="{{ $inverted ? '#5B45E0' : '#FFFFFF' }}"/>
+            <circle cx="50" cy="50" r="11" fill="#22D3EE"/>
+        </g>
     </svg>
     @if($withWordmark)
-        <span style="font-weight:800; letter-spacing:0;">InfluencerHub</span>
+        <span style="font-weight:700; letter-spacing:-.01em; color:{{ $color }}">InfluencerHub</span>
     @endif
 </span>

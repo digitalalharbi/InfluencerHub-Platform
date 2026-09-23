@@ -3,6 +3,7 @@ import { useEffect, useState, type ReactNode } from 'react';
 import { Icon } from '@/Components/Icon';
 import AppFooter from '@/Components/AppFooter';
 import PlatformCommandPalette from '@/Components/PlatformCommandPalette';
+import { BrandLogo, BrandLink } from '@/Components/BrandLogo';
 import { agencyNav, mobilePrimary, type NavGroup, type NavItem } from '@/lib/nav';
 import { base, u } from '@/lib/href';
 import type { SharedProps } from '@/types';
@@ -91,8 +92,8 @@ export default function AppShell({
       {portal === 'platform' && <PlatformCommandPalette />}
 
       <aside className="sidebar ih-side" onClick={() => setOpen(false)}>
-        <Link href={home} className="ih-side__brand" title={rail ? brand : undefined}>
-          <span className="ih-side__mark">◆</span> <span className="ih-side__brand-text">{brand}</span>
+        <Link href={home} className="ih-side__brand" title={rail ? brand : undefined} aria-label={`${brand} — الرئيسية`}>
+          <BrandLogo height={rail ? 32 : 30} surface="auto" symbolOnly={rail} />
         </Link>
         <div className="ih-side__workspace">
           <span className="ih-side__ws-avatar">{(wsLabel ?? 'و').slice(0, 1)}</span>
@@ -206,7 +207,7 @@ export default function AppShell({
         )}
         <div className="ih-topbar-mobile">
           <button className="ih-icon-btn" onClick={() => setOpen(true)} aria-label="فتح القائمة"><Icon name="menu" size={22} /></button>
-          <span style={{ fontWeight: 800, color: 'var(--ih-primary)' }}>◆ {brand}</span>
+          <BrandLink href={home} height={26} surface="auto" label={`${brand} — الرئيسية`} />
           <span style={{ marginInlineStart: 'auto', fontWeight: 700, fontSize: '.9rem' }}>{heading}</span>
         </div>
 
