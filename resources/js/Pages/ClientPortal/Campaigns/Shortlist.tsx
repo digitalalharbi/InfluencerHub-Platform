@@ -2,7 +2,7 @@ import { Head, router } from '@inertiajs/react';
 import { useState } from 'react';
 import AppShell from '@/Layouts/AppShell';
 import { clientNav } from '@/lib/nav';
-import { WorkspaceHeader, StatusBadge } from '@/Components/ui';
+import { WorkspaceHeader, StatusBadge, SummaryStrip } from '@/Components/ui';
 import { Icon } from '@/Components/Icon';
 import { u } from '@/lib/href';
 
@@ -48,6 +48,11 @@ export default function ClientShortlist({ clientName, campaign, version, items }
   const openModal = (itemId: number, decision: 'rejected' | 'needs_alternative') => { setModalDecision(decision); setRejectFor(itemId); };
 
   const pending = items.filter((i) => i.decision === 'pending');
+  // ملخّص القرارات — يجيب فورًا: كم اعتمدتُ، كم طلبتُ له بديلًا، كم رفضتُ، وكم بقي.
+  const approved = items.filter((i) => i.decision === 'approved').length;
+  const needsAlt = items.filter((i) => i.decision === 'needs_alternative').length;
+  const rejected = items.filter((i) => i.decision === 'rejected').length;
+  const allDecided = Boolean(version) && items.length > 0 && pending.length === 0;
 
   return (
     <AppShell heading="قرار الترشيح" nav={clientNav} portal="client" wsName={clientName} wsPlan="بوابة العميل">
@@ -68,9 +73,24 @@ export default function ClientShortlist({ clientName, campaign, version, items }
         </div>
       ) : (
         <>
-          <div className="card" style={{ padding: '.8rem 1rem', marginBottom: '1.2rem', borderInlineStart: '3px solid var(--ih-info)', background: 'var(--ih-info-soft)', color: 'var(--ih-info-ink)', fontSize: '.84rem' }}>
-            <Icon name="clipboard-check" size={14} /> راجع المؤثرين المقترحين واعتمد أو ارفض كلًّا منهم. قرارك يصل فريق الوكالة فورًا.
-          </div>
+          {/* ملخّص القرارات أعلى الصفحة */}
+          <SummaryStrip items={[
+            { label: 'معتمَد', value: approved, icon: 'check', tone: approved ? 'success' : undefined },
+            { label: 'يحتاج بديلًا', value: needsAlt, icon: 'user-plus', tone: needsAlt ? 'warning' : undefined },
+            { label: 'مرفوض', value: rejected, icon: 'x', tone: rejected ? 'danger' : undefined },
+            { label: 'بانتظار قرارك', value: pending.length, icon: 'clipboard-check' },
+          ]} />
+
+          {allDecided ? (
+            <div className="card" style={{ padding: '.9rem 1rem', margin: '1rem 0 1.2rem', borderInlineStart: '3px solid var(--ih-success)', background: 'var(--ih-success-soft)', color: 'var(--ih-success-ink)', fontSize: '.86rem' }}>
+              <Icon name="check" size={15} /> اكتملت مراجعتك — وصلت قراراتك لفريق الوكالة.
+              {' '}اعتمدت {approved}{needsAlt > 0 && <>، وطلبت بديلًا لـ{needsAlt}</>}{rejected > 0 && <>، ورفضت {rejected}</>}.
+            </div>
+          ) : (
+            <div className="card" style={{ padding: '.8rem 1rem', margin: '1rem 0 1.2rem', borderInlineStart: '3px solid var(--ih-info)', background: 'var(--ih-info-soft)', color: 'var(--ih-info-ink)', fontSize: '.84rem' }}>
+              <Icon name="clipboard-check" size={14} /> راجع المؤثرين المقترحين واعتمد أو ارفض كلًّا منهم. قرارك يصل فريق الوكالة فورًا.
+            </div>
+          )}
 
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))', gap: '1rem' }}>
             {items.map((it) => (
