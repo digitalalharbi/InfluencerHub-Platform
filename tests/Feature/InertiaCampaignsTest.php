@@ -74,7 +74,31 @@ class InertiaCampaignsTest extends TestCase
                 ->has('readiness.items')->has('timeline')
                 ->has('deliverables')->has('collaborations')->has('content')
                 // مساحة عمل الحملة: العقود والمستحقات تبويبان داخل الحملة (لا وحدتان منفصلتان)
-                ->has('contracts')->has('payouts')->has('invoices'));
+                ->has('contracts')->has('payouts')->has('invoices')
+                // بلا ترشيح بعد: ملخّص المؤثرين null (تعرض الواجهة حالة «ابدأ الترشيح»)
+                ->where('nomination', null));
+    }
+
+    public function test_detail_exposes_nomination_summary_when_shortlist_exists(): void
+    {
+        [$t, , $u] = $this->agency(1);
+        TenantContext::bypass(true);
+        $cm = Campaign::where('tenant_id', $t->id)->first();
+        $creator = \App\Domain\Creators\Models\Creator::create([
+            'tenant_id' => $t->id, 'creator_number' => 'CR-NOM-' . $t->id, 'type' => 'influencer',
+            'display_name' => 'مبدع الترشيح', 'status' => 'active',
+        ]);
+        $svc = app(\App\Domain\Campaigns\Services\ShortlistService::class);
+        $sl = $svc->getOrCreate($cm, $u->id);
+        $svc->addCreator($sl->currentVersion(), $creator);           // أساسي
+        $svc->addCreator($sl->currentVersion(), $creator, true);     // نفس المبدع كاحتياط يُحدّث الدور (updateOrCreate)
+        TenantContext::reset();
+
+        $this->actingAs($u)->get("/beta/campaigns/{$cm->id}")->assertOk()
+            ->assertInertia(fn (Assert $page) => $page
+                ->where('nomination.stage', 'draft')
+                ->where('nomination.stageLabel', 'مسودة')
+                ->has('nomination.primary')->has('nomination.pending'));
     }
 
     public function test_campaign_workspace_exposes_contracts_and_payouts_of_the_campaign(): void

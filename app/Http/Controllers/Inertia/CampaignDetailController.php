@@ -4,6 +4,8 @@ namespace App\Http\Controllers\Inertia;
 
 use App\Domain\Campaigns\Enums\DeliverableType;
 use App\Domain\Campaigns\Models\Campaign;
+use App\Domain\Campaigns\Models\CampaignShortlist;
+use App\Domain\Campaigns\Models\CampaignShortlistVersion;
 use App\Domain\Campaigns\Services\CampaignWorkflowService;
 use App\Http\Controllers\Controller;
 use App\Support\Analytics\CampaignAnalytics;
@@ -117,6 +119,7 @@ class CampaignDetailController extends Controller
             'command' => $command,
             'lifecycle' => $lifecycle,
             'readiness' => $readiness,
+            'nomination' => $this->nominationSummary($campaign),
             'timeline' => $timeline,
             'canManage' => request()->user()->can('update', $campaign),
             'actions' => request()->user()->can('update', $campaign) ? (self::ACTIONS[$campaign->status] ?? []) : [],
@@ -154,6 +157,31 @@ class CampaignDetailController extends Controller
             ])->values(),
             'canManagePayouts' => request()->user()?->can('create', \App\Domain\Finance\Models\Payout::class) ?? false,
         ]);
+    }
+
+    /**
+     * ملخّص الترشيح للحملة داخل مساحة العمل — مرحلة + أعداد حقيقية (لا حالة مُختلَقة).
+     * يُرجِع null إن لم تبدأ الترشيحات بعد، فتعرض الواجهة حالة فارغة تُوجّه للبدء.
+     *
+     * @return array{stage:string,stageLabel:string,primary:int,backup:int,approved:int,pending:int}|null
+     */
+    private function nominationSummary(Campaign $campaign): ?array
+    {
+        $shortlist = CampaignShortlist::where('campaign_id', $campaign->id)->first();
+        $version = $shortlist?->currentVersion();
+        if ($version === null) {
+            return null;
+        }
+        $items = $version->items()->get(['is_backup', 'client_decision']);
+
+        return [
+            'stage' => $version->status,
+            'stageLabel' => CampaignShortlistVersion::statusLabel($version->status),
+            'primary' => $items->where('is_backup', false)->count(),
+            'backup' => $items->where('is_backup', true)->count(),
+            'approved' => $items->where('client_decision', 'approved')->count(),
+            'pending' => $items->where('client_decision', 'pending')->count(),
+        ];
     }
 
     public function update(Request $r, Campaign $campaign, CampaignWorkflowService $wf)
