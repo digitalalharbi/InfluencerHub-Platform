@@ -37,10 +37,18 @@ class CreatorDatabaseController extends Controller
         [$org, $role] = $this->guard();
         $canContact = Ability::can($role, Ability::VIEW_CONTACT);
 
-        $filters = $r->only('platform', 'creator_type', 'category', 'city', 'region', 'gender', 'shows_face', 'tier', 'min_followers', 'has_price', 'q');
+        $filters = $r->only('platform', 'creator_type', 'category', 'city', 'region', 'gender', 'shows_face', 'tier', 'min_followers', 'has_price', 'q', 'sort');
         $q = $this->baseQuery($filters);
 
-        $page = $q->orderByRaw('followers DESC NULLS LAST')->paginate(24)->withQueryString();
+        // ترتيب اكتشاف حتميّ (لا «ذكاء» زائف): الأكثر متابعة (افتراضي) · الأعلى سعرًا · الأحدث بيانات.
+        $sort = in_array($filters['sort'] ?? '', ['price', 'recent'], true) ? $filters['sort'] : 'followers';
+        $order = match ($sort) {
+            'price' => 'GREATEST(COALESCE(price_post_minor,0), COALESCE(price_coverage_minor,0)) DESC, followers DESC NULLS LAST',
+            'recent' => 'last_imported_at DESC NULLS LAST, followers DESC NULLS LAST',
+            default => 'followers DESC NULLS LAST',
+        };
+        $filters['sort'] = $sort;
+        $page = $q->orderByRaw($order)->paginate(24)->withQueryString();
         $overlays = $this->overlaysFor($org, collect($page->items())->pluck('id')->all());
         $rows = $page->through(fn (PoolCreator $c) => $c->toSharedArray($canContact) + ['overlay' => $overlays[$c->id] ?? null]);
 

@@ -216,4 +216,41 @@ class CreatorDatabaseTest extends TestCase
         $this->actingAs($u)->get('/app/creator-database?has_price=1')->assertOk()
             ->assertInertia(fn (Assert $p) => $p->where('creators.total', 1));
     }
+
+    // ==================== ترتيب الاكتشاف ====================
+
+    public function test_default_sort_is_followers_desc(): void
+    {
+        [$u] = $this->agency(access: true);
+        $this->poolCreator(['account_url' => 'https://tt/@low', 'name' => 'قليل', 'followers' => 10000]);
+        $this->poolCreator(['account_url' => 'https://tt/@high', 'name' => 'كثير', 'followers' => 900000]);
+
+        $this->actingAs($u)->get('/app/creator-database')->assertOk()
+            ->assertInertia(fn (Assert $p) => $p
+                ->where('filters.sort', 'followers') // الافتراضي يُصرَّح للواجهة
+                ->where('creators.data.0.name', 'كثير')); // الأعلى متابعةً أولًا
+    }
+
+    public function test_price_sort_ranks_highest_price_first(): void
+    {
+        [$u] = $this->agency(access: true);
+        // «قليل السعر» أعلى متابعةً — كي يثبت أن الترتيب بالسعر لا بالمتابعين
+        $this->poolCreator(['account_url' => 'https://tt/@cheap', 'name' => 'رخيص', 'followers' => 900000, 'price_post_minor' => 100000, 'price_coverage_minor' => 0]);
+        $this->poolCreator(['account_url' => 'https://tt/@dear', 'name' => 'غالٍ', 'followers' => 10000, 'price_post_minor' => 0, 'price_coverage_minor' => 800000]);
+
+        $this->actingAs($u)->get('/app/creator-database?sort=price')->assertOk()
+            ->assertInertia(fn (Assert $p) => $p
+                ->where('filters.sort', 'price')
+                ->where('creators.data.0.name', 'غالٍ')); // الأعلى سعرًا (تغطية) أولًا
+    }
+
+    public function test_invalid_sort_falls_back_to_default(): void
+    {
+        [$u] = $this->agency(access: true);
+        $this->poolCreator(['account_url' => 'https://tt/@x']);
+
+        // قيمة غير مسموحة (حقن محتمل) لا تصل إلى SQL — تُطبَّع إلى الافتراضي
+        $this->actingAs($u)->get('/app/creator-database?sort=price;DROP')->assertOk()
+            ->assertInertia(fn (Assert $p) => $p->where('filters.sort', 'followers'));
+    }
 }

@@ -5,7 +5,7 @@ import {
   ChevronLeft, ChevronDown, User, Circle, Gauge, Activity, Radar, CalendarDays, ListChecks,
   TrendingUp, Receipt, Sparkles, Tag, Phone, Share2, AlertTriangle,
   LayoutGrid, Rows3, Table2, X, Star, Heart, MapPin, ExternalLink, MessageCircle,
-  Pencil, Check, Eye,
+  Pencil, Check, Eye, SlidersHorizontal,
   type LucideProps,
 } from 'lucide-react';
 
@@ -61,6 +61,7 @@ const MAP = {
   pencil: Pencil,
   check: Check,
   eye: Eye,
+  'sliders-horizontal': SlidersHorizontal,
 } as const;
 
 export type IconName = keyof typeof MAP;
