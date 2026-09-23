@@ -42,7 +42,7 @@
 
   @if($secondary)
     <p style="margin:14px 0 0;font-size:13px;line-height:1.7;">
-      <a href="{{ $secondary['url'] }}" target="_blank" rel="noopener" style="color:#6252e5;text-decoration:none;font-weight:600;">{{ $secondary['label'] }}</a>
+      <a href="{{ $secondary['url'] }}" target="_blank" rel="noopener" style="color:#5B45E0;text-decoration:none;font-weight:600;">{{ $secondary['label'] }}</a>
     </p>
   @endif
 </x-mail.layout>

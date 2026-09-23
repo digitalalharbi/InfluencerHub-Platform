@@ -50,4 +50,26 @@ class BrandIdentityTest extends TestCase
             $this->assertFileExists(public_path($asset), "أصل الهوية المفقود: {$asset}");
         }
     }
+
+    /** غلاف البريد يحمل بلاطة الهوية الرسمية ولون إنديغو الرسمي لا القديم. */
+    public function test_email_shell_uses_official_brand(): void
+    {
+        $html = \Illuminate\Support\Facades\Blade::render('<x-mail.layout>محتوى</x-mail.layout>');
+        // بلاطة الهوية كـPNG رسمي (توافق عملاء البريد)
+        $this->assertStringContainsString('/icon-192.png', $html);
+        // لون الهوية الرسمي في الروابط، لا القديم
+        $this->assertStringContainsString('#5B45E0', $html);
+        $this->assertStringNotContainsString('#6252e5', $html);
+    }
+
+    /** صفحات الخطأ تستخدم البلاطة الرسمية ولون الهوية والأيقونة الرسمية. */
+    public function test_error_shell_uses_official_brand(): void
+    {
+        $html = \Illuminate\Support\Facades\Blade::render('<x-error-shell code="404" title="غير موجود" message="تعذّر العثور" />');
+        $this->assertStringContainsString('rx="23.33"', $html);       // بلاطة «الجسر (H)»
+        $this->assertStringContainsString('#5B45E0', $html);          // إنديغو رسمي
+        $this->assertStringContainsString('/favicon.svg', $html);      // أيقونة رسمية
+        $this->assertStringNotContainsString('#6d5df6', $html);        // لا لون قديم منحرف
+        $this->assertStringNotContainsString('/icons/ih-icon.svg', $html);
+    }
 }

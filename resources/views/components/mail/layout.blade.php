@@ -32,21 +32,12 @@
             <td style="background:#0b1220;border-radius:18px 18px 0 0;padding:24px 28px;text-align:{{ $align }};">
               <table role="presentation" cellspacing="0" cellpadding="0" align="{{ $align }}" style="border-collapse:collapse;">
                 <tr>
-                  <td style="width:38px;height:38px;vertical-align:middle;{{ $rtl ? 'padding-left' : 'padding-right' }}:10px;">
-                    <span style="display:inline-block;width:38px;height:38px;line-height:38px;background:#ffffff;border-radius:11px;text-align:center;">
-                      <svg width="30" height="30" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" style="vertical-align:middle;">
-                        <rect x="1.25" y="1.25" width="29.5" height="29.5" rx="8.5" stroke="#6252e5" stroke-width="1.6" opacity=".28"/>
-                        <path d="M9 22V10" stroke="#6252e5" stroke-width="2.4" stroke-linecap="round"/>
-                        <path d="M23 10v12" stroke="#6252e5" stroke-width="2.4" stroke-linecap="round"/>
-                        <path d="M9 16h14" stroke="#6252e5" stroke-width="2.4" stroke-linecap="round" opacity=".55"/>
-                        <circle cx="16" cy="16" r="3.4" fill="#6252e5"/>
-                        <circle cx="9" cy="10" r="2" fill="#6252e5"/>
-                        <circle cx="23" cy="22" r="2" fill="#6252e5"/>
-                      </svg>
-                    </span>
+                  <td style="width:40px;height:40px;vertical-align:middle;{{ $rtl ? 'padding-left' : 'padding-right' }}:10px;">
+                    {{-- بلاطة الهوية الرسمية «الجسر (H)» كـPNG (توافق كل عملاء البريد) --}}
+                    <img src="{{ \App\Support\Brand::url() }}/icon-192.png" width="40" height="40" alt="InfluencerHub" style="display:block;width:40px;height:40px;border-radius:11px;border:0;">
                   </td>
                   <td style="vertical-align:middle;text-align:{{ $align }};">
-                    <div style="font-size:18px;line-height:1.2;font-weight:800;color:#ffffff;letter-spacing:0;direction:ltr;text-align:{{ $align }};">{{ $brand }}</div>
+                    <div style="font-size:18px;line-height:1.2;font-weight:700;color:#ffffff;letter-spacing:-.01em;direction:{{ $dir }};text-align:{{ $align }};">{{ $rtl ? 'إنفلونسر هب' : 'InfluencerHub' }}</div>
                     <div style="margin-top:5px;font-size:12px;line-height:1.4;color:#c7d2fe;">{{ \App\Support\Brand::tagline() }}</div>
                   </td>
                 </tr>
@@ -63,9 +54,9 @@
               <div style="border-top:1px solid #edf0f5;padding-top:18px;color:#667085;font-size:12px;line-height:1.8;text-align:center;">
                 {{ trans('mail.automated_notice', ['brand' => $brand], $locale) }}
                 <div style="margin-top:8px;">
-                  <a href="{{ \App\Support\Brand::url() }}/" style="color:#6252e5;text-decoration:none;font-weight:700;direction:ltr;display:inline-block;">{{ \App\Support\Brand::domain() }}</a>
+                  <a href="{{ \App\Support\Brand::url() }}/" style="color:#5B45E0;text-decoration:none;font-weight:700;direction:ltr;display:inline-block;">{{ \App\Support\Brand::domain() }}</a>
                   <span style="color:#cbd5e1;"> · </span>
-                  <a href="mailto:{{ \App\Support\Brand::publicEmail() }}" style="color:#6252e5;text-decoration:none;direction:ltr;display:inline-block;">{{ \App\Support\Brand::publicEmail() }}</a>
+                  <a href="mailto:{{ \App\Support\Brand::publicEmail() }}" style="color:#5B45E0;text-decoration:none;direction:ltr;display:inline-block;">{{ \App\Support\Brand::publicEmail() }}</a>
                 </div>
                 <div style="margin-top:6px;">
                   <a href="{{ \App\Support\Brand::privacyUrl() }}" style="color:#667085;text-decoration:none;">{{ trans('mail.footer.privacy', [], $locale) }}</a>
