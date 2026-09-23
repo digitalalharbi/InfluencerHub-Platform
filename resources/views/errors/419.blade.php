@@ -5,8 +5,8 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>انتهت الجلسة — InfluencerHub</title>
     <style>
-        :root{--ih-primary:#6d5df6;--ih-ink:#111827;--ih-muted:#64748b;--ih-border:#e2e8f0;--ih-bg:#f8fafc;--ih-card:#fff}
-        *{box-sizing:border-box} body{margin:0;min-height:100vh;display:grid;place-items:center;background:var(--ih-bg);color:var(--ih-ink);font-family:"IBM Plex Sans Arabic",Inter,system-ui,sans-serif;padding:24px}
+        :root{--ih-primary:#5B45E0;--ih-ink:#14123A;--ih-muted:#6A6690;--ih-border:#E8E6F7;--ih-bg:#F6F5FF;--ih-card:#fff}
+        *{box-sizing:border-box} body{margin:0;min-height:100vh;display:grid;place-items:center;background:var(--ih-bg);color:var(--ih-ink);font-family:"IBM Plex Sans Arabic","IBM Plex Sans",system-ui,sans-serif;padding:24px}
         .card{width:min(520px,100%);background:var(--ih-card);border:1px solid var(--ih-border);border-radius:16px;padding:34px 30px;text-align:center;box-shadow:0 24px 70px rgba(15,23,42,.08)}
         .brand{display:inline-flex;align-items:center;gap:.65rem;font-weight:800;margin-bottom:22px}.brand svg{flex:0 0 auto}
         .code{display:inline-flex;align-items:center;justify-content:center;width:64px;height:64px;border-radius:18px;background:#f1efff;color:var(--ih-primary);font-weight:900;font-size:1.35rem;margin-bottom:18px}
@@ -17,16 +17,15 @@
 <body>
     <main class="card">
         <div class="brand">
-            <svg width="28" height="28" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
-                <rect x="1.25" y="1.25" width="29.5" height="29.5" rx="8.5" stroke="var(--ih-primary)" stroke-width="1.6" opacity=".28"/>
-                <path d="M9 22V10" stroke="var(--ih-primary)" stroke-width="2.4" stroke-linecap="round"/>
-                <path d="M23 10v12" stroke="var(--ih-primary)" stroke-width="2.4" stroke-linecap="round"/>
-                <path d="M9 16h14" stroke="var(--ih-primary)" stroke-width="2.4" stroke-linecap="round" opacity=".55"/>
-                <circle cx="16" cy="16" r="3.4" fill="var(--ih-primary)"/>
-                <circle cx="9" cy="10" r="2" fill="var(--ih-primary)"/>
-                <circle cx="23" cy="22" r="2" fill="var(--ih-primary)"/>
+            <svg width="30" height="30" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" style="display:block">
+                <rect width="100" height="100" rx="23.33" fill="#5B45E0"/>
+                <g transform="translate(20 20) scale(.6)">
+                    <rect x="14" y="12" width="22" height="76" rx="7" fill="#FFFFFF"/>
+                    <rect x="64" y="12" width="22" height="76" rx="7" fill="#FFFFFF"/>
+                    <circle cx="50" cy="50" r="11" fill="#22D3EE"/>
+                </g>
             </svg>
-            <span>InfluencerHub</span>
+            <span>إنفلونسر <span style="color:var(--ih-primary)">هب</span></span>
         </div>
         <div class="code">419</div>
         <h1>انتهت الجلسة</h1>
