@@ -1,4 +1,5 @@
 import type { ReactNode } from 'react';
+import { useLocale } from '@/lib/i18n';
 
 /**
  * طبقة الرسوم الوحيدة (SVG، بلا مكتبة خارجية) — تدعم RTL/LTR واستجابة وحالة فارغة وتلميحات
@@ -74,6 +75,8 @@ export function Legend({ segments }: { segments: Segment[] }) {
 export function ProgressRing({
   value, size = 108, thickness = 12, label, tone = 'primary',
 }: { value: number; size?: number; thickness?: number; label?: string; tone?: 'primary' | 'success' | 'warning' | 'danger' }) {
+  const { locale } = useLocale();
+  const pctSign = locale === 'ar' ? '٪' : '%';
   const pct = Math.max(0, Math.min(100, value));
   const r = (size - thickness) / 2;
   const cx = size / 2;
@@ -84,13 +87,13 @@ export function ProgressRing({
       : tone === 'danger' ? 'var(--ih-danger, #D92D20)' : 'var(--ih-primary, #5B45E0)';
   return (
     <div style={{ display: 'inline-grid', placeItems: 'center', position: 'relative', width: size, height: size }}>
-      <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`} role="img" aria-label={`${label ?? 'التقدّم'}: ${Math.round(pct)}٪`} style={{ transform: 'rotate(-90deg)' }}>
+      <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`} role="img" aria-label={`${label ?? ''}: ${Math.round(pct)}${pctSign}`} style={{ transform: 'rotate(-90deg)' }}>
         <circle cx={cx} cy={cx} r={r} fill="none" stroke="var(--ih-border, #E8E6F7)" strokeWidth={thickness} />
         <circle className="ih-ring-arc" cx={cx} cy={cx} r={r} fill="none" stroke={color} strokeWidth={thickness}
           strokeDasharray={`${dash} ${circ - dash}`} strokeLinecap="round" />
       </svg>
       <div style={{ position: 'absolute', textAlign: 'center', lineHeight: 1.1 }}>
-        <div style={{ fontWeight: 800, fontSize: size * 0.22, fontVariantNumeric: 'tabular-nums' }}>{Math.round(pct)}<span style={{ fontSize: size * 0.12 }}>٪</span></div>
+        <div style={{ fontWeight: 800, fontSize: size * 0.22, fontVariantNumeric: 'tabular-nums' }}>{Math.round(pct)}<span style={{ fontSize: size * 0.12 }}>{pctSign}</span></div>
         {label && <div style={{ fontSize: '.66rem', color: 'var(--ih-text-muted)', marginTop: 2 }}>{label}</div>}
       </div>
     </div>
