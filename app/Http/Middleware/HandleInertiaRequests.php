@@ -63,6 +63,15 @@ class HandleInertiaRequests extends Middleware
             ],
             'locale' => app()->getLocale(),
             'dir' => app()->getLocale() === 'ar' ? 'rtl' : 'ltr',
+            // حزمة الترجمة للواجهة (React) — مجموعات مشتركة تُحلّ باللغة الحالية.
+            // t() في الواجهة يقرأ من هنا؛ المفتاح المفقود يعود كما هو (لا مفاتيح خام مكشوفة إن اكتملت الملفّات).
+            'translations' => fn () => [
+                'navigation' => (array) trans('navigation'),
+                'actions' => (array) trans('actions'),
+                'statuses' => (array) trans('statuses'),
+                'entities' => (array) trans('entities'),
+                'common' => (array) trans('common'),
+            ],
             'base' => MountPrefix::for($request),
             // معاينة مالك المنصّة (§P3) — يُشارَك فقط داخل معاينة نشطة. الرمز يمرَّر
             // في الروابط الداخلية (u()) للتنقّل الآمن متعدّد النوافذ، والشريط يعرض الهدف.

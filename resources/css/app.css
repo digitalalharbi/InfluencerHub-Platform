@@ -20,7 +20,8 @@
 *, *::before, *::after { box-sizing: border-box; }
 
 html {
-  direction: rtl;
+  /* الاتّجاه يتبع سمة dir على <html> (عربي rtl · إنجليزي ltr) — لا نُثبّته في CSS
+     كي يقلبه مبدّل اللغة. القيمة الأوّليّة تضبطها Blade، وinertia.tsx يحدّثها حيًّا. */
   -webkit-text-size-adjust: 100%;
   text-size-adjust: 100%;
   overflow-x: hidden;
@@ -507,6 +508,15 @@ button.ih-nav__group--toggle:focus-visible { outline: 2px solid var(--ih-primary
   border: 1px solid var(--ih-warning, rgba(234,179,8,.4)); border-radius: var(--ih-radius);
   padding: .5rem .7rem;
 }
+
+/* ---------- Language switcher (segmented ar/en) ---------- */
+.ih-langswitch { display: inline-flex; border: 1px solid var(--ih-border); border-radius: var(--ih-radius-pill); overflow: hidden; background: var(--ih-surface); }
+.ih-langswitch button {
+  border: 0; background: none; cursor: pointer; padding: .28rem .6rem; font-size: .76rem; font-weight: 600;
+  color: var(--ih-text-muted); font-family: inherit; line-height: 1.4;
+}
+.ih-langswitch button.is-active { background: var(--ih-primary); color: #fff; }
+.ih-langswitch button:not(.is-active):hover { color: var(--ih-primary-700); background: var(--ih-primary-soft); }
 
 /* ---------- Nomination journey stepper (Shortlist workspace) ---------- */
 .ih-journey-wrap { margin-bottom: 1rem; }

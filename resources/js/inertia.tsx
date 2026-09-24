@@ -35,12 +35,21 @@ createInertiaApp({
       import.meta.glob<{ default: ComponentType }>('./Pages/**/*.tsx'),
     ).then((m) => m.default),
   setup({ el, App, props }) {
+    // مزامنة لغة/اتّجاه جذر المستند من الحمولة المشتركة — كي يقلب تبديل اللغة الاتّجاه
+    // حيًّا داخل SPA (قِشرة Blade تُضبط مرّة واحدة فقط عند التحميل الأوّل).
+    const syncHtmlLocale = (p: { locale?: string; dir?: string }) => {
+      if (p.locale) document.documentElement.lang = p.locale;
+      if (p.dir === 'rtl' || p.dir === 'ltr') document.documentElement.dir = p.dir;
+    };
+    syncHtmlLocale(props.initialPage.props as { locale?: string; dir?: string });
+
     // بادئة التركيب تأتي من الخادم وتتغيّر مع كل تنقّل (/beta ↔ /app أثناء التحويل).
     setBase(props.initialPage.props.base);
     setPreviewToken((props.initialPage.props.preview as { token?: string } | null)?.token);
     router.on('navigate', (e) => {
       setBase(e.detail.page.props.base);
       setPreviewToken((e.detail.page.props.preview as { token?: string } | null)?.token);
+      syncHtmlLocale(e.detail.page.props as { locale?: string; dir?: string });
     });
 
     // أثناء معاينة نشطة: ألحِق `_pv` بكل طلب inertia (تنقّلات وأفعال ونماذج) لا روابط
@@ -63,5 +72,5 @@ createInertiaApp({
       announceFailure('ردّ الخادم بشكل غير متوقّع. أعد تحميل الصفحة ثم حاول مجدّدًا.'));
     if (el) createRoot(el).render(<App {...props} />);
   },
-  progress: { color: '#6252E5', showSpinner: false },
+  progress: { color: '#5B45E0', showSpinner: false },
 });

@@ -4,6 +4,9 @@ import { Icon } from '@/Components/Icon';
 import AppFooter from '@/Components/AppFooter';
 import PlatformCommandPalette from '@/Components/PlatformCommandPalette';
 import { BrandLogo, BrandLink } from '@/Components/BrandLogo';
+import { LanguageSwitcher } from '@/Components/LanguageSwitcher';
+import { navLabel } from '@/lib/navI18n';
+import { useLocale } from '@/lib/i18n';
 import { agencyNav, mobilePrimary, type NavGroup, type NavItem } from '@/lib/nav';
 import { base, u } from '@/lib/href';
 import type { SharedProps } from '@/types';
@@ -30,6 +33,8 @@ export default function AppShell({
   portal?: 'agency' | 'client' | 'creator' | 'partner' | 'admin' | 'brand' | 'platform';
 }) {
   const page = usePage<SharedProps>();
+  const { locale } = useLocale();
+  const nl = (s?: string) => (s ? navLabel(s, locale) : s);
   const { auth, workspace, showcase, nav, flash } = page.props;
   const preview = page.props.preview ?? null;
   const unread = page.props.unreadNotifications ?? 0;
@@ -117,17 +122,17 @@ export default function AppShell({
                   type="button"
                   className="ih-nav__group ih-nav__group--toggle"
                   aria-expanded={!isCollapsed}
-                  title={rail ? group.label : undefined}
+                  title={rail ? nl(group.label) : undefined}
                   onClick={(e) => { e.stopPropagation(); toggleGroup(group.key); }}
                 >
-                  <span>{group.label}</span>
+                  <span>{nl(group.label)}</span>
                   <span style={{ display: 'inline-flex', alignItems: 'center', gap: '.35rem' }}>
                     {isCollapsed && groupCount > 0 && <span className="ih-nav__badge">{groupCount > 99 ? '99+' : groupCount}</span>}
                     <Icon name="chevron-left" size={13} style={{ transform: isCollapsed ? undefined : 'rotate(-90deg)', transition: 'transform .15s', opacity: .7 }} />
                   </span>
                 </button>
               ) : (
-                group.label && <div className="ih-nav__group">{group.label}</div>
+                group.label && <div className="ih-nav__group">{nl(group.label)}</div>
               )}
               {!isCollapsed && group.items.map((item) => {
                 const href = item.abs ? item.route : u(item.route);
@@ -137,7 +142,7 @@ export default function AppShell({
                   <>
                     <span style={{ display: 'flex', alignItems: 'center', gap: '.6rem', minWidth: 0 }}>
                       <Icon name={item.icon} size={18} className="ih-icon" />
-                      <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{item.label}</span>
+                      <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{nl(item.label)}</span>
                     </span>
                     {count > 0 && <span className="ih-nav__badge">{count > 99 ? '99+' : count}</span>}
                   </>
@@ -148,7 +153,7 @@ export default function AppShell({
                 // لا زيارة Inertia — وإلا لا يتنقّل الرابط. تُعرَّف بـ external.
                 return item.external ? (
                   <a key={item.key} href={href} className={linkClass} style={linkStyle}
-                    aria-current={active ? 'page' : undefined} data-label={item.label} title={rail ? item.label : undefined}>
+                    aria-current={active ? 'page' : undefined} data-label={nl(item.label)} title={rail ? nl(item.label) : undefined}>
                     {inner}
                   </a>
                 ) : (
@@ -158,8 +163,8 @@ export default function AppShell({
                     className={linkClass}
                     style={linkStyle}
                     aria-current={active ? 'page' : undefined}
-                    data-label={item.label}
-                    title={rail ? item.label : undefined}
+                    data-label={nl(item.label)}
+                    title={rail ? nl(item.label) : undefined}
                   >
                     {inner}
                   </Link>
@@ -180,13 +185,13 @@ export default function AppShell({
           ) : (
             <Link href="/logout" method="post" as="button" className="nav-link ih-nav__link" data-label="تسجيل الخروج"
               style={{ width: '100%', border: 0, background: 'none', cursor: 'pointer', textAlign: 'start', fontSize: '.84rem' }}>
-              <Icon name="log-out" size={18} /> <span>تسجيل الخروج</span>
+              <Icon name="log-out" size={18} /> <span>{nl('تسجيل الخروج')}</span>
             </Link>
           )}
           <button type="button" onClick={(e) => { e.stopPropagation(); toggleRail(); }} className="ih-side__collapse"
             aria-label={rail ? 'توسيع القائمة' : 'طيّ القائمة'} title={rail ? 'توسيع' : 'طيّ'}>
             <Icon name="chevron-left" size={16} style={{ transform: rail ? 'scaleX(-1)' : undefined }} />
-            <span>طيّ القائمة</span>
+            <span>{nl('طيّ القائمة')}</span>
           </button>
         </div>
       </aside>
@@ -255,20 +260,25 @@ export default function AppShell({
                 <div style={{ padding: '.35rem' }}>
                   <Link href={accountHref} className="ih-menuitem" role="menuitem" onClick={() => setUserMenu(false)}
                     style={{ display: 'flex', alignItems: 'center', gap: '.55rem', padding: '.55rem .6rem', borderRadius: 8, color: 'var(--ih-text)', textDecoration: 'none', fontSize: '.85rem' }}>
-                    <Icon name="user" size={16} /> الملف الشخصي
+                    <Icon name="user" size={16} /> {nl('الملف الشخصي')}
                   </Link>
                   <Link href={`${accountHref}#security`} className="ih-menuitem" role="menuitem" onClick={() => setUserMenu(false)}
                     style={{ display: 'flex', alignItems: 'center', gap: '.55rem', padding: '.55rem .6rem', borderRadius: 8, color: 'var(--ih-text)', textDecoration: 'none', fontSize: '.85rem' }}>
-                    <Icon name="shield-check" size={16} /> تغيير كلمة المرور
+                    <Icon name="shield-check" size={16} /> {nl('تغيير كلمة المرور')}
                   </Link>
                   <Link href={`${accountHref}#security`} className="ih-menuitem" role="menuitem" onClick={() => setUserMenu(false)}
                     style={{ display: 'flex', alignItems: 'center', gap: '.55rem', padding: '.55rem .6rem', borderRadius: 8, color: 'var(--ih-text)', textDecoration: 'none', fontSize: '.85rem' }}>
-                    <Icon name="clipboard-check" size={16} /> الجلسات والإشعارات
+                    <Icon name="clipboard-check" size={16} /> {nl('الجلسات والإشعارات')}
                   </Link>
+                  <div style={{ height: 1, background: 'var(--ih-border)', margin: '.35rem 0' }} />
+                  <div style={{ padding: '.5rem .6rem', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '.5rem' }}>
+                    <span style={{ fontSize: '.78rem', color: 'var(--ih-text-muted)', display: 'inline-flex', alignItems: 'center', gap: '.4rem' }}><Icon name="settings" size={15} /> {nl('اللغة')}</span>
+                    <LanguageSwitcher />
+                  </div>
                   <div style={{ height: 1, background: 'var(--ih-border)', margin: '.35rem 0' }} />
                   <Link href="/logout" method="post" as="button" role="menuitem"
                     style={{ width: '100%', display: 'flex', alignItems: 'center', gap: '.55rem', padding: '.55rem .6rem', borderRadius: 8, color: 'var(--ih-danger-ink, #B42318)', background: 'none', border: 0, cursor: 'pointer', fontSize: '.85rem', textAlign: 'start' }}>
-                    <Icon name="log-out" size={16} /> تسجيل الخروج
+                    <Icon name="log-out" size={16} /> {nl('تسجيل الخروج')}
                   </Link>
                 </div>
               </div>
@@ -298,14 +308,14 @@ export default function AppShell({
                   <Icon name={item.icon} size={21} />
                   {count > 0 && <span className="ih-bottom-nav__dot" />}
                 </span>
-                <span className="ih-bottom-nav__label">{item.label}</span>
+                <span className="ih-bottom-nav__label">{nl(item.label)}</span>
               </Link>
             );
           })}
           <button type="button" onClick={() => setOpen(true)} className="ih-bottom-nav__link" aria-label="عرض كل الأقسام"
             style={{ border: 0, background: 'none', cursor: 'pointer', font: 'inherit' }}>
             <span className="ih-bottom-nav__icon"><Icon name="menu" size={21} /></span>
-            <span className="ih-bottom-nav__label">المزيد</span>
+            <span className="ih-bottom-nav__label">{nl('المزيد')}</span>
           </button>
         </nav>
       )}

@@ -1,4 +1,4 @@
-import { Link } from '@inertiajs/react';
+import { Link, usePage } from '@inertiajs/react';
 import type { CSSProperties, ReactNode } from 'react';
 
 /**
@@ -21,8 +21,13 @@ const INDIGO = '#5B45E0';
 const NAVY = '#14123A';
 const INDIGO_LIGHT = '#9D8CFF';
 
-/** يقرأ اللغة من جذر المستند (تضبطه Blade من locale) — عربي افتراضًا. */
-function currentLang(): Lang {
+/**
+ * اللغة الحالية من حمولة Inertia المشتركة (locale) — حتميّة وتتبع التبديل فورًا.
+ * fallback إلى جذر المستند ثم العربية إن غابت الحمولة (سياق نادر خارج الصفحة).
+ */
+function useLang(): Lang {
+  const locale = (usePage().props as { locale?: string }).locale;
+  if (locale) return locale.toLowerCase().startsWith('en') ? 'en' : 'ar';
   if (typeof document !== 'undefined' && document.documentElement.lang.toLowerCase().startsWith('en')) return 'en';
   return 'ar';
 }
@@ -54,7 +59,8 @@ interface BrandLogoProps {
  * فاتح: نصّ نيليّ + «هب» إنديغو · داكن: نصّ أبيض + «هب» بنفسجي فاتح · تدرّج: أبيض بالكامل.
  */
 export function BrandLogo({ height = 34, surface = 'light', lang, symbolOnly = false, className }: BrandLogoProps) {
-  const l = lang ?? currentLang();
+  const detected = useLang();
+  const l = lang ?? detected;
   const onGradient = surface === 'gradient';
 
   if (symbolOnly) {

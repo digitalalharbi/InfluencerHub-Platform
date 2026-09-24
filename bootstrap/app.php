@@ -31,6 +31,9 @@ return Application::configure(basePath: dirname(__DIR__))
             'inertia' => \App\Http\Middleware\HandleInertiaRequests::class,
         ]);
 
+        // حلّ لغة الواجهة (ar|en) من تفضيل المستخدم/الجلسة قبل التصيير — مصدر واحد.
+        $middleware->web(append: [\App\Http\Middleware\SetLocale::class]);
+
         // حارس معاينة عالميّ (§P3-hardening §4): أيّ طلب غير آمن يحمل منحة معاينة ⇒ 403
         // قبل أي تحوّر — يغطّي مسارات الخروج/التبديل الواقعة خارج مجموعات البوّابات.
         $middleware->web(append: [\App\Http\Middleware\PlatformPreviewGuard::class]);
