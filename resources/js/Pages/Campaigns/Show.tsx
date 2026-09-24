@@ -2,6 +2,7 @@ import { Head, router } from '@inertiajs/react';
 import { useState, type ReactNode } from 'react';
 import AppShell from '@/Layouts/AppShell';
 import { Field, Sec, StatusBadge, SummaryStrip, WorkTabs, WorkspaceHeader, sarShort } from '@/Components/ui';
+import { ProgressRing, Donut, Legend } from '@/Components/Charts';
 import { Icon } from '@/Components/Icon';
 import { PdfPreviewModal, type PreviewDoc } from '@/Components/PdfPreviewModal';
 import { u } from '@/lib/href';
@@ -226,16 +227,21 @@ export default function CampaignShow({ campaign, metrics, command, lifecycle, re
           blocked: { bg: 'var(--ih-danger-soft, #FEF3F2)', fg: 'var(--ih-danger-ink, #B42318)', dot: 'var(--ih-danger-ink, #B42318)' },
           not_started: { bg: 'var(--ih-surface-sunken)', fg: 'var(--ih-text-muted)', dot: 'var(--ih-gray-400)' },
         };
+        // نبرة حلقة التقدّم تتبع الحالة الحقيقية: محظور في السلسلة ⇒ أحمر، مكتمل ⇒ أخضر.
+        const ringTone = lifecycle.stages.some((s) => s.state === 'blocked') ? 'danger'
+          : lifecycle.progress >= 100 ? 'success' : 'primary';
         return (
           <div className="card" style={{ padding: '1rem 1.2rem', marginBottom: '1.1rem' }}>
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '.7rem', flexWrap: 'wrap', gap: '.5rem' }}>
-              <span style={{ fontWeight: 800, fontSize: '.95rem' }}>مركز قيادة الحملة — {lifecycle.total} مراحل</span>
-              <span style={{ display: 'flex', gap: '.5rem', alignItems: 'center', flexWrap: 'wrap', fontSize: '.74rem' }}>
-                <b style={{ color: 'var(--ih-primary-700)' }}>{lifecycle.progress}%</b>
-                <span style={{ color: 'var(--ih-text-muted)' }}>{lifecycle.completed}/{lifecycle.total} · المرحلة: {lifecycle.current_label}</span>
-                <span className="badge" style={{ background: 'var(--ih-surface-sunken)', color: 'var(--ih-text-secondary)' }}>تشغيليًّا: {lifecycle.operational.label}</span>
-                <span className="badge" style={{ background: lifecycle.financial.settled ? 'var(--ih-success-soft)' : 'var(--ih-warning-soft, #FFFAEB)', color: lifecycle.financial.settled ? 'var(--ih-success-700, #067647)' : 'var(--ih-warning-ink, #B54708)' }}>ماليًّا: {lifecycle.financial.label}</span>
-              </span>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '1.3rem', marginBottom: '.9rem', flexWrap: 'wrap' }}>
+              <ProgressRing value={lifecycle.progress} size={92} label="دورة الحملة" tone={ringTone} />
+              <div style={{ flex: 1, minWidth: 220, display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '.5rem' }}>
+                <span style={{ fontWeight: 800, fontSize: '.95rem' }}>مركز قيادة الحملة — {lifecycle.total} مراحل</span>
+                <span style={{ display: 'flex', gap: '.5rem', alignItems: 'center', flexWrap: 'wrap', fontSize: '.74rem' }}>
+                  <span style={{ color: 'var(--ih-text-muted)' }}>{lifecycle.completed}/{lifecycle.total} · المرحلة: {lifecycle.current_label}</span>
+                  <span className="badge" style={{ background: 'var(--ih-surface-sunken)', color: 'var(--ih-text-secondary)' }}>تشغيليًّا: {lifecycle.operational.label}</span>
+                  <span className="badge" style={{ background: lifecycle.financial.settled ? 'var(--ih-success-soft)' : 'var(--ih-warning-soft, #FFFAEB)', color: lifecycle.financial.settled ? 'var(--ih-success-700, #067647)' : 'var(--ih-warning-ink, #B54708)' }}>ماليًّا: {lifecycle.financial.label}</span>
+                </span>
+              </div>
             </div>
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(260px, 1fr))', gap: '.5rem' }}>
               {lifecycle.stages.map((st, i) => {
@@ -333,11 +339,26 @@ export default function CampaignShow({ campaign, metrics, command, lifecycle, re
         <div style={{ display: 'grid', gap: '1.1rem' }}>
           <Sec title="جاهزية التنفيذ" icon="clipboard-check">
             <div className="ih-sec__body">
-              <div style={{ display: 'flex', alignItems: 'center', gap: '.6rem', marginBottom: '.9rem', flexWrap: 'wrap' }}>
-                <div className="ih-bar" style={{ flex: 1, minWidth: 120 }}><span style={{ width: `${readiness.percent}%`, background: readiness.blocked ? 'var(--ih-danger, #D92D20)' : undefined }} /></div>
-                <span style={{ fontWeight: 800, fontVariantNumeric: 'tabular-nums' }}>{readiness.ready} من {readiness.total} جاهز</span>
-                {readiness.blocked > 0 && <span className="badge" style={{ background: 'var(--ih-danger-soft, #FEF3F2)', color: 'var(--ih-danger-ink, #B42318)', fontWeight: 700 }}>{readiness.blocked} محظور</span>}
-              </div>
+              {/* نظرة الجاهزية — دونات تركيب الحالات (بيانات حقيقية من المعايير) */}
+              {(() => {
+                // «لا ينطبق» مستثنى من الإجمالي (total) — إدراجه يضخّم الحلقة فلا تطابق «جاهز/الإجمالي».
+                // فتُبنى الحلقة من الحالات المنطبقة فقط: جاهز + يحتاج انتباه + محظور = الإجمالي.
+                const attention = Math.max(0, readiness.total - readiness.ready - readiness.blocked);
+                const readySegs = [
+                  { label: 'جاهز', value: readiness.ready, color: 'var(--ih-success-700, #067647)' },
+                  { label: 'يحتاج انتباه', value: attention, color: 'var(--ih-warning-ink, #B54708)' },
+                  { label: 'محظور', value: readiness.blocked, color: 'var(--ih-danger-ink, #B42318)' },
+                ];
+                return (
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '1.3rem', flexWrap: 'wrap', marginBottom: '1rem' }}>
+                    <Donut segments={readySegs} size={116} centerValue={`${readiness.ready}/${readiness.total}`} centerLabel="جاهز" ariaLabel={readySegs.map((s) => `${s.label}: ${s.value}`).join('، ')} />
+                    <div style={{ flex: 1, minWidth: 170 }}>
+                      <div style={{ fontWeight: 800, fontSize: '.9rem', marginBottom: '.5rem' }}>جاهزية التنفيذ — {readiness.percent}٪</div>
+                      <Legend segments={readySegs} />
+                    </div>
+                  </div>
+                );
+              })()}
               <div style={{ display: 'grid', gap: '.5rem' }}>
                 {readiness.items.map((it, i) => {
                   const S = READY_STATE[it.state];
