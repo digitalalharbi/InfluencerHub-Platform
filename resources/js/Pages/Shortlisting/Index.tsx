@@ -5,6 +5,7 @@ import { ListHead, StatusBadge, Kpi } from '@/Components/ui';
 import { Icon } from '@/Components/Icon';
 import { Pagination, type Paginated } from '@/Components/Pagination';
 import { u } from '@/lib/href';
+import { useT } from '@/lib/i18n';
 
 interface Row {
   id: number; name: string; number: string; client: string | null; brand: string | null; budgetMinor: number;
@@ -15,30 +16,31 @@ interface Props { campaigns: Paginated<Row>; filters: { q: string | null }; summ
 const money = (m: number) => (m / 100).toLocaleString('en-US') + ' ر.س';
 
 export default function ShortlistingIndex({ campaigns, filters, summary }: Props) {
+  const t = useT();
   const [q, setQ] = useState(filters.q ?? '');
   const search = () => router.get(u('/shortlisting'), { q: q || undefined }, { preserveState: true, replace: true });
 
   return (
-    <AppShell heading="الترشيحات">
-      <Head title="الترشيحات" />
-      <ListHead eyebrow="الحملات" title="الترشيحات" sub="اختر حملة لبدء اختيار المؤثرين أو متابعة قرار العميل." />
+    <AppShell heading={t('shortlisting.title')}>
+      <Head title={t('shortlisting.title')} />
+      <ListHead eyebrow={t('shortlisting.eyebrow')} title={t('shortlisting.title')} sub={t('shortlisting.sub')} />
 
       <div className="ih-kpis">
-        <Kpi label="الحملات" icon="megaphone" value={summary.total.toLocaleString('en-US')} sub="قابلة للترشيح" />
-        <Kpi label="بانتظار العميل" icon="clipboard-check" tone={summary.awaitingClient ? 'warning' : 'success'}
-          value={summary.awaitingClient.toLocaleString('en-US')} sub="قوائم مُرسَلة" />
+        <Kpi label={t('shortlisting.kpi_campaigns')} icon="megaphone" value={summary.total.toLocaleString('en-US')} sub={t('shortlisting.kpi_campaigns_sub')} />
+        <Kpi label={t('shortlisting.kpi_awaiting')} icon="clipboard-check" tone={summary.awaitingClient ? 'warning' : 'success'}
+          value={summary.awaitingClient.toLocaleString('en-US')} sub={t('shortlisting.kpi_awaiting_sub')} />
       </div>
 
       <div className="ih-filterbar" style={{ marginBottom: '1rem' }}>
         <div className="ih-search">
           <Icon name="search" size={15} />
-          <input value={q} onChange={(e) => setQ(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && search()} placeholder="ابحث بالحملة أو العميل…" />
+          <input value={q} onChange={(e) => setQ(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && search()} placeholder={t('shortlisting.search_placeholder')} />
         </div>
-        <button onClick={search} className="btn btn-sm">بحث</button>
+        <button onClick={search} className="btn btn-sm">{t('shortlisting.search')}</button>
       </div>
 
       {campaigns.data.length === 0 ? (
-        <div className="card" style={{ padding: '2rem', textAlign: 'center', color: 'var(--ih-text-muted)' }}>لا حملات مطابقة.</div>
+        <div className="card" style={{ padding: '2rem', textAlign: 'center', color: 'var(--ih-text-muted)' }}>{t('shortlisting.no_results')}</div>
       ) : (
         <>
           {/* بطاقات اختيار — حالة الترشيح لكل حملة والإجراء المباشر */}
@@ -57,13 +59,13 @@ export default function ShortlistingIndex({ campaigns, filters, summary }: Props
                 </div>
                 <div className="ih-wcard__row">
                   <span style={{ fontSize: '.78rem', color: 'var(--ih-text-muted)' }}>
-                    الميزانية <b style={{ direction: 'ltr', color: 'var(--ih-text)' }}>{c.budgetMinor ? money(c.budgetMinor) : '—'}</b>
+                    {t('shortlisting.budget')} <b style={{ direction: 'ltr', color: 'var(--ih-text)' }}>{c.budgetMinor ? money(c.budgetMinor) : '—'}</b>
                   </span>
                   <Link href={u(`/campaigns/${c.id}/shortlist`)} className={`btn btn-xs ${c.hasShortlist ? 'btn-outline' : 'btn-primary'}`}>
-                    {c.hasShortlist ? 'فتح الترشيح' : 'بدء ترشيح'}
+                    {c.hasShortlist ? t('shortlisting.open_shortlist') : t('shortlisting.start_shortlist')}
                   </Link>
                 </div>
-                {c.pending > 0 && <div className="ih-wcard__risk" style={{ background: 'var(--ih-warning-soft)', color: 'var(--ih-warning-ink)' }}>{c.pending} مؤثر بانتظار قرار العميل</div>}
+                {c.pending > 0 && <div className="ih-wcard__risk" style={{ background: 'var(--ih-warning-soft)', color: 'var(--ih-warning-ink)' }}>{t('shortlisting.pending_note', { n: c.pending })}</div>}
               </div>
             ))}
           </div>

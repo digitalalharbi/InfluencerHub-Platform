@@ -14,7 +14,8 @@ use Inertia\Response;
  */
 class ShortlistingController extends Controller
 {
-    private const V_LABEL = ['draft' => 'مسودة', 'submitted' => 'بانتظار العميل', 'approved' => 'مُعتمَد', 'partially_approved' => 'اعتماد جزئي', 'changes_requested' => 'مطلوب بديل', 'rejected' => 'مرفوض'];
+    // تسمية إصدار الترشيح تُحلّ باللغة الحالية عبر trans('shortlisting.v_*').
+    private const V_KEYS = ['draft', 'submitted', 'approved', 'partially_approved', 'changes_requested', 'rejected'];
     private const V_TONE = ['draft' => 'draft', 'submitted' => 'submitted', 'approved' => 'approved', 'partially_approved' => 'under_review', 'changes_requested' => 'under_review', 'rejected' => 'rejected'];
 
     public function index(Request $r): Response
@@ -53,7 +54,7 @@ class ShortlistingController extends Controller
                 'hasShortlist' => (bool) $sl,
                 'version' => $cur ? (int) $cur->version : null,
                 'slStatus' => $status,
-                'slLabel' => $status ? (self::V_LABEL[$status] ?? $status) : 'لم يبدأ',
+                'slLabel' => $status ? (in_array($status, self::V_KEYS, true) ? trans("shortlisting.v_{$status}") : $status) : trans('shortlisting.v_not_started'),
                 'slTone' => $status ? (self::V_TONE[$status] ?? 'draft') : 'draft',
                 'pending' => $cur ? (int) ($pendingByVersion[$cur->id] ?? 0) : 0,
             ];
