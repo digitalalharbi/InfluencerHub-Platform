@@ -4,6 +4,7 @@ import { adminNav } from '@/lib/nav';
 import { DonutChart, Kpi, Sec, StatusBadge, numFmt } from '@/Components/ui';
 import { Icon } from '@/Components/Icon';
 import { u } from '@/lib/href';
+import { useT } from '@/lib/i18n';
 
 interface Tenant { id: number; name: string; slug: string; mode: string; status: string; statusLabel: string; statusTone: string; orgs: number }
 interface Audit { action: string; actor: string | null; at: string | null }
@@ -23,15 +24,16 @@ const fnum = (n: number): string => {
 };
 
 export default function AdminDashboard({ stats, pool, tenantsByStatus, recentTenants, recentAudit }: Props) {
+  const t = useT();
   return (
-    <AppShell heading="لوحة التحكم" nav={adminNav} portal="admin" wsName="إدارة المنصّة" wsPlan="مدير النظام" brand="InfluencerHub">
-      <Head title="إدارة المنصّة" />
+    <AppShell heading={t('dashboard.title')} nav={adminNav} portal="admin" wsName={t('admin_dashboard.ws_name')} wsPlan={t('admin_dashboard.ws_plan')} brand="InfluencerHub">
+      <Head title={t('admin_dashboard.title')} />
 
       <div className="ih-listhead">
         <div>
-          <div className="ih-listhead__eyebrow">مدير النظام · SaaS</div>
-          <h1 className="ih-listhead__title">نظرة عامة على المنصّة</h1>
-          <div className="ih-listhead__sub">إشراف عبر المستأجرين — عرض فقط.</div>
+          <div className="ih-listhead__eyebrow">{t('admin_dashboard.eyebrow')}</div>
+          <h1 className="ih-listhead__title">{t('admin_dashboard.overview')}</h1>
+          <div className="ih-listhead__sub">{t('admin_dashboard.sub')}</div>
         </div>
       </div>
 
@@ -40,37 +42,37 @@ export default function AdminDashboard({ stats, pool, tenantsByStatus, recentTen
         <div className="ih-pooolbanner__head">
           <span className="ih-pooolbanner__icon"><Icon name="sparkles" size={20} /></span>
           <div style={{ flex: 1, minWidth: 0 }}>
-            <div className="ih-pooolbanner__title">قاعدة المؤثرين</div>
-            <div className="ih-pooolbanner__sub">محرّك الترشيح الذكيّ عبر {numFmt(pool.total)} مؤثرًا — مرئيّ لمدير النظام وحده.</div>
+            <div className="ih-pooolbanner__title">{t('admin_dashboard.pool_title')}</div>
+            <div className="ih-pooolbanner__sub">{t('admin_dashboard.pool_sub', { total: numFmt(pool.total) })}</div>
           </div>
-          <a href={u('/shortlisting')} className="btn btn-sm btn-primary"><Icon name="clipboard-check" size={15} /> ترشيح ذكيّ</a>
+          <a href={u('/shortlisting')} className="btn btn-sm btn-primary"><Icon name="clipboard-check" size={15} /> {t('admin_dashboard.pool_cta')}</a>
         </div>
         <div className="ih-pooolbanner__stats">
-          <div><span className="ih-pb__v">{numFmt(pool.total)}</span><span className="ih-pb__l">إجمالي المؤثرين</span></div>
-          <div><span className="ih-pb__v">{fnum(pool.reach)}</span><span className="ih-pb__l">الوصول الإجمالي</span></div>
-          <div><span className="ih-pb__v">{numFmt(pool.priced)}</span><span className="ih-pb__l">بأسعار حجز</span></div>
-          <div><span className="ih-pb__v">{numFmt(pool.ugc)}</span><span className="ih-pb__l">صنّاع UGC</span></div>
-          <div><span className="ih-pb__v">{numFmt(pool.recommendations)}</span><span className="ih-pb__l">توصيات معلّقة</span></div>
+          <div><span className="ih-pb__v">{numFmt(pool.total)}</span><span className="ih-pb__l">{t('admin_dashboard.pool_total')}</span></div>
+          <div><span className="ih-pb__v">{fnum(pool.reach)}</span><span className="ih-pb__l">{t('admin_dashboard.pool_reach')}</span></div>
+          <div><span className="ih-pb__v">{numFmt(pool.priced)}</span><span className="ih-pb__l">{t('admin_dashboard.pool_priced')}</span></div>
+          <div><span className="ih-pb__v">{numFmt(pool.ugc)}</span><span className="ih-pb__l">{t('admin_dashboard.pool_ugc')}</span></div>
+          <div><span className="ih-pb__v">{numFmt(pool.recommendations)}</span><span className="ih-pb__l">{t('admin_dashboard.pool_recommendations')}</span></div>
         </div>
       </div>
 
-      <div className="ih-sec__title" style={{ margin: '0 0 .6rem', fontSize: '.8rem', color: 'var(--ih-text-muted)', fontWeight: 700 }}>المنصّة (SaaS)</div>
+      <div className="ih-sec__title" style={{ margin: '0 0 .6rem', fontSize: '.8rem', color: 'var(--ih-text-muted)', fontWeight: 700 }}>{t('admin_dashboard.section_saas')}</div>
       <div className="ih-kpis">
-        <Kpi label="المستأجرون" icon="building-2" value={stats.tenants.toLocaleString('en-US')} sub="إجمالي" href={u("/tenants")} />
-        <Kpi label="المؤسسات" icon="building-2" value={stats.orgs.toLocaleString('en-US')} sub="وكالات/عملاء" />
-        <Kpi label="المستخدمون" icon="users" value={stats.users.toLocaleString('en-US')} sub="إجمالي" />
-        <Kpi label="اشتراكات نشطة" icon="wallet" tone="success" value={stats.activeSubs.toLocaleString('en-US')} sub="trialing/active" href={u("/subscriptions")} />
+        <Kpi label={t('admin_dashboard.kpi_tenants')} icon="building-2" value={stats.tenants.toLocaleString('en-US')} sub={t('admin_dashboard.kpi_tenants_sub')} href={u("/tenants")} />
+        <Kpi label={t('admin_dashboard.kpi_orgs')} icon="building-2" value={stats.orgs.toLocaleString('en-US')} sub={t('admin_dashboard.kpi_orgs_sub')} />
+        <Kpi label={t('admin_dashboard.kpi_users')} icon="users" value={stats.users.toLocaleString('en-US')} sub={t('admin_dashboard.kpi_users_sub')} />
+        <Kpi label={t('admin_dashboard.kpi_subs')} icon="wallet" tone="success" value={stats.activeSubs.toLocaleString('en-US')} sub="trialing/active" href={u("/subscriptions")} />
       </div>
 
       <div className="card" style={{ padding: '.8rem 1rem', marginBottom: '1.2rem', borderInlineStart: '3px solid var(--ih-info)', background: 'var(--ih-info-soft)', color: 'var(--ih-info-ink)', fontSize: '.82rem' }}>
-        <Icon name="shield-check" size={14} /> لوحة إشراف للقراءة فقط — لا انتحال هوية ولا وصول لبيانات المستأجرين التشغيلية ولا إجراءات هدّامة من هنا.
+        <Icon name="shield-check" size={14} /> {t('admin_dashboard.readonly_note')}
       </div>
 
       <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1.4fr) minmax(0, 1fr)', gap: '1.2rem', alignItems: 'start' }} className="ih-settings-grid">
-        <Sec title="أحدث المستأجرين" icon="building-2" link={{ href: u('/tenants'), label: 'الكل' }}>
+        <Sec title={t('admin_dashboard.recent_tenants')} icon="building-2" link={{ href: u('/tenants'), label: t('admin_dashboard.all') }}>
           <div className="ih-dt-wrap"><div className="ih-dt-scroll">
             <table className="ih-dt">
-              <thead><tr><th>المستأجر</th><th>النمط</th><th>المؤسسات</th><th>الحالة</th></tr></thead>
+              <thead><tr><th>{t('admin_dashboard.th_tenant')}</th><th>{t('admin_dashboard.th_mode')}</th><th>{t('admin_dashboard.th_orgs')}</th><th>{t('admin_dashboard.th_status')}</th></tr></thead>
               <tbody>
                 {recentTenants.map((t) => (
                   <tr key={t.id}>
@@ -89,10 +91,10 @@ export default function AdminDashboard({ stats, pool, tenantsByStatus, recentTen
         </Sec>
 
         <div style={{ display: 'grid', gap: '1.2rem' }}>
-          <Sec title="المستأجرون حسب الحالة" icon="activity">
+          <Sec title={t('admin_dashboard.tenants_by_status')} icon="activity">
             <div className="ih-sec__body">
               <DonutChart
-                centerValue={String(stats.tenants)} centerLabel="مستأجر"
+                centerValue={String(stats.tenants)} centerLabel={t('admin_dashboard.donut_center_label')}
                 slices={tenantsByStatus.map((x, i) => ({
                   label: x.label, value: x.count,
                   color: ['var(--ih-success)', 'var(--ih-primary)', 'var(--ih-warning)', 'var(--ih-danger)', 'var(--ih-gray-400)'][i] ?? 'var(--ih-gray-300)',
@@ -100,9 +102,9 @@ export default function AdminDashboard({ stats, pool, tenantsByStatus, recentTen
             </div>
           </Sec>
 
-          <Sec title="أحدث التدقيق" icon="file-text" link={{ href: u('/audit'), label: 'الكل' }}>
+          <Sec title={t('admin_dashboard.recent_audit')} icon="file-text" link={{ href: u('/audit'), label: t('admin_dashboard.all') }}>
             {recentAudit.length === 0 ? (
-              <div style={{ fontSize: '.84rem', color: 'var(--ih-text-muted)' }}>لا سجلات.</div>
+              <div style={{ fontSize: '.84rem', color: 'var(--ih-text-muted)' }}>{t('admin_dashboard.no_audit')}</div>
             ) : (
               <div style={{ display: 'grid', gap: '.5rem' }}>
                 {recentAudit.map((a, i) => (
