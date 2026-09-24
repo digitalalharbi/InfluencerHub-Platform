@@ -2,6 +2,7 @@ import { Head, router, usePage } from '@inertiajs/react';
 import { useEffect, useState, type ReactNode } from 'react';
 import AppShell from '@/Layouts/AppShell';
 import { Bar, Sec, StatusBadge, SummaryStrip, WorkTabs, WorkspaceHeader } from '@/Components/ui';
+import { Bars } from '@/Components/Charts';
 import { Icon } from '@/Components/Icon';
 import { u } from '@/lib/href';
 import type { SharedProps } from '@/types';
@@ -310,7 +311,15 @@ export default function CreatorShow({ creator, intel, access, platforms, collabo
             <div style={{ marginTop: '.6rem', fontWeight: 700 }}>لا منصّات مسجّلة</div>
           </div>
         ) : (
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))', gap: '.8rem' }}>
+          <>
+            {/* مقارنة الوصول عبر المنصّات — إجابة فوريّة: أين الجمهور الأكبر (متابعون فعليّون) */}
+            {platforms.length > 1 && platforms.some((p) => p.followers > 0) && (
+              <div className="card" style={{ padding: '1rem 1.2rem', marginBottom: '.9rem' }}>
+                <div style={{ fontWeight: 800, fontSize: '.9rem', marginBottom: '.7rem' }}>مقارنة الوصول عبر المنصّات</div>
+                <Bars bars={[...platforms].sort((a, b) => b.followers - a.followers).map((p) => ({ label: p.platform, value: p.followers }))} />
+              </div>
+            )}
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))', gap: '.8rem' }}>
             {platforms.map((p, i) => {
               const maxF = Math.max(...platforms.map((x) => x.followers), 1);
               return (
@@ -331,7 +340,8 @@ export default function CreatorShow({ creator, intel, access, platforms, collabo
                 </div>
               );
             })}
-          </div>
+            </div>
+          </>
         )
       )}
 
