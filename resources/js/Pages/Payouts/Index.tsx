@@ -2,6 +2,7 @@ import { Head, router } from '@inertiajs/react';
 import { useEffect, useRef, useState } from 'react';
 import AppShell from '@/Layouts/AppShell';
 import { Field, Kpi, ListHead, StatusBadge } from '@/Components/ui';
+import { Donut } from '@/Components/Charts';
 import { Icon } from '@/Components/Icon';
 import { Pagination, type Paginated } from '@/Components/Pagination';
 import { ExportButtons } from '@/Components/ExportButtons';
@@ -93,6 +94,34 @@ export default function PayoutsIndex({ payouts, filters, summary, canCreate, cre
         <Kpi label="مدفوع" icon="shield-check" tone="success" value={<>{kfmt(summary.paidMinor)} <small>ر.س</small></>} sub={`${summary.paid} دفعة`} />
         <Kpi label="بانتظار المزوّد" icon="clipboard-check" value={summary.waiting.toLocaleString('en-US')} sub={`${summary.failed} فاشلة`} />
       </div>
+
+      {/* نظرة الصرف — توزيع المبالغ على مراحل الالتزام (مبالغ فعلية، شرائح غير متداخلة).
+          openMinor يشمل readyMinor في الخادم، فتُطرح لتفادي العدّ المزدوج. */}
+      {(() => {
+        const inProcessMinor = Math.max(0, summary.openMinor - summary.readyMinor); // pending + waiting_for_provider
+        const totalMinor = inProcessMinor + summary.readyMinor + summary.paidMinor;
+        if (totalMinor <= 0) return null;
+        const segs = [
+          { label: 'قيد الإجراء', value: inProcessMinor, color: 'var(--ih-warning-ink, #B54708)' },
+          { label: 'جاهز للصرف', value: summary.readyMinor, color: 'var(--ih-primary, #5B45E0)' },
+          { label: 'مدفوع', value: summary.paidMinor, color: 'var(--ih-success-700, #067647)' },
+        ];
+        return (
+          <div className="card" style={{ padding: '1.1rem 1.3rem', marginBottom: '1.2rem', display: 'flex', alignItems: 'center', gap: '1.6rem', flexWrap: 'wrap' }}>
+            <Donut segments={segs} size={120} centerValue={`${kfmt(totalMinor)}`} centerLabel="إجمالي ر.س" ariaLabel={segs.map((s) => `${s.label}: ${kfmt(s.value)} ر.س`).join('، ')} />
+            <div style={{ flex: 1, minWidth: 200, display: 'grid', gap: '.55rem' }}>
+              <div style={{ fontWeight: 800, fontSize: '.95rem' }}>المستحقات حسب المرحلة</div>
+              {segs.map((s) => (
+                <div key={s.label} style={{ display: 'flex', alignItems: 'center', gap: '.5rem', fontSize: '.85rem' }}>
+                  <span style={{ width: 10, height: 10, borderRadius: 3, background: s.color, flexShrink: 0 }} />
+                  <span style={{ color: 'var(--ih-text-muted)', flex: 1 }}>{s.label}</span>
+                  <span style={{ fontWeight: 700, direction: 'ltr' }}>{kfmt(s.value)} ر.س</span>
+                </div>
+              ))}
+            </div>
+          </div>
+        );
+      })()}
 
       <div className="ih-chips" style={{ marginBottom: '.9rem', overflowX: 'auto', paddingBottom: '.2rem', flexWrap: 'nowrap' }}>
         {segments.map(([key, label, count]) => (
