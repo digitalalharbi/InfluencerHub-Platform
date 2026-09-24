@@ -28,20 +28,10 @@ class PlatformController extends Controller
         'manual' => 'يدوي', 'fake' => 'بيانات عرض (تجريبي)', 'moyasar' => 'ميسر', 'stripe' => 'Stripe',
     ];
 
-    /** أفعال سجل التدقيق بالعربية (المورد.الفعل). */
-    private const AUDIT_RESOURCE = [
-        'campaign' => 'حملة', 'client' => 'عميل', 'brand' => 'علامة', 'creator' => 'مبدع',
-        'content' => 'محتوى', 'contract' => 'عقد', 'payout' => 'مستحق', 'collaboration' => 'تعاون',
-        'request' => 'طلب', 'publisher' => 'ناشر', 'subscription' => 'اشتراك', 'tenant' => 'مستأجر',
-        'user' => 'مستخدم', 'application' => 'طلب انضمام', 'shortlist' => 'ترشيح', 'document' => 'مستند',
-    ];
+    // موارد/أفعال سجل التدقيق — التسمية تُحلّ باللغة الحالية عبر trans('admin_dashboard.ar_*'/'av_*').
+    private const AUDIT_RESOURCE_KEYS = ['campaign', 'client', 'brand', 'creator', 'content', 'contract', 'payout', 'collaboration', 'request', 'publisher', 'subscription', 'tenant', 'user', 'application', 'shortlist', 'document'];
 
-    private const AUDIT_VERB = [
-        'created' => 'أُنشئ', 'updated' => 'حُدّث', 'deleted' => 'حُذف', 'restored' => 'استُعيد',
-        'approved' => 'اعتُمد', 'rejected' => 'رُفض', 'submitted' => 'أُرسل', 'active' => 'فُعّل',
-        'paused' => 'أُوقف مؤقتًا', 'completed' => 'اكتمل', 'cancelled' => 'أُلغي', 'signed' => 'وُقّع',
-        'paid' => 'صُرف', 'converted' => 'حُوّل', 'suspended' => 'عُلّق', 'bypass' => 'تجاوز إداري',
-    ];
+    private const AUDIT_VERB_KEYS = ['created', 'updated', 'deleted', 'restored', 'approved', 'rejected', 'submitted', 'active', 'paused', 'completed', 'cancelled', 'signed', 'paid', 'converted', 'suspended', 'bypass'];
 
     /** اسم عربي لنوع الكائن — لا أسماء أصناف في الواجهة. */
     private function subjectLabel(?string $class): string
@@ -63,8 +53,8 @@ class PlatformController extends Controller
             return '—';
         }
         [$res, $verb] = array_pad(explode('.', $action, 2), 2, null);
-        $r = self::AUDIT_RESOURCE[$res] ?? $res;
-        $v = $verb ? (self::AUDIT_VERB[$verb] ?? $verb) : null;
+        $r = in_array($res, self::AUDIT_RESOURCE_KEYS, true) ? trans("admin_dashboard.ar_{$res}") : $res;
+        $v = $verb ? (in_array($verb, self::AUDIT_VERB_KEYS, true) ? trans("admin_dashboard.av_{$verb}") : $verb) : null;
 
         return $v ? "$r · $v" : $r;
     }
