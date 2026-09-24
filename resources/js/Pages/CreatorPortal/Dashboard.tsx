@@ -2,6 +2,7 @@ import { Head, Link } from '@inertiajs/react';
 import AppShell from '@/Layouts/AppShell';
 import { creatorNav } from '@/lib/nav';
 import { Kpi, Sec, StatusBadge } from '@/Components/ui';
+import { ProgressRing } from '@/Components/Charts';
 import { Icon } from '@/Components/Icon';
 import { u } from '@/lib/href';
 
@@ -63,6 +64,30 @@ export default function CreatorDashboard({ creator, pending, earnings, recent }:
         <Kpi label="المتابعون" icon="users" value={fmt(creator.followers)} sub="عبر منصّاتك" />
         <Kpi label="التوثيق" icon="shield-check" tone={creator.verified ? 'success' : 'warning'} value={creator.verified ? 'موثّق' : 'غير موثّق'} sub="موثوق" />
       </div>
+
+      {/* نظرة الأرباح — كم سُدِّد من إجمالي المستحق (بيانات فعلية) */}
+      {(earnings.paidMinor + earnings.openMinor) > 0 && (() => {
+        const total = earnings.paidMinor + earnings.openMinor;
+        const pct = Math.round((earnings.paidMinor / total) * 100);
+        return (
+          <div className="card" style={{ padding: '1.1rem 1.3rem', marginBottom: '1.2rem', display: 'flex', alignItems: 'center', gap: '1.4rem', flexWrap: 'wrap' }}>
+            <ProgressRing value={pct} size={96} label="مسدَّد" tone={pct >= 100 ? 'success' : 'primary'} />
+            <div style={{ flex: 1, minWidth: 180, display: 'grid', gap: '.5rem', fontSize: '.85rem' }}>
+              <div style={{ fontWeight: 800, fontSize: '.95rem' }}>أرباحك — {pct}٪ مسدَّد من {money(total)}</div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '.5rem' }}>
+                <span style={{ width: 10, height: 10, borderRadius: 3, background: 'var(--ih-success-700, #067647)', flexShrink: 0 }} />
+                <span style={{ color: 'var(--ih-text-muted)', flex: 1 }}>مدفوع</span>
+                <span style={{ fontWeight: 700, direction: 'ltr' }}>{money(earnings.paidMinor)}</span>
+              </div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '.5rem' }}>
+                <span style={{ width: 10, height: 10, borderRadius: 3, background: 'var(--ih-warning-ink, #B54708)', flexShrink: 0 }} />
+                <span style={{ color: 'var(--ih-text-muted)', flex: 1 }}>قيد الصرف</span>
+                <span style={{ fontWeight: 700, direction: 'ltr' }}>{money(earnings.openMinor)}</span>
+              </div>
+            </div>
+          </div>
+        );
+      })()}
 
       <Sec title="أحدث التعاونات" icon="git-merge" link={{ href: u('/collaborations'), label: 'عرض الكل' }}>
         {recent.length === 0 ? (

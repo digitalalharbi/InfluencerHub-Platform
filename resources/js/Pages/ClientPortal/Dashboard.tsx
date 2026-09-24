@@ -1,7 +1,8 @@
 import { Head, Link } from '@inertiajs/react';
 import AppShell from '@/Layouts/AppShell';
 import { clientNav } from '@/lib/nav';
-import { Kpi, Sec, StatusBadge, Bar } from '@/Components/ui';
+import { Kpi, Sec, StatusBadge } from '@/Components/ui';
+import { ProgressRing } from '@/Components/Charts';
 import { Icon } from '@/Components/Icon';
 import { u } from '@/lib/href';
 
@@ -87,13 +88,11 @@ export default function ClientDashboard({ client, pending, stats, recent }: Prop
         </Sec>
 
         <Sec title="اكتمال ملفك" icon="gauge">
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: '.4rem' }}>
-            <span style={{ fontSize: '.84rem', fontWeight: 600 }}>البيانات الأساسية</span>
-            <span style={{ fontSize: '.82rem', color: 'var(--ih-text-muted)', direction: 'ltr', fontWeight: 700 }}>{client.completion}٪</span>
-          </div>
-          <Bar pct={client.completion} />
-          <div style={{ marginTop: '.7rem', fontSize: '.8rem', color: 'var(--ih-text-muted)' }}>
-            {client.completion >= 100 ? 'ملفك مكتمل — شكرًا لك.' : 'أكمل بيانات ملفك ليسهل على فريقنا خدمتك بدقّة.'}
+          <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', flexWrap: 'wrap' }}>
+            <ProgressRing value={client.completion} size={96} label="البيانات الأساسية" tone={client.completion >= 100 ? 'success' : 'primary'} />
+            <div style={{ flex: 1, minWidth: 150, fontSize: '.8rem', color: 'var(--ih-text-muted)' }}>
+              {client.completion >= 100 ? 'ملفك مكتمل — شكرًا لك.' : 'أكمل بيانات ملفك ليسهل على فريقنا خدمتك بدقّة.'}
+            </div>
           </div>
           <div style={{ marginTop: '.9rem', display: 'grid', gap: '.5rem' }}>
             {[['العلامات', client.brands], ['جهات الاتصال', client.contacts], ['المستندات', client.documents], ['أعضاء الفريق', client.team]].map(([label, val]) => (
