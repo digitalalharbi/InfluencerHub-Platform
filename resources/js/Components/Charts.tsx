@@ -86,9 +86,8 @@ export function ProgressRing({
     <div style={{ display: 'inline-grid', placeItems: 'center', position: 'relative', width: size, height: size }}>
       <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`} role="img" aria-label={`${label ?? 'التقدّم'}: ${Math.round(pct)}٪`} style={{ transform: 'rotate(-90deg)' }}>
         <circle cx={cx} cy={cx} r={r} fill="none" stroke="var(--ih-border, #E8E6F7)" strokeWidth={thickness} />
-        <circle cx={cx} cy={cx} r={r} fill="none" stroke={color} strokeWidth={thickness}
-          strokeDasharray={`${dash} ${circ - dash}`} strokeLinecap="round"
-          style={{ transition: 'stroke-dasharray .5s var(--ih-ease, ease)' }} />
+        <circle className="ih-ring-arc" cx={cx} cy={cx} r={r} fill="none" stroke={color} strokeWidth={thickness}
+          strokeDasharray={`${dash} ${circ - dash}`} strokeLinecap="round" />
       </svg>
       <div style={{ position: 'absolute', textAlign: 'center', lineHeight: 1.1 }}>
         <div style={{ fontWeight: 800, fontSize: size * 0.22, fontVariantNumeric: 'tabular-nums' }}>{Math.round(pct)}<span style={{ fontSize: size * 0.12 }}>٪</span></div>
