@@ -11,7 +11,7 @@
 <body>
 <div class="ih-shell" x-data="{ nav:false }" :class="{ 'nav-open': nav }" @keydown.escape.window="nav=false"><div class="ih-scrim" @click="nav=false"></div>
     <aside class="sidebar" style="display:flex; flex-direction:column; padding:1.2rem 1rem;" @click="nav=false">
-        <div style="display:flex; align-items:center; gap:.5rem; font-weight:800; font-size:1.05rem; color:var(--brand); padding:.4rem .5rem 1rem;"><x-ih-logo :size="22" /> بوابة المبدع</div>
+        <a href="/creator/dashboard" style="display:flex; align-items:center; gap:.5rem; font-weight:800; font-size:1.05rem; color:var(--brand); text-decoration:none; padding:.4rem .5rem 1rem;" aria-label="InfluencerHub — الرئيسية"><x-ih-logo :size="22" /> <span>بوابة المبدع</span></a>
         <div style="padding:.4rem .6rem 1rem; border-bottom:1px solid var(--border); margin-bottom:.6rem;">
             <div style="font-weight:700;">{{ $creator->display_name }}</div>
             <div style="color:var(--text-muted); font-size:.75rem;">{{ $creator->creator_number }}</div>
@@ -28,7 +28,7 @@
         <form method="POST" action="/creator/logout">@csrf<button class="nav-link" style="width:100%; border:0; background:none; cursor:pointer; text-align:right;">تسجيل الخروج</button></form>
     </aside>
     <main style="flex:1; display:flex; flex-direction:column; min-width:0;">
-        <div class="ih-topbar-mobile"><button class="ih-icon-btn" @click="nav=true" aria-label="فتح القائمة"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="3" x2="21" y1="6" y2="6"/><line x1="3" x2="21" y1="12" y2="12"/><line x1="3" x2="21" y1="18" y2="18"/></svg></button><x-ih-logo :size="22" :withWordmark="true" color="var(--ih-primary)" /><span style="margin-inline-start:auto; font-weight:700; font-size:.9rem;">@yield('heading','')</span></div>
+        <div class="ih-topbar-mobile"><button class="ih-icon-btn" @click="nav=true" aria-label="فتح القائمة"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="3" x2="21" y1="6" y2="6"/><line x1="3" x2="21" y1="12" y2="12"/><line x1="3" x2="21" y1="18" y2="18"/></svg></button><a href="/creator/dashboard" style="text-decoration:none; display:inline-flex;" aria-label="InfluencerHub — الرئيسية"><x-ih-logo :size="22" :withWordmark="true" color="var(--ih-primary)" /></a><span style="margin-inline-start:auto; font-weight:700; font-size:.9rem;">@yield('heading','')</span></div>
         <header style="height:62px; background:var(--surface); border-bottom:1px solid var(--border); display:flex; align-items:center; padding:0 1.5rem;">
             <div style="font-weight:700;">@yield('heading','')</div>
             <span class="badge badge-{{ $creator->status==='active'?'active':'suspended' }}" style="margin-inline-start:auto;">{{ $creator->status }}</span>
