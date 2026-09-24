@@ -2,7 +2,8 @@ import { Head, router } from '@inertiajs/react';
 import { useState } from 'react';
 import AppShell from '@/Layouts/AppShell';
 import { clientNav } from '@/lib/nav';
-import { WorkspaceHeader, StatusBadge, SummaryStrip } from '@/Components/ui';
+import { WorkspaceHeader, StatusBadge } from '@/Components/ui';
+import { Donut, Legend } from '@/Components/Charts';
 import { Icon } from '@/Components/Icon';
 import { u } from '@/lib/href';
 
@@ -73,13 +74,26 @@ export default function ClientShortlist({ clientName, campaign, version, items }
         </div>
       ) : (
         <>
-          {/* ملخّص القرارات أعلى الصفحة */}
-          <SummaryStrip items={[
-            { label: 'معتمَد', value: approved, icon: 'check', tone: approved ? 'success' : undefined },
-            { label: 'يحتاج بديلًا', value: needsAlt, icon: 'user-plus', tone: needsAlt ? 'warning' : undefined },
-            { label: 'مرفوض', value: rejected, icon: 'x', tone: rejected ? 'danger' : undefined },
-            { label: 'بانتظار قرارك', value: pending.length, icon: 'clipboard-check' },
-          ]} />
+          {/* نظرة القرارات — دونات تركيب + وسيلة إيضاح، على بيانات حقيقية */}
+          {(() => {
+            const total = items.length;
+            const segs = [
+              { label: 'معتمَد', value: approved, color: 'var(--ih-success, #16a34a)' },
+              { label: 'يحتاج بديلًا', value: needsAlt, color: 'var(--ih-warning-ink, #B54708)' },
+              { label: 'مرفوض', value: rejected, color: 'var(--ih-danger, #D92D20)' },
+              { label: 'بانتظار قرارك', value: pending.length, color: 'var(--ih-primary-300, #B4A8FF)' },
+            ];
+            const decidedPct = total ? Math.round(((total - pending.length) / total) * 100) : 0;
+            return (
+              <div className="card" style={{ padding: '1.1rem 1.2rem', marginBottom: '1rem', display: 'flex', alignItems: 'center', gap: '1.4rem', flexWrap: 'wrap' }}>
+                <Donut segments={segs} size={132} centerValue={`${total - pending.length}/${total}`} centerLabel="حُسم" ariaLabel={segs.map((s) => `${s.label}: ${s.value}`).join('، ')} />
+                <div style={{ flex: 1, minWidth: 190, display: 'grid', gap: '.7rem' }}>
+                  <div style={{ fontWeight: 800, fontSize: '.95rem' }}>مراجعة القائمة — {decidedPct}٪ مكتملة</div>
+                  <Legend segments={segs} />
+                </div>
+              </div>
+            );
+          })()}
 
           {allDecided ? (
             <div className="card" style={{ padding: '.9rem 1rem', margin: '1rem 0 1.2rem', borderInlineStart: '3px solid var(--ih-success)', background: 'var(--ih-success-soft)', color: 'var(--ih-success-ink)', fontSize: '.86rem' }}>
