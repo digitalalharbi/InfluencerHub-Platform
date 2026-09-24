@@ -57,7 +57,7 @@ class BrandsController extends Controller
                 'href' => $soleClient
                     ? \App\Support\Http\MountPrefix::path($r, "/clients/{$soleClient->id}?tab=brands")
                     : \App\Support\Http\MountPrefix::path($r, '/clients'),
-                'label' => $soleClient ? "أضِف علامة لـ{$soleClient->display_name}" : 'اختر عميلًا',
+                'label' => $soleClient ? trans('brands.add_brand_for', ['client' => $soleClient->display_name]) : trans('brands.choose_client'),
             ],
             'brands' => $brands,
             'filters' => $r->only('q', 'seg'),

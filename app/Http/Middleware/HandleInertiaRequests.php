@@ -78,6 +78,7 @@ class HandleInertiaRequests extends Middleware
                 'admin_dashboard' => (array) trans('admin_dashboard'),
                 'shortlisting' => (array) trans('shortlisting'),
                 'content' => (array) trans('content'),
+                'brands' => (array) trans('brands'),
             ],
             'base' => MountPrefix::for($request),
             // معاينة مالك المنصّة (§P3) — يُشارَك فقط داخل معاينة نشطة. الرمز يمرَّر

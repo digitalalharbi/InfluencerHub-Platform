@@ -5,6 +5,7 @@ import { Kpi, ListHead, StatusBadge } from '@/Components/ui';
 import { Icon } from '@/Components/Icon';
 import { Pagination, type Paginated } from '@/Components/Pagination';
 import { u } from '@/lib/href';
+import { useT } from '@/lib/i18n';
 
 interface BrandRow {
   id: number; name: string; client: string | null; sector: string | null; version: number;
@@ -26,6 +27,7 @@ function clean(obj: Record<string, unknown>): Record<string, string> {
 }
 
 export default function BrandsIndex({ brands, filters, summary, createHint }: Props) {
+  const t = useT();
   const [q, setQ] = useState(filters.q ?? '');
   const first = useRef(true);
   useEffect(() => {
@@ -38,24 +40,24 @@ export default function BrandsIndex({ brands, filters, summary, createHint }: Pr
   const seg = filters.seg ?? '';
   const hasFilters = !!(filters.q || seg);
   const segments: [string, string, number][] = [
-    ['', 'الكل', summary.total], ['needs_review', 'بانتظار المراجعة', summary.needs_review],
-    ['submitted', 'مُرسلة', summary.submitted], ['under_review', 'قيد المراجعة', summary.under_review],
-    ['changes_requested', 'تعديلات مطلوبة', summary.changes_requested], ['approved', 'معتمدة', summary.approved],
-    ['suspended', 'معلّقة', summary.suspended], ['draft', 'مسودة', summary.draft],
+    ['', t('brands.seg_all'), summary.total], ['needs_review', t('brands.seg_needs_review'), summary.needs_review],
+    ['submitted', t('brands.seg_submitted'), summary.submitted], ['under_review', t('brands.seg_under_review'), summary.under_review],
+    ['changes_requested', t('brands.seg_changes_requested'), summary.changes_requested], ['approved', t('brands.seg_approved'), summary.approved],
+    ['suspended', t('brands.seg_suspended'), summary.suspended], ['draft', t('brands.seg_draft'), summary.draft],
   ];
 
   return (
-    <AppShell heading="العلامات">
-      <Head title="العلامات" />
+    <AppShell heading={t('brands.title')}>
+      <Head title={t('brands.title')} />
 
-      <ListHead eyebrow="إدارة العلاقات" title="العلامات"
-        sub="ملفات العلامات المرتبطة بالعملاء وطابور اعتمادها ومراجعتها" />
+      <ListHead eyebrow={t('brands.eyebrow')} title={t('brands.title')}
+        sub={t('brands.sub')} />
 
       <div className="ih-kpis">
-        <Kpi label="إجمالي العلامات" icon="bookmark" value={summary.total.toLocaleString('en-US')} sub={`${summary.approved} معتمدة`} />
-        <Kpi label="بانتظار مراجعتك" icon="shield-check" tone={summary.needs_review ? 'warning' : undefined} value={summary.needs_review.toLocaleString('en-US')} sub={`${summary.submitted} مُرسلة · ${summary.under_review} قيد المراجعة`} />
-        <Kpi label="تعديلات مطلوبة" icon="clipboard-check" value={summary.changes_requested.toLocaleString('en-US')} sub="بانتظار تعديل العميل" />
-        <Kpi label="معلّقة" icon="shield-check" tone={summary.suspended ? 'danger' : undefined} value={summary.suspended.toLocaleString('en-US')} sub="علامات موقوفة" />
+        <Kpi label={t('brands.kpi_total')} icon="bookmark" value={summary.total.toLocaleString('en-US')} sub={t('brands.kpi_total_sub', { approved: summary.approved })} />
+        <Kpi label={t('brands.kpi_needs_review')} icon="shield-check" tone={summary.needs_review ? 'warning' : undefined} value={summary.needs_review.toLocaleString('en-US')} sub={t('brands.kpi_needs_review_sub', { submitted: summary.submitted, under_review: summary.under_review })} />
+        <Kpi label={t('brands.kpi_changes')} icon="clipboard-check" value={summary.changes_requested.toLocaleString('en-US')} sub={t('brands.kpi_changes_sub')} />
+        <Kpi label={t('brands.kpi_suspended')} icon="shield-check" tone={summary.suspended ? 'danger' : undefined} value={summary.suspended.toLocaleString('en-US')} sub={t('brands.kpi_suspended_sub')} />
       </div>
 
       <div className="ih-chips" style={{ marginBottom: '.9rem', overflowX: 'auto', paddingBottom: '.2rem', flexWrap: 'nowrap' }}>
@@ -66,7 +68,7 @@ export default function BrandsIndex({ brands, filters, summary, createHint }: Pr
 
       <div className="ih-filterbar">
         <label className="ih-search"><Icon name="search" size={16} />
-          <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="ابحث باسم العلامة أو العميل…" />
+          <input value={q} onChange={(e) => setQ(e.target.value)} placeholder={t('brands.search_placeholder')} />
         </label>
       </div>
 
@@ -74,16 +76,16 @@ export default function BrandsIndex({ brands, filters, summary, createHint }: Pr
         <div className="ih-dt-wrap"><div className="ih-empty">
           <span className="ih-empty__icon"><Icon name="bookmark" size={26} /></span>
           {hasFilters ? (
-            <><div className="ih-empty__title">لا علامات مطابقة</div><div className="ih-empty__text">لا نتائج للبحث أو الشريحة الحالية.</div><a href={u("/brands")} className="btn btn-sm btn-outline">مسح الفلاتر</a></>
+            <><div className="ih-empty__title">{t('brands.empty_filtered_title')}</div><div className="ih-empty__text">{t('brands.empty_filtered_text')}</div><a href={u("/brands")} className="btn btn-sm btn-outline">{t('brands.clear_filters')}</a></>
           ) : (
-            <><div className="ih-empty__title">لا علامات بعد</div>
+            <><div className="ih-empty__title">{t('brands.empty_title')}</div>
               <div className="ih-empty__text">
                 {createHint.clientsCount === 0
-                  ? 'العلامة تتبع عميلًا، وليس لديك عملاء بعد. ابدأ بإضافة عميل ثم أضِف علاماته.'
-                  : 'العلامة تُنشأ من صفحة العميل التابعة له، وتظهر هنا بعد إرسالها للاعتماد.'}
+                  ? t('brands.empty_text_no_clients')
+                  : t('brands.empty_text_has_clients')}
               </div>
               <a href={createHint.clientsCount === 0 ? u('/clients') : createHint.href} className="btn btn-sm">
-                {createHint.clientsCount === 0 ? 'إضافة عميل' : createHint.label}
+                {createHint.clientsCount === 0 ? t('brands.add_client') : createHint.label}
               </a></>
           )}
         </div></div>
@@ -92,7 +94,7 @@ export default function BrandsIndex({ brands, filters, summary, createHint }: Pr
           <div className="ih-only-desktop">
             <div className="ih-dt-wrap"><div className="ih-dt-scroll">
               <table className="ih-dt">
-                <thead><tr><th>العلامة</th><th>العميل</th><th>القطاع</th><th>الإصدار</th><th>أُرسلت</th><th>الحالة</th><th></th></tr></thead>
+                <thead><tr><th>{t('brands.th_brand')}</th><th>{t('brands.th_client')}</th><th>{t('brands.th_sector')}</th><th>{t('brands.th_version')}</th><th>{t('brands.th_submitted')}</th><th>{t('brands.th_status')}</th><th></th></tr></thead>
                 <tbody>
                   {brands.data.map((b) => (
                     <tr key={b.id}>
@@ -109,8 +111,8 @@ export default function BrandsIndex({ brands, filters, summary, createHint }: Pr
                       <td><StatusBadge tone={b.statusTone} label={b.statusLabel} /></td>
                       <td style={{ textAlign: 'end' }}>
                         <span className="ih-dt__row-actions">
-                          {b.needsReview && <span className="badge" style={{ background: 'var(--ih-warning-soft)', color: 'var(--ih-warning-ink)', fontSize: '.6rem' }}>يحتاج مراجعة</span>}
-                          <a href={u(`/brands/${b.id}`)} className="btn btn-xs btn-outline">فتح</a>
+                          {b.needsReview && <span className="badge" style={{ background: 'var(--ih-warning-soft)', color: 'var(--ih-warning-ink)', fontSize: '.6rem' }}>{t('brands.needs_review')}</span>}
+                          <a href={u(`/brands/${b.id}`)} className="btn btn-xs btn-outline">{t('brands.open')}</a>
                         </span>
                       </td>
                     </tr>
@@ -118,7 +120,7 @@ export default function BrandsIndex({ brands, filters, summary, createHint }: Pr
                 </tbody>
               </table>
             </div>
-              <div className="ih-dt__foot"><span>{brands.total} علامة{hasFilters ? ' · مُرشَّح' : ''}</span><Pagination links={brands.links} /></div>
+              <div className="ih-dt__foot"><span>{t('brands.count_item', { n: brands.total })}{hasFilters ? t('brands.filtered_suffix') : ''}</span><Pagination links={brands.links} /></div>
             </div>
           </div>
 
@@ -134,7 +136,7 @@ export default function BrandsIndex({ brands, filters, summary, createHint }: Pr
                     </div>
                     <StatusBadge tone={b.statusTone} label={b.statusLabel} />
                   </div>
-                  {b.needsReview && <div style={{ marginTop: '.6rem', fontSize: '.76rem', color: 'var(--ih-warning-ink)', fontWeight: 600 }}>● يحتاج مراجعتك</div>}
+                  {b.needsReview && <div style={{ marginTop: '.6rem', fontSize: '.76rem', color: 'var(--ih-warning-ink)', fontWeight: 600 }}>{t('brands.needs_your_review')}</div>}
                 </a>
               ))}
             </div>
