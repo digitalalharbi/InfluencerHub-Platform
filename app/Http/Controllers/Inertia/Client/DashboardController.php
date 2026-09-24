@@ -59,10 +59,10 @@ class DashboardController extends Controller
                 'documents' => $c->documents_count, 'contacts' => $c->contacts_count,
             ],
             'pending' => [
-                ['key' => 'content', 'label' => 'محتوى بانتظار اعتمادك', 'count' => $contentPending, 'icon' => 'image', 'link' => '/content'],
-                ['key' => 'contracts', 'label' => 'عقود بانتظار توقيعك', 'count' => $contractsPending, 'icon' => 'file-text', 'link' => '/contracts'],
-                ['key' => 'shortlist', 'label' => 'ترشيحات بانتظار قرارك', 'count' => $shortlistPending, 'icon' => 'users', 'link' => '/campaigns'],
-                ['key' => 'requests', 'label' => 'طلبات مفتوحة قيد التنفيذ', 'count' => $requestsOpen, 'icon' => 'inbox', 'link' => '/requests'],
+                ['key' => 'content', 'label' => trans('client_dashboard.pending_content'), 'count' => $contentPending, 'icon' => 'image', 'link' => '/content'],
+                ['key' => 'contracts', 'label' => trans('client_dashboard.pending_contracts'), 'count' => $contractsPending, 'icon' => 'file-text', 'link' => '/contracts'],
+                ['key' => 'shortlist', 'label' => trans('client_dashboard.pending_shortlist'), 'count' => $shortlistPending, 'icon' => 'users', 'link' => '/campaigns'],
+                ['key' => 'requests', 'label' => trans('client_dashboard.pending_requests'), 'count' => $requestsOpen, 'icon' => 'inbox', 'link' => '/requests'],
             ],
             'stats' => [
                 'activeCampaigns' => $activeCampaigns, 'brands' => $c->brands_count,
