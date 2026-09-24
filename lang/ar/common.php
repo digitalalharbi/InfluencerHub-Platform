@@ -13,4 +13,5 @@ return [
     'account' => 'حسابي',
     'logout' => 'تسجيل الخروج',
     'home' => 'الرئيسية',
+    'list_separator' => '، ',
 ];
