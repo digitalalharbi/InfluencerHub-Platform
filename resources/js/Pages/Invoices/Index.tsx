@@ -2,6 +2,7 @@ import { Head, router } from '@inertiajs/react'
 import { useState } from 'react'
 import AppShell from '@/Layouts/AppShell'
 import { Kpi, ListHead, StatusBadge, sarShort } from '@/Components/ui'
+import { Donut } from '@/Components/Charts'
 import { Icon } from '@/Components/Icon'
 import { Pagination, type Paginated } from '@/Components/Pagination'
 import { u } from '@/lib/href'
@@ -234,6 +235,32 @@ export default function InvoicesIndex({ invoices, filters, summary, canCreate, o
         <Kpi label="مسودات" icon="file-text" value={summary.draft.toLocaleString('en-US')} sub="لم تُصدَر بعد" />
         <Kpi label="الإجمالي" icon="bar-chart-3" value={summary.total.toLocaleString('en-US')} sub="كل الفواتير" />
       </div>
+
+      {/* نظرة التحصيل — كم حُصِّل مقابل ما بقي (مبالغ فعلية) */}
+      {(() => {
+        const billed = summary.collectedMinor + summary.outstandingMinor;
+        if (billed <= 0) return null;
+        const segs = [
+          { label: 'المحصَّل', value: summary.collectedMinor, color: 'var(--ih-success-700, #067647)' },
+          { label: 'قيد التحصيل', value: summary.outstandingMinor, color: 'var(--ih-warning-ink, #B54708)' },
+        ];
+        const pct = Math.round((summary.collectedMinor / billed) * 100);
+        return (
+          <div className="card" style={{ padding: '1.1rem 1.3rem', marginBottom: '1.2rem', display: 'flex', alignItems: 'center', gap: '1.6rem', flexWrap: 'wrap' }}>
+            <Donut segments={segs} size={120} centerValue={`${pct}٪`} centerLabel="محصَّل" ariaLabel={`المحصَّل ${sarShort(summary.collectedMinor)} ر.س، قيد التحصيل ${sarShort(summary.outstandingMinor)} ر.س`} />
+            <div style={{ flex: 1, minWidth: 200, display: 'grid', gap: '.55rem' }}>
+              <div style={{ fontWeight: 800, fontSize: '.95rem' }}>التحصيل — {pct}٪ من إجمالي {sarShort(billed)} ر.س</div>
+              {segs.map((s) => (
+                <div key={s.label} style={{ display: 'flex', alignItems: 'center', gap: '.5rem', fontSize: '.85rem' }}>
+                  <span style={{ width: 10, height: 10, borderRadius: 3, background: s.color, flexShrink: 0 }} />
+                  <span style={{ color: 'var(--ih-text-muted)', flex: 1 }}>{s.label}</span>
+                  <span style={{ fontWeight: 700, direction: 'ltr' }}>{sarShort(s.value)} ر.س</span>
+                </div>
+              ))}
+            </div>
+          </div>
+        );
+      })()}
 
       <div className="ih-filterbar" style={{ marginBottom: '1rem', gap: '.4rem', flexWrap: 'wrap' }}>
         {SEGMENTS.map(([k, label]) => (
