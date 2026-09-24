@@ -14,7 +14,18 @@ use Inertia\Response;
  */
 class ContentController extends Controller
 {
-    private const TYPE_LABEL = ['post' => 'منشور', 'story' => 'ستوري', 'reel' => 'ريل', 'video' => 'فيديو', 'ugc' => 'UGC'];
+    private const TYPE_KEYS = ['post', 'story', 'reel', 'video', 'ugc'];
+
+    /** تسميات أنواع المحتوى باللغة الحالية عبر trans('content.t_*'). */
+    private function typeLabels(): array
+    {
+        $out = [];
+        foreach (self::TYPE_KEYS as $k) {
+            $out[$k] = trans("content.t_{$k}");
+        }
+
+        return $out;
+    }
 
     public function index(Request $r): Response
     {
@@ -41,7 +52,7 @@ class ContentController extends Controller
             'title' => $c->title,
             'creator' => $c->creator?->display_name,
             'campaign' => $c->campaign?->name,
-            'type' => self::TYPE_LABEL[$c->type] ?? $c->type,
+            'type' => in_array($c->type, self::TYPE_KEYS, true) ? trans("content.t_{$c->type}") : $c->type,
             'platform' => $c->platform,
             'version' => (int) $c->version,
             'status' => $c->status,
@@ -60,7 +71,7 @@ class ContentController extends Controller
         return Inertia::render('Content/Index', [
             'items' => $items,
             'filters' => array_filter(['q' => $r->query('q'), 'type' => $r->query('type'), 'seg' => $seg]),
-            'typeLabels' => self::TYPE_LABEL,
+            'typeLabels' => $this->typeLabels(),
             'summary' => [
                 'total' => (int) $byStatus->sum(),
                 'agency_review' => $count('agency_review'),
