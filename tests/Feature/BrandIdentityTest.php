@@ -62,6 +62,77 @@ class BrandIdentityTest extends TestCase
         $this->assertStringNotContainsString('#6252e5', $html);
     }
 
+    /** قفل البريد يتبع لغة المستقبِل: عربي «إنفلونسر هب» rtl · إنجليزي «InfluencerHub» ltr. */
+    public function test_email_lockup_follows_recipient_locale(): void
+    {
+        $ar = \Illuminate\Support\Facades\Blade::render('<x-mail.layout locale="ar">م</x-mail.layout>');
+        $this->assertStringContainsString('إنفلونسر هب', $ar);
+        $this->assertStringContainsString('dir="rtl"', $ar);
+        $this->assertStringContainsString('lang="ar"', $ar);
+
+        $en = \Illuminate\Support\Facades\Blade::render('<x-mail.layout locale="en">x</x-mail.layout>');
+        $this->assertStringContainsString('InfluencerHub', $en);
+        $this->assertStringNotContainsString('إنفلونسر هب', $en);
+        $this->assertStringContainsString('dir="ltr"', $en);
+        $this->assertStringContainsString('lang="en"', $en);
+    }
+
+    /** شعار Blade يتبع اللغة: عربي «إنفلونسر هب» · إنجليزي «InfluencerHub». */
+    public function test_blade_logo_is_locale_aware(): void
+    {
+        app()->setLocale('ar');
+        $ar = \Illuminate\Support\Facades\Blade::render('<x-ih-logo :withWordmark="true" />');
+        $this->assertStringContainsString('إنفلونسر', $ar);
+        $this->assertStringContainsString('هب', $ar);
+        $this->assertStringNotContainsString('InfluencerHub', $ar); // لا كلمة إنجليزية في السطح العربي
+
+        app()->setLocale('en');
+        $en = \Illuminate\Support\Facades\Blade::render('<x-ih-logo :withWordmark="true" />');
+        $this->assertStringContainsString('Influencer', $en);
+        $this->assertStringContainsString('Hub', $en);
+        $this->assertStringNotContainsString('إنفلونسر', $en); // لا كلمة عربية في السطح الإنجليزي
+
+        app()->setLocale('ar');
+    }
+
+    /** «هب/Hub» لا يُلوَّن سماويًّا أبدًا؛ النقطة وحدها سماوية. */
+    public function test_blade_logo_hub_is_never_cyan(): void
+    {
+        $html = \Illuminate\Support\Facades\Blade::render('<x-ih-logo :withWordmark="true" />');
+        // النقطة السماوية موجودة (circle)، لكن لا نصّ ملوّن بالسماوي
+        $this->assertStringContainsString('#22D3EE', $html);            // نقطة المنصّة
+        $this->assertStringNotContainsString('color:#22D3EE', $html);   // لا نصّ سماوي
+        $this->assertStringNotContainsString('color:#22d3ee', $html);
+    }
+
+    /** كل بوّابات الدخول (وكالة/مبدع/عميل/شريك) تعرض القفل الرسمي المحلّي، وشعارها يقود للرئيسية `/`. */
+    public function test_all_portal_login_logos_are_localized_and_link_home(): void
+    {
+        foreach (['/login', '/creator/login', '/client/login', '/partner/login'] as $path) {
+            $html = $this->get($path)->assertOk()->getContent();
+            // القفل الرسمي المحلّي (اللغة الافتراضية عربية) لا وسم إنجليزي مثبت
+            $this->assertStringContainsString('إنفلونسر', $html, "الشعار العربي مفقود في {$path}");
+            // شعار المصادقة يقود إلى الرئيسية التسويقية
+            $this->assertStringContainsString('class="ih-auth__logo"', $html, "رابط شعار المصادقة مفقود في {$path}");
+        }
+    }
+
+    /** شعار بوّابة كل دور يقود إلى رئيسية بوّابته (لا للجذر أعمى). */
+    public function test_portal_chrome_logo_routes_to_its_home(): void
+    {
+        $map = [
+            'client/layout' => '/client/dashboard',
+            'creator/layout' => '/creator/dashboard',
+            'partner/layout' => '/partner/dashboard',
+        ];
+        foreach ($map as $view => $home) {
+            $src = file_get_contents(resource_path("views/{$view}.blade.php"));
+            $this->assertStringContainsString('href="'.$home.'"', $src, "شعار {$view} لا يقود إلى {$home}");
+        }
+        // شعار مساحة الوكالة يقود إلى /app
+        $this->assertStringContainsString('href="/app"', file_get_contents(resource_path('views/layouts/app.blade.php')));
+    }
+
     /** صفحات الخطأ تستخدم البلاطة الرسمية ولون الهوية والأيقونة الرسمية. */
     public function test_error_shell_uses_official_brand(): void
     {

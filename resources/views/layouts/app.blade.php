@@ -22,8 +22,8 @@
 <div class="ih-shell has-bottom-nav" x-data="{ nav:false }" :class="{ 'nav-open': nav }" @keydown.escape.window="nav=false">
     <div class="ih-scrim" @click="nav=false"></div>
     <aside class="sidebar ih-side" @click="nav=false">
-        <a href="/app" class="ih-side__brand">
-            <x-ih-logo :size="28" color="var(--ih-primary)"/> <span>InfluencerHub</span>
+        <a href="/app" class="ih-side__brand" aria-label="InfluencerHub — الرئيسية">
+            <x-ih-logo :size="28" :withWordmark="true" color="var(--ih-primary)"/>
         </a>
         <div class="ih-side__workspace">
             <span class="ih-side__ws-avatar">{{ mb_substr($ihWorkspace, 0, 1) }}</span>
@@ -51,7 +51,7 @@
             <button class="ih-icon-btn" @click="nav=true" aria-label="فتح القائمة">
                 <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="3" x2="21" y1="6" y2="6"/><line x1="3" x2="21" y1="12" y2="12"/><line x1="3" x2="21" y1="18" y2="18"/></svg>
             </button>
-            <span style="font-weight:800; color:var(--ih-primary); display:inline-flex; align-items:center; gap:.5rem;"><x-ih-logo :size="24" color="var(--ih-primary)"/> InfluencerHub</span>
+            <a href="/app" style="text-decoration:none; display:inline-flex; align-items:center;" aria-label="InfluencerHub — الرئيسية"><x-ih-logo :size="24" :withWordmark="true" color="var(--ih-primary)"/></a>
             <span style="margin-inline-start:auto; font-weight:700; font-size:.9rem;">@yield('heading', '')</span>
             <button type="button" class="ih-icon-btn" @click="$dispatch('ih-open-command-palette')" aria-label="بحث سريع"><x-icon name="search" :size="18"/></button>
         </div>
