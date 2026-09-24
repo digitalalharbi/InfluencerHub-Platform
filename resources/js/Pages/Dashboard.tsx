@@ -1,6 +1,7 @@
 import { Head, usePage } from '@inertiajs/react';
 import AppShell from '@/Layouts/AppShell';
 import { Avatar, Bar, Kpi, ListHead, Sec, StatusBadge, numFmt, sarShort } from '@/Components/ui';
+import { ProgressRing, Donut, Legend } from '@/Components/Charts';
 import { Icon } from '@/Components/Icon';
 import type { SharedProps } from '@/types';
 import { u } from '@/lib/href';
@@ -183,6 +184,37 @@ export default function Dashboard() {
           ? <a href={u(setup.next.href)} className="btn btn-sm">{setup.next.action}</a>
           : <a href="#my-work" className="btn btn-sm">ابدأ العمل</a>}
       </div>
+
+      {/* لوحة القيادة المرئية — متوسط الإكمال + توزيع المطلوب حسب الأولوية (بيانات حقيقية) */}
+      {(() => {
+        const cnt = (pred: (p: string) => boolean) => myWork.filter((w) => pred(w.prio)).reduce((n, w) => n + (w.count ?? 1), 0);
+        const urgent = cnt((p) => p === 'overdue' || p === 'critical');
+        const approval = cnt((p) => p === 'approval');
+        const upcoming = cnt((p) => !['overdue', 'critical', 'approval'].includes(p));
+        const workSegs = [
+          { label: 'عاجل', value: urgent, color: 'var(--ih-danger, #D92D20)' },
+          { label: 'بانتظار موافقتك', value: approval, color: 'var(--ih-warning-ink, #B54708)' },
+          { label: 'قادم', value: upcoming, color: 'var(--ih-primary, #5B45E0)' },
+        ];
+        const totalWork = urgent + approval + upcoming;
+        if (!overview && totalWork === 0) return null;
+        return (
+          <div className="card" style={{ padding: '1.2rem 1.3rem', marginBottom: '1.2rem', display: 'flex', alignItems: 'center', gap: '1.8rem', flexWrap: 'wrap' }}>
+            {overview && (
+              <div style={{ display: 'grid', placeItems: 'center', gap: '.2rem' }}>
+                <ProgressRing value={overview.kpis.avgCompletion} label="متوسط الإكمال" />
+              </div>
+            )}
+            <div style={{ display: 'flex', alignItems: 'center', gap: '1.3rem', flexWrap: 'wrap', flex: 1, minWidth: 240 }}>
+              <Donut segments={workSegs} size={116} centerValue={totalWork} centerLabel="مطلوب" emptyLabel="لا مهام معلّقة" />
+              <div style={{ minWidth: 172 }}>
+                <div style={{ fontWeight: 800, fontSize: '.92rem', marginBottom: '.6rem' }}>المطلوب حسب الأولوية</div>
+                <Legend segments={workSegs} />
+              </div>
+            </div>
+          </div>
+        );
+      })()}
 
       {/* مؤشرات المدير المالية/التشغيلية — فقط لمن يملك الصلاحية */}
       {overview && (
