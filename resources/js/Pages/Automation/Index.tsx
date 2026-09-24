@@ -1,6 +1,7 @@
 import { Head, router, usePage } from '@inertiajs/react';
 import AppShell from '@/Layouts/AppShell';
 import { ListHead, StatusBadge } from '@/Components/ui';
+import { Donut, Legend } from '@/Components/Charts';
 import { Icon } from '@/Components/Icon';
 import { u } from '@/lib/href';
 import type { SharedProps } from '@/types';
@@ -25,6 +26,35 @@ export default function AutomationIndex({ rules, runs }: Props) {
       {flash?.ok && <div className="card" style={{ padding: '.7rem 1rem', marginBottom: '1rem', borderInlineStart: '3px solid var(--ih-success)', background: 'var(--ih-success-soft)', color: 'var(--ih-success-ink)' }}>{flash.ok}</div>}
 
       <ListHead eyebrow="التشغيل الذكي" title="الأتمتة" sub="قواعد تعمل تلقائيًّا على أحداث سير العمل — إشعارات ومهام وتصعيد." />
+
+      {/* مركز صحّة الأتمتة — يُجيب فورًا: كم قاعدة تعمل، وهل التشغيلات الأخيرة سليمة */}
+      {(() => {
+        const enabled = rules.filter((r) => r.enabled).length;
+        const failed = runs.filter((x) => x.status === 'failed').length;
+        const outcomeSegs = [
+          { label: 'نُفِّذت', value: runs.filter((x) => x.status === 'executed').length, color: 'var(--ih-success-700, #067647)' },
+          { label: 'تُخطّيت', value: runs.filter((x) => x.status === 'skipped').length, color: 'var(--ih-gray-400, #98A2B3)' },
+          { label: 'فشلت', value: failed, color: 'var(--ih-danger-ink, #B42318)' },
+        ];
+        return (
+          <div className="card" style={{ padding: '1.1rem 1.3rem', marginBottom: '1.2rem', display: 'flex', alignItems: 'center', gap: '1.6rem', flexWrap: 'wrap' }}>
+            {runs.length > 0 && (
+              <Donut segments={outcomeSegs} size={120} centerValue={runs.length} centerLabel="آخر التشغيلات" ariaLabel={outcomeSegs.map((s) => `${s.label}: ${s.value}`).join('، ')} />
+            )}
+            <div style={{ flex: 1, minWidth: 200, display: 'grid', gap: '.7rem' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '.6rem', flexWrap: 'wrap' }}>
+                <span style={{ fontWeight: 800, fontSize: '.98rem' }}>{enabled} من {rules.length} قاعدة مُفعّلة</span>
+                {failed > 0
+                  ? <span className="badge" style={{ background: 'var(--ih-danger-soft, #FEF3F2)', color: 'var(--ih-danger-ink, #B42318)', fontWeight: 700 }}>{failed} تشغيلة فاشلة تحتاج مراجعة</span>
+                  : runs.length > 0 && <span className="badge" style={{ background: 'var(--ih-success-soft)', color: 'var(--ih-success-ink)', fontWeight: 700 }}>لا أعطال في آخر التشغيلات</span>}
+              </div>
+              {runs.length > 0
+                ? <Legend segments={outcomeSegs} />
+                : <div style={{ fontSize: '.84rem', color: 'var(--ih-text-muted)' }}>لا تشغيلات بعد — ستظهر صحّة الأتمتة هنا بمجرّد وقوع أوّل حدث.</div>}
+            </div>
+          </div>
+        );
+      })()}
 
       <div className="ih-sec" style={{ marginBottom: '1.2rem' }}>
         <div className="ih-sec__head"><span className="ih-sec__title"><Icon name="sparkles" size={16} /> القواعد</span></div>
