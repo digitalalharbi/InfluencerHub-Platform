@@ -2,6 +2,7 @@ import { Head, router, usePage } from '@inertiajs/react';
 import { useEffect, useState, type ReactNode } from 'react';
 import AppShell from '@/Layouts/AppShell';
 import { Sec, StatusBadge, SummaryStrip, WorkTabs, WorkspaceHeader, Bar, type WorkTab } from '@/Components/ui';
+import { Donut, Legend } from '@/Components/Charts';
 import { Icon } from '@/Components/Icon';
 import { u } from '@/lib/href';
 import { PdfPreviewModal, type PreviewDoc } from '@/Components/PdfPreviewModal';
@@ -216,6 +217,28 @@ export default function ShortlistIndex({ campaign, version, items, candidates, f
       )}
 
       {/* القائمة الحالية */}
+      {/* نظرة قرار العميل — تظهر بعد الإرسال: تُجيب فورًا كم اعتمد/طلب بديلًا/رفض/بقي */}
+      {tab === 'list' && version.status !== 'draft' && items.length > 0 && (() => {
+        const cnt = (d: string) => items.filter((i) => i.decision === d).length;
+        const decSegs = [
+          { label: 'معتمَد', value: cnt('approved'), color: 'var(--ih-success-700, #067647)' },
+          { label: 'طلب بديلًا', value: cnt('needs_alternative'), color: 'var(--ih-warning-ink, #B54708)' },
+          { label: 'مرفوض', value: cnt('rejected'), color: 'var(--ih-danger-ink, #B42318)' },
+          { label: 'بانتظار العميل', value: cnt('pending'), color: 'var(--ih-primary-300, #B4A8FF)' },
+        ];
+        const decided = items.length - cnt('pending');
+        const decidedPct = items.length ? Math.round((decided / items.length) * 100) : 0;
+        return (
+          <div className="card" style={{ padding: '1.1rem 1.2rem', marginBottom: '1rem', display: 'flex', alignItems: 'center', gap: '1.4rem', flexWrap: 'wrap' }}>
+            <Donut segments={decSegs} size={124} centerValue={`${decided}/${items.length}`} centerLabel="حُسم" ariaLabel={decSegs.map((s) => `${s.label}: ${s.value}`).join('، ')} />
+            <div style={{ flex: 1, minWidth: 190, display: 'grid', gap: '.7rem' }}>
+              <div style={{ fontWeight: 800, fontSize: '.95rem' }}>قرار العميل — {decidedPct}٪ مكتمل</div>
+              <Legend segments={decSegs} />
+            </div>
+          </div>
+        );
+      })()}
+
       {tab === 'list' && (
       <Sec title={`القائمة الحالية — إصدار ${version.number}`} icon="clipboard-check">
         {items.length === 0 ? (
