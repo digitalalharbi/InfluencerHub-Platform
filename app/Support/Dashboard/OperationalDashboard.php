@@ -32,16 +32,11 @@ class OperationalDashboard
     private const NOMINATION = ['super_admin', 'agency_admin', 'operations_manager', 'campaign_manager'];
     private const TEAM_VIEW = ['super_admin', 'agency_admin', 'operations_manager'];
 
-    private const ROLE_LABEL = [
-        'agency_admin' => 'مدير الوكالة', 'operations_manager' => 'مدير العمليات',
-        'campaign_manager' => 'مدير حملات', 'creator_manager' => 'مسؤول مبدعين',
-        'content_reviewer' => 'مراجع محتوى', 'finance' => 'مالية',
-        'agency_employee' => 'موظف', 'super_admin' => 'مدير عام',
-    ];
+    // أدوار الفريق — التسمية تُحلّ باللغة الحالية عبر trans('dashboard.role_*').
+    private const ROLES = ['agency_admin', 'operations_manager', 'campaign_manager', 'creator_manager', 'content_reviewer', 'finance', 'agency_employee', 'super_admin'];
 
     // ترتيب الأولوية: كلما صغر الرقم زادت الأولوية.
     private const PRIO = ['overdue' => 0, 'critical' => 1, 'today' => 2, 'approval' => 3, 'soon' => 4, 'normal' => 5];
-    private const PRIO_LABEL = ['overdue' => 'متأخر', 'critical' => 'حرج', 'today' => 'مستحق اليوم', 'approval' => 'بانتظار موافقتك', 'soon' => 'مستحق قريبًا', 'normal' => 'متابعة'];
 
     public function __construct(private User $user, private int $orgId)
     {
@@ -103,12 +98,12 @@ class OperationalDashboard
             elseif ($due && $due->lte($now->copy()->addDays(2))) $prio = 'soon';
             $items[] = $this->item(
                 key: 'sr-' . $sr->id,
-                title: $sr->title ?: ('طلب ' . $sr->request_number),
-                entity: 'طلب خدمة · ' . $sr->request_number,
-                reason: $sr->sla_breached_at ? 'تجاوز مهلة SLA' : 'طلب مسند إليك',
+                title: $sr->title ?: trans('dashboard.sr_title_fallback', ['number' => $sr->request_number]),
+                entity: trans('dashboard.entity_service_request', ['number' => $sr->request_number]),
+                reason: $sr->sla_breached_at ? trans('dashboard.sr_reason_sla') : trans('dashboard.sr_reason_assigned'),
                 prio: $prio,
                 due: $due,
-                actionLabel: 'فتح الطلب',
+                actionLabel: trans('dashboard.sr_action'),
                 href: "/app/service-requests/{$sr->id}",
                 sla: (bool) $sr->sla_breached_at,
             );
@@ -120,30 +115,30 @@ class OperationalDashboard
         $badges = \App\Support\Navigation\NavigationBadges::all();
         if ($this->can(self::CONTENT_REVIEW)) {
             $n = (int) ($badges['content'] ?? 0);
-            if ($n > 0) $items[] = $this->group('content', 'محتوى بانتظار مراجعتك', "$n عنصر مُرسَل للوكالة", 'approval', $n, 'راجع المحتوى', '/app/content');
+            if ($n > 0) $items[] = $this->group('content', trans('dashboard.g_content_title'), trans('dashboard.g_content_reason', ['n' => $n]), 'approval', $n, trans('dashboard.g_content_action'), '/app/content');
         }
         if ($this->can(self::BRAND_REVIEW)) {
             $n = (int) ($badges['brand_reviews'] ?? 0);
-            if ($n > 0) $items[] = $this->group('brands', 'علامات بانتظار الاعتماد', "$n علامة مُرسَلة", 'approval', $n, 'اعتماد العلامات', '/app/brand-reviews');
+            if ($n > 0) $items[] = $this->group('brands', trans('dashboard.g_brands_title'), trans('dashboard.g_brands_reason', ['n' => $n]), 'approval', $n, trans('dashboard.g_brands_action'), '/app/brand-reviews');
         }
         if ($this->can(self::CLIENT_REVIEW)) {
             $n = (int) ($badges['client_reviews'] ?? 0);
-            if ($n > 0) $items[] = $this->group('client_reviews', 'مراجعات العملاء', "$n تغيير/مستند بانتظار المراجعة", 'approval', $n, 'مراجعة', '/app/client-reviews');
+            if ($n > 0) $items[] = $this->group('client_reviews', trans('dashboard.g_client_reviews_title'), trans('dashboard.g_client_reviews_reason', ['n' => $n]), 'approval', $n, trans('dashboard.g_client_reviews_action'), '/app/client-reviews');
         }
         if ($this->can(self::FINANCE)) {
             $n = Payout::where('status', 'pending')->count();
-            if ($n > 0) $items[] = $this->group('payouts', 'مستحقات بانتظار الاعتماد', "$n دفعة تحتاج اعتمادك", 'approval', $n, 'اعتماد الصرف', '/app/payouts');
+            if ($n > 0) $items[] = $this->group('payouts', trans('dashboard.g_payouts_title'), trans('dashboard.g_payouts_reason', ['n' => $n]), 'approval', $n, trans('dashboard.g_payouts_action'), '/app/payouts');
         }
         if ($this->can(self::CREATOR_MGMT)) {
             $n = (int) ($badges['creator_applications'] ?? 0);
-            if ($n > 0) $items[] = $this->group('applications', 'طلبات انضمام المبدعين', "$n طلب جديد", 'approval', $n, 'مراجعة الطلبات', '/app/creator-applications');
+            if ($n > 0) $items[] = $this->group('applications', trans('dashboard.g_applications_title'), trans('dashboard.g_applications_reason', ['n' => $n]), 'approval', $n, trans('dashboard.g_applications_action'), '/app/creator-applications');
         }
 
         // 3) حملات متأخرة (خطر تشغيلي)
         if ($this->can(self::CAMPAIGN_VIEW)) {
             $late = Campaign::query()->whereIn('status', ['active', 'paused'])
                 ->whereNotNull('end_date')->whereDate('end_date', '<', $now)->count();
-            if ($late > 0) $items[] = $this->group('late_campaigns', 'حملات متأخرة عن الموعد', "$late حملة تجاوزت تاريخ الانتهاء", 'critical', $late, 'عرض الحملات', '/app/campaigns?seg=late');
+            if ($late > 0) $items[] = $this->group('late_campaigns', trans('dashboard.g_late_title'), trans('dashboard.g_late_reason', ['n' => $late]), 'critical', $late, trans('dashboard.g_late_action'), '/app/campaigns?seg=late');
         }
 
         // 4) مراحل الترشيح — إجراءات حتمية من حالة الإصدار الحالي (لا حالة مُختلَقة).
@@ -157,16 +152,16 @@ class OperationalDashboard
                 ->get(['id', 'status']);
 
             $changes = $current->where('status', 'changes_requested')->count();
-            if ($changes > 0) $items[] = $this->group('nom_alt', 'العميل طلب بديلًا', "$changes قائمة ترشيح يطلب العميل لها بديلًا", 'today', $changes, 'راجع الطلب', '/app/shortlisting');
+            if ($changes > 0) $items[] = $this->group('nom_alt', trans('dashboard.g_nom_alt_title'), trans('dashboard.g_nom_alt_reason', ['n' => $changes]), 'today', $changes, trans('dashboard.g_nom_alt_action'), '/app/shortlisting');
 
             $toConvert = $current->whereIn('status', ['approved', 'partially_approved'])->count();
-            if ($toConvert > 0) $items[] = $this->group('nom_convert', 'معتمَدون جاهزون للتنفيذ', "$toConvert قائمة معتمدة بانتظار تحويل المعتمَدين", 'today', $toConvert, 'تحويل للتنفيذ', '/app/shortlisting');
+            if ($toConvert > 0) $items[] = $this->group('nom_convert', trans('dashboard.g_nom_convert_title'), trans('dashboard.g_nom_convert_reason', ['n' => $toConvert]), 'today', $toConvert, trans('dashboard.g_nom_convert_action'), '/app/shortlisting');
 
             $draftIds = $current->where('status', 'draft')->pluck('id');
             if ($draftIds->isNotEmpty()) {
                 $ready = CampaignShortlistItem::whereIn('shortlist_version_id', $draftIds)
                     ->where('is_backup', false)->distinct()->count('shortlist_version_id');
-                if ($ready > 0) $items[] = $this->group('nom_send', 'قوائم ترشيح جاهزة للإرسال', "$ready قائمة فيها مرشّحون بانتظار الإرسال للعميل", 'normal', $ready, 'مراجعة القوائم', '/app/shortlisting');
+                if ($ready > 0) $items[] = $this->group('nom_send', trans('dashboard.g_nom_send_title'), trans('dashboard.g_nom_send_reason', ['n' => $ready]), 'normal', $ready, trans('dashboard.g_nom_send_action'), '/app/shortlisting');
             }
         }
 
@@ -182,7 +177,7 @@ class OperationalDashboard
             'entity' => $entity,
             'reason' => $reason,
             'prio' => $prio,
-            'prioLabel' => self::PRIO_LABEL[$prio],
+            'prioLabel' => trans('dashboard.prio_' . $prio),
             'prioRank' => self::PRIO[$prio],
             'due' => $due?->format('Y-m-d'),
             'dueTs' => $due?->timestamp,
@@ -195,7 +190,7 @@ class OperationalDashboard
 
     private function group(string $key, string $title, string $reason, string $prio, int $count, string $actionLabel, string $href): array
     {
-        return $this->item($key, $title, 'طابور تشغيلي', $reason, $prio, null, $actionLabel, $href, false, $count);
+        return $this->item($key, $title, trans('dashboard.entity_queue'), $reason, $prio, null, $actionLabel, $href, false, $count);
     }
 
     /** الملخّص اليومي — أرقام حقيقية مصدرها عناصر العمل نفسها. */
@@ -237,7 +232,7 @@ class OperationalDashboard
             $members[] = [
                 'id' => $uid,
                 'name' => $users[$uid]->name ?? '—',
-                'role' => self::ROLE_LABEL[$role] ?? $role,
+                'role' => in_array($role, self::ROLES, true) ? trans('dashboard.role_' . $role) : $role,
                 'open' => (int) ($row->total ?? 0),
                 'breached' => (int) ($row->breached ?? 0),
             ];

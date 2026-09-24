@@ -13,4 +13,5 @@ return [
     'account' => 'My account',
     'logout' => 'Sign out',
     'home' => 'Home',
+    'list_separator' => ', ',
 ];

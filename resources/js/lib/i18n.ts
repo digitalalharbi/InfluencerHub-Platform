@@ -27,11 +27,24 @@ function lookup(translations: Record<string, Dict>, key: string): string | undef
   return typeof cur === 'string' ? cur : undefined;
 }
 
-/** خطّاف الترجمة — يُعيد دالّة t مربوطة بحزمة الصفحة الحالية. */
-export function useT(): (key: string, fallback?: string) => string {
+/** استبدال العناصر النائبة على نمط Laravel: «:name» → القيمة. */
+function fill(text: string, params?: Record<string, string | number>): string {
+  if (!params) return text;
+  return text.replace(/:(\w+)/g, (m, k) => (k in params ? String(params[k]) : m));
+}
+
+/**
+ * خطّاف الترجمة — يُعيد دالّة t مربوطة بحزمة الصفحة الحالية.
+ * t(key) أو t(key, fallback) أو t(key, params) أو t(key, fallback, params).
+ */
+export function useT(): (key: string, fallbackOrParams?: string | Record<string, string | number>, params?: Record<string, string | number>) => string {
   const props = usePage().props as unknown as SharedI18n;
   const tr = props.translations ?? {};
-  return (key, fallback) => lookup(tr, key) ?? fallback ?? key;
+  return (key, fallbackOrParams, params) => {
+    const fallback = typeof fallbackOrParams === 'string' ? fallbackOrParams : undefined;
+    const p = typeof fallbackOrParams === 'object' ? fallbackOrParams : params;
+    return fill(lookup(tr, key) ?? fallback ?? key, p);
+  };
 }
 
 /** لغة الواجهة الحالية واتّجاهها. */
