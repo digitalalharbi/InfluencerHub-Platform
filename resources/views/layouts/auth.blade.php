@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="ar" dir="rtl">
+<html lang="{{ app()->getLocale() }}" dir="{{ app()->getLocale() === 'ar' ? 'rtl' : 'ltr' }}">
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
@@ -52,7 +52,10 @@
     {{-- ============ قسم الدخول ============ --}}
     <section class="ih-auth__form">
         <div class="ih-auth__card">
-            <a href="/" style="text-decoration:none; display:inline-flex;" aria-label="InfluencerHub — الرئيسية"><x-ih-logo :size="26" :withWordmark="true" color="var(--ih-text)"/></a>
+            <div style="display:flex; align-items:center; justify-content:space-between; gap:.6rem;">
+                <a href="/" style="text-decoration:none; display:inline-flex;" aria-label="InfluencerHub — الرئيسية"><x-ih-logo :size="26" :withWordmark="true" color="var(--ih-text)"/></a>
+                <x-lang-switch />
+            </div>
             <div style="margin:1.2rem 0 .4rem;"><span class="ih-auth__portal-tag">@yield('portal_tag', 'بوابة الوكالة')</span></div>
             <h2 style="font-size:1.35rem; font-weight:800; margin:.6rem 0 .3rem;">@yield('form_title', 'تسجيل الدخول')</h2>
             <p style="color:var(--ih-text-muted); font-size:.88rem; margin:0 0 1.4rem;">@yield('form_sub', 'ادخل إلى حسابك لإدارة عملياتك اليومية.')</p>

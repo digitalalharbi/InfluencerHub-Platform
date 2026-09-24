@@ -4,6 +4,21 @@ use App\Http\Controllers\Auth\LoginController;
 use App\Http\Controllers\Web\PreviewCenterController;
 use Illuminate\Support\Facades\Route;
 
+// تبديل لغة الواجهة (ar|en) — يُحفظ في الجلسة للضيف وفي users.locale للمُصادَق، ثم يعود
+// للصفحة الحالية بلا فقدان سياق. مصدر القيَم المدعومة SetLocale::SUPPORTED (لا ثقة بمدخل عشوائي).
+Route::post('/locale', function (\Illuminate\Http\Request $request) {
+    $locale = (string) $request->input('locale');
+    if (in_array($locale, \App\Http\Middleware\SetLocale::SUPPORTED, true)) {
+        $request->session()->put('app_locale', $locale);
+        if ($user = $request->user()) {
+            $user->locale = $locale;
+            $user->save();
+        }
+    }
+
+    return back();
+})->name('locale.switch');
+
 // ===== الموقع العام — أوّل ما يراه الزائر (لا يهبط في لوحة داخلية) =====
 use App\Http\Controllers\Public\SiteController;
 Route::middleware('inertia')->controller(SiteController::class)->group(function () {
