@@ -509,6 +509,15 @@ button.ih-nav__group--toggle:focus-visible { outline: 2px solid var(--ih-primary
   padding: .5rem .7rem;
 }
 
+/* ---------- Loading skeleton (no fake values while loading) ---------- */
+.ih-skeleton {
+  background: linear-gradient(90deg, var(--ih-surface-muted, #F2F4F7) 25%, var(--ih-border, #E8E6F7) 37%, var(--ih-surface-muted, #F2F4F7) 63%);
+  background-size: 400% 100%;
+  animation: ih-shimmer 1.4s ease infinite;
+}
+@keyframes ih-shimmer { 0% { background-position: 100% 0; } 100% { background-position: 0 0; } }
+@media (prefers-reduced-motion: reduce) { .ih-skeleton { animation: none; } }
+
 /* ---------- Language switcher (segmented ar/en) ---------- */
 .ih-langswitch { display: inline-flex; border: 1px solid var(--ih-border); border-radius: var(--ih-radius-pill); overflow: hidden; background: var(--ih-surface); }
 .ih-langswitch button {
