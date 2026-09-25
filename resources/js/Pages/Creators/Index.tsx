@@ -6,6 +6,7 @@ import { Icon } from '@/Components/Icon';
 import { Pagination, type Paginated } from '@/Components/Pagination';
 import { ExportButtons } from '@/Components/ExportButtons';
 import { u } from '@/lib/href';
+import { useT } from '@/lib/i18n';
 
 interface CreatorRow {
   id: number; name: string; handle: string | null; number: string;
@@ -26,7 +27,7 @@ interface Props {
 }
 
 const TIER_COLOR: Record<string, string> = { A: 'var(--ih-primary)', B: 'var(--ih-accent-600)', C: 'var(--ih-gray-500)' };
-const STATUS_LABELS: Record<string, string> = { prospect: 'مبدئي', active: 'نشط', paused: 'موقوف', blocked: 'محظور' };
+const STATUS_KEYS = ['prospect', 'active', 'paused', 'blocked'];
 
 function fnum(n: number): string {
   if (n >= 1_000_000) return (n / 1_000_000).toFixed(1) + 'M';
@@ -40,6 +41,7 @@ function sar(minor: number | null): string {
 const LBL: React.CSSProperties = { fontSize: '.8rem', fontWeight: 600, display: 'block', marginBottom: '.3rem' };
 
 export default function CreatorsIndex({ creators, summary, type, filters, platformOptions, capabilityOptions, cities }: Props) {
+  const t = useT();
   const [q, setQ] = useState(filters.q ?? '');
   const first = useRef(true);
   const [createOpen, setCreateOpen] = useState(false);
@@ -78,41 +80,41 @@ export default function CreatorsIndex({ creators, summary, type, filters, platfo
   const seg = filters.seg ?? '';
   // اسم واحد للوحدة: «صناع المحتوى». التصفية بالقدرة تُبيَّن كلاحقة لا كاسم
   // مستقلّ، وإلا بدت الوحدة الواحدة وحدتين وتفرّقت التسمية بين القائمة والعنوان.
-  const capability = type === 'influencer' ? 'مؤثرون'
+  const capability = type === 'influencer' ? t('creators.cap_influencers')
     : (type === 'ugc_creator' || type === 'ugc') ? 'UGC'
     : (type && capabilityOptions[type]) ? capabilityOptions[type] : '';
-  const title = capability ? `صناع المحتوى · ${capability}` : 'صناع المحتوى';
+  const title = capability ? t('creators.title_with', { cap: capability }) : t('creators.title');
   const hasFilters = !!(filters.q || filters.status || filters.platform || filters.city || seg);
 
   // الفلتر صار على القدرات لا على ثلاثة أنواع ثابتة؛ `ugc_creator` يبقى في الرابط
   // للتوافق مع روابط محفوظة ويترجمه الخادم إلى قدرة `ugc`.
   const types: [string, string][] = [
-    ['', 'الكل'], ['influencer', 'مؤثرون'], ['ugc_creator', 'UGC'],
+    ['', t('creators.type_all')], ['influencer', t('creators.cap_influencers')], ['ugc_creator', 'UGC'],
     ...Object.entries(capabilityOptions).filter(([k]) => k !== 'influencer' && k !== 'ugc'),
   ];
   const segments: [string, string, number][] = [
-    ['', 'الكل', summary.total], ['tier_a', 'فئة A', summary.tier_a], ['tier_b', 'فئة B', summary.tier_b],
-    ['tier_c', 'فئة C', summary.tier_c], ['verified', 'موثّق', summary.verified], ['unverified', 'غير موثّق', summary.unverified],
-    ['active', 'نشط', summary.active], ['incomplete', 'غير مكتمل', summary.incomplete],
-    ['needs_review', 'يحتاج مراجعة', summary.needs_review], ['has_active_collab', 'لديه تعاون نشط', summary.has_active_collab],
+    ['', t('creators.seg_all'), summary.total], ['tier_a', t('creators.seg_tier_a'), summary.tier_a], ['tier_b', t('creators.seg_tier_b'), summary.tier_b],
+    ['tier_c', t('creators.seg_tier_c'), summary.tier_c], ['verified', t('creators.seg_verified'), summary.verified], ['unverified', t('creators.seg_unverified'), summary.unverified],
+    ['active', t('creators.seg_active'), summary.active], ['incomplete', t('creators.seg_incomplete'), summary.incomplete],
+    ['needs_review', t('creators.seg_needs_review'), summary.needs_review], ['has_active_collab', t('creators.seg_active_collab'), summary.has_active_collab],
   ];
 
   return (
     <AppShell heading={title}>
       <Head title={title} />
 
-      <ListHead eyebrow="شبكة المبدعين" title={title}
-        sub="قاعدة المؤثرين وصنّاع المحتوى مع التصنيف الآلي والتوثيق والتفاعل والأسعار"
+      <ListHead eyebrow={t('creators.eyebrow')} title={title}
+        sub={t('creators.sub')}
         actions={<span style={{ display: 'inline-flex', gap: '.4rem', alignItems: 'center' }}>
           <ExportButtons path="/creators/export" filters={filters as Record<string, string>} />
-          <button onClick={() => setCreateOpen(true)} className="btn btn-sm btn-primary"><Icon name="plus" size={15} /> مبدع جديد</button>
+          <button onClick={() => setCreateOpen(true)} className="btn btn-sm btn-primary"><Icon name="plus" size={15} /> {t('creators.new_creator')}</button>
         </span>} />
 
       <div className="ih-kpis">
-        <Kpi label="إجمالي المبدعين" icon="users" value={numFmt(summary.total)} sub={`${summary.tier_a} فئة A · ${summary.active} نشط`} />
-        <Kpi label="موثّقون" icon="shield-check" tone="success" value={numFmt(summary.verified)} sub={`${summary.unverified} غير موثّق`} />
-        <Kpi label="لديهم تعاون نشط" icon="handshake" tone="accent" value={numFmt(summary.has_active_collab)} sub="مشاركون في حملات جارية" />
-        <Kpi label="يحتاجون مراجعة" icon="clipboard-check" tone="warning" value={numFmt(summary.needs_review)} sub={`${summary.incomplete} ملف غير مكتمل`} />
+        <Kpi label={t('creators.kpi_total')} icon="users" value={numFmt(summary.total)} sub={t('creators.kpi_total_sub', { a: summary.tier_a, active: summary.active })} />
+        <Kpi label={t('creators.kpi_verified')} icon="shield-check" tone="success" value={numFmt(summary.verified)} sub={t('creators.kpi_verified_sub', { n: summary.unverified })} />
+        <Kpi label={t('creators.kpi_active_collab')} icon="handshake" tone="accent" value={numFmt(summary.has_active_collab)} sub={t('creators.kpi_active_collab_sub')} />
+        <Kpi label={t('creators.kpi_needs_review')} icon="clipboard-check" tone="warning" value={numFmt(summary.needs_review)} sub={t('creators.kpi_needs_review_sub', { n: summary.incomplete })} />
       </div>
 
       {/* مبدّل النوع */}
@@ -132,18 +134,18 @@ export default function CreatorsIndex({ creators, summary, type, filters, platfo
       {/* البحث والفلاتر */}
       <div className="ih-filterbar">
         <label className="ih-search"><Icon name="search" size={16} />
-          <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="ابحث بالاسم أو المعرّف أو المدينة…" />
+          <input value={q} onChange={(e) => setQ(e.target.value)} placeholder={t('creators.search_placeholder')} />
         </label>
         <select className="field" style={{ maxWidth: 130 }} value={filters.status ?? ''} onChange={(e) => update({ status: e.target.value })}>
-          <option value="">كل الحالات</option>
-          {Object.entries(STATUS_LABELS).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
+          <option value="">{t('creators.all_statuses')}</option>
+          {STATUS_KEYS.map((k) => <option key={k} value={k}>{t(`creators.s_${k}`)}</option>)}
         </select>
         <select className="field" style={{ maxWidth: 140 }} value={filters.platform ?? ''} onChange={(e) => update({ platform: e.target.value })}>
-          <option value="">كل المنصّات</option>
+          <option value="">{t('creators.all_platforms')}</option>
           {Object.entries(platformOptions).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
         </select>
         <select className="field" style={{ maxWidth: 120 }} value={filters.city ?? ''} onChange={(e) => update({ city: e.target.value })}>
-          <option value="">كل المدن</option>
+          <option value="">{t('creators.all_cities')}</option>
           {cities.map((c) => <option key={c} value={c}>{c}</option>)}
         </select>
       </div>
@@ -157,7 +159,7 @@ export default function CreatorsIndex({ creators, summary, type, filters, platfo
             <div className="ih-dt-wrap"><div className="ih-dt-scroll">
               <table className="ih-dt">
                 <thead><tr>
-                  <th>المبدع</th><th>الحجم</th><th>المنصّة</th><th>المتابعون</th><th>التفاعل</th><th>السعر/منشور</th><th>الحالة</th><th></th>
+                  <th>{t('creators.th_creator')}</th><th>{t('creators.th_tier')}</th><th>{t('creators.th_platform')}</th><th>{t('creators.th_followers')}</th><th>{t('creators.th_engagement')}</th><th>{t('creators.th_rate')}</th><th>{t('creators.th_status')}</th><th></th>
                 </tr></thead>
                 <tbody>
                   {creators.data.map((c) => (
@@ -178,12 +180,12 @@ export default function CreatorsIndex({ creators, summary, type, filters, platfo
                       <td className="ih-dt__num" style={{ direction: 'ltr', textAlign: 'right' }}>{sar(c.rateMinor)}</td>
                       <td>
                         <span className={`badge ih-status-${c.statusTone}`}>{c.statusLabel}</span>
-                        {c.incomplete && <span className="badge" style={{ background: 'var(--ih-warning-soft)', color: 'var(--ih-warning-ink)', fontSize: '.56rem' }}>ناقص</span>}
+                        {c.incomplete && <span className="badge" style={{ background: 'var(--ih-warning-soft)', color: 'var(--ih-warning-ink)', fontSize: '.56rem' }}>{t('creators.incomplete_badge')}</span>}
                       </td>
                       <td style={{ textAlign: 'end' }}>
                         <span className="ih-dt__row-actions">
-                          {c.activeCollabs > 0 && <span className="ih-tag" style={{ background: 'var(--ih-primary-soft)', color: 'var(--ih-primary-700)' }}>{c.activeCollabs} تعاون</span>}
-                          <a href={u(`/creators/${c.id}`)} className="btn btn-xs btn-outline">فتح</a>
+                          {c.activeCollabs > 0 && <span className="ih-tag" style={{ background: 'var(--ih-primary-soft)', color: 'var(--ih-primary-700)' }}>{t('creators.collab_count', { n: c.activeCollabs })}</span>}
+                          <a href={u(`/creators/${c.id}`)} className="btn btn-xs btn-outline">{t('creators.open')}</a>
                         </span>
                       </td>
                     </tr>
@@ -192,7 +194,7 @@ export default function CreatorsIndex({ creators, summary, type, filters, platfo
               </table>
             </div>
               <div className="ih-dt__foot">
-                <span>{creators.total} مبدع{hasFilters ? ' · مُرشَّح' : ''}</span>
+                <span>{t('creators.count_item', { n: creators.total })}{hasFilters ? t('creators.filtered_suffix') : ''}</span>
                 <Pagination links={creators.links} />
               </div>
             </div>
@@ -222,11 +224,11 @@ export default function CreatorsIndex({ creators, summary, type, filters, platfo
                     </div>
                   )}
                   <div className="ih-mcard__grid">
-                    <div className="ih-metric"><span className="ih-metric__v" style={{ direction: 'ltr' }}>{fnum(c.followers)}</span><span className="ih-metric__k">{c.platform ?? 'متابع'}</span></div>
-                    <div className="ih-metric"><span className="ih-metric__v">{c.engagement ?? '—'}%</span><span className="ih-metric__k">تفاعل</span></div>
-                    <div className="ih-metric"><span className="ih-metric__v" style={{ direction: 'ltr' }}>{sar(c.rateMinor)}</span><span className="ih-metric__k">السعر</span></div>
+                    <div className="ih-metric"><span className="ih-metric__v" style={{ direction: 'ltr' }}>{fnum(c.followers)}</span><span className="ih-metric__k">{c.platform ?? t('creators.m_followers')}</span></div>
+                    <div className="ih-metric"><span className="ih-metric__v">{c.engagement ?? '—'}%</span><span className="ih-metric__k">{t('creators.m_engagement')}</span></div>
+                    <div className="ih-metric"><span className="ih-metric__v" style={{ direction: 'ltr' }}>{sar(c.rateMinor)}</span><span className="ih-metric__k">{t('creators.m_rate')}</span></div>
                   </div>
-                  {c.activeCollabs > 0 && <div style={{ marginTop: '.6rem', fontSize: '.76rem', color: 'var(--ih-primary)', fontWeight: 600 }}>{c.activeCollabs} تعاون نشط</div>}
+                  {c.activeCollabs > 0 && <div style={{ marginTop: '.6rem', fontSize: '.76rem', color: 'var(--ih-primary)', fontWeight: 600 }}>{t('creators.active_collab_note', { n: c.activeCollabs })}</div>}
                 </a>
               ))}
             </div>
@@ -237,15 +239,15 @@ export default function CreatorsIndex({ creators, summary, type, filters, platfo
       {createOpen && (
         <div className="modal-backdrop" onClick={(e) => e.target === e.currentTarget && !busy && setCreateOpen(false)}>
           <div className="modal" style={{ padding: '1.3rem', maxWidth: 560 }}>
-            <h3 style={{ fontWeight: 800, margin: '0 0 1rem' }}>مبدع جديد</h3>
+            <h3 style={{ fontWeight: 800, margin: '0 0 1rem' }}>{t('creators.new_creator')}</h3>
             <div style={{ display: 'grid', gap: '.8rem' }}>
-              <Field label="الاسم" labelStyle={LBL}>
+              <Field label={t('creators.f_name')} labelStyle={LBL}>
                 <input value={form.display_name} onChange={(e) => setForm({ ...form, display_name: e.target.value })}
                   className="field" style={{ width: '100%' }} autoFocus />
                 {errors.display_name && <div style={{ color: 'var(--ih-danger-ink)', fontSize: '.76rem', marginTop: '.3rem' }}>{errors.display_name}</div>}
               </Field>
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '.8rem' }}>
-                <Field label="القدرات" labelStyle={LBL} style={{ gridColumn: '1 / -1' }}>
+                <Field label={t('creators.f_capabilities')} labelStyle={LBL} style={{ gridColumn: '1 / -1' }}>
                   {(g) => (
                     <>
                       <div {...g} role="group" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(160px, 1fr))', gap: '.4rem' }}>
@@ -266,18 +268,18 @@ export default function CreatorsIndex({ creators, summary, type, filters, platfo
                     </>
                   )}
                 </Field>
-                <Field label="الحالة" labelStyle={LBL}>
+                <Field label={t('creators.f_status')} labelStyle={LBL}>
                   <select value={form.status} onChange={(e) => setForm({ ...form, status: e.target.value })} className="field" style={{ width: '100%' }}>
-                    {Object.entries(STATUS_LABELS).filter(([v]) => v !== 'blocked').map(([v, l]) => <option key={v} value={v}>{l}</option>)}
+                    {STATUS_KEYS.filter((v) => v !== 'blocked').map((v) => <option key={v} value={v}>{t(`creators.s_${v}`)}</option>)}
                   </select>
                 </Field>
               </div>
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '.8rem' }}>
-                <Field label="المعرّف" labelStyle={LBL}>
+                <Field label={t('creators.f_handle')} labelStyle={LBL}>
                   <input value={form.handle} onChange={(e) => setForm({ ...form, handle: e.target.value })}
                     className="field" style={{ width: '100%', direction: 'ltr' }} placeholder="username" />
                 </Field>
-                <Field label="المنصة الأساسية" labelStyle={LBL}>
+                <Field label={t('creators.f_platform')} labelStyle={LBL}>
                   <select value={form.primary_platform} onChange={(e) => setForm({ ...form, primary_platform: e.target.value })} className="field" style={{ width: '100%' }}>
                     <option value="">—</option>
                     {Object.entries(platformOptions).map(([v, l]) => <option key={v} value={v}>{l}</option>)}
@@ -285,18 +287,18 @@ export default function CreatorsIndex({ creators, summary, type, filters, platfo
                 </Field>
               </div>
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '.8rem' }}>
-                <Field label="عدد المتابعين" labelStyle={LBL}>
+                <Field label={t('creators.f_followers')} labelStyle={LBL}>
                   <input type="number" min={0} value={form.followers_count} onChange={(e) => setForm({ ...form, followers_count: e.target.value })}
                     className="field" style={{ width: '100%', direction: 'ltr' }} />
                 </Field>
-                <Field label="المدينة" labelStyle={LBL}>
+                <Field label={t('creators.f_city')} labelStyle={LBL}>
                   <input value={form.city} onChange={(e) => setForm({ ...form, city: e.target.value })} className="field" style={{ width: '100%' }} />
                 </Field>
               </div>
             </div>
             <div style={{ marginTop: '1rem', display: 'flex', gap: '.5rem' }}>
-              <button disabled={busy || !form.display_name.trim() || caps.length === 0} onClick={submitCreate} className="btn btn-primary">حفظ المبدع</button>
-              <button disabled={busy} onClick={() => setCreateOpen(false)} className="btn btn-ghost">إلغاء</button>
+              <button disabled={busy || !form.display_name.trim() || caps.length === 0} onClick={submitCreate} className="btn btn-primary">{t('creators.save')}</button>
+              <button disabled={busy} onClick={() => setCreateOpen(false)} className="btn btn-ghost">{t('creators.cancel')}</button>
             </div>
           </div>
         </div>
@@ -306,20 +308,21 @@ export default function CreatorsIndex({ creators, summary, type, filters, platfo
 }
 
 function EmptyState({ hasFilters }: { hasFilters: boolean }) {
+  const t = useT();
   return (
     <div className="ih-dt-wrap"><div className="ih-empty">
       <span className="ih-empty__icon"><Icon name="users" size={26} /></span>
       {hasFilters ? (
         <>
-          <div className="ih-empty__title">لا مبدعين مطابقين</div>
-          <div className="ih-empty__text">لا نتائج للبحث أو الفلاتر الحالية. جرّب تغيير المنصّة أو الفئة.</div>
-          <a href={u("/creators")} className="btn btn-sm btn-outline">مسح الفلاتر</a>
+          <div className="ih-empty__title">{t('creators.empty_filtered_title')}</div>
+          <div className="ih-empty__text">{t('creators.empty_filtered_text')}</div>
+          <a href={u("/creators")} className="btn btn-sm btn-outline">{t('creators.clear_filters')}</a>
         </>
       ) : (
         <>
-          <div className="ih-empty__title">ابدأ ببناء شبكة المبدعين</div>
-          <div className="ih-empty__text">أضِف مؤثرين وصنّاع محتوى ليصنّفهم النظام آليًا حسب الحجم والتفاعل والموثوقية.</div>
-          <a href="/app/creators" className="btn btn-sm btn-primary"><Icon name="plus" size={15} /> مبدع جديد</a>
+          <div className="ih-empty__title">{t('creators.empty_title')}</div>
+          <div className="ih-empty__text">{t('creators.empty_text')}</div>
+          <a href="/app/creators" className="btn btn-sm btn-primary"><Icon name="plus" size={15} /> {t('creators.new_creator')}</a>
         </>
       )}
     </div></div>

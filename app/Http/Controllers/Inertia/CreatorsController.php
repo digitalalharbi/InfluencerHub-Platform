@@ -2,16 +2,20 @@
 
 namespace App\Http\Controllers\Inertia;
 
+use App\Domain\Audit\Services\AuditLogger;
 use App\Domain\Creators\Actions\CreateCreator;
 use App\Domain\Creators\Models\Creator;
 use App\Domain\Creators\Models\CreatorCapability;
 use App\Domain\Creators\Services\CreatorCapabilityService;
+use App\Domain\Exports\ExportService;
+use App\Domain\Exports\TabularData;
 use App\Domain\Tenancy\Models\Organization;
 use App\Domain\Tenancy\Support\TenantContext;
 use App\Http\Controllers\Controller;
-use App\Support\Http\MountPrefix;
 use App\Support\Analytics\CreatorAnalytics;
+use App\Support\Http\MountPrefix;
 use App\Support\Platforms\PlatformRegistry;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
@@ -24,10 +28,11 @@ use Inertia\Response;
 class CreatorsController extends Controller
 {
     private const STATUS_LABEL = ['prospect' => 'مبدئي', 'active' => 'نشط', 'paused' => 'موقوف', 'blocked' => 'محظور'];
+
     private const STATUS_TONE = ['prospect' => 'submitted', 'active' => 'active', 'paused' => 'paused', 'blocked' => 'rejected'];
 
     /** استعلام المبدعين المُرشَّح — مصدر واحد للعرض والتصدير. */
-    private function filtered(Request $r): \Illuminate\Database\Eloquent\Builder
+    private function filtered(Request $r): Builder
     {
         $type = $r->query('type');
         $capability = CreatorAnalytics::capabilityFor($type);
@@ -40,16 +45,22 @@ class CreatorsController extends Controller
                 ->orWhere('handle', 'ilike', "%{$s}%")->orWhere('creator_number', 'ilike', "%{$s}%")
                 ->orWhere('city', 'ilike', "%{$s}%"));
         }
-        if ($v = $r->query('status')) $q->where('status', $v);
-        if ($v = $r->query('platform')) $q->where('primary_platform', $v);
-        if ($v = $r->query('city')) $q->where('city', $v);
+        if ($v = $r->query('status')) {
+            $q->where('status', $v);
+        }
+        if ($v = $r->query('platform')) {
+            $q->where('primary_platform', $v);
+        }
+        if ($v = $r->query('city')) {
+            $q->where('city', $v);
+        }
         CreatorAnalytics::applySegment($q, $r->query('seg'));
 
         return $q;
     }
 
     /** يصدّر قائمة المبدعين المُرشَّحة. حقول التواصل تُدرَج فقط لمن يملك صلاحية الكتابة. */
-    public function export(Request $r, \App\Domain\Exports\ExportService $svc)
+    public function export(Request $r, ExportService $svc)
     {
         $this->authorize('viewAny', Creator::class);
         $rows = $this->filtered($r)->get();
@@ -61,7 +72,7 @@ class CreatorsController extends Controller
             $columns += ['email' => 'البريد', 'phone' => 'الهاتف'];
         }
 
-        $data = new \App\Domain\Exports\TabularData(
+        $data = new TabularData(
             title: 'قائمة صنّاع المحتوى',
             columns: $columns,
             rows: $rows->map(function (Creator $c) use ($withContact) {
@@ -70,14 +81,15 @@ class CreatorsController extends Controller
                 if ($withContact) {
                     $row += ['email' => $c->email ?? '—', 'phone' => $c->phone ?? '—'];
                 }
+
                 return $row;
             }),
             meta: array_filter(['المرشّح' => $r->query('status'), 'بحث' => $r->query('q'), 'جهات الاتصال' => $withContact ? 'مُدرَجة' : 'محجوبة (صلاحية)']),
-            workspace: TenantContext::organizationId() ? \App\Domain\Tenancy\Models\Organization::find(TenantContext::organizationId())?->name : null,
+            workspace: TenantContext::organizationId() ? Organization::find(TenantContext::organizationId())?->name : null,
             generatedAt: now()->format('Y-m-d H:i'),
         );
 
-        return $svc->download($data, (string) $r->query('format', 'xlsx'), 'creators-' . now()->format('Ymd'), 'creators', $rows->count(), TenantContext::tenantId(), $r->user()->id);
+        return $svc->download($data, (string) $r->query('format', 'xlsx'), 'creators-'.now()->format('Ymd'), 'creators', $rows->count(), TenantContext::tenantId(), $r->user()->id);
     }
 
     public function index(Request $r): Response
@@ -97,7 +109,7 @@ class CreatorsController extends Controller
             'followers' => (int) $c->followers_count,
             'rateMinor' => $c->rate_per_post_minor,
             'status' => $c->status,
-            'statusLabel' => self::STATUS_LABEL[$c->status] ?? $c->status,
+            'statusLabel' => isset(self::STATUS_LABEL[$c->status]) ? trans("creators.s_{$c->status}") : $c->status,
             'statusTone' => self::STATUS_TONE[$c->status] ?? 'draft',
             'tier' => $metrics[$c->id]['tier'] ?? '—',
             'engagement' => $metrics[$c->id]['engagement'] ?? null,
@@ -163,7 +175,7 @@ class CreatorsController extends Controller
      * لم يكن للمبدع مسار تحديث: يُنشأ «مبدئيًّا» فيبقى كذلك، والترشيح يبحث في
      * النشطين وحدهم — فيُضاف المبدع ثم يختفي بلا سبب معروف.
      */
-    public function update(Request $r, \App\Domain\Creators\Models\Creator $creator): RedirectResponse
+    public function update(Request $r, Creator $creator): RedirectResponse
     {
         $this->authorize('update', $creator);
 
@@ -177,7 +189,7 @@ class CreatorsController extends Controller
         $before = $creator->only(array_keys($data));
         $creator->update($data);
 
-        \App\Domain\Audit\Services\AuditLogger::log('creator.updated', $creator,
+        AuditLogger::log('creator.updated', $creator,
             ['from' => $before, 'to' => $data], (int) $creator->tenant_id, (int) $r->user()->id);
 
         return back()->with('ok', 'حُدّثت بيانات المبدع.');
