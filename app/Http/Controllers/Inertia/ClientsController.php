@@ -72,7 +72,7 @@ class ClientsController extends Controller
         $clients = $this->filtered($r)->paginate(15)->withQueryString();
         $metrics = ClientAnalytics::forPage($clients->getCollection());
 
-        $statusLabels = ['lead' => 'مهتم', 'qualified' => 'مؤهّل', 'active' => 'نشط', 'inactive' => 'غير نشط', 'suspended' => 'موقوف', 'archived' => 'مؤرشف'];
+        // التسمية تُحلّ باللغة الحالية عبر trans('clients.s_*').
         $statusTones = ['lead' => 'submitted', 'qualified' => 'under_review', 'active' => 'active', 'inactive' => 'archived', 'suspended' => 'rejected', 'archived' => 'archived'];
 
         $clients->through(fn (Client $c) => [
@@ -83,7 +83,7 @@ class ClientsController extends Controller
             'manager' => $c->accountManager?->name,
             'brands' => (int) $c->brands_count,
             'status' => $c->status,
-            'statusLabel' => $statusLabels[$c->status] ?? $c->status,
+            'statusLabel' => isset($statusTones[$c->status]) ? trans("clients.s_{$c->status}") : $c->status,
             'statusTone' => $statusTones[$c->status] ?? 'draft',
             'revenueMinor' => (int) ($metrics[$c->id]['revenue_minor'] ?? 0),
             'activeCampaigns' => (int) ($metrics[$c->id]['active_campaigns'] ?? 0),
