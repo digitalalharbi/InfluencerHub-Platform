@@ -11,9 +11,9 @@ class CampaignShortlistVersion extends Model
 {
     use BelongsToTenant;
 
-    protected $fillable = ['tenant_id', 'shortlist_id', 'version', 'status', 'submitted_at', 'decided_at'];
+    protected $fillable = ['tenant_id', 'shortlist_id', 'version', 'status', 'submitted_at', 'decided_at', 'client_decision_reminded_at'];
 
-    protected $casts = ['submitted_at' => 'datetime', 'decided_at' => 'datetime'];
+    protected $casts = ['submitted_at' => 'datetime', 'decided_at' => 'datetime', 'client_decision_reminded_at' => 'datetime'];
 
     /** مصدر واحد لتسميات حالة الإصدار — تشاركها كل السطوح (workspace + سياق العلامة). */
     public const STATUS_LABELS = ['draft' => 'مسودة', 'submitted' => 'بانتظار العميل', 'approved' => 'مُعتمَد',

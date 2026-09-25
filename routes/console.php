@@ -32,3 +32,7 @@ Schedule::command('content:scan-publishing')->hourly()->withoutOverlapping(50);
 // تذكير ردّ المؤثر على عروض التعاون المعلّقة (>٤٨ ساعة) — كل ساعة؛ تذكير مرّة واحدة
 // (علامة response_reminded_at تمنع التكرار). مبنيّ على offered_at الحقيقيّة.
 Schedule::command('collaborations:scan-pending-response')->hourly()->withoutOverlapping(50);
+
+// تذكير قرار العميل على الترشيحات المعلّقة (>٧٢ ساعة) — كل ساعة؛ تذكير مرّة واحدة
+// (علامة client_decision_reminded_at تمنع التكرار). مبنيّ على submitted_at الحقيقيّة.
+Schedule::command('shortlists:scan-pending-decision')->hourly()->withoutOverlapping(50);
