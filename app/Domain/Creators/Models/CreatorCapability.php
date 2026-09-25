@@ -16,7 +16,11 @@ class CreatorCapability extends Model
 {
     use BelongsToTenant;
 
-    /** القدرات المعروفة → التسمية العربية. المفتاح ثابت، التسمية للعرض. */
+    /**
+     * القدرات المعروفة → التسمية العربية. المفتاح ثابت داخليًّا، التسمية للعرض.
+     * يبقى هذا الثابت المصدرَ الاحتياطيّ (والمرجعَ العربيّ القانونيّ): لو غابت
+     * ترجمة لمفتاح، تُعرض قيمته العربية هنا بدل مفتاح خام. انظر label().
+     */
     public const LABELS = [
         'influencer' => 'مؤثّر',
         'ugc' => 'محتوى من صنع المستخدم (UGC)',
@@ -46,8 +50,15 @@ class CreatorCapability extends Model
         return $this->belongsTo(Creator::class);
     }
 
+    /**
+     * تسمية القدرة بلغة الطلب الحالية. المفتاح ثابت؛ تُترجَم القيمة فقط.
+     * تُقرأ من مجموعة الترجمة creator_capability، فإن غابت تُستعمل القيمة
+     * العربية القانونية من LABELS (لا يُعرَض مفتاح خام أبدًا).
+     */
     public static function label(string $key): string
     {
-        return self::LABELS[$key] ?? $key;
+        $t = trans("creator_capability.$key");
+
+        return (is_string($t) && $t !== "creator_capability.$key") ? $t : (self::LABELS[$key] ?? $key);
     }
 }

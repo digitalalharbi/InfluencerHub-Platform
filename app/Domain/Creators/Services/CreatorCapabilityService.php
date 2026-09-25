@@ -2,7 +2,8 @@
 
 namespace App\Domain\Creators\Services;
 
-use App\Domain\Creators\Models\{Creator, CreatorCapability};
+use App\Domain\Creators\Models\Creator;
+use App\Domain\Creators\Models\CreatorCapability;
 use App\Domain\Tenancy\Support\TenantContext;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Facades\DB;
@@ -36,10 +37,15 @@ class CreatorCapabilityService
         return array_keys(CreatorCapability::LABELS);
     }
 
-    /** خيارات العرض (مفتاح → تسمية عربية) للواجهات. */
+    /** خيارات العرض (مفتاح → تسمية بلغة الطلب) للواجهات. الترتيب محفوظ من LABELS. */
     public static function options(): array
     {
-        return CreatorCapability::LABELS;
+        $out = [];
+        foreach (self::keys() as $key) {
+            $out[$key] = CreatorCapability::label($key);
+        }
+
+        return $out;
     }
 
     /**
@@ -51,7 +57,7 @@ class CreatorCapabilityService
         $allowed = implode(',', self::keys());
 
         return [
-            $field => ($required ? 'required|' : 'nullable|') . 'array|min:1',
+            $field => ($required ? 'required|' : 'nullable|').'array|min:1',
             "{$field}.*" => "required|string|in:{$allowed}",
         ];
     }
