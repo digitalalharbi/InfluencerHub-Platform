@@ -6,6 +6,7 @@ import { Icon } from '@/Components/Icon';
 import { Pagination, type Paginated } from '@/Components/Pagination';
 import { ExportButtons } from '@/Components/ExportButtons';
 import { u } from '@/lib/href';
+import { useT } from '@/lib/i18n';
 
 interface CampaignRow {
   id: number; name: string; client: string | null; brand: string | null;
@@ -37,6 +38,7 @@ function clean(obj: Record<string, unknown>): Record<string, string> {
 }
 
 export default function CampaignsIndex({ campaigns, summary, filters, canCreate, clients }: Props) {
+  const t = useT();
   const [q, setQ] = useState(filters.q ?? '');
   const [createOpen, setCreateOpen] = useState(false);
   const [busy, setBusy] = useState(false);
@@ -62,27 +64,27 @@ export default function CampaignsIndex({ campaigns, summary, filters, canCreate,
   const seg = filters.seg ?? '';
   const hasFilters = !!(filters.q || filters.status || seg);
   const segments: [string, string, number][] = [
-    ['', 'الكل', summary.total], ['active', 'نشطة', summary.active], ['planning', 'قيد الترشيح', summary.planning],
-    ['awaiting_client', 'بانتظار العميل', summary.awaiting_client], ['late', 'متأخرة', summary.late],
-    ['completed', 'مكتملة', summary.completed], ['paused', 'متوقفة', summary.paused], ['draft', 'مسودة', summary.draft],
+    ['', t('campaigns.seg_all'), summary.total], ['active', t('campaigns.seg_active'), summary.active], ['planning', t('campaigns.seg_planning'), summary.planning],
+    ['awaiting_client', t('campaigns.seg_awaiting_client'), summary.awaiting_client], ['late', t('campaigns.seg_late'), summary.late],
+    ['completed', t('campaigns.seg_completed'), summary.completed], ['paused', t('campaigns.seg_paused'), summary.paused], ['draft', t('campaigns.seg_draft'), summary.draft],
   ];
 
   return (
-    <AppShell heading="الحملات">
-      <Head title="الحملات" />
+    <AppShell heading={t('campaigns.title')}>
+      <Head title={t('campaigns.title')} />
 
-      <ListHead eyebrow="التشغيل" title="الحملات"
-        sub="حملات المؤثرين ومخرجاتها وميزانياتها وتقدّمها ومخاطرها في لوحة واحدة"
+      <ListHead eyebrow={t('campaigns.eyebrow')} title={t('campaigns.title')}
+        sub={t('campaigns.sub')}
         actions={<span style={{ display: 'inline-flex', gap: '.5rem', alignItems: 'center' }}>
           <ExportButtons path="/campaigns/export" filters={filters as Record<string, string>} />
-          {canCreate && <button onClick={() => setCreateOpen(true)} className="btn btn-sm btn-primary"><Icon name="plus" size={15} /> حملة جديدة</button>}
+          {canCreate && <button onClick={() => setCreateOpen(true)} className="btn btn-sm btn-primary"><Icon name="plus" size={15} /> {t('campaigns.new_campaign')}</button>}
         </span>} />
 
       <div className="ih-kpis">
-        <Kpi label="إجمالي الحملات" icon="megaphone" value={summary.total.toLocaleString('en-US')} sub={`${summary.planning} قيد الترشيح · ${summary.draft} مسودة`} />
-        <Kpi label="نشطة الآن" icon="rocket" tone="accent" value={summary.active.toLocaleString('en-US')} sub={`${summary.completed} مكتملة`} />
-        <Kpi label="بانتظار العميل" icon="clipboard-check" tone="warning" value={summary.awaiting_client.toLocaleString('en-US')} sub="اعتماد أو مراجعة معلّقة" />
-        <Kpi label="متأخرة" icon="bar-chart-3" tone={summary.late ? 'danger' : undefined} value={summary.late.toLocaleString('en-US')} sub="تجاوزت موعد الانتهاء" />
+        <Kpi label={t('campaigns.kpi_total')} icon="megaphone" value={summary.total.toLocaleString('en-US')} sub={t('campaigns.kpi_total_sub', { planning: summary.planning, draft: summary.draft })} />
+        <Kpi label={t('campaigns.kpi_active')} icon="rocket" tone="accent" value={summary.active.toLocaleString('en-US')} sub={t('campaigns.kpi_active_sub', { n: summary.completed })} />
+        <Kpi label={t('campaigns.kpi_awaiting')} icon="clipboard-check" tone="warning" value={summary.awaiting_client.toLocaleString('en-US')} sub={t('campaigns.kpi_awaiting_sub')} />
+        <Kpi label={t('campaigns.kpi_late')} icon="bar-chart-3" tone={summary.late ? 'danger' : undefined} value={summary.late.toLocaleString('en-US')} sub={t('campaigns.kpi_late_sub')} />
       </div>
 
       <div className="ih-chips" style={{ marginBottom: '.9rem', overflowX: 'auto', paddingBottom: '.2rem', flexWrap: 'nowrap' }}>
@@ -93,23 +95,23 @@ export default function CampaignsIndex({ campaigns, summary, filters, canCreate,
 
       <div className="ih-filterbar">
         <label className="ih-search"><Icon name="search" size={16} />
-          <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="ابحث بالاسم أو الرقم أو العميل…" />
+          <input value={q} onChange={(e) => setQ(e.target.value)} placeholder={t('campaigns.search_placeholder')} />
         </label>
-        <span style={{ marginInlineStart: 'auto', color: 'var(--ih-text-muted)', fontSize: '.82rem', alignSelf: 'center' }}>{campaigns.total} حملة</span>
+        <span style={{ marginInlineStart: 'auto', color: 'var(--ih-text-muted)', fontSize: '.82rem', alignSelf: 'center' }}>{t('campaigns.count_item', { n: campaigns.total })}</span>
       </div>
 
       {campaigns.data.length === 0 ? (
         <div className="ih-dt-wrap"><div className="ih-empty">
           <span className="ih-empty__icon"><Icon name="megaphone" size={26} /></span>
           {hasFilters ? (
-            <><div className="ih-empty__title">لا حملات مطابقة</div><div className="ih-empty__text">لا نتائج للبحث أو الشريحة الحالية.</div><a href={u("/campaigns")} className="btn btn-sm btn-outline">مسح الفلاتر</a></>
+            <><div className="ih-empty__title">{t('campaigns.empty_filtered_title')}</div><div className="ih-empty__text">{t('campaigns.empty_filtered_text')}</div><a href={u("/campaigns")} className="btn btn-sm btn-outline">{t('campaigns.clear_filters')}</a></>
           ) : (
-            <><div className="ih-empty__title">أطلق أول حملة</div><div className="ih-empty__text">أنشئ حملة لتتابع مخرجاتها وترشيحاتها ومحتواها وميزانيتها من مركز قيادة واحد.</div>{canCreate && <button onClick={() => setCreateOpen(true)} className="btn btn-sm btn-primary"><Icon name="plus" size={15} /> حملة جديدة</button>}</>
+            <><div className="ih-empty__title">{t('campaigns.empty_title')}</div><div className="ih-empty__text">{t('campaigns.empty_text')}</div>{canCreate && <button onClick={() => setCreateOpen(true)} className="btn btn-sm btn-primary"><Icon name="plus" size={15} /> {t('campaigns.new_campaign')}</button>}</>
           )}
         </div></div>
       ) : (
         <>
-          {([['running', 'قيد التنفيذ'], ['planning', 'التخطيط'], ['closed', 'المنتهية']] as [string, string][]).map(([stage, label]) => {
+          {([['running', t('campaigns.st_running')], ['planning', t('campaigns.st_planning')], ['closed', t('campaigns.st_closed')]] as [string, string][]).map(([stage, label]) => {
             const grp = campaigns.data.filter((c) => c.stage === stage);
             if (grp.length === 0) return null;
             return (
@@ -136,19 +138,19 @@ export default function CampaignsIndex({ campaigns, summary, filters, canCreate,
                 )}
                 <div style={{ padding: '0 1.1rem .5rem' }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '.72rem', color: 'var(--ih-text-muted)', marginBottom: '.3rem' }}>
-                    <span>التقدّم · {c.deliverables} مخرجات</span>
+                    <span>{t('campaigns.progress_deliverables', { n: c.deliverables })}</span>
                     <span style={{ fontWeight: 800, color: 'var(--ih-primary)', fontVariantNumeric: 'tabular-nums' }}>{c.progress}%</span>
                   </div>
                   <Bar pct={c.progress} />
                 </div>
                 <div className="ih-mcard__grid" style={{ margin: '0 1.1rem', paddingTop: '.7rem' }}>
-                  <div className="ih-metric"><span className="ih-metric__v" style={{ direction: 'ltr' }}>{kfmt(c.budgetMinor)}</span><span className="ih-metric__k">الميزانية</span></div>
-                  <div className="ih-metric"><span className="ih-metric__v">{c.creators}</span><span className="ih-metric__k">مؤثرون</span></div>
-                  <div className="ih-metric"><span className="ih-metric__v" style={{ fontSize: '.82rem' }}>{c.endDate ?? '—'}</span><span className="ih-metric__k">الانتهاء</span></div>
+                  <div className="ih-metric"><span className="ih-metric__v" style={{ direction: 'ltr' }}>{kfmt(c.budgetMinor)}</span><span className="ih-metric__k">{t('campaigns.m_budget')}</span></div>
+                  <div className="ih-metric"><span className="ih-metric__v">{c.creators}</span><span className="ih-metric__k">{t('campaigns.m_creators')}</span></div>
+                  <div className="ih-metric"><span className="ih-metric__v" style={{ fontSize: '.82rem' }}>{c.endDate ?? '—'}</span><span className="ih-metric__k">{t('campaigns.m_end')}</span></div>
                 </div>
                 <div style={{ display: 'flex', gap: '.4rem', flexWrap: 'wrap', padding: '.7rem 1.1rem 1rem', minHeight: '2.6rem' }}>
-                  {c.isLate && <span className="badge" style={{ background: 'var(--ih-danger-soft)', color: 'var(--ih-danger-ink)', fontSize: '.62rem' }}>● متأخرة</span>}
-                  {c.awaitingClient > 0 && <span className="badge" style={{ background: 'var(--ih-warning-soft)', color: 'var(--ih-warning-ink)', fontSize: '.62rem' }}>{c.awaitingClient} بانتظار العميل</span>}
+                  {c.isLate && <span className="badge" style={{ background: 'var(--ih-danger-soft)', color: 'var(--ih-danger-ink)', fontSize: '.62rem' }}>{t('campaigns.late_badge')}</span>}
+                  {c.awaitingClient > 0 && <span className="badge" style={{ background: 'var(--ih-warning-soft)', color: 'var(--ih-warning-ink)', fontSize: '.62rem' }}>{t('campaigns.awaiting_badge', { n: c.awaitingClient })}</span>}
                 </div>
               </a>
             ))}
@@ -162,43 +164,43 @@ export default function CampaignsIndex({ campaigns, summary, filters, canCreate,
       {createOpen && (
         <div className="modal-backdrop" onClick={(e) => e.target === e.currentTarget && !busy && setCreateOpen(false)}>
           <div className="modal" style={{ padding: '1.3rem', maxWidth: 560 }}>
-            <h3 style={{ fontWeight: 800, margin: '0 0 1rem' }}>حملة جديدة</h3>
+            <h3 style={{ fontWeight: 800, margin: '0 0 1rem' }}>{t('campaigns.new_campaign')}</h3>
             <div style={{ display: 'grid', gap: '.8rem' }}>
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '.8rem' }}>
-                <Field label="العميل" labelStyle={LBL}>
+                <Field label={t('campaigns.f_client')} labelStyle={LBL}>
                   <select value={form.client_id} onChange={(e) => setForm({ ...form, client_id: e.target.value, brand_id: '' })} className="field" style={{ width: '100%' }}>
-                    <option value="">اختر العميل…</option>
+                    <option value="">{t('campaigns.choose_client')}</option>
                     {clients.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
                   </select>
                 </Field>
-                <Field label="العلامة (اختياري)" labelStyle={LBL}>
+                <Field label={t('campaigns.f_brand')} labelStyle={LBL}>
                   <select value={form.brand_id} onChange={(e) => setForm({ ...form, brand_id: e.target.value })} className="field" style={{ width: '100%' }} disabled={!form.client_id}>
-                    <option value="">— بدون —</option>
+                    <option value="">{t('campaigns.no_brand')}</option>
                     {brandOpts.map((b) => <option key={b.id} value={b.id}>{b.name}</option>)}
                   </select>
                 </Field>
               </div>
-              <Field label="اسم الحملة" labelStyle={LBL}>
+              <Field label={t('campaigns.f_name')} labelStyle={LBL}>
                 <input value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} className="field" style={{ width: '100%' }} />
               </Field>
-              <Field label="الهدف (اختياري)" labelStyle={LBL}>
+              <Field label={t('campaigns.f_objective')} labelStyle={LBL}>
                 <textarea value={form.objective} onChange={(e) => setForm({ ...form, objective: e.target.value })} className="field" rows={2} style={{ width: '100%', resize: 'vertical' }} />
               </Field>
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '.8rem' }}>
-                <Field label="الميزانية (ر.س)" labelStyle={LBL}>
+                <Field label={t('campaigns.f_budget')} labelStyle={LBL}>
                   <input type="number" min="0" value={form.budget} onChange={(e) => setForm({ ...form, budget: e.target.value })} className="field" style={{ width: '100%', direction: 'ltr' }} />
                 </Field>
-                <Field label="البداية" labelStyle={LBL}>
+                <Field label={t('campaigns.f_start')} labelStyle={LBL}>
                   <input type="date" value={form.start_date} onChange={(e) => setForm({ ...form, start_date: e.target.value })} className="field" style={{ width: '100%', direction: 'ltr' }} />
                 </Field>
-                <Field label="النهاية" labelStyle={LBL}>
+                <Field label={t('campaigns.f_end')} labelStyle={LBL}>
                   <input type="date" value={form.end_date} onChange={(e) => setForm({ ...form, end_date: e.target.value })} className="field" style={{ width: '100%', direction: 'ltr' }} />
                 </Field>
               </div>
             </div>
             <div style={{ marginTop: '1rem', display: 'flex', gap: '.5rem' }}>
-              <button disabled={busy || !form.name.trim() || !form.client_id} onClick={submitCreate} className="btn btn-primary">إنشاء الحملة</button>
-              <button disabled={busy} onClick={() => setCreateOpen(false)} className="btn btn-ghost">إلغاء</button>
+              <button disabled={busy || !form.name.trim() || !form.client_id} onClick={submitCreate} className="btn btn-primary">{t('campaigns.create')}</button>
+              <button disabled={busy} onClick={() => setCreateOpen(false)} className="btn btn-ghost">{t('campaigns.cancel')}</button>
             </div>
           </div>
         </div>
