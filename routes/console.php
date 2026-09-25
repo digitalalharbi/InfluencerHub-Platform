@@ -36,3 +36,7 @@ Schedule::command('collaborations:scan-pending-response')->hourly()->withoutOver
 // تذكير قرار العميل على الترشيحات المعلّقة (>٧٢ ساعة) — كل ساعة؛ تذكير مرّة واحدة
 // (علامة client_decision_reminded_at تمنع التكرار). مبنيّ على submitted_at الحقيقيّة.
 Schedule::command('shortlists:scan-pending-decision')->hourly()->withoutOverlapping(50);
+
+// تذكير توقيع العقود المُرسَلة المعلّقة (>٧٢ ساعة) — كل ساعة؛ تذكير مرّة واحدة
+// (علامة pending_reminded_at تمنع التكرار). مبنيّ على sent_at الحقيقيّة.
+Schedule::command('contracts:scan-pending-signature')->hourly()->withoutOverlapping(50);
