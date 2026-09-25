@@ -3,11 +3,42 @@
 namespace Tests\Feature;
 
 use App\Support\Platforms\PlatformRegistry;
+use Illuminate\Support\Facades\App;
 use Tests\TestCase;
 
 /** سجل المنصّات: الأولوية، الإخفاء، تقييد القدرات، منع تجاوز Backend. */
 class PlatformRegistryTest extends TestCase
 {
+    protected function tearDown(): void
+    {
+        App::setLocale('ar');
+        parent::tearDown();
+    }
+
+    /** التسمية تتبع لغة الطلب: عربية افتراضًا، لاتينية في الإنجليزية. المفاتيح ثابتة. */
+    public function test_labels_follow_locale_keys_stable(): void
+    {
+        App::setLocale('ar');
+        $ar = PlatformRegistry::options();
+        $this->assertSame('سناب شات', $ar['snapchat']);
+        $this->assertSame('تيك توك', $ar['tiktok']);
+        $this->assertSame('سناب شات', PlatformRegistry::label('snapchat'));
+
+        App::setLocale('en');
+        $en = PlatformRegistry::options();
+        $this->assertSame(array_keys($ar), array_keys($en), 'المفاتيح وترتيبها لا يتغيّران بتغيّر اللغة');
+        $this->assertSame('Snapchat', $en['snapchat']);
+        $this->assertSame('TikTok', $en['tiktok']);
+        $this->assertSame('Instagram', PlatformRegistry::label('instagram'));
+    }
+
+    /** مفتاح غير معروف يعود كما هو في أي لغة. */
+    public function test_unknown_platform_label_falls_back_to_key(): void
+    {
+        App::setLocale('en');
+        $this->assertSame('__nope__', PlatformRegistry::label('__nope__'));
+    }
+
     public function test_six_platforms_available_in_priority_order(): void
     {
         $keys = PlatformRegistry::availableKeys();
