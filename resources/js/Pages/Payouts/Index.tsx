@@ -7,6 +7,7 @@ import { Icon } from '@/Components/Icon';
 import { Pagination, type Paginated } from '@/Components/Pagination';
 import { ExportButtons } from '@/Components/ExportButtons';
 import { u } from '@/lib/href';
+import { useT } from '@/lib/i18n';
 
 interface PayoutRow {
   id: number; number: string; creator: string | null; amountMinor: number; currency: string;
@@ -39,6 +40,7 @@ function clean(obj: Record<string, unknown>): Record<string, string> {
 }
 
 export default function PayoutsIndex({ payouts, filters, summary, canCreate, creatorOptions }: Props) {
+  const t = useT();
   const [createOpen, setCreateOpen] = useState(false);
   const [busy, setBusy] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
@@ -72,27 +74,27 @@ export default function PayoutsIndex({ payouts, filters, summary, canCreate, cre
   const seg = filters.seg ?? '';
   const hasFilters = !!(filters.q || seg);
   const segments: [string, string, number][] = [
-    ['', 'الكل', summary.total], ['open', 'مفتوحة', summary.openCount], ['ready', 'جاهزة للصرف', summary.readyCount],
-    ['pending', 'قيد الاعتماد', summary.pending], ['waiting_for_provider', 'بانتظار المزوّد', summary.waiting],
-    ['paid', 'مدفوعة', summary.paid], ['failed', 'فاشلة', summary.failed],
+    ['', t('payouts.seg_all'), summary.total], ['open', t('payouts.seg_open'), summary.openCount], ['ready', t('payouts.seg_ready'), summary.readyCount],
+    ['pending', t('payouts.seg_pending'), summary.pending], ['waiting_for_provider', t('payouts.seg_waiting'), summary.waiting],
+    ['paid', t('payouts.seg_paid'), summary.paid], ['failed', t('payouts.seg_failed'), summary.failed],
   ];
 
   return (
-    <AppShell heading="المستحقات">
-      <Head title="المستحقات" />
+    <AppShell heading={t('payouts.title')}>
+      <Head title={t('payouts.title')} />
 
-      <ListHead eyebrow="المالية" title="المستحقات"
-        sub="مستحقات المبدعين: اعتماد، جدولة، وتسجيل الصرف — النظام لا ينفّذ تحويلات (تسجيل يدوي)"
+      <ListHead eyebrow={t('payouts.eyebrow')} title={t('payouts.title')}
+        sub={t('payouts.sub')}
         actions={<span style={{ display: 'inline-flex', gap: '.4rem', alignItems: 'center' }}>
           <ExportButtons path="/payouts/export" filters={filters as Record<string, string>} />
-          {canCreate && <button onClick={() => setCreateOpen(true)} className="btn btn-sm btn-primary"><Icon name="plus" size={15} /> مستحق جديد</button>}
+          {canCreate && <button onClick={() => setCreateOpen(true)} className="btn btn-sm btn-primary"><Icon name="plus" size={15} /> {t('payouts.new_payout')}</button>}
         </span>} />
 
       <div className="ih-kpis">
-        <Kpi label="مستحق مفتوح" icon="wallet" tone="warning" value={<>{kfmt(summary.openMinor)} <small>ر.س</small></>} sub={`${summary.openCount} دفعة`} />
-        <Kpi label="جاهز للصرف" icon="wallet" tone="accent" value={<>{kfmt(summary.readyMinor)} <small>ر.س</small></>} sub={`${summary.readyCount} معتمدة/مجدولة`} />
-        <Kpi label="مدفوع" icon="shield-check" tone="success" value={<>{kfmt(summary.paidMinor)} <small>ر.س</small></>} sub={`${summary.paid} دفعة`} />
-        <Kpi label="بانتظار المزوّد" icon="clipboard-check" value={summary.waiting.toLocaleString('en-US')} sub={`${summary.failed} فاشلة`} />
+        <Kpi label={t('payouts.kpi_open')} icon="wallet" tone="warning" value={<>{kfmt(summary.openMinor)} <small>ر.س</small></>} sub={t('payouts.kpi_open_sub', { n: summary.openCount })} />
+        <Kpi label={t('payouts.kpi_ready')} icon="wallet" tone="accent" value={<>{kfmt(summary.readyMinor)} <small>ر.س</small></>} sub={t('payouts.kpi_ready_sub', { n: summary.readyCount })} />
+        <Kpi label={t('payouts.kpi_paid')} icon="shield-check" tone="success" value={<>{kfmt(summary.paidMinor)} <small>ر.س</small></>} sub={t('payouts.kpi_paid_sub', { n: summary.paid })} />
+        <Kpi label={t('payouts.kpi_waiting')} icon="clipboard-check" value={summary.waiting.toLocaleString('en-US')} sub={t('payouts.kpi_waiting_sub', { n: summary.failed })} />
       </div>
 
       {/* نظرة الصرف — توزيع المبالغ على مراحل الالتزام (مبالغ فعلية، شرائح غير متداخلة).
@@ -102,15 +104,15 @@ export default function PayoutsIndex({ payouts, filters, summary, canCreate, cre
         const totalMinor = inProcessMinor + summary.readyMinor + summary.paidMinor;
         if (totalMinor <= 0) return null;
         const segs = [
-          { label: 'قيد الإجراء', value: inProcessMinor, color: 'var(--ih-warning-ink, #B54708)' },
-          { label: 'جاهز للصرف', value: summary.readyMinor, color: 'var(--ih-primary, #5B45E0)' },
-          { label: 'مدفوع', value: summary.paidMinor, color: 'var(--ih-success-700, #067647)' },
+          { label: t('payouts.stage_in_process'), value: inProcessMinor, color: 'var(--ih-warning-ink, #B54708)' },
+          { label: t('payouts.stage_ready'), value: summary.readyMinor, color: 'var(--ih-primary, #5B45E0)' },
+          { label: t('payouts.stage_paid'), value: summary.paidMinor, color: 'var(--ih-success-700, #067647)' },
         ];
         return (
           <div className="card" style={{ padding: '1.1rem 1.3rem', marginBottom: '1.2rem', display: 'flex', alignItems: 'center', gap: '1.6rem', flexWrap: 'wrap' }}>
-            <Donut segments={segs} size={120} centerValue={`${kfmt(totalMinor)}`} centerLabel="إجمالي ر.س" ariaLabel={segs.map((s) => `${s.label}: ${kfmt(s.value)} ر.س`).join('، ')} />
+            <Donut segments={segs} size={120} centerValue={`${kfmt(totalMinor)}`} centerLabel={t('payouts.donut_center')} ariaLabel={segs.map((s) => `${s.label}: ${kfmt(s.value)} ر.س`).join('، ')} />
             <div style={{ flex: 1, minWidth: 200, display: 'grid', gap: '.55rem' }}>
-              <div style={{ fontWeight: 800, fontSize: '.95rem' }}>المستحقات حسب المرحلة</div>
+              <div style={{ fontWeight: 800, fontSize: '.95rem' }}>{t('payouts.donut_title')}</div>
               {segs.map((s) => (
                 <div key={s.label} style={{ display: 'flex', alignItems: 'center', gap: '.5rem', fontSize: '.85rem' }}>
                   <span style={{ width: 10, height: 10, borderRadius: 3, background: s.color, flexShrink: 0 }} />
@@ -131,7 +133,7 @@ export default function PayoutsIndex({ payouts, filters, summary, canCreate, cre
 
       <div className="ih-filterbar">
         <label className="ih-search"><Icon name="search" size={16} />
-          <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="ابحث برقم المستحق أو المبدع…" />
+          <input value={q} onChange={(e) => setQ(e.target.value)} placeholder={t('payouts.search_placeholder')} />
         </label>
       </div>
 
@@ -139,16 +141,16 @@ export default function PayoutsIndex({ payouts, filters, summary, canCreate, cre
         <div className="ih-dt-wrap"><div className="ih-empty">
           <span className="ih-empty__icon" style={{ background: 'var(--ih-success-soft)', color: 'var(--ih-success-ink)' }}><Icon name="wallet" size={26} /></span>
           {hasFilters ? (
-            <><div className="ih-empty__title">لا مستحقات مطابقة</div><div className="ih-empty__text">لا نتائج للبحث أو الشريحة الحالية.</div><a href={u("/payouts")} className="btn btn-sm btn-outline">مسح الفلاتر</a></>
+            <><div className="ih-empty__title">{t('payouts.empty_filtered_title')}</div><div className="ih-empty__text">{t('payouts.empty_filtered_text')}</div><a href={u("/payouts")} className="btn btn-sm btn-outline">{t('payouts.clear_filters')}</a></>
           ) : (
-            <><div className="ih-empty__title">لا مستحقات بعد</div><div className="ih-empty__text">تظهر هنا مستحقات المبدعين عند إنشائها.</div></>
+            <><div className="ih-empty__title">{t('payouts.empty_title')}</div><div className="ih-empty__text">{t('payouts.empty_text')}</div></>
           )}
         </div></div>
       ) : (
         <>
           {/* صرف المستحقات — مقسّم حسب جاهزية الصرف، والمتأخر ظاهر */}
           <div className="ih-only-desktop">
-            {([['ready', 'جاهز للصرف'], ['pending', 'بانتظار الاعتماد'], ['paid', 'مدفوع'], ['closed', 'مغلق']] as [string, string][]).map(([bk, label]) => {
+            {([['ready', t('payouts.b_ready')], ['pending', t('payouts.b_pending')], ['paid', t('payouts.b_paid')], ['closed', t('payouts.b_closed')]] as [string, string][]).map(([bk, label]) => {
               const grp = payouts.data.filter((p) => p.bucket === bk);
               if (grp.length === 0) return null;
               const total = grp.reduce((t, p) => t + p.amountMinor, 0);
@@ -170,7 +172,7 @@ export default function PayoutsIndex({ payouts, filters, summary, canCreate, cre
                         </div>
                         {p.dueDate && (
                           <span style={{ fontSize: '.73rem', direction: 'ltr', color: p.overdue ? 'var(--ih-danger-ink)' : 'var(--ih-text-muted)', fontWeight: p.overdue ? 700 : 400, flexShrink: 0 }}>
-                            {p.overdue ? 'تأخر ' : ''}{p.dueDate}
+                            {p.overdue ? `${t('payouts.overdue_prefix')} ` : ''}{p.dueDate}
                           </span>
                         )}
                         <span style={{ fontWeight: 700, direction: 'ltr', fontSize: '.88rem', flexShrink: 0 }}>{kfmt(p.amountMinor)} ر.س</span>
@@ -181,7 +183,7 @@ export default function PayoutsIndex({ payouts, filters, summary, canCreate, cre
                 </div>
               );
             })}
-            <div className="ih-dt__foot"><span>{payouts.total} مستحق</span><Pagination links={payouts.links} /></div>
+            <div className="ih-dt__foot"><span>{t('payouts.count_item', { n: payouts.total })}</span><Pagination links={payouts.links} /></div>
           </div>
 
           <div className="ih-only-mobile">
@@ -209,37 +211,37 @@ export default function PayoutsIndex({ payouts, filters, summary, canCreate, cre
       {createOpen && (
         <div className="modal-backdrop" onClick={(e) => e.target === e.currentTarget && !busy && setCreateOpen(false)}>
           <div className="modal" style={{ padding: '1.3rem', maxWidth: 520 }}>
-            <h3 style={{ fontWeight: 800, margin: '0 0 .3rem' }}>مستحق جديد</h3>
+            <h3 style={{ fontWeight: 800, margin: '0 0 .3rem' }}>{t('payouts.new_payout')}</h3>
             <p style={{ margin: '0 0 1rem', fontSize: '.78rem', color: 'var(--ih-text-muted)' }}>
-              يُسجَّل المستحق للمتابعة والاعتماد فقط — لا ينفّذ النظام أي تحويل مالي.
+              {t('payouts.modal_note')}
             </p>
             <div style={{ display: 'grid', gap: '.8rem' }}>
-              <Field label="المبدع" labelStyle={LBL}>
+              <Field label={t('payouts.f_creator')} labelStyle={LBL}>
                 <select value={form.creator_id} onChange={(e) => setForm({ ...form, creator_id: e.target.value })} className="field" style={{ width: '100%' }} autoFocus>
-                  <option value="">— اختر —</option>
+                  <option value="">{t('payouts.choose')}</option>
                   {creatorOptions.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
                 </select>
                 {errors.creator_id && <div style={{ color: 'var(--ih-danger-ink)', fontSize: '.76rem', marginTop: '.3rem' }}>{errors.creator_id}</div>}
               </Field>
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '.8rem' }}>
-                <Field label="المبلغ (ر.س)" labelStyle={LBL}>
+                <Field label={t('payouts.f_amount')} labelStyle={LBL}>
                   <input type="number" min={0} step="0.01" value={form.amount} onChange={(e) => setForm({ ...form, amount: e.target.value })}
                     className="field" style={{ width: '100%', direction: 'ltr' }} placeholder="13500" />
                   {errors.amount_minor && <div style={{ color: 'var(--ih-danger-ink)', fontSize: '.76rem', marginTop: '.3rem' }}>{errors.amount_minor}</div>}
                 </Field>
-                <Field label="تاريخ الاستحقاق" labelStyle={LBL}>
+                <Field label={t('payouts.f_due')} labelStyle={LBL}>
                   <input type="date" value={form.due_date} onChange={(e) => setForm({ ...form, due_date: e.target.value })} className="field" style={{ width: '100%', direction: 'ltr' }} />
                 </Field>
               </div>
-              <Field label="الوصف" labelStyle={LBL}>
+              <Field label={t('payouts.f_description')} labelStyle={LBL}>
                 <input value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })}
-                  className="field" style={{ width: '100%' }} placeholder="أجر تعاون حملة…" />
+                  className="field" style={{ width: '100%' }} placeholder={t('payouts.desc_placeholder')} />
               </Field>
               {errors.payout && <div style={{ color: 'var(--ih-danger-ink)', fontSize: '.8rem' }}>{errors.payout}</div>}
             </div>
             <div style={{ marginTop: '1rem', display: 'flex', gap: '.5rem' }}>
-              <button disabled={busy || !form.creator_id || !form.amount} onClick={submitCreate} className="btn btn-primary">إنشاء المستحق</button>
-              <button disabled={busy} onClick={() => setCreateOpen(false)} className="btn btn-ghost">إلغاء</button>
+              <button disabled={busy || !form.creator_id || !form.amount} onClick={submitCreate} className="btn btn-primary">{t('payouts.create')}</button>
+              <button disabled={busy} onClick={() => setCreateOpen(false)} className="btn btn-ghost">{t('payouts.cancel')}</button>
             </div>
           </div>
         </div>
