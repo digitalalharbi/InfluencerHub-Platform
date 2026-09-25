@@ -28,3 +28,7 @@ Schedule::command('invoices:scan-overdue')->dailyAt('08:00')->withoutOverlapping
 // تذكير موعد نشر المحتوى المُجدوَل — كل ساعة؛ تذكير مرّة واحدة (علامة publish_reminded_at
 // تمنع التكرار). مبنيّ على scheduled_at الحقيقيّة؛ قفل قصير الصلاحية (50د) يتعافى ذاتيًّا.
 Schedule::command('content:scan-publishing')->hourly()->withoutOverlapping(50);
+
+// تذكير ردّ المؤثر على عروض التعاون المعلّقة (>٤٨ ساعة) — كل ساعة؛ تذكير مرّة واحدة
+// (علامة response_reminded_at تمنع التكرار). مبنيّ على offered_at الحقيقيّة.
+Schedule::command('collaborations:scan-pending-response')->hourly()->withoutOverlapping(50);
