@@ -24,3 +24,7 @@ Schedule::command('reports:run-scheduled')->hourly()->withoutOverlapping(50);
 // متابعة الفواتير المتأخّرة — يوميًّا؛ تذكير مرّة واحدة لكل فاتورة (علامة overdue_notified_at
 // تمنع التكرار، فإعادة التشغيل آمنة). مبنيّ على due_date الحقيقيّة لا على موعد مُختلَق.
 Schedule::command('invoices:scan-overdue')->dailyAt('08:00')->withoutOverlapping(50);
+
+// تذكير موعد نشر المحتوى المُجدوَل — كل ساعة؛ تذكير مرّة واحدة (علامة publish_reminded_at
+// تمنع التكرار). مبنيّ على scheduled_at الحقيقيّة؛ قفل قصير الصلاحية (50د) يتعافى ذاتيًّا.
+Schedule::command('content:scan-publishing')->hourly()->withoutOverlapping(50);
