@@ -3,6 +3,7 @@ import { useState, type ReactNode } from 'react';
 import AppShell from '@/Layouts/AppShell';
 import { Field, Sec, StatusBadge, SummaryStrip, WorkTabs, WorkspaceHeader, sarShort } from '@/Components/ui';
 import { ProgressRing, Donut, Legend } from '@/Components/Charts';
+import { OverflowMenu } from '@/Components/OverflowMenu';
 import { Icon } from '@/Components/Icon';
 import { PdfPreviewModal, type PreviewDoc } from '@/Components/PdfPreviewModal';
 import { u } from '@/lib/href';
@@ -171,14 +172,15 @@ export default function CampaignShow({ campaign, metrics, command, lifecycle, re
 
         actions={
           <>
-            {canManage && <button onClick={openEdit} className="btn btn-sm btn-outline"><Icon name="file-text" size={14} /> تعديل</button>}
-            <button onClick={() => setBriefOpen(true)} className="btn btn-sm btn-outline" title="معاينة ملخّص PDF آمن للعميل">
-              <Icon name="file-text" size={14} /> ملخّص للعميل{documents.clientBrief.stale && <span style={{ width: 7, height: 7, borderRadius: '50%', background: 'var(--ih-warning-ink, #B54708)', display: 'inline-block', marginInlineStart: 5 }} />}
-            </button>
-            <a href={u(`/campaigns/${campaign.id}/shortlist`)} className="btn btn-sm">الترشيحات</a>
+            {/* الإجراء الرئيسي (الترشيحات) + إجراءات الحالة من الخادم ظاهرة؛ الثانوي تحت «المزيد». */}
             {actions.map((a) => (
               <button key={a[0]} onClick={() => runAction(a)} className={`btn btn-sm ${ABTN[a[2]] ?? 'btn-outline'}`}>{a[1]}</button>
             ))}
+            <a href={u(`/campaigns/${campaign.id}/shortlist`)} className="btn btn-sm">الترشيحات</a>
+            <OverflowMenu items={[
+              ...(canManage ? [{ label: 'تعديل الحملة', icon: 'file-text' as const, onClick: openEdit }] : []),
+              { label: documents.clientBrief.stale ? 'ملخّص للعميل (يحتاج تحديثًا)' : 'ملخّص للعميل', icon: 'file-text' as const, onClick: () => setBriefOpen(true) },
+            ]} />
           </>
         }
       />
