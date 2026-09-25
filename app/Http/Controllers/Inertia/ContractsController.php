@@ -38,7 +38,7 @@ class ContractsController extends Controller
             'number' => $c->contract_number,
             'title' => $c->title,
             'party' => $c->party_type === 'creator' ? ($c->creator?->display_name) : ($c->client?->display_name),
-            'partyType' => $c->party_type === 'creator' ? 'مبدع' : 'عميل',
+            'partyType' => $c->party_type === 'creator' ? trans('contracts.pt_creator') : trans('contracts.pt_client'),
             'valueMinor' => (int) $c->value_minor,
             'currency' => $c->currency,
             'endDate' => $c->end_date?->format('Y-m-d'),
