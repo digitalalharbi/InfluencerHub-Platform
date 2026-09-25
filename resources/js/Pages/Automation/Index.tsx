@@ -7,8 +7,9 @@ import { u } from '@/lib/href';
 import type { SharedProps } from '@/types';
 
 interface Rule {
-  id: number; name: string; key: string; trigger: string; triggerLabel: string; enabled: boolean;
-  isSystem: boolean; conditions: { field: string; op: string; value: unknown }[]; actions: string[]; lastRun: string | null;
+  id: number; name: string; key: string; trigger: string; triggerLabel: string; description: string; enabled: boolean;
+  isSystem: boolean; conditions: { field: string; op: string; value: unknown }[]; actions: string[];
+  lastRun: string | null; runCount: number; failures: number;
 }
 interface Run { id: number; trigger: string; status: string; eventKey: string | null; actions: string[]; error: string | null; at: string | null }
 interface Props { rules: Rule[]; runs: Run[] }
@@ -56,30 +57,33 @@ export default function AutomationIndex({ rules, runs }: Props) {
         );
       })()}
 
+      {/* القواعد — بطاقات مقروءة للإنسان: «متى ← ماذا» + إحصاء التشغيل، بلا مصطلحات محفّز/حدث. */}
       <div className="ih-sec" style={{ marginBottom: '1.2rem' }}>
         <div className="ih-sec__head"><span className="ih-sec__title"><Icon name="sparkles" size={16} /> القواعد</span></div>
-        <div className="ih-dt-wrap"><div className="ih-dt-scroll">
-          <table className="ih-dt">
-            <thead><tr><th>القاعدة</th><th>المحفّز</th><th>الشروط</th><th>الإجراءات</th><th>آخر تنفيذ</th><th>الحالة</th></tr></thead>
-            <tbody>
-              {rules.map((r) => (
-                <tr key={r.id}>
-                  <td><span style={{ fontWeight: 600 }}>{r.name}</span>{r.isSystem && <span className="ih-tag" style={{ fontSize: '.58rem', marginInlineStart: '.4rem' }}>نظام</span>}</td>
-                  <td>{r.triggerLabel}</td>
-                  <td style={{ fontSize: '.78rem', color: 'var(--ih-text-muted)' }}>{r.conditions.length ? r.conditions.map((c) => `${c.field} ${c.op} ${String(c.value)}`).join('، ') : 'بلا شرط'}</td>
-                  <td>{r.actions.map((a, i) => <span key={i} className="ih-tag" style={{ fontSize: '.62rem', marginInlineEnd: '.25rem' }}>{a}</span>)}</td>
-                  <td style={{ direction: 'ltr', fontSize: '.78rem', color: 'var(--ih-text-muted)' }}>{r.lastRun ?? '—'}</td>
-                  <td>
-                    <button onClick={() => toggle(r.id)} className={`btn btn-xs ${r.enabled ? 'btn-outline' : 'btn-primary'}`}>
-                      {r.enabled ? 'تعطيل' : 'تفعيل'}
-                    </button>
-                    <StatusBadge tone={r.enabled ? 'active' : 'draft'} label={r.enabled ? 'مُفعّلة' : 'معطّلة'} />
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div></div>
+        <div style={{ display: 'grid', gap: '.6rem', padding: '.6rem' }}>
+          {rules.map((r) => (
+            <div key={r.id} className="card" style={{ padding: '.85rem 1rem', display: 'flex', alignItems: 'center', gap: '1rem', flexWrap: 'wrap', opacity: r.enabled ? 1 : 0.7 }}>
+              <div style={{ flex: 1, minWidth: 220 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '.45rem', flexWrap: 'wrap' }}>
+                  <span style={{ fontWeight: 800, fontSize: '.9rem' }}>{r.name}</span>
+                  {r.isSystem && <span className="ih-tag" style={{ fontSize: '.58rem' }}>نظام</span>}
+                  <StatusBadge tone={r.enabled ? 'active' : 'draft'} label={r.enabled ? 'مُفعّلة' : 'معطّلة'} />
+                </div>
+                <div style={{ fontSize: '.82rem', color: 'var(--ih-text-secondary)', marginTop: '.3rem' }}>{r.description}</div>
+                <div style={{ fontSize: '.72rem', color: 'var(--ih-text-muted)', marginTop: '.35rem', display: 'flex', gap: '.8rem', flexWrap: 'wrap' }}>
+                  <span>نُفِّذت <b style={{ color: 'var(--ih-text)' }}>{r.runCount.toLocaleString('en-US')}</b> مرة</span>
+                  <span>آخر تنفيذ: <span style={{ direction: 'ltr', display: 'inline-block' }}>{r.lastRun ?? '—'}</span></span>
+                  {r.failures > 0
+                    ? <span style={{ color: 'var(--ih-danger-ink)', fontWeight: 700 }}>{r.failures.toLocaleString('en-US')} فشل</span>
+                    : <span style={{ color: 'var(--ih-success-ink)' }}>بلا أعطال</span>}
+                </div>
+              </div>
+              <button onClick={() => toggle(r.id)} className={`btn btn-xs ${r.enabled ? 'btn-outline' : 'btn-primary'}`} style={{ flexShrink: 0 }}>
+                {r.enabled ? 'تعطيل' : 'تفعيل'}
+              </button>
+            </div>
+          ))}
+        </div>
       </div>
 
       <div className="ih-sec">
