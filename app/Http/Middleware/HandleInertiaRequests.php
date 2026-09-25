@@ -82,6 +82,7 @@ class HandleInertiaRequests extends Middleware
                 'clients' => (array) trans('clients'),
                 'contracts' => (array) trans('contracts'),
                 'payouts' => (array) trans('payouts'),
+                'invoices' => (array) trans('invoices'),
             ],
             'base' => MountPrefix::for($request),
             // معاينة مالك المنصّة (§P3) — يُشارَك فقط داخل معاينة نشطة. الرمز يمرَّر
