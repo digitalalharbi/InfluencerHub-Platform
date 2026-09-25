@@ -3,6 +3,7 @@
 namespace App\Domain\AdminPool\Models;
 
 use App\Domain\AdminPool\Support\CreatorNormalizer;
+use App\Support\Platforms\PlatformRegistry;
 use Illuminate\Database\Eloquent\Model;
 
 /**
@@ -42,7 +43,7 @@ class PoolCreator extends Model
             'id' => $this->id,
             'name' => $this->name,
             'platform' => $this->platform,
-            'platformLabel' => self::PLATFORM_LABELS[$this->platform] ?? $this->platform,
+            'platformLabel' => self::platformLabel($this->platform),
             'accountUrl' => $this->account_url,
             'phone' => $this->phone,
             'followers' => $this->followers,
@@ -66,16 +67,25 @@ class PoolCreator extends Model
         ];
     }
 
-    public const PLATFORM_LABELS = [
-        'snapchat' => 'سناب شات', 'tiktok' => 'تيك توك',
-        'linkedin' => 'لينكدإن', 'x' => 'إكس', 'instagram' => 'إنستغرام',
-    ];
-
-    /** تصنيف المبدع المعروض للمستأجر (لا «مصدر»): celebrity→مؤثّر، ugc→صانع UGC. */
+    /** تصنيف المبدع المعروض للمستأجر (لا «مصدر»): celebrity→مؤثّر، ugc→صانع UGC. مصدر احتياطيّ عربيّ. */
     public const CREATOR_TYPE_LABELS = [
         'celebrity' => 'مؤثّر',
         'ugc' => 'صانع UGC',
     ];
+
+    /** اسم المنصّة بلغة الطلب — من المصدر الوحيد PlatformRegistry (لا خريطة مكرّرة). */
+    public static function platformLabel(?string $key): string
+    {
+        return PlatformRegistry::label((string) $key);
+    }
+
+    /** تسمية تصنيف المبدع بلغة الطلب، مع رجوع للثابت العربيّ إن غابت الترجمة. */
+    public static function creatorTypeLabel(string $type): string
+    {
+        $t = trans("creator_database.type_$type");
+
+        return (is_string($t) && $t !== "creator_database.type_$type") ? $t : (self::CREATOR_TYPE_LABELS[$type] ?? $type);
+    }
 
     /**
      * تمثيل «قاعدة المؤثرين» المعروض للمستأجر — منتج اكتشاف المبدعين.
@@ -97,7 +107,7 @@ class PoolCreator extends Model
             'id' => $this->id,
             'name' => $this->name,
             'platform' => $this->platform,
-            'platformLabel' => self::PLATFORM_LABELS[$this->platform] ?? $this->platform,
+            'platformLabel' => self::platformLabel($this->platform),
             'accountUrl' => $this->account_url,
             'followers' => $this->followers,
             'likes' => $this->likes,
@@ -110,11 +120,11 @@ class PoolCreator extends Model
             'rating' => $this->rating,
             // تصنيف لا مصدر — الكلمة «مصدر» لا تُستخدم في المنتج
             'creatorType' => $type,
-            'creatorTypeLabel' => self::CREATOR_TYPE_LABELS[$type],
+            'creatorTypeLabel' => self::creatorTypeLabel($type),
             // سعر مرجعي غير مضمون (سعر البيع فقط، لا التكلفة). التفاوض الفعلي في بيانات المستأجر
             'referenceRate' => $riyals($this->price_coverage_minor ?? $this->price_post_minor),
-            'referenceRateNote' => 'سعر مرجعي مسجّل — غير مضمون؛ يُتفاوَض عليه مع المبدع',
-            'dataFreshness' => 'بيانات مسجّلة',
+            'referenceRateNote' => trans('creator_database.reference_rate_note'),
+            'dataFreshness' => trans('creator_database.data_freshness'),
             'lastImportedAt' => optional($this->imported_at)?->toDateString(),
             'matchScore' => $match['score'] ?? null,
             'matchReasons' => $match['reasons'] ?? [],
