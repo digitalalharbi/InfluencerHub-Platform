@@ -27,6 +27,28 @@ class AutomationController extends Controller
     ];
     private const ACTION_LABEL = ['notify' => 'إشعار', 'create_task' => 'إنشاء مهمة', 'escalate' => 'تصعيد'];
 
+    // وصف بلغة المستخدم لكل محفّز: «متى» يعمل التشغيل — لا مصطلحات أحداث تقنية.
+    private const TRIGGER_DESC = [
+        'service_request.created' => 'عند إنشاء طلب خدمة جديد',
+        'service_request.assigned' => 'عند إسناد طلب إلى عضو',
+        'content.approved' => 'عند اعتماد محتوى',
+        'content.submitted' => 'عند تقديم محتوى للمراجعة',
+        'content.revision_requested' => 'عند طلب تعديل على محتوى',
+        'creator.declined' => 'عند اعتذار مبدع عن التعاون',
+    ];
+    // وصف بلغة المستخدم لكل إجراء: «ماذا» يحدث.
+    private const ACTION_DESC = ['notify' => 'يُرسَل إشعار للمعنيّ', 'create_task' => 'تُنشأ مهمة متابعة', 'escalate' => 'يُصعَّد الأمر للمسؤول'];
+
+    /** جملة «متى → ماذا» مقروءة للإنسان من محفّز القاعدة وأول إجراء فيها. */
+    private function humanDescription(AutomationRule $rule): string
+    {
+        $when = self::TRIGGER_DESC[$rule->trigger] ?? (self::TRIGGER_LABEL[$rule->trigger] ?? $rule->trigger);
+        $firstAction = collect($rule->actions ?? [])->first()['type'] ?? null;
+        $then = $firstAction ? (self::ACTION_DESC[$firstAction] ?? null) : null;
+
+        return $then ? "{$when} ← {$then}" : $when;
+    }
+
     private function gate(Request $r): void
     {
         $u = $r->user();
@@ -43,13 +65,21 @@ class AutomationController extends Controller
         $lastRuns = AutomationRun::whereNotNull('rule_id')->where('status', 'executed')
             ->get(['rule_id', 'created_at'])->groupBy('rule_id')->map(fn ($g) => $g->max('created_at'));
 
+        // إحصاء التشغيل لكل قاعدة (تنفيذ/فشل) — تجميع واحد بلا N+1.
+        $runStats = AutomationRun::whereNotNull('rule_id')
+            ->selectRaw('rule_id, count(*) filter (where status = \'executed\') as executed, count(*) filter (where status = \'failed\') as failed')
+            ->groupBy('rule_id')->get()->keyBy('rule_id');
+
         $rules = AutomationRule::orderByDesc('is_system')->orderBy('priority')->get()->map(fn (AutomationRule $rule) => [
             'id' => $rule->id, 'name' => $rule->name, 'key' => $rule->key,
             'trigger' => $rule->trigger, 'triggerLabel' => self::TRIGGER_LABEL[$rule->trigger] ?? $rule->trigger,
+            'description' => $this->humanDescription($rule),
             'enabled' => $rule->enabled, 'isSystem' => $rule->is_system,
             'conditions' => $rule->conditions ?? [],
             'actions' => collect($rule->actions ?? [])->map(fn ($a) => self::ACTION_LABEL[$a['type'] ?? ''] ?? ($a['type'] ?? '?'))->values(),
             'lastRun' => optional($lastRuns[$rule->id] ?? null)?->format('Y-m-d H:i'),
+            'runCount' => (int) ($runStats[$rule->id]->executed ?? 0),
+            'failures' => (int) ($runStats[$rule->id]->failed ?? 0),
         ]);
 
         $runs = AutomationRun::with([])->latest('id')->limit(40)->get()->map(fn (AutomationRun $x) => [
