@@ -266,9 +266,9 @@ export default function CampaignShow({ campaign, metrics, command, lifecycle, re
         );
       })()}
 
+      {/* تقدّم الدورة وجاهزية التنفيذ تعرضهما الحلقة والدونات أعلاه — فلا تُكرَّر هنا.
+          يبقى ما لا يظهر في الرسوم: المخرجات وصنّاع المحتوى والمبلغ الملتزم. */}
       <SummaryStrip items={[
-        { label: 'تقدّم دورة الحملة', value: `${lifecycle.progress}%`, tone: 'primary' },
-        { label: 'جاهزية التنفيذ', value: `${readiness.ready}/${readiness.total}`, tone: readiness.blocked ? 'danger' : undefined },
         { label: 'المخرجات', value: metrics.deliverables, icon: 'image' },
         { label: 'صناع المحتوى', value: metrics.creators, icon: 'users' },
         { label: 'المبلغ الملتزم به', value: money(campaign.committedMinor, campaign.currency), tone: overBudget ? 'danger' : 'primary' },
@@ -353,7 +353,7 @@ export default function CampaignShow({ campaign, metrics, command, lifecycle, re
                   <div style={{ display: 'flex', alignItems: 'center', gap: '1.3rem', flexWrap: 'wrap', marginBottom: '1rem' }}>
                     <Donut segments={readySegs} size={116} centerValue={`${readiness.ready}/${readiness.total}`} centerLabel="جاهز" ariaLabel={readySegs.map((s) => `${s.label}: ${s.value}`).join('، ')} />
                     <div style={{ flex: 1, minWidth: 170 }}>
-                      <div style={{ fontWeight: 800, fontSize: '.9rem', marginBottom: '.5rem' }}>جاهزية التنفيذ — {readiness.percent}٪</div>
+                      <div style={{ fontWeight: 800, fontSize: '.9rem', marginBottom: '.5rem' }}>{readiness.percent}٪ جاهز للتنفيذ</div>
                       <Legend segments={readySegs} />
                     </div>
                   </div>
