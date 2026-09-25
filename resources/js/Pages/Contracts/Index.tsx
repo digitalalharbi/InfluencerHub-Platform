@@ -5,6 +5,7 @@ import { Field, Kpi, ListHead, StatusBadge } from '@/Components/ui';
 import { Icon } from '@/Components/Icon';
 import { Pagination, type Paginated } from '@/Components/Pagination';
 import { u } from '@/lib/href';
+import { useT } from '@/lib/i18n';
 
 interface ContractRow {
   id: number; number: string; title: string; party: string | null; partyType: string;
@@ -37,6 +38,7 @@ function clean(obj: Record<string, unknown>): Record<string, string> {
 }
 
 export default function ContractsIndex({ contracts, filters, summary, canCreate, creatorOptions, clientOptions }: Props) {
+  const t = useT();
   const [createOpen, setCreateOpen] = useState(false);
   const [busy, setBusy] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
@@ -76,24 +78,24 @@ export default function ContractsIndex({ contracts, filters, summary, canCreate,
   const seg = filters.seg ?? '';
   const hasFilters = !!(filters.q || seg);
   const segments: [string, string, number][] = [
-    ['', 'الكل', summary.total], ['draft', 'مسودة', summary.draft], ['sent', 'مُرسَل', summary.sent],
-    ['signed', 'مُوقَّع', summary.signed], ['active', 'نافذ', summary.active], ['completed', 'مكتمل', summary.completed],
-    ['terminated', 'مُنهى', summary.terminated], ['cancelled', 'ملغى', summary.cancelled],
+    ['', t('contracts.seg_all'), summary.total], ['draft', t('contracts.seg_draft'), summary.draft], ['sent', t('contracts.seg_sent'), summary.sent],
+    ['signed', t('contracts.seg_signed'), summary.signed], ['active', t('contracts.seg_active'), summary.active], ['completed', t('contracts.seg_completed'), summary.completed],
+    ['terminated', t('contracts.seg_terminated'), summary.terminated], ['cancelled', t('contracts.seg_cancelled'), summary.cancelled],
   ];
 
   return (
-    <AppShell heading="العقود">
-      <Head title="العقود" />
+    <AppShell heading={t('contracts.title')}>
+      <Head title={t('contracts.title')} />
 
-      <ListHead eyebrow="التشغيل" title="العقود"
-        sub="عقود العملاء والمبدعين: إصدار، إرسال، تفعيل، ومتابعة القيمة والمدة"
-        actions={canCreate ? <button onClick={() => setCreateOpen(true)} className="btn btn-sm btn-primary"><Icon name="plus" size={15} /> عقد جديد</button> : undefined} />
+      <ListHead eyebrow={t('contracts.eyebrow')} title={t('contracts.title')}
+        sub={t('contracts.sub')}
+        actions={canCreate ? <button onClick={() => setCreateOpen(true)} className="btn btn-sm btn-primary"><Icon name="plus" size={15} /> {t('contracts.new_contract')}</button> : undefined} />
 
       <div className="ih-kpis">
-        <Kpi label="عقود نافذة" icon="file-text" tone="accent" value={summary.active.toLocaleString('en-US')} sub={`${summary.signed} مُوقَّع`} />
-        <Kpi label="بانتظار التوقيع" icon="clipboard-check" tone={summary.sent ? 'warning' : undefined} value={summary.sent.toLocaleString('en-US')} sub="مُرسَلة للطرف المقابل" />
-        <Kpi label="قيمة العقود النافذة" icon="wallet" tone="success" value={<>{kfmt(summary.activeValueMinor)} <small>ر.س</small></>} sub="موقّعة/نافذة" />
-        <Kpi label="مكتملة" icon="shield-check" value={summary.completed.toLocaleString('en-US')} sub={`${summary.draft} مسودة`} />
+        <Kpi label={t('contracts.kpi_active')} icon="file-text" tone="accent" value={summary.active.toLocaleString('en-US')} sub={t('contracts.kpi_active_sub', { n: summary.signed })} />
+        <Kpi label={t('contracts.kpi_awaiting')} icon="clipboard-check" tone={summary.sent ? 'warning' : undefined} value={summary.sent.toLocaleString('en-US')} sub={t('contracts.kpi_awaiting_sub')} />
+        <Kpi label={t('contracts.kpi_active_value')} icon="wallet" tone="success" value={<>{kfmt(summary.activeValueMinor)} <small>ر.س</small></>} sub={t('contracts.kpi_active_value_sub')} />
+        <Kpi label={t('contracts.kpi_completed')} icon="shield-check" value={summary.completed.toLocaleString('en-US')} sub={t('contracts.kpi_completed_sub', { n: summary.draft })} />
       </div>
 
       <div className="ih-chips" style={{ marginBottom: '.9rem', overflowX: 'auto', paddingBottom: '.2rem', flexWrap: 'nowrap' }}>
@@ -104,7 +106,7 @@ export default function ContractsIndex({ contracts, filters, summary, canCreate,
 
       <div className="ih-filterbar">
         <label className="ih-search"><Icon name="search" size={16} />
-          <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="ابحث بعنوان العقد أو الرقم…" />
+          <input value={q} onChange={(e) => setQ(e.target.value)} placeholder={t('contracts.search_placeholder')} />
         </label>
       </div>
 
@@ -112,16 +114,16 @@ export default function ContractsIndex({ contracts, filters, summary, canCreate,
         <div className="ih-dt-wrap"><div className="ih-empty">
           <span className="ih-empty__icon"><Icon name="file-text" size={26} /></span>
           {hasFilters ? (
-            <><div className="ih-empty__title">لا عقود مطابقة</div><div className="ih-empty__text">لا نتائج للبحث أو الشريحة الحالية.</div><a href={u("/contracts")} className="btn btn-sm btn-outline">مسح الفلاتر</a></>
+            <><div className="ih-empty__title">{t('contracts.empty_filtered_title')}</div><div className="ih-empty__text">{t('contracts.empty_filtered_text')}</div><a href={u("/contracts")} className="btn btn-sm btn-outline">{t('contracts.clear_filters')}</a></>
           ) : (
-            <><div className="ih-empty__title">لا عقود بعد</div><div className="ih-empty__text">تظهر هنا العقود الصادرة للعملاء والمبدعين.</div></>
+            <><div className="ih-empty__title">{t('contracts.empty_title')}</div><div className="ih-empty__text">{t('contracts.empty_text')}</div></>
           )}
         </div></div>
       ) : (
         <>
           {/* مساحة عقود — مقسّمة حسب مرحلة التوقيع مع تنبيهات الانتهاء */}
           <div className="ih-only-desktop">
-            {([['awaiting', 'بانتظار التوقيع'], ['active', 'سارية'], ['draft', 'مسودات'], ['closed', 'منتهية']] as [string, string][]).map(([bk, label]) => {
+            {([['awaiting', t('contracts.b_awaiting')], ['active', t('contracts.b_active')], ['draft', t('contracts.b_draft')], ['closed', t('contracts.b_closed')]] as [string, string][]).map(([bk, label]) => {
               const grp = contracts.data.filter((c) => c.bucket === bk);
               if (grp.length === 0) return null;
               return (
@@ -144,20 +146,20 @@ export default function ContractsIndex({ contracts, filters, summary, canCreate,
                           </div>
                         </div>
                         <div style={{ display: 'flex', alignItems: 'center', gap: '.4rem', marginTop: '.6rem', fontSize: '.71rem', color: 'var(--ih-text-muted)', flexWrap: 'wrap' }}>
-                          <span style={{ color: c.sentAt ? 'var(--ih-success-ink)' : undefined, fontWeight: c.sentAt ? 700 : 400 }}>أُرسل {c.sentAt ?? '—'}</span>
+                          <span style={{ color: c.sentAt ? 'var(--ih-success-ink)' : undefined, fontWeight: c.sentAt ? 700 : 400 }}>{t('contracts.sent_prefix')} {c.sentAt ?? '—'}</span>
                           <span style={{ opacity: .4 }}>←</span>
-                          <span style={{ color: c.signedAt ? 'var(--ih-success-ink)' : undefined, fontWeight: c.signedAt ? 700 : 400 }}>وُقّع {c.signedAt ?? '—'}</span>
-                          {c.endDate && <span style={{ marginInlineStart: 'auto', direction: 'ltr' }}>ينتهي {c.endDate}</span>}
+                          <span style={{ color: c.signedAt ? 'var(--ih-success-ink)' : undefined, fontWeight: c.signedAt ? 700 : 400 }}>{t('contracts.signed_prefix')} {c.signedAt ?? '—'}</span>
+                          {c.endDate && <span style={{ marginInlineStart: 'auto', direction: 'ltr' }}>{t('contracts.ends')} {c.endDate}</span>}
                         </div>
-                        {c.expiringSoon && <div className="ih-wcard__risk" style={{ background: 'var(--ih-warning-soft)', color: 'var(--ih-warning-ink)' }}>ينتهي خلال 30 يومًا</div>}
-                        {c.expired && <div className="ih-wcard__risk">منتهٍ</div>}
+                        {c.expiringSoon && <div className="ih-wcard__risk" style={{ background: 'var(--ih-warning-soft)', color: 'var(--ih-warning-ink)' }}>{t('contracts.expiring_soon')}</div>}
+                        {c.expired && <div className="ih-wcard__risk">{t('contracts.expired')}</div>}
                       </a>
                     ))}
                   </div>
                 </div>
               );
             })}
-            <div className="ih-dt__foot"><span>{contracts.total} عقد</span><Pagination links={contracts.links} /></div>
+            <div className="ih-dt__foot"><span>{t('contracts.count_item', { n: contracts.total })}</span><Pagination links={contracts.links} /></div>
           </div>
 
           <div className="ih-only-mobile">
@@ -172,8 +174,8 @@ export default function ContractsIndex({ contracts, filters, summary, canCreate,
                     <StatusBadge tone={c.statusTone} label={c.statusLabel} />
                   </div>
                   <div style={{ display: 'flex', gap: '.6rem', marginTop: '.7rem', fontSize: '.8rem', color: 'var(--ih-text-secondary)' }}>
-                    <span>القيمة <b style={{ direction: 'ltr', display: 'inline-block' }}>{kfmt(c.valueMinor)} {c.currency}</b></span>
-                    <span style={{ marginInlineStart: 'auto' }}>ينتهي {c.endDate ?? '—'}</span>
+                    <span>{t('contracts.m_value')} <b style={{ direction: 'ltr', display: 'inline-block' }}>{kfmt(c.valueMinor)} {c.currency}</b></span>
+                    <span style={{ marginInlineStart: 'auto' }}>{t('contracts.ends')} {c.endDate ?? '—'}</span>
                   </div>
                 </a>
               ))}
@@ -185,50 +187,50 @@ export default function ContractsIndex({ contracts, filters, summary, canCreate,
       {createOpen && (
         <div className="modal-backdrop" onClick={(e) => e.target === e.currentTarget && !busy && setCreateOpen(false)}>
           <div className="modal" style={{ padding: '1.3rem', maxWidth: 580 }}>
-            <h3 style={{ fontWeight: 800, margin: '0 0 1rem' }}>عقد جديد</h3>
+            <h3 style={{ fontWeight: 800, margin: '0 0 1rem' }}>{t('contracts.new_contract')}</h3>
             <div style={{ display: 'grid', gap: '.8rem' }}>
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '.8rem' }}>
-                <Field label="الطرف" labelStyle={LBL}>
+                <Field label={t('contracts.f_party')} labelStyle={LBL}>
                   <select value={form.party_type} onChange={(e) => setForm({ ...form, party_type: e.target.value, creator_id: '', client_id: '' })}
                     className="field" style={{ width: '100%' }}>
-                    <option value="creator">مبدع</option>
-                    <option value="client">عميل</option>
+                    <option value="creator">{t('contracts.pt_creator')}</option>
+                    <option value="client">{t('contracts.pt_client')}</option>
                   </select>
                 </Field>
-                <Field label={form.party_type === 'creator' ? 'المبدع' : 'العميل'} labelStyle={LBL}>
+                <Field label={form.party_type === 'creator' ? t('contracts.f_creator') : t('contracts.f_client')} labelStyle={LBL}>
                   <select value={partyId}
                     onChange={(e) => setForm({ ...form, [form.party_type === 'creator' ? 'creator_id' : 'client_id']: e.target.value })}
                     className="field" style={{ width: '100%' }}>
-                    <option value="">— اختر —</option>
+                    <option value="">{t('contracts.choose')}</option>
                     {parties.map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}
                   </select>
                 </Field>
               </div>
-              <Field label="عنوان العقد" labelStyle={LBL}>
+              <Field label={t('contracts.f_title')} labelStyle={LBL}>
                 <input value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })} className="field" style={{ width: '100%' }} autoFocus />
                 {errors.title && <div style={{ color: 'var(--ih-danger-ink)', fontSize: '.76rem', marginTop: '.3rem' }}>{errors.title}</div>}
               </Field>
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '.8rem' }}>
-                <Field label="القيمة (ر.س)" labelStyle={LBL}>
+                <Field label={t('contracts.f_value')} labelStyle={LBL}>
                   <input type="number" min={0} step="0.01" value={form.value} onChange={(e) => setForm({ ...form, value: e.target.value })}
                     className="field" style={{ width: '100%', direction: 'ltr' }} placeholder="0" />
                 </Field>
-                <Field label="البداية" labelStyle={LBL}>
+                <Field label={t('contracts.f_start')} labelStyle={LBL}>
                   <input type="date" value={form.start_date} onChange={(e) => setForm({ ...form, start_date: e.target.value })} className="field" style={{ width: '100%', direction: 'ltr' }} />
                 </Field>
-                <Field label="النهاية" labelStyle={LBL}>
+                <Field label={t('contracts.f_end')} labelStyle={LBL}>
                   <input type="date" value={form.end_date} onChange={(e) => setForm({ ...form, end_date: e.target.value })} className="field" style={{ width: '100%', direction: 'ltr' }} />
                   {errors.end_date && <div style={{ color: 'var(--ih-danger-ink)', fontSize: '.72rem', marginTop: '.3rem' }}>{errors.end_date}</div>}
                 </Field>
               </div>
-              <Field label="البنود" labelStyle={LBL}>
+              <Field label={t('contracts.f_terms')} labelStyle={LBL}>
                 <textarea value={form.terms} onChange={(e) => setForm({ ...form, terms: e.target.value })} className="field" rows={4} style={{ width: '100%' }} />
               </Field>
               {errors.contract && <div style={{ color: 'var(--ih-danger-ink)', fontSize: '.8rem' }}>{errors.contract}</div>}
             </div>
             <div style={{ marginTop: '1rem', display: 'flex', gap: '.5rem' }}>
-              <button disabled={busy || !partyId || !form.title.trim()} onClick={submitCreate} className="btn btn-primary">إنشاء مسودة</button>
-              <button disabled={busy} onClick={() => setCreateOpen(false)} className="btn btn-ghost">إلغاء</button>
+              <button disabled={busy || !partyId || !form.title.trim()} onClick={submitCreate} className="btn btn-primary">{t('contracts.create_draft')}</button>
+              <button disabled={busy} onClick={() => setCreateOpen(false)} className="btn btn-ghost">{t('contracts.cancel')}</button>
             </div>
           </div>
         </div>
