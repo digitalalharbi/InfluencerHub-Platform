@@ -18,9 +18,9 @@ class Collaboration extends Model
 
     protected $fillable = ['tenant_id', 'collaboration_number', 'creator_id', 'campaign_id', 'deliverable_id', 'shortlist_item_id', 'client_id',
         'title', 'brief', 'fee_minor', 'currency', 'status', 'due_date', 'decline_reason', 'submission_note',
-        'offered_at', 'responded_at', 'submitted_at', 'completed_at', 'created_by'];
+        'offered_at', 'responded_at', 'response_reminded_at', 'submitted_at', 'completed_at', 'created_by'];
 
-    protected $casts = ['fee_minor' => 'integer', 'due_date' => 'date', 'offered_at' => 'datetime', 'responded_at' => 'datetime', 'submitted_at' => 'datetime', 'completed_at' => 'datetime'];
+    protected $casts = ['fee_minor' => 'integer', 'due_date' => 'date', 'offered_at' => 'datetime', 'responded_at' => 'datetime', 'response_reminded_at' => 'datetime', 'submitted_at' => 'datetime', 'completed_at' => 'datetime'];
 
     public const STATUSES = ['offered', 'accepted', 'declined', 'in_progress', 'submitted', 'approved', 'completed', 'cancelled'];
 
