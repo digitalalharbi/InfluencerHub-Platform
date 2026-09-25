@@ -60,13 +60,18 @@ class CreatorDatabaseController extends Controller
             'shortlistRole' => $context ? ($roleByPool[$c->id] ?? null) : null,
         ]);
 
+        $facets = $this->facets();
+
         return Inertia::render('CreatorDatabase/Index', [
             'base' => $this->mountBase($r),
             'creators' => $rows,
             'filters' => $filters,
             'canContact' => $canContact,
             'canUseInCampaign' => Ability::can($role, Ability::USE_IN_CAMPAIGN),
-            'facets' => $this->facets(),
+            'facets' => $facets,
+            // تسميات المنصّات بلغة الطلب (من PlatformRegistry) لخيارات الفلتر — لا خريطة مكرّرة.
+            'platformLabels' => collect($facets['platforms'] ?? [])
+                ->keys()->mapWithKeys(fn ($k) => [$k => PoolCreator::platformLabel($k)])->all(),
             'summary' => ['total' => PoolCreator::count()],
             'campaignContext' => $context,
         ]);
