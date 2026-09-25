@@ -45,7 +45,7 @@ class RecommendationController extends Controller
             ->through(fn (PoolRecommendation $x) => [
                 'id' => $x->id,
                 'name' => $x->name,
-                'platformLabel' => PoolCreator::PLATFORM_LABELS[$x->platform] ?? $x->platform,
+                'platformLabel' => PoolCreator::platformLabel($x->platform),
                 'accountUrl' => $x->account_url,
                 'followers' => $x->followers,
                 'categories' => $x->categories ?? [],
