@@ -6,6 +6,7 @@ export interface OverflowItem {
   icon?: IconName;
   onClick?: () => void;
   href?: string;
+  download?: boolean;
   danger?: boolean;
 }
 
@@ -60,7 +61,7 @@ export function OverflowMenu({ items, label = 'المزيد', size = 'sm' }: { i
             const content = <>{it.icon && <Icon name={it.icon} size={16} />} {it.label}</>;
             const close = () => setOpen(false);
             return it.href ? (
-              <a key={i} href={it.href} role="menuitem" className={cls} style={style} onClick={close}>{content}</a>
+              <a key={i} href={it.href} role="menuitem" className={cls} style={style} onClick={close} {...(it.download ? { download: true } : {})}>{content}</a>
             ) : (
               <button key={i} type="button" role="menuitem" className={cls} style={style}
                 onClick={() => { close(); it.onClick?.(); }}>{content}</button>
