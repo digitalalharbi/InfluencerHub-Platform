@@ -6,6 +6,7 @@ import { Donut, Legend } from '@/Components/Charts';
 import { Icon } from '@/Components/Icon';
 import { u } from '@/lib/href';
 import { PdfPreviewModal, type PreviewDoc } from '@/Components/PdfPreviewModal';
+import { OverflowMenu } from '@/Components/OverflowMenu';
 
 interface Campaign { id: number; name: string; number: string; client: string | null; brand: string | null; budgetMinor: number; committedMinor: number }
 interface Version { number: number; status: string; statusLabel: string; statusTone: string; submittedAt: string | null; decidedAt: string | null }
@@ -132,9 +133,11 @@ export default function ShortlistIndex({ campaign, version, items, candidates, f
             <button onClick={() => setProposalOpen(true)} className="btn btn-sm btn-outline" title="معاينة مقترح PDF آمن للعميل">
               <Icon name="file-text" size={13} /> مقترح للعميل{documents.proposal.stale && <span style={{ width: 7, height: 7, borderRadius: '50%', background: 'var(--ih-warning-ink, #B54708)', display: 'inline-block', marginInlineStart: 5 }} />}
             </button>
-            <a href={u(`${base}/export?format=xlsx`)} className="btn btn-sm btn-outline" title="تصدير داخلي (Excel)" download><Icon name="external-link" size={13} /> Excel</a>
-            <a href={u(`${base}/export?format=csv`)} className="btn btn-sm btn-outline" title="تصدير داخلي (CSV)" download>CSV</a>
-            <a href={u(`${base}/export?format=pdf`)} className="btn btn-sm btn-outline" title="تصدير داخلي (PDF)" download>PDF</a>
+            <OverflowMenu label="تصدير" items={[
+              { label: 'Excel (‎.xlsx‎)', icon: 'external-link', href: u(`${base}/export?format=xlsx`), download: true },
+              { label: 'CSV', icon: 'external-link', href: u(`${base}/export?format=csv`), download: true },
+              { label: 'PDF', icon: 'file-text', href: u(`${base}/export?format=pdf`), download: true },
+            ]} />
             {canEdit ? (
               <>
                 <button disabled={busy || primary.length === 0} onClick={() => post(`${base}/submit`)} className="btn btn-sm">إرسال لاعتماد العميل</button>
