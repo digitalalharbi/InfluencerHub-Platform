@@ -14,4 +14,8 @@ return [
     'logout' => 'Sign out',
     'home' => 'Home',
     'list_separator' => ', ',
+    'notifications' => 'Notifications',
+    'notif_mark_all' => 'Mark all read',
+    'notif_view_all' => 'View all',
+    'notif_empty' => 'No notifications yet.',
 ];
