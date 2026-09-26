@@ -5,6 +5,9 @@ import { Bar, Field, Kpi, Sec, StatusBadge, SummaryStrip, WorkTabs, WorkspaceHea
 import { Icon } from '@/Components/Icon';
 import type { SharedProps } from '@/types';
 import { u } from '@/lib/href';
+import { useT } from '@/lib/i18n';
+
+type TFn = ReturnType<typeof useT>;
 
 interface Client {
   id: number; name: string; number: string; sector: string | null; status: string; statusLabel: string; statusTone: string;
@@ -71,45 +74,46 @@ interface Props {
 const FLBL: React.CSSProperties = { fontSize: '.78rem', fontWeight: 600, display: 'block', marginBottom: '.25rem' };
 
 /** لوح إضافة مُدمج داخل التبويب — يُفتح عند الطلب فلا يزاحم المحتوى التشغيلي. */
-function AddPanel({ label, open, onToggle, onSubmit, busy, disabled, children }: {
+function AddPanel({ label, open, onToggle, onSubmit, busy, disabled, t, children }: {
   label: string; open: boolean; onToggle: () => void; onSubmit: () => void;
-  busy: boolean; disabled: boolean; children: React.ReactNode;
+  busy: boolean; disabled: boolean; t: TFn; children: React.ReactNode;
 }) {
   return (
     <div style={{ marginBottom: '.9rem' }}>
       <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
         <button onClick={onToggle} className={`btn btn-sm ${open ? 'btn-ghost' : 'btn-primary'}`}>
-          {open ? 'إلغاء' : label}
+          {open ? t('clients.cancel') : label}
         </button>
       </div>
       {open && (
         <div className="card" style={{ padding: '1rem', marginTop: '.6rem', display: 'grid', gap: '.8rem' }}>
           {children}
-          <div><button disabled={busy || disabled} onClick={onSubmit} className="btn btn-sm btn-primary">حفظ</button></div>
+          <div><button disabled={busy || disabled} onClick={onSubmit} className="btn btn-sm btn-primary">{t('clients.save')}</button></div>
         </div>
       )}
     </div>
   );
 }
 
-const sar = (m: number) => Math.round(m / 100).toLocaleString('en-US') + ' ر.س';
+/** الريال بالعربية (ر.س) في واجهة المستأجر؛ التسمية تُترجَم داخل المكوّن. */
+const makeSar = (t: TFn) => (m: number) => Math.round(m / 100).toLocaleString('en-US') + ' ' + t('clients.currency_sar');
 
 /** تبويبات العميل — الترتيب معتمد، والعدّاد اختياري (يُخفى عند الصفر). */
-const TABS = (d: {
+const TABS = (t: TFn, d: {
   campaigns: unknown[]; creators: unknown[]; content: unknown[]; requests: unknown[]; contracts: unknown[];
   documents: unknown[]; payouts: unknown[]; brands: unknown[]; contacts: unknown[]; team: unknown[]; customFields: unknown[];
 }): WorkTab[] => [
-  { key: 'overview', label: 'نظرة عامة', icon: 'layout-dashboard' },
-  { key: 'campaigns', label: 'الحملات', icon: 'megaphone', count: d.campaigns.length },
-  { key: 'creators', label: 'صناع المحتوى', icon: 'users', count: d.creators.length },
-  { key: 'content', label: 'المحتوى', icon: 'image', count: d.content.length },
-  { key: 'requests', label: 'الطلبات', icon: 'inbox', count: d.requests.length },
-  { key: 'docs', label: 'العقود والمستندات', icon: 'file-text', count: d.contracts.length + d.documents.length },
-  { key: 'finance', label: 'المالية', icon: 'wallet', count: d.payouts.length },
-  { key: 'brands', label: 'العلامات', icon: 'bookmark', count: d.brands.length },
-  { key: 'contacts', label: 'جهات الاتصال', icon: 'user-plus', count: d.contacts.length },
-  { key: 'team', label: 'الفريق', icon: 'users', count: d.team.length },
-  { key: 'custom', label: 'حقول مخصّصة', icon: 'clipboard-check', count: d.customFields.length },
+  { key: 'overview', label: t('clients.tab_overview'), icon: 'layout-dashboard' },
+  { key: 'campaigns', label: t('clients.tab_campaigns'), icon: 'megaphone', count: d.campaigns.length },
+  { key: 'creators', label: t('clients.tab_creators'), icon: 'users', count: d.creators.length },
+  { key: 'content', label: t('clients.tab_content'), icon: 'image', count: d.content.length },
+  { key: 'requests', label: t('clients.tab_requests'), icon: 'inbox', count: d.requests.length },
+  { key: 'docs', label: t('clients.tab_docs'), icon: 'file-text', count: d.contracts.length + d.documents.length },
+  { key: 'finance', label: t('clients.tab_finance'), icon: 'wallet', count: d.payouts.length },
+  { key: 'brands', label: t('clients.tab_brands'), icon: 'bookmark', count: d.brands.length },
+  { key: 'contacts', label: t('clients.tab_contacts'), icon: 'user-plus', count: d.contacts.length },
+  { key: 'team', label: t('clients.tab_team'), icon: 'users', count: d.team.length },
+  { key: 'custom', label: t('clients.tab_custom'), icon: 'clipboard-check', count: d.customFields.length },
 ];
 const RISK_TONE: Record<string, { bg: string; fg: string }> = {
   danger: { bg: 'var(--ih-danger-soft)', fg: 'var(--ih-danger-ink)' },
@@ -144,6 +148,9 @@ function EmptyRow({ span, text }: { span: number; text: string }) {
 const TAB_KEYS = ['overview', 'campaigns', 'creators', 'content', 'requests', 'docs', 'finance', 'brands', 'contacts', 'team', 'custom'] as const;
 
 export default function ClientShow({ client, metrics, risks, campaigns, brands, contacts, team, content, contracts, payouts, requests, creators, documents, customFields, nextAction, activity, contentStages, finance, can, fieldDefinitions }: Props) {
+  const t = useT();
+  const sar = makeSar(t);
+  const sarUnit = t('clients.currency_sar');
   // إجراءات الوحدات الفرعية — لوح واحد مفتوح في كل مرة داخل التبويب الحالي
   const [panel, setPanel] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
@@ -191,10 +198,10 @@ export default function ClientShow({ client, metrics, risks, campaigns, brands, 
     return () => window.removeEventListener('hashchange', applyHash);
   }, [client.id]);
   const docAlerts = [
-    contracts.filter((c) => c.awaitingSignature).length ? `${contracts.filter((c) => c.awaitingSignature).length} عقد بانتظار التوقيع` : null,
-    contracts.filter((c) => c.expiringSoon).length ? `${contracts.filter((c) => c.expiringSoon).length} عقد ينتهي خلال 30 يومًا` : null,
-    documents.filter((d) => d.expired).length ? `${documents.filter((d) => d.expired).length} مستند منتهٍ` : null,
-    documents.filter((d) => d.pending).length ? `${documents.filter((d) => d.pending).length} مستند بانتظار المراجعة` : null,
+    contracts.filter((c) => c.awaitingSignature).length ? t('clients.n_contract_awaiting_sign', { n: contracts.filter((c) => c.awaitingSignature).length }) : null,
+    contracts.filter((c) => c.expiringSoon).length ? t('clients.n_contract_expiring', { n: contracts.filter((c) => c.expiringSoon).length }) : null,
+    documents.filter((d) => d.expired).length ? t('clients.n_doc_expired', { n: documents.filter((d) => d.expired).length }) : null,
+    documents.filter((d) => d.pending).length ? t('clients.n_doc_pending', { n: documents.filter((d) => d.pending).length }) : null,
   ].filter(Boolean) as string[];
 
   const go = (k: string) => {
@@ -204,22 +211,22 @@ export default function ClientShow({ client, metrics, risks, campaigns, brands, 
   };
 
   return (
-    <AppShell heading="ملف العميل">
+    <AppShell heading={t('clients.show_heading')}>
       <Head title={client.name} />
 
       <WorkspaceHeader
-        eyebrow={`عميل · ${client.number}`}
+        eyebrow={t('clients.show_eyebrow', { num: client.number })}
         title={client.name}
         statusTone={client.statusTone} statusLabel={client.statusLabel}
-        back={u("/clients")} backLabel="كل العملاء"
+        back={u("/clients")} backLabel={t('clients.back_all')}
         meta={[
-          ['القطاع', client.sector ?? '—'], ['مدير الحساب', client.manager ?? '—'],
-          ['المدينة', client.city ?? '—'], ['التصنيف', client.isVip ? 'VIP' : 'عادي'],
+          [t('clients.m_sector'), client.sector ?? '—'], [t('clients.m_manager'), client.manager ?? '—'],
+          [t('clients.m_city'), client.city ?? '—'], [t('clients.m_classification'), client.isVip ? t('clients.m_vip') : t('clients.m_regular')],
         ]}
         actions={
           <div style={{ display: 'flex', alignItems: 'center', gap: '.6rem' }}>
             <label style={{ display: 'flex', alignItems: 'center', gap: '.4rem', fontSize: '.8rem' }}>
-              <span style={{ color: 'var(--ih-text-muted)' }}>الحالة</span>
+              <span style={{ color: 'var(--ih-text-muted)' }}>{t('clients.status')}</span>
               {/* تغيير الحالة من هنا: كان العميل يُنشأ «مهتمًّا» بلا مسار تحديث،
                   فتبقى الحملة محجوبة بشرط «عميل نشط» لا سبيل إلى رفعه. */}
               <select
@@ -229,11 +236,11 @@ export default function ClientShow({ client, metrics, risks, campaigns, brands, 
                 onChange={(e) => post('/update', { status: e.target.value }, () => undefined)}
                 disabled={busy}
               >
-                <option value="lead">مهتم</option>
-                <option value="qualified">مؤهّل</option>
-                <option value="active">نشط</option>
-                <option value="inactive">غير نشط</option>
-                <option value="suspended">موقوف</option>
+                <option value="lead">{t('clients.s_lead')}</option>
+                <option value="qualified">{t('clients.s_qualified')}</option>
+                <option value="active">{t('clients.s_active')}</option>
+                <option value="inactive">{t('clients.s_inactive')}</option>
+                <option value="suspended">{t('clients.s_suspended')}</option>
               </select>
             </label>
             {/* الأرشفة: القدرة كانت موجودة في الخادم (ArchiveClient) بلا منفذ في الواجهة —
@@ -244,7 +251,7 @@ export default function ClientShow({ client, metrics, risks, campaigns, brands, 
                 className="btn btn-sm btn-ghost"
                 disabled={busy}
                 onClick={() => {
-                  if (!window.confirm(`أرشفة العميل «${client.name}»؟ يمكن استرجاعه بتغيير حالته لاحقًا.`)) return;
+                  if (!window.confirm(t('clients.archive_confirm', { name: client.name }))) return;
                   setBusy(true);
                   router.delete(u(`/clients/${client.id}`), {
                     preserveScroll: true,
@@ -252,7 +259,7 @@ export default function ClientShow({ client, metrics, risks, campaigns, brands, 
                   });
                 }}
               >
-                أرشفة
+                {t('clients.archive')}
               </button>
             )}
           </div>
@@ -260,18 +267,18 @@ export default function ClientShow({ client, metrics, risks, campaigns, brands, 
       />
 
       <SummaryStrip items={[
-        { label: 'الإيراد', value: sar(metrics.revenueMinor), tone: 'primary', icon: 'wallet' },
-        { label: 'التكلفة', value: sar(metrics.costMinor), tone: 'warning' },
-        { label: 'الربح', value: sar(metrics.profitMinor), tone: 'success' },
-        { label: 'الهامش', value: `${metrics.margin}%` },
-        { label: 'الحملات', value: `${metrics.activeCampaigns}/${metrics.campaigns}` },
-        { label: 'صناع المحتوى', value: metrics.creators, icon: 'users' },
-        { label: 'المستحق', value: sar(metrics.receivableMinor) },
-        { label: 'الاكتمال', value: `${metrics.completion}%` },
+        { label: t('clients.ss_revenue'), value: sar(metrics.revenueMinor), tone: 'primary', icon: 'wallet' },
+        { label: t('clients.ss_cost'), value: sar(metrics.costMinor), tone: 'warning' },
+        { label: t('clients.ss_profit'), value: sar(metrics.profitMinor), tone: 'success' },
+        { label: t('clients.ss_margin'), value: `${metrics.margin}%` },
+        { label: t('clients.ss_campaigns'), value: `${metrics.activeCampaigns}/${metrics.campaigns}` },
+        { label: t('clients.ss_creators'), value: metrics.creators, icon: 'users' },
+        { label: t('clients.ss_receivable'), value: sar(metrics.receivableMinor) },
+        { label: t('clients.ss_completion'), value: `${metrics.completion}%` },
       ]} />
 
       {/* الترتيب المعتمد (docs/PRODUCT-TERMINOLOGY.md). العدّاد يظهر فقط عند وجود قيمة تشغيلية. */}
-      <WorkTabs active={tab} onChange={go} tabs={TABS({ campaigns, creators, content, requests, contracts, documents, payouts, brands, contacts, team, customFields })} />
+      <WorkTabs active={tab} onChange={go} tabs={TABS(t, { campaigns, creators, content, requests, contracts, documents, payouts, brands, contacts, team, customFields })} />
 
       {tab === 'overview' && (
         <>
@@ -280,30 +287,30 @@ export default function ClientShow({ client, metrics, risks, campaigns, brands, 
             <div className="ih-nba" style={{ marginBottom: '1.1rem' }}>
               <span className="ih-nba__icon"><Icon name="rocket" size={22} /></span>
               <div className="ih-nba__body">
-                <div className="ih-nba__eyebrow">الخطوة التالية</div>
+                <div className="ih-nba__eyebrow">{t('clients.next_step')}</div>
                 <div className="ih-nba__title">{nextAction.label}</div>
               </div>
-              <button onClick={() => nextAction.tab && go(nextAction.tab)} className="btn btn-sm">معالجة</button>
+              <button onClick={() => nextAction.tab && go(nextAction.tab)} className="btn btn-sm">{t('clients.process')}</button>
             </div>
           ) : (
             <div className="card" style={{ padding: '.85rem 1.1rem', marginBottom: '1.1rem', display: 'flex', alignItems: 'center', gap: '.6rem', borderInlineStart: '3px solid var(--ih-success)', background: 'var(--ih-success-soft)', color: 'var(--ih-success-ink)', fontSize: '.87rem' }}>
-              <Icon name="shield-check" size={16} /> لا شيء يحتاج تدخّلًا الآن.
+              <Icon name="shield-check" size={16} /> {t('clients.all_clear')}
             </div>
           )}
 
           <div className="ih-overview-grid" style={{ display: 'grid', gridTemplateColumns: 'minmax(0,1.25fr) minmax(0,1fr)', gap: '1.1rem', alignItems: 'start' }}>
             <div style={{ display: 'grid', gap: '1.1rem' }}>
               {risks.length > 0 && (
-                <Sec title="المخاطر" icon="activity">
+                <Sec title={t('clients.sec_risks')} icon="activity">
                   <div style={{ padding: '.6rem' }}>
                     {risks.map((r, i) => {
-                      const t = RISK_TONE[r.tone] ?? RISK_TONE.info;
+                      const rt = RISK_TONE[r.tone] ?? RISK_TONE.info;
                       return (
                         <button key={i} onClick={() => r.tab && go(r.tab)} className="ih-risk"
                           style={{ marginBottom: '.4rem', justifyContent: 'flex-start', gap: '.6rem', width: '100%', border: 0, cursor: 'pointer', font: 'inherit', textAlign: 'start' }}>
-                          <span className="ih-risk__dot" style={{ background: t.fg }} />
+                          <span className="ih-risk__dot" style={{ background: rt.fg }} />
                           <span style={{ flex: 1, fontWeight: 600 }}>{r.label}</span>
-                          <span style={{ color: 'var(--ih-primary)', fontSize: '.82rem' }}>معالجة ←</span>
+                          <span style={{ color: 'var(--ih-primary)', fontSize: '.82rem' }}>{t('clients.risk_handle')}</span>
                         </button>
                       );
                     })}
@@ -312,9 +319,9 @@ export default function ClientShow({ client, metrics, risks, campaigns, brands, 
               )}
 
               {/* الحملات النشطة — لمحة سريعة بدل جدول كامل */}
-              <Sec title="الحملات النشطة" icon="megaphone" link={campaigns.length ? { href: '#campaigns', label: 'كل الحملات' } : undefined}>
+              <Sec title={t('clients.sec_active_campaigns')} icon="megaphone" link={campaigns.length ? { href: '#campaigns', label: t('clients.link_all_campaigns') } : undefined}>
                 {campaigns.length === 0 ? (
-                  <div style={{ padding: '1.5rem', textAlign: 'center', color: 'var(--ih-text-muted)', fontSize: '.86rem' }}>لا حملات بعد.</div>
+                  <div style={{ padding: '1.5rem', textAlign: 'center', color: 'var(--ih-text-muted)', fontSize: '.86rem' }}>{t('clients.no_campaigns_yet')}</div>
                 ) : (
                   <div style={{ display: 'grid', gap: '.5rem', padding: '.6rem' }}>
                     {campaigns.slice(0, 4).map((c) => (
@@ -322,7 +329,7 @@ export default function ClientShow({ client, metrics, risks, campaigns, brands, 
                         style={{ display: 'flex', alignItems: 'center', gap: '.7rem', padding: '.65rem .8rem', textDecoration: 'none', color: 'inherit' }}>
                         <div style={{ flex: 1, minWidth: 0 }}>
                           <div style={{ fontWeight: 600, fontSize: '.88rem', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{c.name}</div>
-                          <div style={{ fontSize: '.74rem', color: 'var(--ih-text-muted)' }}>{c.brand ?? '—'} · {c.deliverables} مخرج</div>
+                          <div style={{ fontSize: '.74rem', color: 'var(--ih-text-muted)' }}>{c.brand ?? '—'} · {t('clients.ov_deliverables', { n: c.deliverables })}</div>
                         </div>
                         <span style={{ fontWeight: 700, fontSize: '.84rem', direction: 'ltr' }}>{sar(c.budgetMinor)}</span>
                         <StatusBadge tone={c.statusTone} label={c.statusLabel} />
@@ -333,9 +340,9 @@ export default function ClientShow({ client, metrics, risks, campaigns, brands, 
               </Sec>
 
               {/* آخر نشاط */}
-              <Sec title="آخر نشاط" icon="activity">
+              <Sec title={t('clients.sec_activity')} icon="activity">
                 {activity.length === 0 ? (
-                  <div style={{ padding: '1.5rem', textAlign: 'center', color: 'var(--ih-text-muted)', fontSize: '.86rem' }}>لا نشاط مسجّل.</div>
+                  <div style={{ padding: '1.5rem', textAlign: 'center', color: 'var(--ih-text-muted)', fontSize: '.86rem' }}>{t('clients.no_activity')}</div>
                 ) : (
                   <div style={{ padding: '.7rem .9rem', display: 'grid', gap: '.1rem' }}>
                     {activity.map((a, i) => (
@@ -352,21 +359,21 @@ export default function ClientShow({ client, metrics, risks, campaigns, brands, 
             </div>
 
             <div style={{ display: 'grid', gap: '1.1rem' }}>
-              <Sec title="اكتمال الملف" icon="gauge">
+              <Sec title={t('clients.sec_completion')} icon="gauge">
                 <div className="ih-sec__body">
                   <div style={{ display: 'flex', alignItems: 'center', gap: '.6rem' }}>
                     <div className="ih-bar" style={{ flex: 1 }}><span style={{ width: `${metrics.completion}%` }} /></div>
                     <span style={{ fontWeight: 800 }}>{metrics.completion}%</span>
                   </div>
                   <div style={{ marginTop: '.5rem', fontSize: '.8rem', color: 'var(--ih-text-muted)' }}>
-                    {metrics.completion >= 100 ? 'الملف مكتمل.' : 'أكمل البيانات القانونية والمالية.'}
+                    {metrics.completion >= 100 ? t('clients.profile_complete') : t('clients.profile_incomplete')}
                   </div>
                 </div>
               </Sec>
 
-              <Sec title="بيانات التواصل" icon="file-text">
+              <Sec title={t('clients.sec_contact_info')} icon="file-text">
                 <div className="ih-sec__body" style={{ display: 'grid', gap: '.55rem' }}>
-                  {([['البريد', client.email], ['الهاتف', client.phone], ['الموقع', client.website], ['المدينة', client.city], ['السجل التجاري', client.cr], ['الرقم الضريبي', client.tax]] as [string, string | null][]).map(([k, v]) => (
+                  {([[t('clients.ci_email'), client.email], [t('clients.ci_phone'), client.phone], [t('clients.ci_website'), client.website], [t('clients.ci_city'), client.city], [t('clients.ci_cr'), client.cr], [t('clients.ci_tax'), client.tax]] as [string, string | null][]).map(([k, v]) => (
                     <div key={k} style={{ display: 'flex', justifyContent: 'space-between', gap: '.7rem', fontSize: '.85rem', borderBottom: '1px solid var(--ih-border)', paddingBottom: '.45rem' }}>
                       <span style={{ color: 'var(--ih-text-muted)', flexShrink: 0 }}>{k}</span>
                       <span style={{ fontWeight: 600, direction: 'ltr', minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis' }}>{v || '—'}</span>
@@ -376,7 +383,7 @@ export default function ClientShow({ client, metrics, risks, campaigns, brands, 
               </Sec>
 
               {contacts.length > 0 && (
-                <Sec title="جهات الاتصال" icon="user-plus" link={{ href: '#contacts', label: 'الكل' }}>
+                <Sec title={t('clients.tab_contacts')} icon="user-plus" link={{ href: '#contacts', label: t('clients.link_all') }}>
                   <div style={{ padding: '.7rem .9rem', display: 'grid', gap: '.6rem' }}>
                     {contacts.slice(0, 3).map((c, i) => (
                       <div key={i} style={{ display: 'flex', alignItems: 'center', gap: '.6rem' }}>
@@ -385,7 +392,7 @@ export default function ClientShow({ client, metrics, risks, campaigns, brands, 
                           <div style={{ fontWeight: 600, fontSize: '.85rem' }}>{c.name}</div>
                           <div style={{ fontSize: '.72rem', color: 'var(--ih-text-muted)' }}>{c.role ?? '—'}</div>
                         </div>
-                        {c.email && <a href={`mailto:${c.email}`} className="btn btn-xs btn-outline" title={c.email}>مراسلة</a>}
+                        {c.email && <a href={`mailto:${c.email}`} className="btn btn-xs btn-outline" title={c.email}>{t('clients.contact_message')}</a>}
                       </div>
                     ))}
                   </div>
@@ -399,16 +406,16 @@ export default function ClientShow({ client, metrics, risks, campaigns, brands, 
       {/* الحملات — Pipeline حسب المرحلة، بطاقات غنية بالتقدّم والصحّة */}
       {tab === 'campaigns' && (
         campaigns.length === 0 ? (
-          <EmptyState icon="megaphone" title="لا حملات بعد" hint="ستظهر حملات هذا العميل هنا فور إنشائها." />
+          <EmptyState icon="megaphone" title={t('clients.empty_campaigns_title')} hint={t('clients.empty_campaigns_hint')} />
         ) : (
           <div className="ih-pipe">
-            {([['planning', 'التخطيط'], ['running', 'التنفيذ'], ['closed', 'المنتهية']] as [string, string][]).map(([stage, label]) => {
+            {([['planning', t('clients.stage_planning')], ['running', t('clients.stage_running')], ['closed', t('clients.stage_closed')]] as [string, string][]).map(([stage, label]) => {
               const col = campaigns.filter((c) => c.stage === stage);
               return (
                 <div key={stage} className="ih-pipe__col">
                   <div className="ih-pipe__head"><span>{label}</span><span className="ih-pipe__count">{col.length}</span></div>
                   <div className="ih-pipe__body">
-                    {col.length === 0 ? <div className="ih-pipe__empty">لا حملات في هذه المرحلة.</div> : col.map((c) => (
+                    {col.length === 0 ? <div className="ih-pipe__empty">{t('clients.no_campaigns_in_stage')}</div> : col.map((c) => (
                       <Link key={c.id} href={u(`/campaigns/${c.id}`)} className="ih-wcard">
                         <div style={{ display: 'flex', justifyContent: 'space-between', gap: '.5rem', alignItems: 'flex-start' }}>
                           <span className="ih-wcard__title">{c.name}</span>
@@ -419,7 +426,7 @@ export default function ClientShow({ client, metrics, risks, campaigns, brands, 
                         {c.content > 0 && (
                           <div style={{ marginTop: '.55rem' }}>
                             <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '.7rem', color: 'var(--ih-text-muted)', marginBottom: '.2rem' }}>
-                              <span>المحتوى المنشور</span><span style={{ direction: 'ltr' }}>{c.contentPublished}/{c.content}</span>
+                              <span>{t('clients.wcard_published')}</span><span style={{ direction: 'ltr' }}>{c.contentPublished}/{c.content}</span>
                             </div>
                             <Bar pct={c.progress} />
                           </div>
@@ -427,7 +434,7 @@ export default function ClientShow({ client, metrics, risks, campaigns, brands, 
                         {c.budgetMinor > 0 && (
                           <div style={{ marginTop: '.45rem' }}>
                             <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '.7rem', color: c.overBudget ? 'var(--ih-danger-ink)' : 'var(--ih-text-muted)', marginBottom: '.2rem' }}>
-                              <span>الميزانية</span><span style={{ direction: 'ltr' }}>{sar(c.committedMinor)} / {sar(c.budgetMinor)}</span>
+                              <span>{t('clients.wcard_budget')}</span><span style={{ direction: 'ltr' }}>{sar(c.committedMinor)} / {sar(c.budgetMinor)}</span>
                             </div>
                             <Bar pct={c.budgetPct} over={c.overBudget} />
                           </div>
@@ -439,7 +446,7 @@ export default function ClientShow({ client, metrics, risks, campaigns, brands, 
                             <span><Icon name="image" size={12} /> {c.content}</span>
                             {c.payouts > 0 && <span><Icon name="wallet" size={12} /> {c.payouts}</span>}
                           </span>
-                          {c.awaiting > 0 && <span className="ih-tag" style={{ fontSize: '.64rem', background: 'var(--ih-warning-soft)', color: 'var(--ih-warning-ink)' }}>{c.awaiting} بانتظار مراجعة</span>}
+                          {c.awaiting > 0 && <span className="ih-tag" style={{ fontSize: '.64rem', background: 'var(--ih-warning-soft)', color: 'var(--ih-warning-ink)' }}>{t('clients.awaiting_review_n', { n: c.awaiting })}</span>}
                         </div>
                         {c.risk && <div className="ih-wcard__risk">{c.risk}</div>}
                       </Link>
@@ -455,27 +462,27 @@ export default function ClientShow({ client, metrics, risks, campaigns, brands, 
       {tab === 'brands' && (
         <>
         {can.update && (
-          <AddPanel label="إضافة علامة" open={panel === 'brand'} onToggle={() => togglePanel('brand')} busy={busy}
+          <AddPanel label={t('clients.brand_add')} t={t} open={panel === 'brand'} onToggle={() => togglePanel('brand')} busy={busy}
             disabled={!brandForm.name.trim()}
             onSubmit={() => post('/brands', brandForm, () => setBrandForm({ name: '', sector: '', website: '' }))}>
-            <Field label="اسم العلامة" labelStyle={FLBL}>
+            <Field label={t('clients.brand_name')} labelStyle={FLBL}>
               <input value={brandForm.name} onChange={(e) => setBrandForm({ ...brandForm, name: e.target.value })} className="field" style={{ width: '100%' }} /><Err k="name" /></Field>
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '.8rem' }}>
-              <Field label="القطاع" labelStyle={FLBL}>
+              <Field label={t('clients.m_sector')} labelStyle={FLBL}>
                 <input value={brandForm.sector} onChange={(e) => setBrandForm({ ...brandForm, sector: e.target.value })} className="field" style={{ width: '100%' }} /></Field>
-              <Field label="الموقع" labelStyle={FLBL}>
+              <Field label={t('clients.ci_website')} labelStyle={FLBL}>
                 <input value={brandForm.website} onChange={(e) => setBrandForm({ ...brandForm, website: e.target.value })} className="field" style={{ width: '100%', direction: 'ltr' }} /><Err k="website" /></Field>
             </div>
           </AddPanel>
         )}
         {brands.length === 0 ? (
-          <EmptyState icon="bookmark" title="لا علامات بعد" hint="علامات هذا العميل تظهر هنا مع نشاطها." />
+          <EmptyState icon="bookmark" title={t('clients.empty_brands_title')} hint={t('clients.empty_brands_hint')} />
         ) : (
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(250px, 1fr))', gap: '.9rem' }}>
             {brands.map((b) => {
               const bc = campaigns.filter((c) => c.brand === b.name);
               const active = bc.filter((c) => c.stage === 'running').length;
-              const budget = bc.reduce((t, c) => t + c.budgetMinor, 0);
+              const budget = bc.reduce((sum, c) => sum + c.budgetMinor, 0);
               return (
                 <Link key={b.id} href={u(`/brands/${b.id}`)} className="ih-idcard" style={{ textDecoration: 'none', color: 'inherit' }}>
                   <div className="ih-idcard__top">
@@ -487,9 +494,9 @@ export default function ClientShow({ client, metrics, risks, campaigns, brands, 
                     <StatusBadge tone={b.statusTone} label={b.statusLabel} />
                   </div>
                   <div className="ih-idcard__stats">
-                    <div className="ih-idcard__stat"><div className="ih-idcard__sv">{bc.length}</div><div className="ih-idcard__sl">حملات</div></div>
-                    <div className="ih-idcard__stat"><div className="ih-idcard__sv">{active}</div><div className="ih-idcard__sl">نشطة</div></div>
-                    <div className="ih-idcard__stat"><div className="ih-idcard__sv">{budget ? sar(budget).replace(' ر.س', '') : '—'}</div><div className="ih-idcard__sl">ميزانية</div></div>
+                    <div className="ih-idcard__stat"><div className="ih-idcard__sv">{bc.length}</div><div className="ih-idcard__sl">{t('clients.brand_stat_campaigns')}</div></div>
+                    <div className="ih-idcard__stat"><div className="ih-idcard__sv">{active}</div><div className="ih-idcard__sl">{t('clients.brand_stat_active')}</div></div>
+                    <div className="ih-idcard__stat"><div className="ih-idcard__sv">{budget ? sar(budget).replace(' ' + sarUnit, '') : '—'}</div><div className="ih-idcard__sl">{t('clients.brand_stat_budget')}</div></div>
                   </div>
                 </Link>
               );
@@ -502,7 +509,7 @@ export default function ClientShow({ client, metrics, risks, campaigns, brands, 
       {/* المحتوى — شريط سير العمل + معرض معاينات */}
       {tab === 'content' && (
         content.length === 0 ? (
-          <EmptyState icon="image" title="لا محتوى بعد" hint="محتوى حملات هذا العميل يظهر هنا للمراجعة والاعتماد." />
+          <EmptyState icon="image" title={t('clients.empty_content_title')} hint={t('clients.empty_content_hint')} />
         ) : (
           <div style={{ display: 'grid', gap: '1.1rem' }}>
             <div className="ih-flow">
@@ -528,7 +535,7 @@ export default function ClientShow({ client, metrics, risks, campaigns, brands, 
                     {c.campaign && <div className="ih-gtile__meta" style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{c.campaign}</div>}
                     <div style={{ marginTop: 'auto', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '.4rem', paddingTop: '.35rem' }}>
                       <span style={{ fontSize: '.68rem', color: 'var(--ih-text-muted)', direction: 'ltr' }}>{c.publishedAt ?? c.scheduledAt ?? ''}</span>
-                      {c.needsAction && <span className="ih-tag" style={{ fontSize: '.62rem', background: 'var(--ih-warning-soft)', color: 'var(--ih-warning-ink)' }}>يحتاج إجراء</span>}
+                      {c.needsAction && <span className="ih-tag" style={{ fontSize: '.62rem', background: 'var(--ih-warning-soft)', color: 'var(--ih-warning-ink)' }}>{t('clients.needs_action')}</span>}
                     </div>
                   </div>
                 </Link>
@@ -547,9 +554,9 @@ export default function ClientShow({ client, metrics, risks, campaigns, brands, 
             </div>
           )}
 
-          <Sec title="العقود" icon="file-text">
+          <Sec title={t('clients.sec_contracts')} icon="file-text">
             {contracts.length === 0 ? (
-              <div style={{ padding: '1.6rem', textAlign: 'center', color: 'var(--ih-text-muted)', fontSize: '.86rem' }}>لا عقود بعد.</div>
+              <div style={{ padding: '1.6rem', textAlign: 'center', color: 'var(--ih-text-muted)', fontSize: '.86rem' }}>{t('clients.no_contracts')}</div>
             ) : (
               <div style={{ display: 'grid', gap: '.5rem', padding: '.7rem' }}>
                 {contracts.map((c) => (
@@ -566,42 +573,42 @@ export default function ClientShow({ client, metrics, risks, campaigns, brands, 
                     </div>
                     {/* مسار التوقيع */}
                     <div style={{ display: 'flex', alignItems: 'center', gap: '.4rem', marginTop: '.6rem', fontSize: '.71rem', color: 'var(--ih-text-muted)', flexWrap: 'wrap' }}>
-                      <SignStep on={!!c.sentAt} label="أُرسل" at={c.sentAt} />
+                      <SignStep on={!!c.sentAt} label={t('clients.sign_sent')} at={c.sentAt} />
                       <span style={{ opacity: .4 }}>←</span>
-                      <SignStep on={!!c.signedAt} label="وُقّع" at={c.signedAt} />
+                      <SignStep on={!!c.signedAt} label={t('clients.sign_signed')} at={c.signedAt} />
                       <span style={{ opacity: .4 }}>←</span>
-                      <SignStep on={c.status === 'active' || c.status === 'completed'} label="سارٍ" at={c.startDate} />
-                      {c.endDate && <span style={{ marginInlineStart: 'auto', direction: 'ltr' }}>ينتهي {c.endDate}</span>}
+                      <SignStep on={c.status === 'active' || c.status === 'completed'} label={t('clients.sign_active')} at={c.startDate} />
+                      {c.endDate && <span style={{ marginInlineStart: 'auto', direction: 'ltr' }}>{t('clients.expires_on', { date: c.endDate })}</span>}
                     </div>
-                    {c.awaitingSignature && <div className="ih-wcard__risk" style={{ background: 'var(--ih-info-soft)', color: 'var(--ih-info-ink)' }}>بانتظار التوقيع</div>}
-                    {c.expiringSoon && <div className="ih-wcard__risk" style={{ background: 'var(--ih-warning-soft)', color: 'var(--ih-warning-ink)' }}>ينتهي خلال 30 يومًا</div>}
-                    {c.expired && <div className="ih-wcard__risk">منتهٍ</div>}
+                    {c.awaitingSignature && <div className="ih-wcard__risk" style={{ background: 'var(--ih-info-soft)', color: 'var(--ih-info-ink)' }}>{t('clients.awaiting_signature')}</div>}
+                    {c.expiringSoon && <div className="ih-wcard__risk" style={{ background: 'var(--ih-warning-soft)', color: 'var(--ih-warning-ink)' }}>{t('clients.expiring_30')}</div>}
+                    {c.expired && <div className="ih-wcard__risk">{t('clients.expired')}</div>}
                   </Link>
                 ))}
               </div>
             )}
           </Sec>
 
-          <Sec title="المستندات" icon="file-text">
+          <Sec title={t('clients.sec_documents')} icon="file-text">
             {can.documents && (
               <div style={{ padding: '.8rem .9rem 0' }}>
-                <AddPanel label="رفع مستند" open={panel === 'doc'} onToggle={() => togglePanel('doc')} busy={busy}
+                <AddPanel label={t('clients.doc_upload')} t={t} open={panel === 'doc'} onToggle={() => togglePanel('doc')} busy={busy}
                   disabled={!docForm.file || !docForm.title.trim()}
                   onSubmit={() => post('/documents', { title: docForm.title, category: docForm.category, file: docForm.file },
                     () => setDocForm({ title: '', category: 'contract', file: null }))}>
                   <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '.8rem' }}>
-                    <Field label="العنوان" labelStyle={FLBL}>
+                    <Field label={t('clients.doc_title')} labelStyle={FLBL}>
                       <input value={docForm.title} onChange={(e) => setDocForm({ ...docForm, title: e.target.value })} className="field" style={{ width: '100%' }} /><Err k="title" /></Field>
-                    <Field label="التصنيف" labelStyle={FLBL}>
+                    <Field label={t('clients.doc_category')} labelStyle={FLBL}>
                       <select value={docForm.category} onChange={(e) => setDocForm({ ...docForm, category: e.target.value })} className="field" style={{ width: '100%' }}>
-                        <option value="contract">عقد</option>
-                        <option value="commercial_registration">سجل تجاري</option>
-                        <option value="tax_certificate">شهادة ضريبية</option>
-                        <option value="other">أخرى</option>
+                        <option value="contract">{t('clients.doc_cat_contract')}</option>
+                        <option value="commercial_registration">{t('clients.doc_cat_cr')}</option>
+                        <option value="tax_certificate">{t('clients.doc_cat_tax')}</option>
+                        <option value="other">{t('clients.doc_cat_other')}</option>
                       </select><Err k="category" />
                     </Field>
                   </div>
-                  <Field label="الملف (حتى 20 ميغابايت)" labelStyle={FLBL}>
+                  <Field label={t('clients.doc_file')} labelStyle={FLBL}>
                     <input type="file" onChange={(e) => setDocForm({ ...docForm, file: e.target.files?.[0] ?? null })} className="field" style={{ width: '100%' }} />
                     <Err k="file" />
                   </Field>
@@ -609,7 +616,7 @@ export default function ClientShow({ client, metrics, risks, campaigns, brands, 
               </div>
             )}
             {documents.length === 0 ? (
-              <div style={{ padding: '1.6rem', textAlign: 'center', color: 'var(--ih-text-muted)', fontSize: '.86rem' }}>لا مستندات.</div>
+              <div style={{ padding: '1.6rem', textAlign: 'center', color: 'var(--ih-text-muted)', fontSize: '.86rem' }}>{t('clients.no_documents')}</div>
             ) : (
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(230px, 1fr))', gap: '.7rem', padding: '.7rem' }}>
                 {documents.map((d) => (
@@ -620,8 +627,8 @@ export default function ClientShow({ client, metrics, risks, campaigns, brands, 
                       <div style={{ fontSize: '.71rem', color: 'var(--ih-text-muted)' }}>{d.category ?? '—'} · <span style={{ direction: 'ltr' }}>{d.sizeKb.toLocaleString('en-US')} KB</span></div>
                       <div style={{ marginTop: '.4rem', display: 'flex', gap: '.3rem', alignItems: 'center', flexWrap: 'wrap' }}>
                         <StatusBadge tone={d.statusTone} label={d.statusLabel} />
-                        {d.expired && <span className="ih-tag" style={{ fontSize: '.62rem', background: 'var(--ih-danger-soft)', color: 'var(--ih-danger-ink)' }}>منتهٍ</span>}
-                        {d.expiringSoon && <span className="ih-tag" style={{ fontSize: '.62rem', background: 'var(--ih-warning-soft)', color: 'var(--ih-warning-ink)' }}>قارب الانتهاء</span>}
+                        {d.expired && <span className="ih-tag" style={{ fontSize: '.62rem', background: 'var(--ih-danger-soft)', color: 'var(--ih-danger-ink)' }}>{t('clients.expired')}</span>}
+                        {d.expiringSoon && <span className="ih-tag" style={{ fontSize: '.62rem', background: 'var(--ih-warning-soft)', color: 'var(--ih-warning-ink)' }}>{t('clients.expiring_soon')}</span>}
                       </div>
                     </div>
                   </div>
@@ -636,17 +643,17 @@ export default function ClientShow({ client, metrics, risks, campaigns, brands, 
       {tab === 'finance' && (
         <div style={{ display: 'grid', gap: '1.1rem' }}>
           <div className="ih-kpis">
-            <Kpi label="الإيراد" icon="wallet" tone="success" value={sar(metrics.revenueMinor)} sub="من الحملات" />
-            <Kpi label="التكلفة" icon="wallet" tone="warning" value={sar(metrics.costMinor)} sub="أتعاب المبدعين" />
-            <Kpi label="الربح" icon="trending-up" value={sar(metrics.profitMinor)} sub={`هامش ${metrics.margin}%`} />
-            <Kpi label="متأخر الصرف" icon="activity" tone={finance.buckets.overdue ? 'danger' : undefined}
-              value={sar(finance.buckets.overdue)} sub={finance.buckets.overdue ? 'يحتاج معالجة' : 'لا متأخرات'} />
+            <Kpi label={t('clients.ss_revenue')} icon="wallet" tone="success" value={sar(metrics.revenueMinor)} sub={t('clients.fin_revenue_sub')} />
+            <Kpi label={t('clients.ss_cost')} icon="wallet" tone="warning" value={sar(metrics.costMinor)} sub={t('clients.fin_cost_sub')} />
+            <Kpi label={t('clients.ss_profit')} icon="trending-up" value={sar(metrics.profitMinor)} sub={t('clients.fin_margin_sub', { n: metrics.margin })} />
+            <Kpi label={t('clients.fin_overdue_payout')} icon="activity" tone={finance.buckets.overdue ? 'danger' : undefined}
+              value={sar(finance.buckets.overdue)} sub={finance.buckets.overdue ? t('clients.fin_overdue_needs') : t('clients.fin_overdue_none')} />
           </div>
 
           <div className="ih-overview-grid" style={{ display: 'grid', gridTemplateColumns: 'minmax(0,1.2fr) minmax(0,1fr)', gap: '1.1rem', alignItems: 'start' }}>
-            <Sec title="التوزيع حسب الحملة" icon="bar-chart-3">
+            <Sec title={t('clients.sec_by_campaign')} icon="bar-chart-3">
               {finance.byCampaign.length === 0 ? (
-                <div style={{ padding: '1.5rem', textAlign: 'center', color: 'var(--ih-text-muted)', fontSize: '.86rem' }}>لا بيانات مالية بعد.</div>
+                <div style={{ padding: '1.5rem', textAlign: 'center', color: 'var(--ih-text-muted)', fontSize: '.86rem' }}>{t('clients.no_finance_data')}</div>
               ) : (
                 <div style={{ padding: '.8rem .9rem', display: 'grid', gap: '.8rem' }}>
                   {finance.byCampaign.map((r) => {
@@ -662,34 +669,34 @@ export default function ClientShow({ client, metrics, risks, campaigns, brands, 
                       </div>
                     );
                   })}
-                  <div style={{ fontSize: '.7rem', color: 'var(--ih-text-muted)' }}>الشريط العلوي: الميزانية · السفلي: التكلفة الفعلية</div>
+                  <div style={{ fontSize: '.7rem', color: 'var(--ih-text-muted)' }}>{t('clients.fin_bars_note')}</div>
                 </div>
               )}
             </Sec>
 
             <div style={{ display: 'grid', gap: '1.1rem' }}>
-              <Sec title="حالة المستحقات" icon="wallet">
+              <Sec title={t('clients.sec_receivables_status')} icon="wallet">
                 <div className="ih-sec__body" style={{ display: 'grid', gap: '.55rem' }}>
-                  {([['مدفوع', finance.buckets.paid, 'success'], ['بانتظار الصرف', finance.buckets.pending, 'warning'], ['متأخر', finance.buckets.overdue, 'danger']] as [string, number, string][]).map(([l, v, t]) => (
+                  {([[t('clients.fin_paid'), finance.buckets.paid, 'success'], [t('clients.fin_pending'), finance.buckets.pending, 'warning'], [t('clients.fin_overdue'), finance.buckets.overdue, 'danger']] as [string, number, string][]).map(([l, v, tn]) => (
                     <div key={l} style={{ display: 'flex', justifyContent: 'space-between', fontSize: '.85rem', borderBottom: '1px solid var(--ih-border)', paddingBottom: '.4rem' }}>
                       <span style={{ color: 'var(--ih-text-muted)' }}>{l}</span>
-                      <span style={{ fontWeight: 700, direction: 'ltr', color: v > 0 && t !== 'success' ? `var(--ih-${t}-ink)` : undefined }}>{sar(v)}</span>
+                      <span style={{ fontWeight: 700, direction: 'ltr', color: v > 0 && tn !== 'success' ? `var(--ih-${tn}-ink)` : undefined }}>{sar(v)}</span>
                     </div>
                   ))}
                 </div>
               </Sec>
 
-              <Sec title="آخر الدفعات" icon="activity">
+              <Sec title={t('clients.sec_recent_payments')} icon="activity">
                 {finance.timeline.length === 0 ? (
-                  <div style={{ padding: '1.2rem', textAlign: 'center', color: 'var(--ih-text-muted)', fontSize: '.84rem' }}>لا دفعات منفّذة.</div>
+                  <div style={{ padding: '1.2rem', textAlign: 'center', color: 'var(--ih-text-muted)', fontSize: '.84rem' }}>{t('clients.no_payments')}</div>
                 ) : (
                   <div className="ih-mline" style={{ padding: '.7rem .9rem' }}>
-                    {finance.timeline.map((t, i) => (
+                    {finance.timeline.map((pay, i) => (
                       <div key={i} className="ih-mline__row">
                         <span style={{ color: 'var(--ih-success-ink)' }}><Icon name="wallet" size={14} /></span>
-                        <span style={{ flex: 1, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{t.label}</span>
-                        <span style={{ fontWeight: 700, direction: 'ltr' }}>{sar(t.amountMinor)}</span>
-                        <span style={{ fontSize: '.72rem', color: 'var(--ih-text-muted)', direction: 'ltr' }}>{t.at}</span>
+                        <span style={{ flex: 1, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{pay.label}</span>
+                        <span style={{ fontWeight: 700, direction: 'ltr' }}>{sar(pay.amountMinor)}</span>
+                        <span style={{ fontSize: '.72rem', color: 'var(--ih-text-muted)', direction: 'ltr' }}>{pay.at}</span>
                       </div>
                     ))}
                   </div>
@@ -698,11 +705,11 @@ export default function ClientShow({ client, metrics, risks, campaigns, brands, 
             </div>
           </div>
 
-          <Sec title="المستحقات" icon="wallet">
+          <Sec title={t('clients.sec_payouts')} icon="wallet">
             {payouts.length === 0 ? (
-              <div style={{ padding: '1.6rem', textAlign: 'center', color: 'var(--ih-text-muted)', fontSize: '.86rem' }}>لا مستحقات بعد.</div>
+              <div style={{ padding: '1.6rem', textAlign: 'center', color: 'var(--ih-text-muted)', fontSize: '.86rem' }}>{t('clients.no_payouts')}</div>
             ) : (
-              <DataTable head={['المستحق', 'المبدع', 'الحملة', 'الاستحقاق', 'المبلغ', 'الحالة']}>
+              <DataTable head={[t('clients.th_payout'), t('clients.th_creator'), t('clients.th_campaign'), t('clients.th_due'), t('clients.th_amount'), t('clients.th_status')]}>
                 {payouts.map((p) => (
                   <tr key={p.id}>
                     <td style={{ direction: 'ltr', textAlign: 'right', fontWeight: 600 }}>{p.number}</td>
@@ -722,10 +729,10 @@ export default function ClientShow({ client, metrics, risks, campaigns, brands, 
       {/* صناع المحتوى — بطاقات علاقة مصنّفة (نشط/حديث/متوقف) */}
       {tab === 'creators' && (
         creators.length === 0 ? (
-          <EmptyState icon="users" title="لا صنّاع محتوى مرتبطين" hint="صناع المحتوى الذين تعاونوا في حملات هذا العميل يظهرون هنا." />
+          <EmptyState icon="users" title={t('clients.empty_creators_title')} hint={t('clients.empty_creators_hint')} />
         ) : (
           <div style={{ display: 'grid', gap: '1.2rem' }}>
-            {([['active', 'متعاونون الآن'], ['recent', 'تعاونوا مؤخّرًا'], ['dormant', 'متوقفون']] as [string, string][]).map(([rel, label]) => {
+            {([['active', t('clients.rel_active')], ['recent', t('clients.rel_recent')], ['dormant', t('clients.rel_dormant')]] as [string, string][]).map(([rel, label]) => {
               const grp = creators.filter((c) => c.relation === rel);
               if (grp.length === 0) return null;
               return (
@@ -749,19 +756,19 @@ export default function ClientShow({ client, metrics, risks, campaigns, brands, 
                           </div>
                         </div>
                         <div className="ih-idcard__stats">
-                          <div className="ih-idcard__stat"><div className="ih-idcard__sv">{c.collaborations}</div><div className="ih-idcard__sl">تعاون</div></div>
-                          <div className="ih-idcard__stat"><div className="ih-idcard__sv">{c.published}</div><div className="ih-idcard__sl">منشور</div></div>
-                          <div className="ih-idcard__stat"><div className="ih-idcard__sv">{sar(c.feeMinor).replace(' ر.س', '')}</div><div className="ih-idcard__sl">القيمة</div></div>
+                          <div className="ih-idcard__stat"><div className="ih-idcard__sv">{c.collaborations}</div><div className="ih-idcard__sl">{t('clients.cr_stat_collabs')}</div></div>
+                          <div className="ih-idcard__stat"><div className="ih-idcard__sv">{c.published}</div><div className="ih-idcard__sl">{t('clients.cr_stat_published')}</div></div>
+                          <div className="ih-idcard__stat"><div className="ih-idcard__sv">{sar(c.feeMinor).replace(' ' + sarUnit, '')}</div><div className="ih-idcard__sl">{t('clients.cr_stat_value')}</div></div>
                         </div>
                         <div>
                           <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '.71rem', color: 'var(--ih-text-muted)', marginBottom: '.2rem' }}>
-                            <span>جودة التعاون</span><span style={{ direction: 'ltr' }}>{c.quality}%</span>
+                            <span>{t('clients.cr_quality')}</span><span style={{ direction: 'ltr' }}>{c.quality}%</span>
                           </div>
                           <Bar pct={c.quality} />
                         </div>
                         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '.4rem' }}>
-                          <span style={{ fontSize: '.71rem', color: 'var(--ih-text-muted)' }}>{c.lastAt ? `آخر تعاون ${c.lastAt}` : 'لا تعاون سابق'}</span>
-                          <Link href={u(`/campaigns`)} className="btn btn-xs btn-outline">تعاون جديد</Link>
+                          <span style={{ fontSize: '.71rem', color: 'var(--ih-text-muted)' }}>{c.lastAt ? t('clients.cr_last_collab', { date: c.lastAt }) : t('clients.cr_no_collab')}</span>
+                          <Link href={u(`/campaigns`)} className="btn btn-xs btn-outline">{t('clients.cr_new_collab')}</Link>
                         </div>
                       </div>
                     ))}
@@ -776,10 +783,10 @@ export default function ClientShow({ client, metrics, risks, campaigns, brands, 
       {/* الطلبات — طابور فرز مقسّم حسب الإلحاح */}
       {tab === 'requests' && (
         requests.length === 0 ? (
-          <EmptyState icon="inbox" title="لا طلبات" hint="طلبات هذا العميل تظهر هنا مرتّبة حسب الإلحاح." />
+          <EmptyState icon="inbox" title={t('clients.empty_requests_title')} hint={t('clients.empty_requests_hint')} />
         ) : (
           <div style={{ display: 'grid', gap: '1.1rem' }}>
-            {([['overdue', 'متأخرة', 'danger'], ['new', 'جديدة', 'primary'], ['open', 'قيد العمل', 'warning'], ['done', 'منتهية', 'success']] as [string, string, string][]).map(([bk, label]) => {
+            {([['overdue', t('clients.bucket_overdue'), 'danger'], ['new', t('clients.bucket_new'), 'primary'], ['open', t('clients.bucket_open'), 'warning'], ['done', t('clients.bucket_done'), 'success']] as [string, string, string][]).map(([bk, label]) => {
               const grp = requests.filter((q) => q.bucket === bk);
               if (grp.length === 0) return null;
               return (
@@ -796,8 +803,8 @@ export default function ClientShow({ client, metrics, risks, campaigns, brands, 
                           <div style={{ fontWeight: 650, fontSize: '.87rem', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{q.title}</div>
                           <div style={{ fontSize: '.72rem', color: 'var(--ih-text-muted)' }}>
                             <span style={{ direction: 'ltr' }}>{q.number}</span>
-                            {q.assignee ? ` · ${q.assignee}` : ' · غير مُسنَد'}
-                            {q.dueAt ? ` · يستحق ${q.dueAt}` : ''}
+                            {q.assignee ? ` · ${q.assignee}` : ` · ${t('clients.unassigned')}`}
+                            {q.dueAt ? ` · ${t('clients.due_at', { date: q.dueAt })}` : ''}
                           </div>
                         </div>
                         {q.blocked && <span className="ih-tag" style={{ fontSize: '.64rem', background: 'var(--ih-danger-soft)', color: 'var(--ih-danger-ink)', flexShrink: 0 }}>{q.blocked}</span>}
@@ -817,25 +824,25 @@ export default function ClientShow({ client, metrics, risks, campaigns, brands, 
       {tab === 'contacts' && (
         <>
         {can.update && (
-          <AddPanel label="إضافة جهة اتصال" open={panel === 'contact'} onToggle={() => togglePanel('contact')} busy={busy}
+          <AddPanel label={t('clients.contact_add')} t={t} open={panel === 'contact'} onToggle={() => togglePanel('contact')} busy={busy}
             disabled={!contactForm.name.trim()}
             onSubmit={() => post('/contacts', contactForm, () => setContactForm({ name: '', job_title: '', email: '', phone: '' }))}>
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '.8rem' }}>
-              <Field label="الاسم" labelStyle={FLBL}>
+              <Field label={t('clients.contact_name')} labelStyle={FLBL}>
                 <input value={contactForm.name} onChange={(e) => setContactForm({ ...contactForm, name: e.target.value })} className="field" style={{ width: '100%' }} /><Err k="name" /></Field>
-              <Field label="المسمّى" labelStyle={FLBL}>
+              <Field label={t('clients.contact_title')} labelStyle={FLBL}>
                 <input value={contactForm.job_title} onChange={(e) => setContactForm({ ...contactForm, job_title: e.target.value })} className="field" style={{ width: '100%' }} /></Field>
             </div>
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '.8rem' }}>
-              <Field label="البريد" labelStyle={FLBL}>
+              <Field label={t('clients.ci_email')} labelStyle={FLBL}>
                 <input value={contactForm.email} onChange={(e) => setContactForm({ ...contactForm, email: e.target.value })} className="field" style={{ width: '100%', direction: 'ltr' }} /><Err k="email" /></Field>
-              <Field label="الهاتف" labelStyle={FLBL}>
+              <Field label={t('clients.ci_phone')} labelStyle={FLBL}>
                 <input value={contactForm.phone} onChange={(e) => setContactForm({ ...contactForm, phone: e.target.value })} className="field" style={{ width: '100%', direction: 'ltr' }} /><Err k="phone" /></Field>
             </div>
           </AddPanel>
         )}
         {contacts.length === 0 ? (
-          <EmptyState icon="user-plus" title="لا جهات اتصال" hint="أضِف جهات اتصال العميل للتواصل المباشر." />
+          <EmptyState icon="user-plus" title={t('clients.empty_contacts_title')} hint={t('clients.empty_contacts_hint')} />
         ) : (
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(260px, 1fr))', gap: '.8rem' }}>
             {contacts.map((c, i) => (
@@ -845,22 +852,22 @@ export default function ClientShow({ client, metrics, risks, campaigns, brands, 
                   <div style={{ minWidth: 0, flex: 1 }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '.35rem' }}>
                       <span style={{ fontWeight: 700, fontSize: '.9rem' }}>{c.name}</span>
-                      {c.isPrimary && <span className="ih-tag" style={{ fontSize: '.6rem', background: 'var(--ih-primary-soft)', color: 'var(--ih-primary-800)' }}>أساسي</span>}
+                      {c.isPrimary && <span className="ih-tag" style={{ fontSize: '.6rem', background: 'var(--ih-primary-soft)', color: 'var(--ih-primary-800)' }}>{t('clients.contact_primary')}</span>}
                     </div>
                     <div style={{ fontSize: '.73rem', color: 'var(--ih-text-muted)' }}>{c.role ?? '—'}{c.department ? ` · ${c.department}` : ''}</div>
                   </div>
                 </div>
                 <div style={{ display: 'grid', gap: '.3rem', fontSize: '.78rem' }}>
-                  {c.email && <div style={{ display: 'flex', justifyContent: 'space-between', gap: '.5rem' }}><span style={{ color: 'var(--ih-text-muted)' }}>البريد</span><span style={{ direction: 'ltr', minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis' }}>{c.email}</span></div>}
-                  {c.phone && <div style={{ display: 'flex', justifyContent: 'space-between', gap: '.5rem' }}><span style={{ color: 'var(--ih-text-muted)' }}>الهاتف</span><span style={{ direction: 'ltr' }}>{c.phone}</span></div>}
-                  {c.preferredChannel && <div style={{ display: 'flex', justifyContent: 'space-between' }}><span style={{ color: 'var(--ih-text-muted)' }}>القناة المفضّلة</span><span>{c.preferredChannel}</span></div>}
+                  {c.email && <div style={{ display: 'flex', justifyContent: 'space-between', gap: '.5rem' }}><span style={{ color: 'var(--ih-text-muted)' }}>{t('clients.ci_email')}</span><span style={{ direction: 'ltr', minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis' }}>{c.email}</span></div>}
+                  {c.phone && <div style={{ display: 'flex', justifyContent: 'space-between', gap: '.5rem' }}><span style={{ color: 'var(--ih-text-muted)' }}>{t('clients.ci_phone')}</span><span style={{ direction: 'ltr' }}>{c.phone}</span></div>}
+                  {c.preferredChannel && <div style={{ display: 'flex', justifyContent: 'space-between' }}><span style={{ color: 'var(--ih-text-muted)' }}>{t('clients.contact_preferred_channel')}</span><span>{c.preferredChannel}</span></div>}
                 </div>
                 <div style={{ display: 'flex', gap: '.35rem', alignItems: 'center' }}>
-                  {c.email && <a href={`mailto:${c.email}`} className="btn btn-xs btn-outline" style={{ flex: 1, textAlign: 'center' }}>بريد</a>}
-                  {c.phone && <a href={`tel:${c.phone}`} className="btn btn-xs btn-outline" style={{ flex: 1, textAlign: 'center' }}>اتصال</a>}
-                  {c.whatsapp && <a href={`https://wa.me/${c.whatsapp.replace(/[^0-9]/g, '')}`} target="_blank" rel="noopener noreferrer" className="btn btn-xs btn-outline" style={{ flex: 1, textAlign: 'center' }}>واتساب</a>}
+                  {c.email && <a href={`mailto:${c.email}`} className="btn btn-xs btn-outline" style={{ flex: 1, textAlign: 'center' }}>{t('clients.contact_email_btn')}</a>}
+                  {c.phone && <a href={`tel:${c.phone}`} className="btn btn-xs btn-outline" style={{ flex: 1, textAlign: 'center' }}>{t('clients.contact_call_btn')}</a>}
+                  {c.whatsapp && <a href={`https://wa.me/${c.whatsapp.replace(/[^0-9]/g, '')}`} target="_blank" rel="noopener noreferrer" className="btn btn-xs btn-outline" style={{ flex: 1, textAlign: 'center' }}>{t('clients.contact_whatsapp_btn')}</a>}
                 </div>
-                {c.hasPortal && <span className="ih-tag" style={{ fontSize: '.62rem', background: 'var(--ih-success-soft)', color: 'var(--ih-success-ink)', alignSelf: 'flex-start' }}>له وصول للبوابة</span>}
+                {c.hasPortal && <span className="ih-tag" style={{ fontSize: '.62rem', background: 'var(--ih-success-soft)', color: 'var(--ih-success-ink)', alignSelf: 'flex-start' }}>{t('clients.contact_has_portal')}</span>}
               </div>
             ))}
           </div>
@@ -871,16 +878,16 @@ export default function ClientShow({ client, metrics, risks, campaigns, brands, 
       {tab === 'team' && (
         <>
         {can.portal && (
-          <AddPanel label="دعوة عضو بوابة" open={panel === 'invite'} onToggle={() => togglePanel('invite')} busy={busy}
+          <AddPanel label={t('clients.invite_member')} t={t} open={panel === 'invite'} onToggle={() => togglePanel('invite')} busy={busy}
             disabled={!inviteForm.email.trim()}
             onSubmit={() => post('/members/invite', inviteForm, () => setInviteForm({ email: '', role: 'client_member' }))}>
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '.8rem' }}>
-              <Field label="البريد" labelStyle={FLBL}>
+              <Field label={t('clients.ci_email')} labelStyle={FLBL}>
                 <input value={inviteForm.email} onChange={(e) => setInviteForm({ ...inviteForm, email: e.target.value })} className="field" style={{ width: '100%', direction: 'ltr' }} /><Err k="email" /></Field>
-              <Field label="الدور" labelStyle={FLBL}>
+              <Field label={t('clients.role_label')} labelStyle={FLBL}>
                 <select value={inviteForm.role} onChange={(e) => setInviteForm({ ...inviteForm, role: e.target.value })} className="field" style={{ width: '100%' }}>
-                  <option value="client_admin">مدير حساب العميل</option>
-                  <option value="client_member">عضو</option>
+                  <option value="client_admin">{t('clients.role_client_admin_opt')}</option>
+                  <option value="client_member">{t('clients.role_member_opt')}</option>
                 </select><Err k="role" />
               </Field>
             </div>
@@ -888,14 +895,14 @@ export default function ClientShow({ client, metrics, risks, campaigns, brands, 
         )}
         {inviteToken && (
           <div className="card" style={{ padding: '.9rem 1rem', marginBottom: '.9rem', borderInlineStart: '3px solid var(--ih-warning)', background: 'var(--ih-warning-soft)', color: 'var(--ih-warning-ink)' }}>
-            <div style={{ fontWeight: 700, marginBottom: '.3rem' }}>رمز الدعوة — يُعرض مرة واحدة</div>
-            <div style={{ fontSize: '.8rem', marginBottom: '.5rem' }}>انسخه الآن وسلّمه للعضو؛ لا يمكن استرجاعه بعد مغادرة الصفحة.</div>
+            <div style={{ fontWeight: 700, marginBottom: '.3rem' }}>{t('clients.invite_token_title')}</div>
+            <div style={{ fontSize: '.8rem', marginBottom: '.5rem' }}>{t('clients.invite_token_hint')}</div>
             <code style={{ direction: 'ltr', display: 'block', wordBreak: 'break-all', fontSize: '.86rem', fontWeight: 700 }}>{inviteToken}</code>
           </div>
         )}
-        <Sec title="الفريق" icon="user-plus">
-          <DataTable head={['العضو', 'الدور', 'الحالة']}>
-            {team.length === 0 ? <EmptyRow span={3} text="لا أعضاء." /> :
+        <Sec title={t('clients.tab_team')} icon="user-plus">
+          <DataTable head={[t('clients.th_member'), t('clients.role_label'), t('clients.th_status')]}>
+            {team.length === 0 ? <EmptyRow span={3} text={t('clients.no_members')} /> :
               team.map((m, i) => <tr key={i}><td style={{ fontWeight: 600 }}>{m.name}</td><td>{m.role}</td><td><StatusBadge tone={m.statusTone} label={m.status} /></td></tr>)}
           </DataTable>
         </Sec>
@@ -904,28 +911,28 @@ export default function ClientShow({ client, metrics, risks, campaigns, brands, 
 
       {/* حقول مخصّصة — بطاقات مقروءة لا قائمة حقول تقنية */}
       {tab === 'custom' && (
-        <Sec title="حقول مخصّصة" icon="clipboard-check">
+        <Sec title={t('clients.tab_custom')} icon="clipboard-check">
           {can.update && (
             <div style={{ padding: '.9rem .9rem 0' }}>
-              <AddPanel label="تعريف حقل" open={panel === 'field'} onToggle={() => togglePanel('field')} busy={busy}
+              <AddPanel label={t('clients.field_define')} t={t} open={panel === 'field'} onToggle={() => togglePanel('field')} busy={busy}
                 disabled={!fieldForm.key.trim() || !fieldForm.label.trim()}
                 onSubmit={() => post('/custom-fields', fieldForm, () => setFieldForm({ key: '', label: '', type: 'text' }))}>
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '.8rem' }}>
-                  <Field label="المفتاح" labelStyle={FLBL}>
+                  <Field label={t('clients.field_key')} labelStyle={FLBL}>
                     <input value={fieldForm.key} onChange={(e) => setFieldForm({ ...fieldForm, key: e.target.value })} className="field" style={{ width: '100%', direction: 'ltr' }} placeholder="contract_owner" /><Err k="key" /></Field>
-                  <Field label="التسمية" labelStyle={FLBL}>
+                  <Field label={t('clients.field_label')} labelStyle={FLBL}>
                     <input value={fieldForm.label} onChange={(e) => setFieldForm({ ...fieldForm, label: e.target.value })} className="field" style={{ width: '100%' }} /><Err k="label" /></Field>
-                  <Field label="النوع" labelStyle={FLBL}>
+                  <Field label={t('clients.field_type')} labelStyle={FLBL}>
                     <select value={fieldForm.type} onChange={(e) => setFieldForm({ ...fieldForm, type: e.target.value })} className="field" style={{ width: '100%' }}>
-                      {[['text', 'نص'], ['textarea', 'نص طويل'], ['number', 'رقم'], ['date', 'تاريخ'], ['boolean', 'نعم/لا'],
-                        ['url', 'رابط'], ['email', 'بريد'], ['phone', 'هاتف']].map(([v, l]) => <option key={v} value={v}>{l}</option>)}
+                      {[['text', t('clients.ftype_text')], ['textarea', t('clients.ftype_textarea')], ['number', t('clients.ftype_number')], ['date', t('clients.ftype_date')], ['boolean', t('clients.ftype_boolean')],
+                        ['url', t('clients.ftype_url')], ['email', t('clients.ftype_email')], ['phone', t('clients.ftype_phone')]].map(([v, l]) => <option key={v} value={v}>{l}</option>)}
                     </select><Err k="type" />
                   </Field>
                 </div>
               </AddPanel>
               {fieldDefinitions.length > 0 && (
                 <div className="card" style={{ padding: '.9rem', marginBottom: '.9rem', display: 'grid', gap: '.7rem' }}>
-                  <div style={{ fontWeight: 700, fontSize: '.85rem' }}>ضبط القيم</div>
+                  <div style={{ fontWeight: 700, fontSize: '.85rem' }}>{t('clients.field_set_values')}</div>
                   {fieldDefinitions.map((d) => (
                     <div key={d.id} style={{ display: 'grid', gridTemplateColumns: '1fr 2fr auto', gap: '.6rem', alignItems: 'center' }}>
                       <span style={{ fontSize: '.82rem', color: 'var(--ih-text-muted)' }}>{d.label}</span>
@@ -933,7 +940,7 @@ export default function ClientShow({ client, metrics, risks, campaigns, brands, 
                         onChange={(e) => setFieldValues({ ...fieldValues, [d.id]: e.target.value })}
                         className="field" style={{ width: '100%' }} />
                       <button disabled={busy} className="btn btn-xs btn-outline"
-                        onClick={() => post(`/custom-fields/${d.id}/set`, { value: fieldValues[d.id] ?? '' }, () => undefined)}>حفظ</button>
+                        onClick={() => post(`/custom-fields/${d.id}/set`, { value: fieldValues[d.id] ?? '' }, () => undefined)}>{t('clients.save')}</button>
                     </div>
                   ))}
                   <Err k="value" />
@@ -944,8 +951,8 @@ export default function ClientShow({ client, metrics, risks, campaigns, brands, 
           {customFields.length === 0 ? (
             <div style={{ padding: '2rem', textAlign: 'center' }}>
               <span className="ih-empty__icon" style={{ width: 44, height: 44 }}><Icon name="clipboard-check" size={20} /></span>
-              <div style={{ marginTop: '.5rem', fontWeight: 700 }}>لا حقول مخصّصة</div>
-              <div style={{ fontSize: '.82rem', color: 'var(--ih-text-muted)' }}>تُعرّف الحقول من الإعدادات وتظهر هنا لكل عميل.</div>
+              <div style={{ marginTop: '.5rem', fontWeight: 700 }}>{t('clients.empty_custom_title')}</div>
+              <div style={{ fontSize: '.82rem', color: 'var(--ih-text-muted)' }}>{t('clients.empty_custom_hint')}</div>
             </div>
           ) : (
             <div style={{ padding: '.9rem', display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(240px, 1fr))', gap: '.8rem' }}>
@@ -953,10 +960,10 @@ export default function ClientShow({ client, metrics, risks, campaigns, brands, 
                 <div key={f.id} className="card" style={{ padding: '.75rem .9rem' }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '.35rem', marginBottom: '.3rem' }}>
                     <span style={{ fontSize: '.75rem', color: 'var(--ih-text-muted)', fontWeight: 600 }}>{f.label}</span>
-                    {f.required && <span className="ih-tag" style={{ fontSize: '.6rem', background: 'var(--ih-warning-soft)', color: 'var(--ih-warning-ink)' }}>إلزامي</span>}
+                    {f.required && <span className="ih-tag" style={{ fontSize: '.6rem', background: 'var(--ih-warning-soft)', color: 'var(--ih-warning-ink)' }}>{t('clients.field_required')}</span>}
                   </div>
                   <div style={{ fontSize: '.92rem', fontWeight: 600, wordBreak: 'break-word' }}>
-                    {f.value || <span style={{ color: 'var(--ih-text-muted)', fontWeight: 400 }}>— غير مُعبّأ</span>}
+                    {f.value || <span style={{ color: 'var(--ih-text-muted)', fontWeight: 400 }}>{t('clients.field_empty')}</span>}
                   </div>
                 </div>
               ))}
