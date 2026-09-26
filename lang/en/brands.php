@@ -53,4 +53,108 @@ return [
     // Brand creator (server — createHint)
     'add_brand_for' => 'Add a brand for :client',
     'choose_client' => 'Choose a client',
+
+    // Detail page (Show)
+    'show_heading' => 'Brand',
+    'show_eyebrow' => 'Brand · :client',
+    'back_all' => 'All brands',
+    'm_sector' => 'Sector',
+    'm_version' => 'Version',
+    'm_submitted' => 'Submitted',
+    'm_reviewed' => 'Reviewed',
+    'changes_label' => 'Changes requested:',
+    'ss_campaigns' => 'Campaigns',
+    'ss_budget' => 'Budget',
+    'ss_content' => 'Content',
+    'ss_awaiting' => 'Awaiting review',
+    'currency_sar' => 'SAR',
+
+    // Tabs
+    'tab_overview' => 'Overview',
+    'tab_campaigns' => 'Campaigns',
+    'tab_content' => 'Content',
+    'tab_accounts' => 'Accounts',
+    'tab_review' => 'Review',
+
+    // Campaigns tab
+    'no_campaigns' => 'No campaigns for this brand',
+    'open_nomination_title' => 'Open this campaign’s nomination',
+    'nomination_prefix' => 'Nomination:',
+    'published_content' => 'Published content',
+    'deliverables_count' => ':n deliverable(s)',
+
+    // Content tab
+    'no_content' => 'No linked content',
+    'needs_action' => 'Needs action',
+
+    // Overview — brand profile
+    'sec_profile' => 'Brand profile',
+    'f_website' => 'Website',
+    'f_language' => 'Preferred language',
+    'f_tone' => 'Tone of voice',
+    'f_audience' => 'Target audience',
+    'prohibited_topics' => 'Prohibited topics',
+    'required_messages' => 'Required messages',
+    'visual_guidelines' => 'Visual guidelines',
+
+    // Approval readiness
+    'sec_readiness' => 'Approval readiness',
+    'critical_complete' => 'Critical items complete',
+    'critical_missing' => ':n critical item(s) missing',
+    'critical_tag' => 'Critical',
+    'sec_last_decision' => 'Last decision',
+    'all_decisions' => 'All decisions',
+    'no_decisions' => 'No decisions yet.',
+
+    // Accounts tab
+    'no_accounts' => 'No accounts recorded',
+    'no_accounts_hint' => 'Add the brand’s accounts to track its activity.',
+    'open_account' => 'Open account',
+
+    // Review tab
+    'sec_review_decisions' => 'Review decisions',
+    'sec_history' => 'Status log',
+    'no_history' => 'No log yet.',
+
+    // Decision modal
+    'approve_warning' => 'Note: :n critical item(s) are missing — review approval readiness before proceeding.',
+    'reason_required_ph' => 'Reason (shown to the client) — required',
+    'note_optional_ph' => 'Approval note (optional)',
+    'confirm' => 'Confirm',
+    'cancel' => 'Cancel',
+
+    // Approval action labels
+    'act_start_review' => 'Start review',
+    'act_approve' => 'Approve brand',
+    'act_request_changes' => 'Request changes',
+    'act_suspend' => 'Suspend brand',
+    'act_reapprove' => 'Re-approve',
+    'act_submit' => 'Submit for approval',
+    'act_resubmit' => 'Resubmit for approval',
+
+    // Approval-readiness checklist items
+    'ck_name' => 'Brand name',
+    'ck_client' => 'Client ownership',
+    'ck_sector' => 'Sector',
+    'ck_description' => 'Brand description',
+    'ck_logo' => 'Logo',
+    'ck_website' => 'Website/domain',
+    'ck_cr' => 'Commercial registration',
+    'ck_contact' => 'Contact information',
+    'ck_guidelines' => 'Brand guidelines',
+    'ck_voice' => 'Tone of voice & audience',
+    'ck_accounts' => 'At least one social account',
+
+    // Review decisions
+    'dec_approved' => 'Approved',
+    'dec_changes_requested' => 'Changes requested',
+    'dec_rejected' => 'Rejected',
+
+    // Nomination status (shown on the campaign card)
+    'nom_status_draft' => 'Draft',
+    'nom_status_submitted' => 'Awaiting client',
+    'nom_status_approved' => 'Approved',
+    'nom_status_partially_approved' => 'Partially approved',
+    'nom_status_changes_requested' => 'Alternative requested',
+    'nom_status_rejected' => 'Rejected',
 ];
