@@ -3,13 +3,17 @@
 namespace App\Http\Controllers\Inertia;
 
 use App\Domain\Collaborations\Models\Collaboration;
-use App\Domain\Identity\Models\User;
-use App\Domain\CRM\Models\{Client, ClientDocument, CustomFieldValue};
+use App\Domain\CRM\Models\Client;
+use App\Domain\CRM\Models\ClientDocument;
+use App\Domain\CRM\Models\CustomFieldDefinition;
+use App\Domain\CRM\Models\CustomFieldValue;
 use App\Domain\Finance\Models\Payout;
+use App\Domain\Identity\Models\User;
 use App\Domain\Requests\Models\ServiceRequest;
 use App\Http\Controllers\Controller;
-use Illuminate\Http\Request;
 use App\Support\Analytics\ClientAnalytics;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Lang;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -45,20 +49,32 @@ class ClientDetailController extends Controller
         $open = ServiceRequest::OPEN_STATUSES;
         $risks = [];
         $overdue = $requests->filter(fn ($r) => $r->sla_breached_at && in_array($r->status, $open, true))->count();
-        if ($overdue > 0) $risks[] = ['label' => "$overdue طلب متأخر عن SLA", 'tone' => 'danger', 'href' => '/service-requests', 'tab' => 'requests'];
+        if ($overdue > 0) {
+            $risks[] = ['label' => trans('clients.risk_sla', ['n' => $overdue]), 'tone' => 'danger', 'href' => '/service-requests', 'tab' => 'requests'];
+        }
         $awaiting = $content->where('status', 'client_review')->count();
-        if ($awaiting > 0) $risks[] = ['label' => "$awaiting محتوى بانتظار العميل", 'tone' => 'warning', 'href' => '/content', 'tab' => 'content'];
+        if ($awaiting > 0) {
+            $risks[] = ['label' => trans('clients.risk_awaiting_client', ['n' => $awaiting]), 'tone' => 'warning', 'href' => '/content', 'tab' => 'content'];
+        }
         $unsigned = $contracts->where('status', 'sent')->count();
-        if ($unsigned > 0) $risks[] = ['label' => "$unsigned عقد بانتظار التوقيع", 'tone' => 'info', 'href' => '/contracts', 'tab' => 'contracts'];
+        if ($unsigned > 0) {
+            $risks[] = ['label' => trans('clients.n_contract_awaiting_sign', ['n' => $unsigned]), 'tone' => 'info', 'href' => '/contracts', 'tab' => 'contracts'];
+        }
         $ready = $payouts->whereIn('status', ['approved', 'scheduled'])->count();
-        if ($ready > 0) $risks[] = ['label' => "$ready مستحق جاهز للصرف", 'tone' => 'primary', 'href' => '/payouts', 'tab' => 'finance'];
+        if ($ready > 0) {
+            $risks[] = ['label' => trans('clients.risk_ready_payout', ['n' => $ready]), 'tone' => 'primary', 'href' => '/payouts', 'tab' => 'finance'];
+        }
 
         // الخطوة التالية — أهم إجراء واحد مشتق من المخاطر بترتيب الإلحاح
         $nextAction = $risks[0] ?? null;
 
         [$stLabel, $stTone] = self::CLIENT_STATUS[$client->status] ?? [$client->status, 'draft'];
-        $st = fn ($s) => __('statuses.' . $s);
-        $tone = fn ($s) => __('statuses.tone.' . $s);
+        // التسمية بلغة الطلب مع رجوع للثابت العربيّ (الافتراضي يبقى مطابقًا بايتًا)
+        if (Lang::has('clients.s_'.$client->status)) {
+            $stLabel = trans('clients.s_'.$client->status);
+        }
+        $st = fn ($s) => __('statuses.'.$s);
+        $tone = fn ($s) => __('statuses.tone.'.$s);
 
         // أسماء المستخدمين للمسؤولين (استعلام واحد) + بُرد بوابة العميل لمعرفة من له وصول
         $userNames = User::whereIn('id', $requests->pluck('assigned_to')->filter()->unique())->pluck('name', 'id');
@@ -80,6 +96,7 @@ class ClientDetailController extends Controller
             $published = $creatorContent->where('status', 'published')->count();
             $active = $group->whereIn('status', ['accepted', 'in_progress', 'submitted'])->count();
             $daysSince = $last ? $last->diffInDays(now()) : null;
+
             return [
                 'id' => (int) $group->first()->creator_id,
                 'name' => $cr?->display_name ?? '—',
@@ -123,10 +140,10 @@ class ClientDetailController extends Controller
 
         // آخر نشاط — مجمّع من طوابع زمنية حقيقية عبر الوحدات (لا سجل مصطنع)
         $activity = collect()
-            ->concat($campaigns->take(6)->map(fn ($c) => ['at' => $c->created_at, 'icon' => 'megaphone', 'text' => "حملة: {$c->name}", 'href' => "/campaigns/{$c->id}"]))
-            ->concat($content->take(6)->map(fn ($c) => ['at' => $c->updated_at, 'icon' => 'image', 'text' => "محتوى: {$c->title} · " . $st($c->status), 'href' => "/content/{$c->id}"]))
-            ->concat($contracts->take(6)->map(fn ($c) => ['at' => $c->updated_at, 'icon' => 'file-text', 'text' => "عقد: {$c->title} · " . $st($c->status), 'href' => "/contracts/{$c->id}"]))
-            ->concat($requests->take(6)->map(fn ($q) => ['at' => $q->created_at, 'icon' => 'inbox', 'text' => "طلب: {$q->title} · " . $st($q->status), 'href' => "/service-requests/{$q->id}"]))
+            ->concat($campaigns->take(6)->map(fn ($c) => ['at' => $c->created_at, 'icon' => 'megaphone', 'text' => trans('clients.act_campaign', ['name' => $c->name]), 'href' => "/campaigns/{$c->id}"]))
+            ->concat($content->take(6)->map(fn ($c) => ['at' => $c->updated_at, 'icon' => 'image', 'text' => trans('clients.act_content', ['title' => $c->title, 'status' => $st($c->status)]), 'href' => "/content/{$c->id}"]))
+            ->concat($contracts->take(6)->map(fn ($c) => ['at' => $c->updated_at, 'icon' => 'file-text', 'text' => trans('clients.act_contract', ['title' => $c->title, 'status' => $st($c->status)]), 'href' => "/contracts/{$c->id}"]))
+            ->concat($requests->take(6)->map(fn ($q) => ['at' => $q->created_at, 'icon' => 'inbox', 'text' => trans('clients.act_request', ['title' => $q->title, 'status' => $st($q->status)]), 'href' => "/service-requests/{$q->id}"]))
             ->filter(fn ($a) => $a['at'] !== null)
             ->sortByDesc('at')->take(8)
             ->map(fn ($a) => ['icon' => $a['icon'], 'text' => $a['text'], 'href' => $a['href'], 'at' => $a['at']->format('Y-m-d')])
@@ -144,7 +161,7 @@ class ClientDetailController extends Controller
         return Inertia::render('Clients/Show', [
             'can' => $can,
             'fieldDefinitions' => $can['update']
-                ? \App\Domain\CRM\Models\CustomFieldDefinition::where('tenant_id', $client->tenant_id)
+                ? CustomFieldDefinition::where('tenant_id', $client->tenant_id)
                     ->where('entity_type', 'client')->orderBy('label')
                     ->get(['id', 'key', 'label', 'type'])
                 : [],
@@ -178,6 +195,7 @@ class ClientDetailController extends Controller
                 $total = max(1, $cContent->count());
                 $late = $c->end_date && $c->end_date->isPast() && ! in_array($c->status, ['completed', 'cancelled'], true);
                 $awaiting = $cContent->whereIn('status', ['agency_review', 'client_review'])->count();
+
                 return [
                     'id' => $c->id, 'name' => $c->name, 'brand' => $c->brand?->name,
                     'deliverables' => (int) $c->deliverables_count,
@@ -194,7 +212,7 @@ class ClientDetailController extends Controller
                     'status' => $c->status, 'statusLabel' => $st($c->status), 'statusTone' => $tone($c->status),
                     'stage' => in_array($c->status, ['draft', 'planning'], true) ? 'planning'
                         : (in_array($c->status, ['completed', 'cancelled'], true) ? 'closed' : 'running'),
-                    'risk' => $late ? 'متأخرة عن موعدها' : ($budget > 0 && $committed > $budget ? 'تجاوز الميزانية' : ($awaiting > 0 ? "$awaiting محتوى بانتظار مراجعة" : null)),
+                    'risk' => $late ? trans('clients.camp_risk_late') : ($budget > 0 && $committed > $budget ? trans('clients.camp_risk_over_budget') : ($awaiting > 0 ? trans('clients.camp_risk_awaiting', ['n' => $awaiting]) : null)),
                 ];
             })->values(),
             'brands' => $client->brands->map(fn ($b) => [
@@ -205,12 +223,12 @@ class ClientDetailController extends Controller
                 'name' => $c->name, 'role' => $c->job_title, 'department' => $c->department,
                 'email' => $c->email, 'phone' => $c->phone, 'whatsapp' => $c->whatsapp,
                 'isPrimary' => (bool) $c->is_primary,
-                'preferredChannel' => ['email' => 'البريد', 'phone' => 'الهاتف', 'whatsapp' => 'واتساب'][$c->preferred_channel] ?? $c->preferred_channel,
+                'preferredChannel' => ['email' => trans('clients.ci_email'), 'phone' => trans('clients.ci_phone'), 'whatsapp' => trans('clients.contact_whatsapp_btn')][$c->preferred_channel] ?? $c->preferred_channel,
                 'hasPortal' => $portalEmails->contains(mb_strtolower((string) $c->email)),
             ])->sortByDesc('isPrimary')->values(),
             'team' => $client->members->map(fn ($m) => [
                 'name' => $m->user?->name ?? '—',
-                'role' => self::CLIENT_ROLE[$m->role] ?? $m->role,
+                'role' => Lang::has('clients.role_'.$m->role) ? trans('clients.role_'.$m->role) : (self::CLIENT_ROLE[$m->role] ?? $m->role),
                 'status' => $st($m->status), 'statusTone' => $tone($m->status),
             ])->values(),
             // Gallery: معاينة + إصدار + مرحلة + موعد + إجراء مطلوب
@@ -226,11 +244,12 @@ class ClientDetailController extends Controller
                 'needsAction' => in_array($c->status, ['agency_review', 'client_review', 'changes_requested'], true),
             ])->values(),
             // مراحل المحتوى — لشريط سير العمل المرئي
-            'contentStages' => collect(['draft' => 'مسودة', 'agency_review' => 'مراجعة الوكالة', 'client_review' => 'مراجعة العميل', 'changes_requested' => 'تعديلات مطلوبة', 'approved' => 'معتمد', 'scheduled' => 'مجدول', 'published' => 'منشور'])
+            'contentStages' => collect(['draft' => trans('clients.cs_draft'), 'agency_review' => trans('clients.cs_agency_review'), 'client_review' => trans('clients.cs_client_review'), 'changes_requested' => trans('clients.cs_changes_requested'), 'approved' => trans('clients.cs_approved'), 'scheduled' => trans('clients.cs_scheduled'), 'published' => trans('clients.cs_published')])
                 ->map(fn ($label, $key) => ['key' => $key, 'label' => $label, 'count' => $content->where('status', $key)->count()])
                 ->values(),
             'contracts' => $contracts->map(function ($c) use ($st, $tone) {
                 $expiring = $c->end_date && $c->end_date->isFuture() && $c->end_date->diffInDays(now()) <= 30;
+
                 return [
                     'id' => $c->id, 'title' => $c->title, 'number' => $c->contract_number, 'party' => $c->creator?->display_name,
                     'valueMinor' => (int) $c->value_minor,
@@ -274,17 +293,18 @@ class ClientDetailController extends Controller
                 $isOpen = in_array($q->status, $open, true);
                 $breached = (bool) ($q->sla_breached_at && $isOpen);
                 $dueSoon = ! $breached && $isOpen && $q->due_at && $q->due_at->isFuture() && $q->due_at->diffInHours(now()) <= 24;
+
                 return [
                     'id' => $q->id, 'title' => $q->title, 'number' => $q->request_number,
                     'type' => $q->type, 'priority' => $q->priority,
-                    'priorityLabel' => ['low' => 'منخفضة', 'normal' => 'عادية', 'high' => 'عالية', 'urgent' => 'عاجلة'][$q->priority] ?? $q->priority,
+                    'priorityLabel' => ['low' => trans('clients.prio_low'), 'normal' => trans('clients.prio_normal'), 'high' => trans('clients.prio_high'), 'urgent' => trans('clients.prio_urgent')][$q->priority] ?? $q->priority,
                     'assignee' => $q->assigned_to ? ($userNames[$q->assigned_to] ?? '—') : null,
                     'dueAt' => $q->due_at?->format('Y-m-d H:i'),
                     'updatedAt' => $q->updated_at?->format('Y-m-d'),
                     'status' => $q->status, 'statusLabel' => $st($q->status), 'statusTone' => $tone($q->status),
                     'open' => $isOpen, 'overdue' => $breached, 'dueSoon' => $dueSoon,
                     // سبب التعطل الفعلي
-                    'blocked' => $breached ? 'تجاوز مهلة SLA' : ($q->status === 'needs_info' ? 'بانتظار معلومة' : (! $q->assigned_to && $isOpen ? 'غير مُسنَد' : null)),
+                    'blocked' => $breached ? trans('clients.blk_sla') : ($q->status === 'needs_info' ? trans('clients.blk_needs_info') : (! $q->assigned_to && $isOpen ? trans('clients.unassigned') : null)),
                     'bucket' => $breached ? 'overdue' : ($q->status === 'submitted' ? 'new' : ($isOpen ? 'open' : 'done')),
                 ];
             })->values(),
