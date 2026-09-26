@@ -7,24 +7,26 @@ import { login } from './helpers.js';
  * المؤسسة «ألف» مستحقّة (بذور)، «باء» غير مستحقّة. لا يظهر أيّ مصدر/متجر للمستأجر.
  */
 test.describe('قاعدة المؤثرين', () => {
-    test('75- وكالة مستحقّة: تصفّح → بحث → ملف → تواصل → مفضّلة', async ({ page }) => {
+    test('75- وكالة مستحقّة: تصفّح → بحث → معاينة → تواصل → مفضّلة', async ({ page }) => {
         await login(page, 'admin@a.test');
         // الرابط يظهر في القائمة الجانبية (محكوم بالاستحقاق + الدور)
         await expect(page.locator('aside')).toContainText('قاعدة المؤثرين');
         await page.goto('/app/creator-database');
         await expect(page.locator('body')).toContainText('نجم سناب');
 
-        // بحث
-        await page.fill('.ih-search input', 'مبدع تيك');
+        // بحث أولًا (المرساة البصرية — Phase G)
+        await page.fill('.ih-discover-search input', 'مبدع تيك');
         await expect(page.locator('body')).toContainText('مبدع تيك');
 
-        // فتح الملف — مدير الوكالة يرى التواصل
+        // معاينة سريعة: النقر على البطاقة يفتح الدرج دون مغادرة الاكتشاف — مدير الوكالة يرى التواصل
         await page.goto('/app/creator-database');
-        await page.click('a:has-text("نجم سناب")');
-        await expect(page.locator('body')).toContainText('التواصل');
-        await expect(page.locator('body')).toContainText('واتساب');
+        await page.getByRole('button', { name: /نجم سناب/ }).first().click();
+        const drawer = page.getByRole('dialog', { name: /نجم سناب/ });
+        await expect(drawer).toContainText('التواصل');
+        await expect(drawer).toContainText('واتساب');
 
-        // مفضّلة
+        // «الملف الكامل» يفتح صفحة التفصيل — مفضّلة
+        await drawer.getByRole('link', { name: 'الملف الكامل' }).click();
         await page.click('button:has-text("إضافة للمفضّلة")');
         await expect(page.locator('body')).toContainText('مفضّل');
     });
@@ -32,22 +34,25 @@ test.describe('قاعدة المؤثرين', () => {
     test('76- ترشيح مبدع من القاعدة إلى حملة (المرحلة 2)', async ({ page }) => {
         await login(page, 'admin@a.test');
         await page.goto('/app/creator-database');
-        await page.click('a:has-text("نجم سناب")');
-        // قسم الترشيح لحملة موجود لمن يملك الصلاحية
+        // معاينة → الملف الكامل → قسم الترشيح لحملة (لمن يملك الصلاحية)
+        await page.getByRole('button', { name: /نجم سناب/ }).first().click();
+        await page.getByRole('dialog', { name: /نجم سناب/ }).getByRole('link', { name: 'الملف الكامل' }).click();
         await expect(page.locator('body')).toContainText('ترشيح لحملة');
         await page.click('button:has-text("إضافة وترشيح")');
         // يُضاف كأساسيّ افتراضيًّا (نسخة موحّدة مع تدفّق الاكتشاف — UX4a)
         await expect(page.locator('body')).toContainText('أُضيف كأساسيّ للحملة');
     });
 
-    test('77- خصوصية المصدر: لا متجر/مصدر في القاعدة ولا الملف', async ({ page }) => {
+    test('77- خصوصية المصدر: لا متجر/مصدر في القاعدة ولا المعاينة', async ({ page }) => {
         await login(page, 'admin@a.test');
         await page.goto('/app/creator-database');
         await expect(page.locator('body')).not.toContainText('وزنة');   // متجر (محظور)
         await expect(page.locator('body')).not.toContainText('المصدر');
-        await page.click('a:has-text("نجم سناب")');
-        await expect(page.locator('body')).not.toContainText('وزنة');
-        await expect(page.locator('body')).not.toContainText('التكلفة');
+        // درج المعاينة أيضًا لا يكشف المصدر ولا التكلفة الداخلية
+        await page.getByRole('button', { name: /نجم سناب/ }).first().click();
+        const drawer = page.getByRole('dialog', { name: /نجم سناب/ });
+        await expect(drawer).not.toContainText('وزنة');
+        await expect(drawer).not.toContainText('التكلفة');
     });
 
     test('78- المُطّلع يتصفّح بلا كشف تواصل', async ({ page }) => {
