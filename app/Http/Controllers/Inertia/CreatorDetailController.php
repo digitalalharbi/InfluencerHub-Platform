@@ -5,13 +5,16 @@ namespace App\Http\Controllers\Inertia;
 use App\Domain\Collaborations\Models\Collaboration;
 use App\Domain\Content\Models\ContentItem;
 use App\Domain\Contracts\Models\Contract;
-use App\Domain\Creators\Models\{Creator, CreatorInvitation};
+use App\Domain\Creators\Models\Creator;
+use App\Domain\Creators\Models\CreatorCapability;
+use App\Domain\Creators\Models\CreatorInvitation;
 use App\Domain\Creators\Services\CreatorInvitationService;
-use App\Domain\Identity\Models\User;
 use App\Domain\Finance\Models\Payout;
+use App\Domain\Identity\Models\User;
 use App\Http\Controllers\Controller;
 use App\Support\Analytics\CreatorAnalytics;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Lang;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -22,6 +25,7 @@ use Inertia\Response;
 class CreatorDetailController extends Controller
 {
     private const CREATOR_STATUS = ['prospect' => ['مبدئي', 'submitted'], 'active' => ['نشط', 'active'], 'paused' => ['موقوف', 'paused'], 'blocked' => ['محظور', 'rejected']];
+
     private const SUB_LABEL = [
         'audience' => 'حجم الجمهور', 'engagement' => 'التفاعل', 'reliability' => 'الالتزام',
         'content_quality' => 'جودة المحتوى', 'commercial' => 'الأداء التجاري', 'profile' => 'اكتمال الملف', 'trust' => 'الموثوقية',
@@ -36,7 +40,7 @@ class CreatorDetailController extends Controller
         $collabs = Collaboration::where('creator_id', $creator->id)->with('campaign')->latest()->get()
             ->map(fn ($c) => [
                 'id' => $c->id, 'title' => $c->title, 'campaign' => $c->campaign?->name,
-                'status' => $c->status, 'statusLabel' => __('statuses.' . $c->status), 'statusTone' => __('statuses.tone.' . $c->status),
+                'status' => $c->status, 'statusLabel' => __('statuses.'.$c->status), 'statusTone' => __('statuses.tone.'.$c->status),
                 'feeMinor' => (int) $c->fee_minor,
             ]);
         $content = ContentItem::where('creator_id', $creator->id)->latest()->get()
@@ -45,25 +49,26 @@ class CreatorDetailController extends Controller
                 'mediaUrl' => $c->media_url, 'version' => (int) $c->version,
                 'publishedAt' => $c->published_at?->format('Y-m-d'),
                 'needsAction' => in_array($c->status, ['agency_review', 'client_review', 'changes_requested'], true),
-                'status' => $c->status, 'statusLabel' => __('statuses.' . $c->status), 'statusTone' => __('statuses.tone.' . $c->status),
+                'status' => $c->status, 'statusLabel' => __('statuses.'.$c->status), 'statusTone' => __('statuses.tone.'.$c->status),
             ]);
         $contracts = Contract::where('creator_id', $creator->id)->latest()->get()
             ->map(fn ($c) => [
                 'id' => $c->id, 'title' => $c->title, 'number' => $c->contract_number,
-                'status' => $c->status, 'statusLabel' => __('statuses.' . $c->status), 'statusTone' => __('statuses.tone.' . $c->status),
+                'status' => $c->status, 'statusLabel' => __('statuses.'.$c->status), 'statusTone' => __('statuses.tone.'.$c->status),
                 'valueMinor' => (int) $c->value_minor,
             ]);
         $payouts = Payout::where('creator_id', $creator->id)->latest()->get()
             ->map(fn ($p) => [
                 'id' => $p->id, 'number' => $p->payout_number,
-                'status' => $p->status, 'statusLabel' => __('statuses.' . $p->status), 'statusTone' => __('statuses.tone.' . $p->status),
+                'status' => $p->status, 'statusLabel' => __('statuses.'.$p->status), 'statusTone' => __('statuses.tone.'.$p->status),
                 'amountMinor' => (int) $p->amount_minor,
             ]);
 
-        [$stLabel, $stTone] = self::CREATOR_STATUS[$creator->status] ?? [$creator->status, 'draft'];
+        [$stLabelAr, $stTone] = self::CREATOR_STATUS[$creator->status] ?? [$creator->status, 'draft'];
+        $stLabel = Lang::has("creators.st_{$creator->status}") ? trans("creators.st_{$creator->status}") : $stLabelAr;
         $subscores = [];
         foreach (self::SUB_LABEL as $key => $label) {
-            $subscores[] = ['key' => $key, 'label' => $label, 'value' => (int) ($intel['subscores'][$key] ?? 0)];
+            $subscores[] = ['key' => $key, 'label' => Lang::has("creators.sub_{$key}") ? trans("creators.sub_{$key}") : $label, 'value' => (int) ($intel['subscores'][$key] ?? 0)];
         }
 
         return Inertia::render('Creators/Show', [
@@ -74,7 +79,7 @@ class CreatorDetailController extends Controller
                 'number' => $creator->creator_number,
                 'type' => $creator->type, // للتوافق فقط — العرض يعتمد capabilities
                 'capabilities' => array_map(
-                    fn (string $k) => \App\Domain\Creators\Models\CreatorCapability::label($k),
+                    fn (string $k) => CreatorCapability::label($k),
                     $creator->capabilityKeys(),
                 ),
                 'status' => $creator->status,
@@ -93,7 +98,7 @@ class CreatorDetailController extends Controller
             'intel' => [
                 'score' => $intel['score'],
                 'tier' => $intel['tier'],
-                'tierLabel' => $intel['tier'] === 'under_review' ? 'قيد المراجعة' : $intel['tier'],
+                'tierLabel' => $intel['tier'] === 'under_review' ? trans('creators.tier_under_review') : $intel['tier'],
                 'risk' => $intel['risk'],
                 'reasons' => $intel['reasons'],
                 'metrics' => $intel['metrics'],
@@ -127,12 +132,12 @@ class CreatorDetailController extends Controller
 
             return [
                 'state' => 'active',
-                'label' => 'البوابة نشطة',
+                'label' => trans('creators.acc_state_active'),
                 'tone' => 'approved',
                 'email' => $user?->email ?? $creator->email,
                 'phone' => $creator->phone,
                 'canInvite' => false,
-                'blockedReason' => 'الحساب مرتبط بالفعل — لا حاجة لدعوة.',
+                'blockedReason' => trans('creators.acc_reason_linked'),
                 'invitation' => null,
             ];
         }
@@ -145,20 +150,20 @@ class CreatorDetailController extends Controller
             'phone' => $creator->phone,
             'canInvite' => $canInvite && ! $missing,
             'blockedReason' => $missing
-                ? 'أضف بريد صانع المحتوى أوّلًا — الدعوة تُرسَل إليه.'
-                : (! $canInvite ? 'لا تملك صلاحية دعوة صانع محتوى.' : null),
+                ? trans('creators.acc_reason_missing_email')
+                : (! $canInvite ? trans('creators.acc_reason_no_perm') : null),
         ];
 
         if (! $inv || $inv->accepted_at) {
-            return $base + ['state' => 'unlinked', 'label' => 'غير مرتبط', 'tone' => 'draft', 'invitation' => null];
+            return $base + ['state' => 'unlinked', 'label' => trans('creators.acc_state_unlinked'), 'tone' => 'draft', 'invitation' => null];
         }
 
         [$state, $label, $tone] = match (true) {
-            (bool) $inv->revoked_at => ['revoked', 'دعوة مُلغاة', 'rejected'],
-            $inv->expires_at && $inv->expires_at->isPast() => ['expired', 'دعوة منتهية', 'rejected'],
-            (bool) $inv->phone_verified_at => ['phone_verified', 'الجوال متحقّق — بانتظار كلمة المرور', 'submitted'],
-            (bool) $inv->email_verified_at => ['email_verified', 'البريد متحقّق', 'submitted'],
-            default => ['pending', 'دعوة معلّقة', 'submitted'],
+            (bool) $inv->revoked_at => ['revoked', trans('creators.acc_state_revoked'), 'rejected'],
+            $inv->expires_at && $inv->expires_at->isPast() => ['expired', trans('creators.acc_state_expired'), 'rejected'],
+            (bool) $inv->phone_verified_at => ['phone_verified', trans('creators.acc_state_phone_verified'), 'submitted'],
+            (bool) $inv->email_verified_at => ['email_verified', trans('creators.acc_state_email_verified'), 'submitted'],
+            default => ['pending', trans('creators.acc_state_pending'), 'submitted'],
         };
 
         return $base + [

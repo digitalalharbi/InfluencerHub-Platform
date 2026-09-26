@@ -3,10 +3,13 @@
 namespace App\Support\Analytics;
 
 use App\Domain\Collaborations\Models\Collaboration;
+use App\Domain\Content\Models\ContentItem;
 use App\Domain\Creators\Models\Creator;
 use App\Domain\Creators\Services\CreatorCapabilityService;
+use App\Domain\Finance\Models\Payout;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Lang;
 
 /**
  * تحليلات المبدعين — تصنيفات ومؤشرات مشتقّة (لا أعمدة مزيّفة).
@@ -16,7 +19,9 @@ use Illuminate\Support\Facades\DB;
 class CreatorAnalytics
 {
     private const TIER_A = 500000;
+
     private const TIER_B = 100000;
+
     public const ACTIVE_COLLAB = ['accepted', 'in_progress', 'submitted', 'approved'];
 
     public static function tier(int $followers): string
@@ -30,7 +35,8 @@ class CreatorAnalytics
         $f = max(1000, (int) $c->followers_count);
         $band = $f < 50000 ? [5.5, 8.5] : ($f < 200000 ? [4.0, 6.0] : ($f < self::TIER_A ? [2.8, 4.2] : [1.5, 3.0]));
         $span = $band[1] - $band[0];
-        $r = (crc32('ih-eng-' . $c->id) % 100) / 100;
+        $r = (crc32('ih-eng-'.$c->id) % 100) / 100;
+
         return round($band[0] + $span * $r, 1);
     }
 
@@ -38,7 +44,9 @@ class CreatorAnalytics
     public static function forPage(Collection $creators): array
     {
         $ids = $creators->pluck('id')->all();
-        if (! $ids) return [];
+        if (! $ids) {
+            return [];
+        }
         $activeCollabs = Collaboration::query()->whereIn('creator_id', $ids)
             ->whereIn('status', self::ACTIVE_COLLAB)->groupBy('creator_id')
             ->selectRaw('creator_id as k, count(*) as v')->pluck('v', 'k')->all();
@@ -57,12 +65,14 @@ class CreatorAnalytics
                 'last_collab' => $lastCollab[$c->id] ?? null,
             ];
         }
+
         return $out;
     }
 
     public static function summary(?string $type): array
     {
         $base = fn () => self::typed(Creator::query(), $type);
+
         return [
             'total' => $base()->count(),
             'tier_a' => $base()->where('followers_count', '>=', self::TIER_A)->count(),
@@ -105,10 +115,14 @@ class CreatorAnalytics
      */
     public static function capabilityFor(?string $type): ?string
     {
-        if (! $type) return null;
+        if (! $type) {
+            return null;
+        }
         // النوع القديم «both» لم يكن فلترًا في الواجهة، ولا يترجم إلى قدرة واحدة
         $legacy = ['influencer' => 'influencer', 'ugc_creator' => 'ugc'];
-        if (isset($legacy[$type])) return $legacy[$type];
+        if (isset($legacy[$type])) {
+            return $legacy[$type];
+        }
 
         return in_array($type, CreatorCapabilityService::keys(), true) ? $type : null;
     }
@@ -127,9 +141,9 @@ class CreatorAnalytics
     public static function intelligence(Creator $c): array
     {
         $id = $c->id;
-        $collabs = \App\Domain\Collaborations\Models\Collaboration::query()->where('creator_id', $id)->get(['status', 'fee_minor', 'due_date', 'completed_at']);
-        $content = \App\Domain\Content\Models\ContentItem::query()->where('creator_id', $id)->get(['status']);
-        $paidMinor = (int) \App\Domain\Finance\Models\Payout::query()->where('creator_id', $id)->where('status', 'paid')->sum('amount_minor');
+        $collabs = Collaboration::query()->where('creator_id', $id)->get(['status', 'fee_minor', 'due_date', 'completed_at']);
+        $content = ContentItem::query()->where('creator_id', $id)->get(['status']);
+        $paidMinor = (int) Payout::query()->where('creator_id', $id)->where('status', 'paid')->sum('amount_minor');
 
         $engagement = self::engagement($c);
         $followers = (int) $c->followers_count;
@@ -163,7 +177,9 @@ class CreatorAnalytics
         // ---- الدرجة الكلية (وزن موثّق) ----
         $weights = ['audience' => .15, 'engagement' => .2, 'reliability' => .2, 'content_quality' => .15, 'commercial' => .1, 'profile' => .1, 'trust' => .1];
         $score = 0;
-        foreach ($weights as $k => $w) { $score += $sub[$k] * $w; }
+        foreach ($weights as $k => $w) {
+            $score += $sub[$k] * $w;
+        }
         $score = (int) round($score - $riskPenalty * .3);
         $score = max(0, min(100, $score));
 
@@ -184,7 +200,9 @@ class CreatorAnalytics
         foreach (array_slice($sub, 0, 3, true) as $k => $v) {
             $reasons[] = ['label' => self::subLabel($k), 'value' => $v];
         }
-        if ($overdue > 0) $reasons[] = ['label' => 'تأخيرات مرصودة', 'value' => -$riskPenalty];
+        if ($overdue > 0) {
+            $reasons[] = ['label' => app()->getLocale() !== 'ar' && Lang::has('creators.reason_overdue') ? trans('creators.reason_overdue') : 'تأخيرات مرصودة', 'value' => -$riskPenalty];
+        }
 
         return [
             'score' => $score,
@@ -195,7 +213,7 @@ class CreatorAnalytics
             'metrics' => [
                 'followers' => $followers,
                 'engagement' => $engagement,
-                'campaigns' => \App\Domain\Collaborations\Models\Collaboration::query()->where('creator_id', $id)->distinct('campaign_id')->count('campaign_id'),
+                'campaigns' => Collaboration::query()->where('creator_id', $id)->distinct('campaign_id')->count('campaign_id'),
                 'active_collabs' => $collabs->whereIn('status', self::ACTIVE_COLLAB)->count(),
                 'completed_collabs' => $completed,
                 'content_published' => $publishedContent,
@@ -212,16 +230,30 @@ class CreatorAnalytics
     {
         $fields = ['bio', 'rate_per_post_minor', 'city', 'primary_platform', 'handle', 'email'];
         $filled = 0;
-        foreach ($fields as $f) { if (! empty($c->{$f})) $filled++; }
-        if (! empty($c->content_categories)) $filled++;
-        if ($c->mowthooq_status === 'verified') $filled++;
+        foreach ($fields as $f) {
+            if (! empty($c->{$f})) {
+                $filled++;
+            }
+        }
+        if (! empty($c->content_categories)) {
+            $filled++;
+        }
+        if ($c->mowthooq_status === 'verified') {
+            $filled++;
+        }
+
         return (int) round($filled / (count($fields) + 2) * 100);
     }
 
     private static function subLabel(string $k): string
     {
-        return ['audience' => 'حجم الجمهور', 'engagement' => 'التفاعل', 'reliability' => 'الالتزام',
+        $ar = ['audience' => 'حجم الجمهور', 'engagement' => 'التفاعل', 'reliability' => 'الالتزام',
             'content_quality' => 'جودة المحتوى', 'commercial' => 'الأداء التجاري', 'profile' => 'اكتمال الملف',
-            'trust' => 'الموثوقية'][$k] ?? $k;
+            'trust' => 'الموثوقية'];
+        if (app()->getLocale() !== 'ar' && Lang::has("creators.sub_{$k}")) {
+            return trans("creators.sub_{$k}");
+        }
+
+        return $ar[$k] ?? $k;
     }
 }

@@ -5,6 +5,7 @@ import { Bar, Sec, StatusBadge, SummaryStrip, WorkTabs, WorkspaceHeader } from '
 import { Bars } from '@/Components/Charts';
 import { Icon } from '@/Components/Icon';
 import { u } from '@/lib/href';
+import { useT } from '@/lib/i18n';
 import type { SharedProps } from '@/types';
 
 interface Metrics {
@@ -54,7 +55,8 @@ function fnum(n: number): string {
   if (n >= 1000) return Math.round(n / 1000) + 'K';
   return n.toLocaleString('en-US');
 }
-const sar = (m: number | null) => (m == null ? '—' : Math.round(m / 100).toLocaleString('en-US') + ' ر.س');
+type TFn = ReturnType<typeof useT>;
+const sarWith = (m: number | null, t: TFn) => (m == null ? '—' : Math.round(m / 100).toLocaleString('en-US') + ' ' + t('creators.currency_sar'));
 
 function DataTable({ head, children }: { head: string[]; children: ReactNode }) {
   return (
@@ -76,6 +78,7 @@ function EmptyRow({ span, text }: { span: number; text: string }) {
  * سبب تعذّره حين يتعذّر — لا زرّ يفشل عند الضغط.
  */
 function AccessPanel({ access, creatorId, link }: { access: Access; creatorId: number; link: string | null }) {
+  const t = useT();
   const [email, setEmail] = useState(access.email ?? '');
   const [phone, setPhone] = useState(access.phone ?? '');
   const [busy, setBusy] = useState(false);
@@ -87,7 +90,7 @@ function AccessPanel({ access, creatorId, link }: { access: Access; creatorId: n
   };
 
   return (
-    <Sec title="بوابة صانع المحتوى" icon="users">
+    <Sec title={t('creators.acc_title')} icon="users">
       <div className="ih-sec__body" style={{ display: 'grid', gap: '.9rem' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '.6rem', flexWrap: 'wrap' }}>
           <StatusBadge tone={access.tone} label={access.label} />
@@ -100,21 +103,21 @@ function AccessPanel({ access, creatorId, link }: { access: Access; creatorId: n
         {link && (
           <div style={{ padding: '.75rem .9rem', borderRadius: 'var(--ih-radius-sm)',
             background: 'var(--ih-info-soft)', color: 'var(--ih-info-ink)', fontSize: '.8rem', lineHeight: 1.8 }}>
-            <b>انسخ الرابط الآن — يُعرض مرّة واحدة فقط.</b>
+            <b>{t('creators.acc_link_once')}</b>
             <div style={{ direction: 'ltr', wordBreak: 'break-all', marginTop: '.3rem', fontFamily: 'var(--ih-font-mono)' }}>{link}</div>
           </div>
         )}
 
         {inv && (
           <div style={{ display: 'grid', gap: '.3rem', fontSize: '.8rem', color: 'var(--ih-text-secondary)' }}>
-            <div><span style={{ color: 'var(--ih-text-muted)' }}>البريد المُرسَل إليه:</span> <bdi style={{ direction: 'ltr' }}>{inv.email}</bdi>
-              {inv.emailVerified && <span style={{ color: 'var(--ih-success-ink)' }}> ✓ متحقّق</span>}</div>
+            <div><span style={{ color: 'var(--ih-text-muted)' }}>{t('creators.acc_sent_to')}</span> <bdi style={{ direction: 'ltr' }}>{inv.email}</bdi>
+              {inv.emailVerified && <span style={{ color: 'var(--ih-success-ink)' }}> ✓ {t('creators.acc_verified')}</span>}</div>
             {inv.phone && (
-              <div><span style={{ color: 'var(--ih-text-muted)' }}>الجوال:</span> <bdi style={{ direction: 'ltr' }}>{inv.phone}</bdi>
-                {inv.phoneVerified && <span style={{ color: 'var(--ih-success-ink)' }}> ✓ متحقّق</span>}</div>
+              <div><span style={{ color: 'var(--ih-text-muted)' }}>{t('creators.acc_phone')}</span> <bdi style={{ direction: 'ltr' }}>{inv.phone}</bdi>
+                {inv.phoneVerified && <span style={{ color: 'var(--ih-success-ink)' }}> ✓ {t('creators.acc_verified')}</span>}</div>
             )}
-            <div><span style={{ color: 'var(--ih-text-muted)' }}>تنتهي:</span> {inv.expiresAt ?? '—'}</div>
-            <div><span style={{ color: 'var(--ih-text-muted)' }}>آخر إرسال:</span> {inv.lastSentAt ?? '—'} · {inv.sentCount}/{inv.maxSends}</div>
+            <div><span style={{ color: 'var(--ih-text-muted)' }}>{t('creators.acc_expires')}</span> {inv.expiresAt ?? '—'}</div>
+            <div><span style={{ color: 'var(--ih-text-muted)' }}>{t('creators.acc_last_sent')}</span> {inv.lastSentAt ?? '—'} · {inv.sentCount}/{inv.maxSends}</div>
           </div>
         )}
 
@@ -126,18 +129,18 @@ function AccessPanel({ access, creatorId, link }: { access: Access; creatorId: n
         {access.canInvite && ['unlinked', 'expired', 'revoked'].includes(access.state) && (
           <div style={{ display: 'grid', gap: '.5rem' }}>
             <div>
-              <label htmlFor="inv-email" style={{ display: 'block', fontSize: '.78rem', fontWeight: 500, marginBottom: '.2rem' }}>البريد</label>
+              <label htmlFor="inv-email" style={{ display: 'block', fontSize: '.78rem', fontWeight: 500, marginBottom: '.2rem' }}>{t('creators.acc_f_email')}</label>
               <input id="inv-email" className="field" style={{ width: '100%', direction: 'ltr' }}
                 value={email} onChange={(e) => setEmail(e.target.value)} placeholder="creator@example.com" />
             </div>
             <div>
-              <label htmlFor="inv-phone" style={{ display: 'block', fontSize: '.78rem', fontWeight: 500, marginBottom: '.2rem' }}>الجوال (اختياري)</label>
+              <label htmlFor="inv-phone" style={{ display: 'block', fontSize: '.78rem', fontWeight: 500, marginBottom: '.2rem' }}>{t('creators.acc_f_phone')}</label>
               <input id="inv-phone" className="field" style={{ width: '100%', direction: 'ltr' }}
                 value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="+9665…" />
             </div>
             <button className="btn btn-sm btn-primary" disabled={busy || !email.trim()}
               onClick={() => post(`/creators/${creatorId}/invite`, { email, phone: phone || null })}>
-              إرسال دعوة
+              {t('creators.acc_send')}
             </button>
           </div>
         )}
@@ -146,11 +149,11 @@ function AccessPanel({ access, creatorId, link }: { access: Access; creatorId: n
           <div style={{ display: 'flex', gap: '.5rem', flexWrap: 'wrap' }}>
             {inv.canResend && (
               <button className="btn btn-sm btn-outline" disabled={busy}
-                onClick={() => post(`/creator-invitations/${inv.id}/resend`)}>إعادة إرسال</button>
+                onClick={() => post(`/creator-invitations/${inv.id}/resend`)}>{t('creators.acc_resend')}</button>
             )}
             {inv.canRevoke && (
               <button className="btn btn-sm btn-ghost" disabled={busy}
-                onClick={() => post(`/creator-invitations/${inv.id}/revoke`)}>إلغاء الدعوة</button>
+                onClick={() => post(`/creator-invitations/${inv.id}/revoke`)}>{t('creators.acc_revoke')}</button>
             )}
           </div>
         )}
@@ -160,6 +163,8 @@ function AccessPanel({ access, creatorId, link }: { access: Access; creatorId: n
 }
 
 export default function CreatorShow({ creator, intel, access, platforms, collaborations, content, contracts, payouts }: Props) {
+  const t = useT();
+  const sar = (m: number | null) => sarWith(m, t);
   const { props: shared } = usePage<SharedProps & { flash?: { invitation_link?: string } }>();
   const invitationLink = shared.flash?.invitation_link ?? null;
   const [tab, setTab] = useState('overview');
@@ -182,23 +187,23 @@ export default function CreatorShow({ creator, intel, access, platforms, collabo
   const m = intel.metrics;
 
   return (
-    <AppShell heading="ملف المبدع">
+    <AppShell heading={t('creators.show_heading')}>
       <Head title={creator.name} />
 
       <WorkspaceHeader
-        eyebrow={`${creator.capabilities.join(' · ') || 'بلا قدرات'} · ${creator.number}`}
+        eyebrow={`${creator.capabilities.join(' · ') || t('creators.no_capabilities')} · ${creator.number}`}
         title={creator.name}
         statusTone={creator.statusTone} statusLabel={creator.statusLabel}
-        back={u("/creators")} backLabel="كل المبدعين"
+        back={u("/creators")} backLabel={t('creators.back_all')}
         meta={[
-          ['المنصّة', creator.platform ?? '—'],
-          ['المدينة', creator.city ?? '—'],
-          ['الموثوقية', creator.verified ? 'موثّق' : 'غير موثّق'],
-          ...(creator.categories.length ? [['المجالات', creator.categories.slice(0, 3).join('، ')] as [string, string]] : []),
+          [t('creators.m_platform'), creator.platform ?? '—'],
+          [t('creators.m_city'), creator.city ?? '—'],
+          [t('creators.m_trust'), creator.verified ? t('creators.verified') : t('creators.unverified')],
+          ...(creator.categories.length ? [[t('creators.m_categories'), creator.categories.slice(0, 3).join('، ')] as [string, string]] : []),
         ]}
         actions={
           <label style={{ display: 'flex', alignItems: 'center', gap: '.4rem', fontSize: '.8rem' }}>
-            <span style={{ color: 'var(--ih-text-muted)' }}>الحالة</span>
+            <span style={{ color: 'var(--ih-text-muted)' }}>{t('creators.status_label')}</span>
             {/* الترشيح يعرض النشطين فقط، ولم يكن للمبدع مسار تحديث — فيُضاف
                 ثم يختفي من الترشيح بلا سبب معروف. */}
             <select
@@ -214,10 +219,10 @@ export default function CreatorShow({ creator, intel, access, platforms, collabo
                 });
               }}
             >
-              <option value="prospect">مبدئي</option>
-              <option value="active">نشط</option>
-              <option value="paused">موقوف مؤقتًا</option>
-              <option value="blocked">محظور</option>
+              <option value="prospect">{t('creators.opt_prospect')}</option>
+              <option value="active">{t('creators.opt_active')}</option>
+              <option value="paused">{t('creators.opt_paused')}</option>
+              <option value="blocked">{t('creators.opt_blocked')}</option>
             </select>
           </label>
         }
@@ -230,13 +235,13 @@ export default function CreatorShow({ creator, intel, access, platforms, collabo
             <div style={{ width: 96, height: 96, borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', background: `conic-gradient(${scoreColor} ${intel.score * 3.6}deg, var(--ih-surface-sunken) 0)` }}>
               <div style={{ width: 74, height: 74, borderRadius: '50%', background: 'var(--ih-surface)', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
                 <span style={{ fontSize: '1.6rem', fontWeight: 800, lineHeight: 1 }}>{intel.score}</span>
-                <span style={{ fontSize: '.62rem', color: 'var(--ih-text-muted)' }}>درجة المبدع</span>
+                <span style={{ fontSize: '.62rem', color: 'var(--ih-text-muted)' }}>{t('creators.score_label')}</span>
               </div>
             </div>
-            <span className="badge" style={{ background: 'var(--ih-primary-soft)', color: 'var(--ih-primary-700)', fontWeight: 800 }}>فئة {intel.tierLabel}</span>
+            <span className="badge" style={{ background: 'var(--ih-primary-soft)', color: 'var(--ih-primary-700)', fontWeight: 800 }}>{t('creators.tier_prefix')} {intel.tierLabel}</span>
           </div>
           <div style={{ flex: 1, minWidth: 240 }}>
-            <div style={{ fontWeight: 700, fontSize: '.9rem', marginBottom: '.6rem' }}>الدرجات الفرعية (محسوبة آليًا من بيانات فعلية)</div>
+            <div style={{ fontWeight: 700, fontSize: '.9rem', marginBottom: '.6rem' }}>{t('creators.subscores_title')}</div>
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill,minmax(180px,1fr))', gap: '.5rem .9rem' }}>
               {intel.subscores.map((s) => (
                 <div key={s.key}>
@@ -248,21 +253,21 @@ export default function CreatorShow({ creator, intel, access, platforms, collabo
               ))}
             </div>
             <div style={{ marginTop: '.8rem', fontSize: '.76rem', color: 'var(--ih-text-muted)' }}>
-              أبرز العوامل: {intel.reasons.map((r) => `${r.label} (${r.value})`).join(' · ')}
-              {m.overdue > 0 && <> · <span style={{ color: 'var(--ih-danger-ink)' }}>مخاطر: {m.overdue} تأخير</span></>}
+              {t('creators.top_factors')} {intel.reasons.map((r) => `${r.label} (${r.value})`).join(' · ')}
+              {m.overdue > 0 && <> · <span style={{ color: 'var(--ih-danger-ink)' }}>{t('creators.risk_label', { n: m.overdue })}</span></>}
             </div>
           </div>
         </div>
       </div>
 
       <SummaryStrip items={[
-        { label: 'المتابعون', value: fnum(m.followers), icon: 'users' },
-        { label: 'التفاعل (تقديري)', value: `${m.engagement}%` },
-        { label: 'الحملات', value: m.campaigns },
-        { label: 'تعاونات نشطة', value: m.active_collabs, tone: m.active_collabs ? 'primary' : undefined },
-        { label: 'محتوى منشور', value: m.content_published, icon: 'image' },
-        { label: 'المدفوع', value: sar(m.paid_minor), tone: 'success' },
-        { label: 'الالتزام', value: m.commitment_rate == null ? '—' : `${m.commitment_rate}%` },
+        { label: t('creators.ss_followers'), value: fnum(m.followers), icon: 'users' },
+        { label: t('creators.ss_engagement'), value: `${m.engagement}%` },
+        { label: t('creators.ss_campaigns'), value: m.campaigns },
+        { label: t('creators.ss_active_collabs'), value: m.active_collabs, tone: m.active_collabs ? 'primary' : undefined },
+        { label: t('creators.ss_content_published'), value: m.content_published, icon: 'image' },
+        { label: t('creators.ss_paid'), value: sar(m.paid_minor), tone: 'success' },
+        { label: t('creators.ss_commitment'), value: m.commitment_rate == null ? '—' : `${m.commitment_rate}%` },
       ]} />
 
       {/* الوصول إلى البوابة — قبل التبويبات: «هل يستطيع الدخول؟» يسبق التفاصيل */}
@@ -271,19 +276,19 @@ export default function CreatorShow({ creator, intel, access, platforms, collabo
       </div>
 
       <WorkTabs active={tab} onChange={go} tabs={[
-        { key: 'overview', label: 'نظرة عامة', icon: 'layout-dashboard' },
-        { key: 'platforms', label: 'المنصّات', icon: 'radar', count: platforms.length },
-        { key: 'collaborations', label: 'الحملات', icon: 'megaphone', count: collaborations.length },
-        { key: 'content', label: 'المحتوى', icon: 'image', count: content.length },
-        { key: 'contracts', label: 'العقود', icon: 'file-text', count: contracts.length },
-        { key: 'payouts', label: 'المستحقات', icon: 'wallet', count: payouts.length },
+        { key: 'overview', label: t('creators.tab_overview'), icon: 'layout-dashboard' },
+        { key: 'platforms', label: t('creators.tab_platforms'), icon: 'radar', count: platforms.length },
+        { key: 'collaborations', label: t('creators.tab_collaborations'), icon: 'megaphone', count: collaborations.length },
+        { key: 'content', label: t('creators.tab_content'), icon: 'image', count: content.length },
+        { key: 'contracts', label: t('creators.tab_contracts'), icon: 'file-text', count: contracts.length },
+        { key: 'payouts', label: t('creators.tab_payouts'), icon: 'wallet', count: payouts.length },
       ]} />
 
       {tab === 'overview' && (
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.1rem' }} className="ih-overview-grid">
-          <Sec title="نبذة ومجالات" icon="file-text">
+          <Sec title={t('creators.sec_bio')} icon="file-text">
             <div className="ih-sec__body">
-              <p style={{ margin: 0, lineHeight: 1.8, color: creator.bio ? 'var(--ih-text)' : 'var(--ih-text-muted)' }}>{creator.bio ?? 'لا نبذة بعد.'}</p>
+              <p style={{ margin: 0, lineHeight: 1.8, color: creator.bio ? 'var(--ih-text)' : 'var(--ih-text-muted)' }}>{creator.bio ?? t('creators.no_bio')}</p>
               {creator.categories.length > 0 && (
                 <div style={{ display: 'flex', gap: '.4rem', flexWrap: 'wrap', marginTop: '.8rem' }}>
                   {creator.categories.map((c) => <span key={c} className="ih-tag">{c}</span>)}
@@ -291,9 +296,9 @@ export default function CreatorShow({ creator, intel, access, platforms, collabo
               )}
             </div>
           </Sec>
-          <Sec title="التواصل والتسعير" icon="wallet">
+          <Sec title={t('creators.sec_contact')} icon="wallet">
             <div className="ih-sec__body" style={{ display: 'grid', gap: '.7rem' }}>
-              {([['البريد', creator.email], ['الهاتف', creator.phone], ['سعر المنشور', sar(creator.rateMinor)], ['معدّل القبول', m.accept_rate == null ? '—' : `${m.accept_rate}%`]] as [string, string | null][]).map(([k, v]) => (
+              {([[t('creators.c_email'), creator.email], [t('creators.c_phone'), creator.phone], [t('creators.c_rate'), sar(creator.rateMinor)], [t('creators.c_accept_rate'), m.accept_rate == null ? '—' : `${m.accept_rate}%`]] as [string, string | null][]).map(([k, v]) => (
                 <div key={k} style={{ display: 'flex', justifyContent: 'space-between', fontSize: '.86rem' }}>
                   <span style={{ color: 'var(--ih-text-muted)' }}>{k}</span><span style={{ fontWeight: 600, direction: 'ltr' }}>{v ?? '—'}</span>
                 </div>
@@ -308,14 +313,14 @@ export default function CreatorShow({ creator, intel, access, platforms, collabo
         platforms.length === 0 ? (
           <div className="card" style={{ padding: '2.4rem', textAlign: 'center' }}>
             <span className="ih-empty__icon" style={{ width: 48, height: 48 }}><Icon name="radar" size={22} /></span>
-            <div style={{ marginTop: '.6rem', fontWeight: 700 }}>لا منصّات مسجّلة</div>
+            <div style={{ marginTop: '.6rem', fontWeight: 700 }}>{t('creators.no_platforms')}</div>
           </div>
         ) : (
           <>
             {/* مقارنة الوصول عبر المنصّات — إجابة فوريّة: أين الجمهور الأكبر (متابعون فعليّون) */}
             {platforms.length > 1 && platforms.some((p) => p.followers > 0) && (
               <div className="card" style={{ padding: '1rem 1.2rem', marginBottom: '.9rem' }}>
-                <div style={{ fontWeight: 800, fontSize: '.9rem', marginBottom: '.7rem' }}>مقارنة الوصول عبر المنصّات</div>
+                <div style={{ fontWeight: 800, fontSize: '.9rem', marginBottom: '.7rem' }}>{t('creators.platforms_compare')}</div>
                 <Bars bars={[...platforms].sort((a, b) => b.followers - a.followers).map((p) => ({ label: p.platform, value: p.followers }))} />
               </div>
             )}
@@ -333,7 +338,7 @@ export default function CreatorShow({ creator, intel, access, platforms, collabo
                   </div>
                   <div>
                     <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '.72rem', color: 'var(--ih-text-muted)', marginBottom: '.2rem' }}>
-                      <span>المتابعون</span><span style={{ fontWeight: 700, direction: 'ltr', color: 'var(--ih-text)' }}>{fnum(p.followers)}</span>
+                      <span>{t('creators.followers')}</span><span style={{ fontWeight: 700, direction: 'ltr', color: 'var(--ih-text)' }}>{fnum(p.followers)}</span>
                     </div>
                     <Bar pct={Math.round((p.followers / maxF) * 100)} />
                   </div>
@@ -346,8 +351,8 @@ export default function CreatorShow({ creator, intel, access, platforms, collabo
       )}
 
       {tab === 'collaborations' && (
-        <DataTable head={['التعاون', 'الحملة', 'الأجر', 'الحالة']}>
-          {collaborations.length === 0 ? <EmptyRow span={4} text="لا تعاونات بعد." /> :
+        <DataTable head={[t('creators.th_collab'), t('creators.th_campaign'), t('creators.th_fee'), t('creators.th_status')]}>
+          {collaborations.length === 0 ? <EmptyRow span={4} text={t('creators.no_collaborations')} /> :
             collaborations.map((c) => (
               <tr key={c.id}><td style={{ fontWeight: 600 }}>{c.title}</td><td>{c.campaign ?? '—'}</td>
                 <td className="ih-dt__num" style={{ direction: 'ltr', textAlign: 'right' }}>{sar(c.feeMinor)}</td>
@@ -361,7 +366,7 @@ export default function CreatorShow({ creator, intel, access, platforms, collabo
         content.length === 0 ? (
           <div className="card" style={{ padding: '2.4rem', textAlign: 'center' }}>
             <span className="ih-empty__icon" style={{ width: 48, height: 48 }}><Icon name="image" size={22} /></span>
-            <div style={{ marginTop: '.6rem', fontWeight: 700 }}>لا محتوى بعد</div>
+            <div style={{ marginTop: '.6rem', fontWeight: 700 }}>{t('creators.no_content')}</div>
           </div>
         ) : (
           <div className="ih-gallery">
@@ -377,7 +382,7 @@ export default function CreatorShow({ creator, intel, access, platforms, collabo
                   <div className="ih-gtile__meta">{c.type}{c.platform ? ` · ${c.platform}` : ''}</div>
                   <div style={{ marginTop: 'auto', display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '.4rem', paddingTop: '.35rem' }}>
                     <span style={{ fontSize: '.68rem', color: 'var(--ih-text-muted)', direction: 'ltr' }}>{c.publishedAt ?? ''}</span>
-                    {c.needsAction && <span className="ih-tag" style={{ fontSize: '.62rem', background: 'var(--ih-warning-soft)', color: 'var(--ih-warning-ink)' }}>يحتاج إجراء</span>}
+                    {c.needsAction && <span className="ih-tag" style={{ fontSize: '.62rem', background: 'var(--ih-warning-soft)', color: 'var(--ih-warning-ink)' }}>{t('creators.needs_action')}</span>}
                   </div>
                 </div>
               </a>
@@ -387,8 +392,8 @@ export default function CreatorShow({ creator, intel, access, platforms, collabo
       )}
 
       {tab === 'contracts' && (
-        <DataTable head={['العقد', 'الرقم', 'القيمة', 'الحالة']}>
-          {contracts.length === 0 ? <EmptyRow span={4} text="لا عقود بعد." /> :
+        <DataTable head={[t('creators.th_contract'), t('creators.th_number'), t('creators.th_value'), t('creators.th_status')]}>
+          {contracts.length === 0 ? <EmptyRow span={4} text={t('creators.no_contracts')} /> :
             contracts.map((c) => (
               <tr key={c.id}><td style={{ fontWeight: 600 }}>{c.title}</td><td style={{ direction: 'ltr', textAlign: 'right' }}>{c.number}</td>
                 <td className="ih-dt__num" style={{ direction: 'ltr', textAlign: 'right' }}>{sar(c.valueMinor)}</td>
@@ -398,8 +403,8 @@ export default function CreatorShow({ creator, intel, access, platforms, collabo
       )}
 
       {tab === 'payouts' && (
-        <DataTable head={['المستحق', 'المبلغ', 'الحالة']}>
-          {payouts.length === 0 ? <EmptyRow span={3} text="لا مستحقات بعد." /> :
+        <DataTable head={[t('creators.th_payout'), t('creators.th_amount'), t('creators.th_status')]}>
+          {payouts.length === 0 ? <EmptyRow span={3} text={t('creators.no_payouts')} /> :
             payouts.map((p) => (
               <tr key={p.id}><td style={{ direction: 'ltr', textAlign: 'right', fontWeight: 600 }}>{p.number}</td>
                 <td className="ih-dt__num" style={{ direction: 'ltr', textAlign: 'right' }}>{sar(p.amountMinor)}</td>

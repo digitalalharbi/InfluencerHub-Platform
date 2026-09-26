@@ -85,4 +85,120 @@ return [
     'clear_filters' => 'مسح الفلاتر',
     'empty_title' => 'ابدأ ببناء شبكة المبدعين',
     'empty_text' => 'أضِف مؤثرين وصنّاع محتوى ليصنّفهم النظام آليًا حسب الحجم والتفاعل والموثوقية.',
+
+    // ===== صفحة التفصيل (Show) =====
+    'show_heading' => 'ملف المبدع',
+    'no_capabilities' => 'بلا قدرات',
+    'back_all' => 'كل المبدعين',
+    'm_platform' => 'المنصّة',
+    'm_city' => 'المدينة',
+    'm_trust' => 'الموثوقية',
+    'verified' => 'موثّق',
+    'unverified' => 'غير موثّق',
+    'm_categories' => 'المجالات',
+    'currency_sar' => 'ر.س',
+
+    // مبدّل الحالة (خيارات القائمة)
+    'status_label' => 'الحالة',
+    'opt_prospect' => 'مبدئي',
+    'opt_active' => 'نشط',
+    'opt_paused' => 'موقوف مؤقتًا',
+    'opt_blocked' => 'محظور',
+
+    // الدرجة والدرجات الفرعية
+    'score_label' => 'درجة المبدع',
+    'tier_prefix' => 'فئة',
+    'subscores_title' => 'الدرجات الفرعية (محسوبة آليًا من بيانات فعلية)',
+    'top_factors' => 'أبرز العوامل:',
+    'risk_label' => 'مخاطر: :n تأخير',
+
+    // شريط الملخّص
+    'ss_followers' => 'المتابعون',
+    'ss_engagement' => 'التفاعل (تقديري)',
+    'ss_campaigns' => 'الحملات',
+    'ss_active_collabs' => 'تعاونات نشطة',
+    'ss_content_published' => 'محتوى منشور',
+    'ss_paid' => 'المدفوع',
+    'ss_commitment' => 'الالتزام',
+
+    // التبويبات
+    'tab_overview' => 'نظرة عامة',
+    'tab_platforms' => 'المنصّات',
+    'tab_collaborations' => 'الحملات',
+    'tab_content' => 'المحتوى',
+    'tab_contracts' => 'العقود',
+    'tab_payouts' => 'المستحقات',
+
+    // نظرة عامة
+    'sec_bio' => 'نبذة ومجالات',
+    'no_bio' => 'لا نبذة بعد.',
+    'sec_contact' => 'التواصل والتسعير',
+    'c_email' => 'البريد',
+    'c_phone' => 'الهاتف',
+    'c_rate' => 'سعر المنشور',
+    'c_accept_rate' => 'معدّل القبول',
+
+    // المنصّات
+    'no_platforms' => 'لا منصّات مسجّلة',
+    'platforms_compare' => 'مقارنة الوصول عبر المنصّات',
+    'followers' => 'المتابعون',
+
+    // جداول التبويبات
+    'th_collab' => 'التعاون',
+    'th_campaign' => 'الحملة',
+    'th_fee' => 'الأجر',
+    'th_status' => 'الحالة',
+    'no_collaborations' => 'لا تعاونات بعد.',
+    'no_content' => 'لا محتوى بعد',
+    'needs_action' => 'يحتاج إجراء',
+    'th_contract' => 'العقد',
+    'th_number' => 'الرقم',
+    'th_value' => 'القيمة',
+    'no_contracts' => 'لا عقود بعد.',
+    'th_payout' => 'المستحق',
+    'th_amount' => 'المبلغ',
+    'no_payouts' => 'لا مستحقات بعد.',
+
+    // بوابة صانع المحتوى (لوحة الوصول)
+    'acc_title' => 'بوابة صانع المحتوى',
+    'acc_link_once' => 'انسخ الرابط الآن — يُعرض مرّة واحدة فقط.',
+    'acc_sent_to' => 'البريد المُرسَل إليه:',
+    'acc_verified' => 'متحقّق',
+    'acc_phone' => 'الجوال:',
+    'acc_expires' => 'تنتهي:',
+    'acc_last_sent' => 'آخر إرسال:',
+    'acc_f_email' => 'البريد',
+    'acc_f_phone' => 'الجوال (اختياري)',
+    'acc_send' => 'إرسال دعوة',
+    'acc_resend' => 'إعادة إرسال',
+    'acc_revoke' => 'إلغاء الدعوة',
+
+    // حالات الوصول (تُشتقّ في الخادم)
+    'acc_state_active' => 'البوابة نشطة',
+    'acc_reason_linked' => 'الحساب مرتبط بالفعل — لا حاجة لدعوة.',
+    'acc_reason_missing_email' => 'أضف بريد صانع المحتوى أوّلًا — الدعوة تُرسَل إليه.',
+    'acc_reason_no_perm' => 'لا تملك صلاحية دعوة صانع محتوى.',
+    'acc_state_unlinked' => 'غير مرتبط',
+    'acc_state_revoked' => 'دعوة مُلغاة',
+    'acc_state_expired' => 'دعوة منتهية',
+    'acc_state_phone_verified' => 'الجوال متحقّق — بانتظار كلمة المرور',
+    'acc_state_email_verified' => 'البريد متحقّق',
+    'acc_state_pending' => 'دعوة معلّقة',
+
+    // حالة المبدع (CREATOR_STATUS — تسمية الشارة)
+    'st_prospect' => 'مبدئي',
+    'st_active' => 'نشط',
+    'st_paused' => 'موقوف',
+    'st_blocked' => 'محظور',
+
+    // الدرجات الفرعية (CreatorAnalytics)
+    'sub_audience' => 'حجم الجمهور',
+    'sub_engagement' => 'التفاعل',
+    'sub_reliability' => 'الالتزام',
+    'sub_content_quality' => 'جودة المحتوى',
+    'sub_commercial' => 'الأداء التجاري',
+    'sub_profile' => 'اكتمال الملف',
+    'sub_trust' => 'الموثوقية',
+    'tier_under_review' => 'قيد المراجعة',
+    'reason_overdue' => 'تأخيرات مرصودة',
 ];
