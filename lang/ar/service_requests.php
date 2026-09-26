@@ -81,4 +81,70 @@ return [
     'type_report' => 'تقرير',
     'type_consultation' => 'استشارة',
     'type_other' => 'أخرى',
+
+    // ===== صفحة القائمة (Index) =====
+    'idx_title' => 'الطلبات',
+    'idx_eyebrow' => 'التشغيل',
+    'idx_sub' => 'طابور الطلبات الواردة: فرز، إسناد، ومتابعة مهل الاستجابة (SLA)',
+    'idx_new' => 'طلب جديد',
+
+    // مؤشرات
+    'kpi_open' => 'مفتوحة',
+    'kpi_open_sub' => ':triage قيد الفرز · :prog قيد التنفيذ',
+    'kpi_breached' => 'متجاوزة SLA',
+    'kpi_breached_sub' => 'تحتاج تدخّلًا عاجلًا',
+    'kpi_unassigned' => 'غير مسندة',
+    'kpi_unassigned_sub' => 'بانتظار الإسناد',
+    'kpi_mine' => 'مسندة لي',
+    'kpi_mine_sub' => ':n مستحقة اليوم',
+
+    // شرائح
+    'seg_all' => 'الكل',
+    'seg_mine' => 'مسندة لي',
+    'seg_unassigned' => 'غير مسندة',
+    'seg_breached' => 'متجاوزة SLA',
+    'seg_triage' => 'قيد الفرز',
+    'seg_in_progress' => 'قيد التنفيذ',
+    'seg_needs_info' => 'بانتظار معلومة',
+    'seg_resolved' => 'مُنجزة',
+
+    'search_placeholder' => 'ابحث بالعنوان أو الرقم أو العميل…',
+    'all_priorities' => 'كل الأولويات',
+
+    // حالات فارغة
+    'empty_filtered_title' => 'لا طلبات مطابقة',
+    'empty_filtered_text' => 'لا نتائج للبحث أو الشريحة الحالية.',
+    'clear_filters' => 'مسح الفلاتر',
+    'empty_title' => 'لا طلبات بعد',
+    'empty_text' => 'تصل الطلبات من بوابة العميل، ويمكنك تسجيل طلب نيابةً عنه إن وصل بالهاتف أو البريد.',
+    'empty_action' => 'تسجيل طلب',
+
+    // طابور الفرز (أقسام)
+    'bk_overdue' => 'متأخرة',
+    'bk_new' => 'جديدة',
+    'bk_open' => 'قيد العمل',
+    'bk_done' => 'منتهية',
+    'unassigned_dash' => 'غير مُسنَد',
+    'idx_sla_hours' => ':nس',
+    'filtered_suffix' => ' · مُرشَّح',
+    'count_item' => ':n طلب',
+
+    // نافذة التسجيل
+    'f_client' => 'العميل',
+    'choose_client' => 'اختر عميلًا…',
+    'f_brand' => 'العلامة',
+    'no_brand' => 'بلا علامة محدّدة',
+    'f_type' => 'نوع الطلب',
+    'f_priority' => 'الأولوية',
+    'f_title' => 'عنوان الطلب',
+    'f_desc' => 'وصف الطلب',
+    'brief_hint' => 'موجز الحملة — ينتقل تلقائيًّا إلى الحملة عند التحويل',
+    'f_budget' => 'الميزانية (ر.س)',
+    'f_start' => 'البداية',
+    'f_end' => 'النهاية',
+    'f_platforms' => 'المنصّات',
+    'f_scope' => 'ملاحظات النطاق',
+    'saving' => 'جارٍ الحفظ…',
+    'submit' => 'تسجيل الطلب',
+    'save_hint' => 'اختر العميل واكتب عنوانًا ليُصبح الحفظ متاحًا',
 ];

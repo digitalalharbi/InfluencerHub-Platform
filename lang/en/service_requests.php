@@ -77,4 +77,70 @@ return [
     'type_report' => 'Report',
     'type_consultation' => 'Consultation',
     'type_other' => 'Other',
+
+    // ===== List page (Index) =====
+    'idx_title' => 'Requests',
+    'idx_eyebrow' => 'Operations',
+    'idx_sub' => 'The inbound request queue: triage, assign, and track response times (SLA)',
+    'idx_new' => 'New request',
+
+    // KPIs
+    'kpi_open' => 'Open',
+    'kpi_open_sub' => ':triage in triage · :prog in progress',
+    'kpi_breached' => 'SLA breached',
+    'kpi_breached_sub' => 'Need urgent attention',
+    'kpi_unassigned' => 'Unassigned',
+    'kpi_unassigned_sub' => 'Awaiting assignment',
+    'kpi_mine' => 'Assigned to me',
+    'kpi_mine_sub' => ':n due today',
+
+    // Segments
+    'seg_all' => 'All',
+    'seg_mine' => 'Assigned to me',
+    'seg_unassigned' => 'Unassigned',
+    'seg_breached' => 'SLA breached',
+    'seg_triage' => 'In triage',
+    'seg_in_progress' => 'In progress',
+    'seg_needs_info' => 'Awaiting info',
+    'seg_resolved' => 'Resolved',
+
+    'search_placeholder' => 'Search by title, number, or client…',
+    'all_priorities' => 'All priorities',
+
+    // Empty states
+    'empty_filtered_title' => 'No matching requests',
+    'empty_filtered_text' => 'No results for the current search or segment.',
+    'clear_filters' => 'Clear filters',
+    'empty_title' => 'No requests yet',
+    'empty_text' => 'Requests arrive from the client portal, and you can log one on their behalf if it comes by phone or email.',
+    'empty_action' => 'Log a request',
+
+    // Triage queue (buckets)
+    'bk_overdue' => 'Overdue',
+    'bk_new' => 'New',
+    'bk_open' => 'In progress',
+    'bk_done' => 'Closed',
+    'unassigned_dash' => 'Unassigned',
+    'idx_sla_hours' => ':nh',
+    'filtered_suffix' => ' · filtered',
+    'count_item' => ':n request(s)',
+
+    // New-request modal
+    'f_client' => 'Client',
+    'choose_client' => 'Choose a client…',
+    'f_brand' => 'Brand',
+    'no_brand' => 'No specific brand',
+    'f_type' => 'Request type',
+    'f_priority' => 'Priority',
+    'f_title' => 'Request title',
+    'f_desc' => 'Request description',
+    'brief_hint' => 'Campaign brief — carries over to the campaign automatically on conversion',
+    'f_budget' => 'Budget (SAR)',
+    'f_start' => 'Start',
+    'f_end' => 'End',
+    'f_platforms' => 'Platforms',
+    'f_scope' => 'Scope notes',
+    'saving' => 'Saving…',
+    'submit' => 'Log the request',
+    'save_hint' => 'Choose a client and enter a title to enable saving',
 ];

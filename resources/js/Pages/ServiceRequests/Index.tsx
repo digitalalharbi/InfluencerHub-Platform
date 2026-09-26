@@ -5,6 +5,7 @@ import { Kpi, ListHead, StatusBadge } from '@/Components/ui';
 import { Icon } from '@/Components/Icon';
 import { Pagination, type Paginated } from '@/Components/Pagination';
 import { u } from '@/lib/href';
+import { useT } from '@/lib/i18n';
 
 interface RequestRow {
   id: number; number: string; title: string; client: string | null; type: string;
@@ -37,6 +38,7 @@ interface Props {
  * حرفيًّا إلى الحملة عند التحويل فلا يُعاد إدخاله.
  */
 function NewRequestModal({ options, onClose }: { options: Options; onClose: () => void }) {
+  const t = useT();
   const [form, setForm] = useState({
     client_id: options.clients.length === 1 ? String(options.clients[0].id) : '',
     brand_id: '', type: 'campaign', title: '', description: '', priority: 'normal',
@@ -60,37 +62,37 @@ function NewRequestModal({ options, onClose }: { options: Options; onClose: () =
   };
 
   return (
-    <div className="ih-modal-backdrop" role="dialog" aria-modal="true" aria-label="طلب جديد">
+    <div className="ih-modal-backdrop" role="dialog" aria-modal="true" aria-label={t('service_requests.idx_new')}>
       <div className="ih-modal" style={{ maxWidth: 620 }}>
-        <h3 style={{ margin: '0 0 1rem' }}>طلب جديد</h3>
+        <h3 style={{ margin: '0 0 1rem' }}>{t('service_requests.idx_new')}</h3>
 
         <div style={{ display: 'grid', gap: '.8rem' }}>
-          <Fld label="العميل" error={errors.client_id} required>
+          <Fld label={t('service_requests.f_client')} error={errors.client_id} required>
             <select value={form.client_id} className="field" style={{ width: '100%' }}
               onChange={(e) => setForm({ ...form, client_id: e.target.value, brand_id: '' })}>
-              <option value="">اختر عميلًا…</option>
+              <option value="">{t('service_requests.choose_client')}</option>
               {options.clients.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
             </select>
           </Fld>
 
           {brandsForClient.length > 0 && (
-            <Fld label="العلامة" error={errors.brand_id}>
+            <Fld label={t('service_requests.f_brand')} error={errors.brand_id}>
               <select value={form.brand_id} className="field" style={{ width: '100%' }}
                 onChange={(e) => setForm({ ...form, brand_id: e.target.value })}>
-                <option value="">بلا علامة محدّدة</option>
+                <option value="">{t('service_requests.no_brand')}</option>
                 {brandsForClient.map((b) => <option key={b.id} value={b.id}>{b.name}</option>)}
               </select>
             </Fld>
           )}
 
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '.8rem' }}>
-            <Fld label="نوع الطلب" error={errors.type} required>
+            <Fld label={t('service_requests.f_type')} error={errors.type} required>
               <select value={form.type} className="field" style={{ width: '100%' }}
                 onChange={(e) => setForm({ ...form, type: e.target.value })}>
                 {Object.entries(options.types).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
               </select>
             </Fld>
-            <Fld label="الأولوية" error={errors.priority} required>
+            <Fld label={t('service_requests.f_priority')} error={errors.priority} required>
               <select value={form.priority} className="field" style={{ width: '100%' }}
                 onChange={(e) => setForm({ ...form, priority: e.target.value })}>
                 {Object.entries(options.priorities).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
@@ -98,12 +100,12 @@ function NewRequestModal({ options, onClose }: { options: Options; onClose: () =
             </Fld>
           </div>
 
-          <Fld label="عنوان الطلب" error={errors.title} required>
+          <Fld label={t('service_requests.f_title')} error={errors.title} required>
             <input value={form.title} className="field" style={{ width: '100%' }}
               onChange={(e) => setForm({ ...form, title: e.target.value })} autoFocus />
           </Fld>
 
-          <Fld label="وصف الطلب" error={errors.description}>
+          <Fld label={t('service_requests.f_desc')} error={errors.description}>
             <textarea value={form.description} className="field" style={{ width: '100%' }} rows={3}
               onChange={(e) => setForm({ ...form, description: e.target.value })} />
           </Fld>
@@ -111,23 +113,23 @@ function NewRequestModal({ options, onClose }: { options: Options; onClose: () =
           {isCampaign && (
             <>
               <div style={{ fontSize: '.78rem', color: 'var(--ih-text-muted)', borderTop: '1px solid var(--ih-border)', paddingTop: '.8rem' }}>
-                موجز الحملة — ينتقل تلقائيًّا إلى الحملة عند التحويل
+                {t('service_requests.brief_hint')}
               </div>
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '.8rem' }}>
-                <Fld label="الميزانية (ر.س)" error={errors.budget_riyals}>
+                <Fld label={t('service_requests.f_budget')} error={errors.budget_riyals}>
                   <input type="number" min="0" value={form.budget_riyals} className="field" style={{ width: '100%' }}
                     onChange={(e) => setForm({ ...form, budget_riyals: e.target.value })} />
                 </Fld>
-                <Fld label="البداية" error={errors.preferred_start_date}>
+                <Fld label={t('service_requests.f_start')} error={errors.preferred_start_date}>
                   <input type="date" value={form.preferred_start_date} className="field" style={{ width: '100%' }}
                     onChange={(e) => setForm({ ...form, preferred_start_date: e.target.value })} />
                 </Fld>
-                <Fld label="النهاية" error={errors.preferred_end_date}>
+                <Fld label={t('service_requests.f_end')} error={errors.preferred_end_date}>
                   <input type="date" value={form.preferred_end_date} className="field" style={{ width: '100%' }}
                     onChange={(e) => setForm({ ...form, preferred_end_date: e.target.value })} />
                 </Fld>
               </div>
-              <Fld label="المنصّات" error={errors.platforms}>
+              <Fld label={t('service_requests.f_platforms')} error={errors.platforms}>
                 <div style={{ display: 'flex', gap: '.4rem', flexWrap: 'wrap' }}>
                   {Object.entries(options.platforms).map(([k, v]) => {
                     const on = form.platforms.includes(k);
@@ -145,7 +147,7 @@ function NewRequestModal({ options, onClose }: { options: Options; onClose: () =
                   })}
                 </div>
               </Fld>
-              <Fld label="ملاحظات النطاق" error={errors.scope_notes}>
+              <Fld label={t('service_requests.f_scope')} error={errors.scope_notes}>
                 <textarea value={form.scope_notes} className="field" style={{ width: '100%' }} rows={2}
                   onChange={(e) => setForm({ ...form, scope_notes: e.target.value })} />
               </Fld>
@@ -154,14 +156,14 @@ function NewRequestModal({ options, onClose }: { options: Options; onClose: () =
         </div>
 
         <div style={{ display: 'flex', gap: '.5rem', marginTop: '1.2rem', justifyContent: 'flex-end' }}>
-          <button onClick={onClose} className="btn btn-sm btn-ghost">إلغاء</button>
+          <button onClick={onClose} className="btn btn-sm btn-ghost">{t('service_requests.cancel')}</button>
           <button onClick={submit} className="btn btn-sm" disabled={busy || !form.client_id || !form.title.trim()}>
-            {busy ? 'جارٍ الحفظ…' : 'تسجيل الطلب'}
+            {busy ? t('service_requests.saving') : t('service_requests.submit')}
           </button>
         </div>
         {(!form.client_id || !form.title.trim()) && (
           <p style={{ fontSize: '.72rem', color: 'var(--ih-text-muted)', textAlign: 'end', marginTop: '.4rem' }}>
-            اختر العميل واكتب عنوانًا ليُصبح الحفظ متاحًا
+            {t('service_requests.save_hint')}
           </p>
         )}
       </div>
@@ -189,10 +191,11 @@ const PRIO_TONE: Record<string, { bg: string; fg: string }> = {
 };
 
 function Sla({ sla, hours }: { sla: RequestRow['sla']; hours: number | null }) {
+  const t = useT();
   if (sla === 'none') return <span style={{ color: 'var(--ih-text-muted)' }}>—</span>;
-  if (sla === 'overdue') return <span className="badge" style={{ background: 'var(--ih-danger-soft)', color: 'var(--ih-danger-ink)' }}>متأخر {hours != null ? `${Math.abs(hours)}س` : ''}</span>;
-  if (sla === 'soon') return <span className="badge" style={{ background: 'var(--ih-warning-soft)', color: 'var(--ih-warning-ink)' }}>خلال {hours}س</span>;
-  return <span className="badge" style={{ background: 'var(--ih-success-soft)', color: 'var(--ih-success-ink)' }}>{hours}س</span>;
+  if (sla === 'overdue') return <span className="badge" style={{ background: 'var(--ih-danger-soft)', color: 'var(--ih-danger-ink)' }}>{t('service_requests.sla_overdue', { n: hours != null ? Math.abs(hours) : 0 })}</span>;
+  if (sla === 'soon') return <span className="badge" style={{ background: 'var(--ih-warning-soft)', color: 'var(--ih-warning-ink)' }}>{t('service_requests.sla_soon', { n: hours ?? 0 })}</span>;
+  return <span className="badge" style={{ background: 'var(--ih-success-soft)', color: 'var(--ih-success-ink)' }}>{t('service_requests.idx_sla_hours', { n: hours ?? 0 })}</span>;
 }
 
 function clean(obj: Record<string, unknown>): Record<string, string> {
@@ -202,6 +205,7 @@ function clean(obj: Record<string, unknown>): Record<string, string> {
 }
 
 export default function ServiceRequestsIndex({ requests, filters, priorityLabels, summary, canCreate, options }: Props) {
+  const t = useT();
   const [q, setQ] = useState(filters.q ?? '');
   const [creating, setCreating] = useState(false);
   const first = useRef(true);
@@ -215,31 +219,31 @@ export default function ServiceRequestsIndex({ requests, filters, priorityLabels
   const seg = filters.seg ?? '';
   const hasFilters = !!(filters.q || filters.priority || seg);
   const segments: [string, string, number][] = [
-    ['', 'الكل', summary.open], ['mine', 'مسندة لي', summary.mine], ['unassigned', 'غير مسندة', summary.unassigned],
-    ['breached', 'متجاوزة SLA', summary.breached], ['triage', 'قيد الفرز', summary.triage],
-    ['in_progress', 'قيد التنفيذ', summary.in_progress], ['needs_info', 'بانتظار معلومة', summary.needs_info],
-    ['resolved', 'مُنجزة', summary.resolved],
+    ['', t('service_requests.seg_all'), summary.open], ['mine', t('service_requests.seg_mine'), summary.mine], ['unassigned', t('service_requests.seg_unassigned'), summary.unassigned],
+    ['breached', t('service_requests.seg_breached'), summary.breached], ['triage', t('service_requests.seg_triage'), summary.triage],
+    ['in_progress', t('service_requests.seg_in_progress'), summary.in_progress], ['needs_info', t('service_requests.seg_needs_info'), summary.needs_info],
+    ['resolved', t('service_requests.seg_resolved'), summary.resolved],
   ];
 
   return (
-    <AppShell heading="الطلبات">
-      <Head title="الطلبات" />
+    <AppShell heading={t('service_requests.idx_title')}>
+      <Head title={t('service_requests.idx_title')} />
 
-      <ListHead eyebrow="التشغيل" title="الطلبات"
-        sub="طابور الطلبات الواردة: فرز، إسناد، ومتابعة مهل الاستجابة (SLA)"
+      <ListHead eyebrow={t('service_requests.idx_eyebrow')} title={t('service_requests.idx_title')}
+        sub={t('service_requests.idx_sub')}
         actions={canCreate ? (
           <button onClick={() => setCreating(true)} className="btn btn-sm btn-primary">
-            <Icon name="inbox" size={15} /> طلب جديد
+            <Icon name="inbox" size={15} /> {t('service_requests.idx_new')}
           </button>
         ) : undefined} />
 
       {creating && <NewRequestModal options={options} onClose={() => setCreating(false)} />}
 
       <div className="ih-kpis">
-        <Kpi label="مفتوحة" icon="inbox" value={summary.open.toLocaleString('en-US')} sub={`${summary.triage} قيد الفرز · ${summary.in_progress} قيد التنفيذ`} />
-        <Kpi label="متجاوزة SLA" icon="clipboard-check" tone={summary.breached ? 'danger' : undefined} value={summary.breached.toLocaleString('en-US')} sub="تحتاج تدخّلًا عاجلًا" />
-        <Kpi label="غير مسندة" icon="user-plus" tone={summary.unassigned ? 'warning' : undefined} value={summary.unassigned.toLocaleString('en-US')} sub="بانتظار الإسناد" />
-        <Kpi label="مسندة لي" icon="clipboard-check" tone="accent" value={summary.mine.toLocaleString('en-US')} sub={`${summary.dueToday} مستحقة اليوم`} />
+        <Kpi label={t('service_requests.kpi_open')} icon="inbox" value={summary.open.toLocaleString('en-US')} sub={t('service_requests.kpi_open_sub', { triage: summary.triage, prog: summary.in_progress })} />
+        <Kpi label={t('service_requests.kpi_breached')} icon="clipboard-check" tone={summary.breached ? 'danger' : undefined} value={summary.breached.toLocaleString('en-US')} sub={t('service_requests.kpi_breached_sub')} />
+        <Kpi label={t('service_requests.kpi_unassigned')} icon="user-plus" tone={summary.unassigned ? 'warning' : undefined} value={summary.unassigned.toLocaleString('en-US')} sub={t('service_requests.kpi_unassigned_sub')} />
+        <Kpi label={t('service_requests.kpi_mine')} icon="clipboard-check" tone="accent" value={summary.mine.toLocaleString('en-US')} sub={t('service_requests.kpi_mine_sub', { n: summary.dueToday })} />
       </div>
 
       <div className="ih-chips" style={{ marginBottom: '.9rem', overflowX: 'auto', paddingBottom: '.2rem', flexWrap: 'nowrap' }}>
@@ -250,10 +254,10 @@ export default function ServiceRequestsIndex({ requests, filters, priorityLabels
 
       <div className="ih-filterbar">
         <label className="ih-search"><Icon name="search" size={16} />
-          <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="ابحث بالعنوان أو الرقم أو العميل…" />
+          <input value={q} onChange={(e) => setQ(e.target.value)} placeholder={t('service_requests.search_placeholder')} />
         </label>
         <select className="field" style={{ maxWidth: 140 }} value={filters.priority ?? ''} onChange={(e) => update({ priority: e.target.value })}>
-          <option value="">كل الأولويات</option>
+          <option value="">{t('service_requests.all_priorities')}</option>
           {Object.entries(priorityLabels).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
         </select>
       </div>
@@ -262,20 +266,20 @@ export default function ServiceRequestsIndex({ requests, filters, priorityLabels
         <div className="ih-dt-wrap"><div className="ih-empty">
           <span className="ih-empty__icon" style={{ background: 'var(--ih-success-soft)', color: 'var(--ih-success-ink)' }}><Icon name="shield-check" size={26} /></span>
           {hasFilters ? (
-            <><div className="ih-empty__title">لا طلبات مطابقة</div><div className="ih-empty__text">لا نتائج للبحث أو الشريحة الحالية.</div><a href={u("/service-requests")} className="btn btn-sm btn-outline">مسح الفلاتر</a></>
+            <><div className="ih-empty__title">{t('service_requests.empty_filtered_title')}</div><div className="ih-empty__text">{t('service_requests.empty_filtered_text')}</div><a href={u("/service-requests")} className="btn btn-sm btn-outline">{t('service_requests.clear_filters')}</a></>
           ) : (
-            <><div className="ih-empty__title">لا طلبات بعد</div>
+            <><div className="ih-empty__title">{t('service_requests.empty_title')}</div>
               <div className="ih-empty__text">
-                تصل الطلبات من بوابة العميل، ويمكنك تسجيل طلب نيابةً عنه إن وصل بالهاتف أو البريد.
+                {t('service_requests.empty_text')}
               </div>
-              {canCreate && <button onClick={() => setCreating(true)} className="btn btn-sm">تسجيل طلب</button>}</>
+              {canCreate && <button onClick={() => setCreating(true)} className="btn btn-sm">{t('service_requests.empty_action')}</button>}</>
           )}
         </div></div>
       ) : (
         <>
           {/* طابور فرز — مقسّم حسب الإلحاح، وسبب التعطل ظاهر */}
           <div className="ih-only-desktop">
-            {([['overdue', 'متأخرة'], ['new', 'جديدة'], ['open', 'قيد العمل'], ['done', 'منتهية']] as [string, string][]).map(([bk, label]) => {
+            {([['overdue', t('service_requests.bk_overdue')], ['new', t('service_requests.bk_new')], ['open', t('service_requests.bk_open')], ['done', t('service_requests.bk_done')]] as [string, string][]).map(([bk, label]) => {
               const grp = requests.data.filter((s) => s.bucket === bk);
               if (grp.length === 0) return null;
               return (
@@ -295,7 +299,7 @@ export default function ServiceRequestsIndex({ requests, filters, priorityLabels
                             <div style={{ fontSize: '.73rem', color: 'var(--ih-text-muted)' }}>
                               <span style={{ direction: 'ltr' }}>{s.number}</span>
                               {s.client ? ` · ${s.client}` : ''} · {s.type}
-                              {s.assignee ? ` · ${s.assignee}` : ' · غير مُسنَد'}
+                              {s.assignee ? ` · ${s.assignee}` : ` · ${t('service_requests.unassigned_dash')}`}
                             </div>
                           </div>
                           <Sla sla={s.sla} hours={s.slaHours} />
@@ -309,7 +313,7 @@ export default function ServiceRequestsIndex({ requests, filters, priorityLabels
                 </div>
               );
             })}
-            <div className="ih-dt__foot"><span>{requests.total} طلب{hasFilters ? ' · مُرشَّح' : ''}</span><Pagination links={requests.links} /></div>
+            <div className="ih-dt__foot"><span>{t('service_requests.count_item', { n: requests.total })}{hasFilters ? t('service_requests.filtered_suffix') : ''}</span><Pagination links={requests.links} /></div>
           </div>
 
           <div className="ih-only-mobile">
@@ -329,7 +333,7 @@ export default function ServiceRequestsIndex({ requests, filters, priorityLabels
                       <span className="badge" style={{ background: pt.bg, color: pt.fg, fontSize: '.62rem' }}>{s.priorityLabel}</span>
                       <Sla sla={s.sla} hours={s.slaHours} />
                       <span className="ih-tag" style={{ fontSize: '.66rem' }}>{s.type}</span>
-                      <span style={{ marginInlineStart: 'auto', fontSize: '.74rem', color: s.assignee ? 'var(--ih-text-muted)' : 'var(--ih-warning-ink)' }}>{s.assignee ?? 'غير مسند'}</span>
+                      <span style={{ marginInlineStart: 'auto', fontSize: '.74rem', color: s.assignee ? 'var(--ih-text-muted)' : 'var(--ih-warning-ink)' }}>{s.assignee ?? t('service_requests.unassigned')}</span>
                     </div>
                   </a>
                 );
