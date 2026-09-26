@@ -14,4 +14,8 @@ return [
     'logout' => 'تسجيل الخروج',
     'home' => 'الرئيسية',
     'list_separator' => '، ',
+    'notifications' => 'الإشعارات',
+    'notif_mark_all' => 'تعليم الكل مقروءًا',
+    'notif_view_all' => 'عرض الكل',
+    'notif_empty' => 'لا إشعارات بعد.',
 ];

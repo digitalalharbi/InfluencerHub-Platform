@@ -53,6 +53,18 @@ class HandleInertiaRequests extends Middleware
             'unreadNotifications' => fn () => $request->user()
                 ? Notification::where('user_id', $request->user()->id)->whereNull('read_at')->count()
                 : 0,
+            // أحدث الإشعارات — لقائمة الجرس المنسدلة (اطّلاع سريع بلا مغادرة الصفحة)
+            'recentNotifications' => fn () => $request->user()
+                ? Notification::where('user_id', $request->user()->id)->latest('id')->limit(8)->get()
+                    ->map(fn (Notification $n) => [
+                        'id' => $n->id,
+                        'title' => $n->title,
+                        'body' => $n->body,
+                        'actionUrl' => $n->action_url,
+                        'read' => $n->read_at !== null,
+                        'at' => $n->created_at?->format('Y-m-d H:i'),
+                    ])->values()
+                : [],
             'flash' => [
                 'ok' => fn () => $request->session()->get('ok'),
                 'error' => fn () => $request->session()->get('error'),
