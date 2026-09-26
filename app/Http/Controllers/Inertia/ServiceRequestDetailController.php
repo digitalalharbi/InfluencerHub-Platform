@@ -2,14 +2,16 @@
 
 namespace App\Http\Controllers\Inertia;
 
-use App\Domain\Identity\Models\User;
-use App\Domain\Requests\Enums\{ServiceRequestPriority, ServiceRequestType};
-use App\Domain\Requests\Models\ServiceRequest;
 use App\Domain\Campaigns\Models\Campaign;
 use App\Domain\Campaigns\Services\CampaignWorkflowService;
+use App\Domain\Identity\Models\User;
+use App\Domain\Requests\Enums\ServiceRequestPriority;
+use App\Domain\Requests\Enums\ServiceRequestType;
+use App\Domain\Requests\Models\ServiceRequest;
 use App\Domain\Requests\Services\ServiceRequestWorkflowService;
 use App\Http\Controllers\Controller;
 use App\Support\Http\MountPrefix;
+use App\Support\Platforms\PlatformRegistry;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
@@ -23,13 +25,13 @@ use Inertia\Response;
  */
 class ServiceRequestDetailController extends Controller
 {
-    /** الإجراءات المتاحة لكل حالة → [action, label, tone, needsReason(bool)]. */
+    /** الإجراءات المتاحة لكل حالة → [action, labelKey (service_requests.act_*), tone, needsReason]. التسمية تُترجَم في show. */
     private const ACTIONS = [
-        'submitted' => [['triage', 'بدء الفرز', 'primary', false], ['cancel', 'إلغاء', 'danger', false]],
-        'triage' => [['start', 'بدء التنفيذ', 'primary', false], ['request-info', 'طلب معلومة', 'ghost', true], ['cancel', 'إلغاء', 'danger', false]],
-        'in_progress' => [['resolve', 'إنجاز الطلب', 'primary', false], ['request-info', 'طلب معلومة', 'ghost', true], ['cancel', 'إلغاء', 'danger', false]],
-        'needs_info' => [['start', 'استئناف التنفيذ', 'primary', false], ['cancel', 'إلغاء', 'danger', false]],
-        'resolved' => [['close', 'إغلاق الطلب', 'primary', false], ['reopen', 'إعادة الفتح', 'ghost', true]],
+        'submitted' => [['triage', 'triage', 'primary', false], ['cancel', 'cancel', 'danger', false]],
+        'triage' => [['start', 'start', 'primary', false], ['request-info', 'request_info', 'ghost', true], ['cancel', 'cancel', 'danger', false]],
+        'in_progress' => [['resolve', 'resolve', 'primary', false], ['request-info', 'request_info', 'ghost', true], ['cancel', 'cancel', 'danger', false]],
+        'needs_info' => [['start', 'resume', 'primary', false], ['cancel', 'cancel', 'danger', false]],
+        'resolved' => [['close', 'close', 'primary', false], ['reopen', 'reopen', 'ghost', true]],
         'closed' => [],
         'cancelled' => [],
     ];
@@ -43,13 +45,18 @@ class ServiceRequestDetailController extends Controller
         $now = Carbon::now();
         $open = ServiceRequest::OPEN_STATUSES;
 
-        $sla = 'none'; $hours = null;
+        $sla = 'none';
+        $hours = null;
         if ($s->due_at) {
             $isOpen = in_array($s->status, $open, true);
             $hours = (int) round($now->diffInHours($s->due_at, false));
-            if ($s->sla_breached_at || ($isOpen && $s->due_at->isPast())) $sla = 'overdue';
-            elseif ($isOpen && $s->due_at->lte($now->copy()->addHours(24))) $sla = 'soon';
-            else $sla = 'ok';
+            if ($s->sla_breached_at || ($isOpen && $s->due_at->isPast())) {
+                $sla = 'overdue';
+            } elseif ($isOpen && $s->due_at->lte($now->copy()->addHours(24))) {
+                $sla = 'soon';
+            } else {
+                $sla = 'ok';
+            }
         }
         $prio = ServiceRequestPriority::labels();
         $types = ServiceRequestType::labels();
@@ -59,7 +66,7 @@ class ServiceRequestDetailController extends Controller
                 'id' => $s->id, 'number' => $s->request_number, 'title' => $s->title, 'description' => $s->description,
                 'client' => $s->client?->display_name ?? $s->requesterAgency?->name, 'brand' => $s->brand?->name,
                 'type' => $types[$s->type] ?? $s->type, 'priority' => $s->priority, 'priorityLabel' => $prio[$s->priority] ?? $s->priority,
-                'status' => $s->status, 'statusLabel' => __('statuses.' . $s->status), 'statusTone' => __('statuses.tone.' . $s->status),
+                'status' => $s->status, 'statusLabel' => __('statuses.'.$s->status), 'statusTone' => __('statuses.tone.'.$s->status),
                 'assignee' => $s->assignee?->name, 'assignedTo' => $s->assigned_to,
                 'dueAt' => $s->due_at?->format('Y-m-d H:i'), 'sla' => $sla, 'slaHours' => $hours,
                 'createdAt' => $s->created_at?->format('Y-m-d H:i'), 'resolvedAt' => $s->resolved_at?->format('Y-m-d H:i'),
@@ -71,7 +78,7 @@ class ServiceRequestDetailController extends Controller
                 'startDate' => $s->preferred_start_date?->format('Y-m-d'),
                 'endDate' => $s->preferred_end_date?->format('Y-m-d'),
                 'platforms' => collect($s->platforms ?? [])
-                    ->map(fn ($p) => \App\Support\Platforms\PlatformRegistry::label($p))->values(),
+                    ->map(fn ($p) => PlatformRegistry::label($p))->values(),
                 'scopeNotes' => $s->scope_notes,
                 'brand' => $s->brand?->name,
                 'hasAny' => $s->budget_minor !== null || $s->preferred_start_date !== null
@@ -79,14 +86,17 @@ class ServiceRequestDetailController extends Controller
             ],
             'canHandle' => $canHandle,
             // إن حُوّل الطلب سابقًا نعرض الحملة الناتجة بدل تكرار التحويل
-            'convertedCampaign' => ($cm = \App\Domain\Campaigns\Models\Campaign::where('source_request_id', $s->id)->first())
+            'convertedCampaign' => ($cm = Campaign::where('source_request_id', $s->id)->first())
                 ? ['id' => $cm->id, 'name' => $cm->name, 'number' => $cm->campaign_number]
                 : null,
             // التحويل إلى حملة: طلب حملة لعميل معروف وغير ملغى، ولمن يملك إنشاء الحملات.
             // نحسبها هنا لأن الواجهة تستقبل تسمية النوع المترجمة لا مفتاحه.
             'canConvert' => $r->user()->can('create', Campaign::class)
                 && $s->type === 'campaign' && $s->client_id && $s->status !== 'cancelled',
-            'actions' => $canHandle ? (self::ACTIONS[$s->status] ?? []) : [],
+            'actions' => $canHandle ? array_map(
+                fn ($a) => [$a[0], trans("service_requests.act_{$a[1]}"), $a[2], $a[3]],
+                self::ACTIONS[$s->status] ?? [],
+            ) : [],
             'agents' => $canHandle ? User::whereHas('memberships', fn ($m) => $m->where('tenant_id', $s->tenant_id)->where('status', 'active'))
                 ->orderBy('name')->get(['id', 'name']) : [],
             'comments' => $s->comments->sortByDesc('id')->values()->map(fn ($c) => [
@@ -94,8 +104,8 @@ class ServiceRequestDetailController extends Controller
                 'body' => $c->body, 'internal' => (bool) $c->is_internal, 'at' => $c->created_at?->format('Y-m-d H:i'),
             ]),
             'history' => $s->statusHistory->sortByDesc('id')->values()->map(fn ($h) => [
-                'from' => $h->from_status ? __('statuses.' . $h->from_status) : '—',
-                'to' => __('statuses.' . $h->to_status), 'by' => $actorNames[$h->actor_id] ?? '—',
+                'from' => $h->from_status ? __('statuses.'.$h->from_status) : '—',
+                'to' => __('statuses.'.$h->to_status), 'by' => $actorNames[$h->actor_id] ?? '—',
                 'reason' => $h->reason, 'at' => $h->occurred_at?->format('Y-m-d H:i'),
             ]),
         ]);
@@ -108,6 +118,7 @@ class ServiceRequestDetailController extends Controller
         $ok = User::where('id', $data['assigned_to'])->whereHas('memberships', fn ($m) => $m->where('tenant_id', $serviceRequest->tenant_id)->where('status', 'active'))->exists();
         abort_unless($ok, 422);
         $wf->assign($serviceRequest, $data['assigned_to'], $r->user()->id);
+
         return back()->with('ok', 'أُسند الطلب.');
     }
 
@@ -116,6 +127,7 @@ class ServiceRequestDetailController extends Controller
         $this->authorize('handle', $serviceRequest);
         $data = $r->validate(['body' => 'required|string|max:2000']);
         $wf->comment($serviceRequest, $r->user()->id, 'agency', $data['body'], true);
+
         return back()->with('ok', 'أُضيف التعليق.');
     }
 
@@ -153,6 +165,7 @@ class ServiceRequestDetailController extends Controller
         } catch (\RuntimeException $e) {
             return back()->withErrors(['wf' => $e->getMessage()]);
         }
+
         return back()->with('ok', 'حُدّثت حالة الطلب.');
     }
 }
