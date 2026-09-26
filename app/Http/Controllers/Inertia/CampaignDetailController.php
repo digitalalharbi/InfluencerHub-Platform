@@ -2,14 +2,26 @@
 
 namespace App\Http\Controllers\Inertia;
 
+use App\Domain\Audit\Services\AuditLogger;
 use App\Domain\Campaigns\Enums\DeliverableType;
 use App\Domain\Campaigns\Models\Campaign;
 use App\Domain\Campaigns\Models\CampaignShortlist;
 use App\Domain\Campaigns\Models\CampaignShortlistVersion;
+use App\Domain\Campaigns\Services\CampaignLifecycleService;
 use App\Domain\Campaigns\Services\CampaignWorkflowService;
+use App\Domain\Exports\DocumentArtifactService;
+use App\Domain\Exports\Models\ExportJob;
+use App\Domain\Finance\Models\Invoice;
+use App\Domain\Finance\Models\Payout;
+use App\Domain\Requests\Models\ServiceRequest;
+use App\Domain\Tenancy\Models\Organization;
+use App\Domain\Tenancy\Support\TenantContext;
 use App\Http\Controllers\Controller;
 use App\Support\Analytics\CampaignAnalytics;
+use App\Support\Brand;
+use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Lang;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -19,17 +31,25 @@ use Inertia\Response;
  */
 class CampaignDetailController extends Controller
 {
-    /** الإجراءات المتاحة لكل حالة → [action, label, tone, needsReason]. مطابقة لنسخة Blade. */
+    /** الإجراءات المتاحة لكل حالة → [action, labelKey (campaigns.act_*), tone, needsReason]. التسمية تُترجَم في show. */
     private const ACTIONS = [
-        'draft' => [['plan', 'نقل للتخطيط', 'primary', false], ['cancel', 'إلغاء الحملة', 'danger', true]],
-        'planning' => [['activate', 'تفعيل', 'primary', false], ['cancel', 'إلغاء الحملة', 'danger', true]],
-        'active' => [['complete', 'إكمال الحملة', 'primary', true], ['pause', 'إيقاف مؤقت', 'ghost', true], ['cancel', 'إلغاء الحملة', 'danger', true]],
-        'paused' => [['resume', 'استئناف', 'primary', false], ['cancel', 'إلغاء الحملة', 'danger', true]],
+        'draft' => [['plan', 'plan', 'primary', false], ['cancel', 'cancel', 'danger', true]],
+        'planning' => [['activate', 'activate', 'primary', false], ['cancel', 'cancel', 'danger', true]],
+        'active' => [['complete', 'complete', 'primary', true], ['pause', 'pause', 'ghost', true], ['cancel', 'cancel', 'danger', true]],
+        'paused' => [['resume', 'resume', 'primary', false], ['cancel', 'cancel', 'danger', true]],
         'completed' => [],
         'cancelled' => [],
     ];
 
-    public function show(Campaign $campaign, \App\Domain\Exports\DocumentArtifactService $artifacts): Response
+    /** تسمية حالة الترشيح بلغة الطلب، مع رجوع لثابت محرّك الترشيح (عربيّ). */
+    private static function nomStatusLabel(?string $s): string
+    {
+        return $s && Lang::has("campaigns.nom_status_{$s}")
+            ? trans("campaigns.nom_status_{$s}")
+            : CampaignShortlistVersion::statusLabel($s);
+    }
+
+    public function show(Campaign $campaign, DocumentArtifactService $artifacts): Response
     {
         $this->authorize('view', $campaign);
         $campaign->load('client', 'brand', 'deliverables.creator', 'collaborations.creator', 'contentItems.creator',
@@ -39,7 +59,7 @@ class CampaignDetailController extends Controller
         $command = CampaignAnalytics::commandCenter($campaign, $metrics);
         $readiness = CampaignAnalytics::readiness($campaign, $metrics);
         // مراحل الحملة الـ13 — مشتقّة من الحالة الحقيقية للنطاقات (لا حقل زخرفيّ)
-        $lifecycle = (new \App\Domain\Campaigns\Services\CampaignLifecycleService)->forCampaign($campaign);
+        $lifecycle = (new CampaignLifecycleService)->forCampaign($campaign);
         $timeline = collect(CampaignAnalytics::timeline($campaign))->map(fn ($e) => [
             'at' => $e['at']?->format('Y-m-d H:i'),
             'icon' => $e['icon'],
@@ -52,19 +72,19 @@ class CampaignDetailController extends Controller
 
         return Inertia::render('Campaigns/Show', [
             // فواتير هذه الحملة — تُغلق الحملة ماليًّا من مكانها لا من وحدة أخرى
-            'invoices' => \App\Domain\Finance\Models\Invoice::where('campaign_id', $campaign->id)
+            'invoices' => Invoice::where('campaign_id', $campaign->id)
                 ->withSum('payments', 'amount_minor')->latest('id')->get()
                 ->map(fn ($i) => [
                     'id' => $i->id,
                     'number' => $i->invoice_number,
                     'status' => $i->status,
-                    'statusLabel' => __('statuses.' . $i->status),
-                    'statusTone' => __('statuses.tone.' . $i->status),
+                    'statusLabel' => __('statuses.'.$i->status),
+                    'statusTone' => __('statuses.tone.'.$i->status),
                     'totalMinor' => (int) $i->total_minor,
                     'balanceMinor' => max(0, (int) $i->total_minor - (int) $i->payments_sum_amount_minor),
                     'dueDate' => $i->due_date?->format('Y-m-d'),
                 ]),
-            'canInvoice' => request()->user()?->can('create', \App\Domain\Finance\Models\Invoice::class) ?? false,
+            'canInvoice' => request()->user()?->can('create', Invoice::class) ?? false,
             // مستندات الحملة — أثر «الملخّص الآمن للعميل»: معاينة/تنزيل نفس البايتات + كشف القِدَم
             'documents' => [
                 'clientBrief' => (function () use ($campaign, $artifacts) {
@@ -73,8 +93,9 @@ class CampaignDetailController extends Controller
                     // مسار نسبيّ للتركيب (بلا /app) — الواجهة تضيف البادئة عبر u()،
                     // فبإضافتها هنا أيضًا يتكرّر /app/app ويصير 404 في iframe المعاينة.
                     $base = "/campaigns/{$campaign->id}/client-brief";
+
                     return [
-                        'title' => 'ملخّص الحملة (آمن للعميل)',
+                        'title' => trans('campaigns.brief_title'),
                         'hasArtifact' => (bool) $latest,
                         'generatedAt' => $latest?->created_at?->format('Y-m-d H:i'),
                         'stale' => $artifacts->isStale($latest, $currentFp),
@@ -95,13 +116,13 @@ class CampaignDetailController extends Controller
                 // الطلب المصدر: الحملة تعرف من أين جاءت، فيُفتح الأصل بنقرة
                 // بدل البحث عنه في الطابور — والسلسلة تبقى مرئية لا مضمرة.
                 'sourceRequest' => ($src = $campaign->source_request_id
-                    ? \App\Domain\Requests\Models\ServiceRequest::find($campaign->source_request_id)
+                    ? ServiceRequest::find($campaign->source_request_id)
                     : null)
                     ? ['id' => $src->id, 'number' => $src->request_number, 'title' => $src->title]
                     : null,
                 'status' => $campaign->status,
-                'statusLabel' => __('statuses.' . $campaign->status),
-                'statusTone' => __('statuses.tone.' . $campaign->status),
+                'statusLabel' => __('statuses.'.$campaign->status),
+                'statusTone' => __('statuses.tone.'.$campaign->status),
                 'budgetMinor' => (int) $campaign->budget_minor,
                 'committedMinor' => $committed,
                 'currency' => $campaign->currency,
@@ -122,30 +143,32 @@ class CampaignDetailController extends Controller
             'nomination' => $this->nominationSummary($campaign),
             'timeline' => $timeline,
             'canManage' => request()->user()->can('update', $campaign),
-            'actions' => request()->user()->can('update', $campaign) ? (self::ACTIONS[$campaign->status] ?? []) : [],
+            'actions' => request()->user()->can('update', $campaign)
+                ? array_map(fn ($a) => [$a[0], trans("campaigns.act_{$a[1]}"), $a[2], $a[3]], self::ACTIONS[$campaign->status] ?? [])
+                : [],
             'deliverableTypes' => collect(DeliverableType::labels())->map(fn ($l, $v) => ['value' => $v, 'label' => $l])->values(),
             'deliverables' => $campaign->deliverables->map(fn ($d) => [
                 'id' => $d->id, 'type' => $d->type, 'typeLabel' => DeliverableType::labels()[$d->type] ?? $d->type,
                 'platform' => $d->platform, 'quantity' => (int) $d->quantity,
                 'creator' => $d->creator?->display_name,
-                'status' => $d->status, 'statusLabel' => __('statuses.' . $d->status), 'statusTone' => __('statuses.tone.' . $d->status),
+                'status' => $d->status, 'statusLabel' => __('statuses.'.$d->status), 'statusTone' => __('statuses.tone.'.$d->status),
             ])->values(),
             'collaborations' => $campaign->collaborations->map(fn ($c) => [
                 'id' => $c->id, 'creator' => $c->creator?->display_name, 'title' => $c->title, 'feeMinor' => (int) $c->fee_minor,
-                'status' => $c->status, 'statusLabel' => __('statuses.' . $c->status), 'statusTone' => __('statuses.tone.' . $c->status),
+                'status' => $c->status, 'statusLabel' => __('statuses.'.$c->status), 'statusTone' => __('statuses.tone.'.$c->status),
             ])->values(),
             'content' => $campaign->contentItems->map(fn ($c) => [
                 'id' => $c->id, 'title' => $c->title, 'creator' => $c->creator?->display_name, 'platform' => $c->platform,
-                'status' => $c->status, 'statusLabel' => __('statuses.' . $c->status), 'statusTone' => __('statuses.tone.' . $c->status),
+                'status' => $c->status, 'statusLabel' => __('statuses.'.$c->status), 'statusTone' => __('statuses.tone.'.$c->status),
             ])->values(),
             // عقود الحملة — تبويب داخل مساحة العمل بدل وحدة «العقود» المنفصلة. الطرف
             // يبقى المستأجر/المبدع الحقيقي؛ InfluencerHub منصّة فقط.
             'contracts' => $campaign->contracts->map(fn ($c) => [
                 'id' => $c->id, 'number' => $c->contract_number, 'title' => $c->title,
                 'party' => $c->party_type === 'creator' ? $c->creator?->display_name : $c->client?->display_name,
-                'partyType' => $c->party_type === 'creator' ? 'مبدع' : 'عميل',
+                'partyType' => $c->party_type === 'creator' ? trans('campaigns.party_creator') : trans('campaigns.party_client'),
                 'valueMinor' => (int) $c->value_minor, 'currency' => $c->currency,
-                'status' => $c->status, 'statusLabel' => __('statuses.' . $c->status), 'statusTone' => __('statuses.tone.' . $c->status),
+                'status' => $c->status, 'statusLabel' => __('statuses.'.$c->status), 'statusTone' => __('statuses.tone.'.$c->status),
             ])->values(),
             // مستحقات مبدعي الحملة — تبويب مالي داخل الحملة (يبقى منفصلًا عن تحصيل
             // العميل: الفواتير أعلاه). لا يعرض آيبان كاملًا (آخر 4 فقط في التفصيل).
@@ -153,9 +176,9 @@ class CampaignDetailController extends Controller
                 'id' => $p->id, 'number' => $p->payout_number, 'creator' => $p->creator?->display_name,
                 'description' => $p->description, 'amountMinor' => (int) $p->amount_minor, 'currency' => $p->currency,
                 'dueDate' => $p->due_date?->format('Y-m-d'),
-                'status' => $p->status, 'statusLabel' => __('statuses.' . $p->status), 'statusTone' => __('statuses.tone.' . $p->status),
+                'status' => $p->status, 'statusLabel' => __('statuses.'.$p->status), 'statusTone' => __('statuses.tone.'.$p->status),
             ])->values(),
-            'canManagePayouts' => request()->user()?->can('create', \App\Domain\Finance\Models\Payout::class) ?? false,
+            'canManagePayouts' => request()->user()?->can('create', Payout::class) ?? false,
         ]);
     }
 
@@ -176,7 +199,7 @@ class CampaignDetailController extends Controller
 
         return [
             'stage' => $version->status,
-            'stageLabel' => CampaignShortlistVersion::statusLabel($version->status),
+            'stageLabel' => self::nomStatusLabel($version->status),
             'primary' => $items->where('is_backup', false)->count(),
             'backup' => $items->where('is_backup', true)->count(),
             'approved' => $items->where('client_decision', 'approved')->count(),
@@ -196,8 +219,12 @@ class CampaignDetailController extends Controller
             'start_date' => 'nullable|date',
             'end_date' => 'nullable|date|after_or_equal:start_date',
         ]);
-        try { $wf->updateDraft($campaign, $data, $r->user()->id); }
-        catch (\RuntimeException $e) { return back()->withErrors(['wf' => $e->getMessage()]); }
+        try {
+            $wf->updateDraft($campaign, $data, $r->user()->id);
+        } catch (\RuntimeException $e) {
+            return back()->withErrors(['wf' => $e->getMessage()]);
+        }
+
         return back()->with('ok', 'حُفظت الحملة.');
     }
 
@@ -205,23 +232,31 @@ class CampaignDetailController extends Controller
     {
         $this->authorize('update', $campaign);
         $data = $r->validate([
-            'type' => 'required|in:' . implode(',', DeliverableType::values()),
+            'type' => 'required|in:'.implode(',', DeliverableType::values()),
             'platform' => 'nullable|string|max:20',
             'quantity' => 'required|integer|min:1|max:1000',
             'creator_id' => 'nullable|integer',
             'fee_minor' => 'nullable|integer|min:0',
             'due_date' => 'nullable|date',
         ]);
-        try { $wf->addDeliverable($campaign, $data, $r->user()->id); }
-        catch (\RuntimeException $e) { return back()->withErrors(['deliverable' => $e->getMessage()]); }
+        try {
+            $wf->addDeliverable($campaign, $data, $r->user()->id);
+        } catch (\RuntimeException $e) {
+            return back()->withErrors(['deliverable' => $e->getMessage()]);
+        }
+
         return back()->with('ok', 'أُضيف المخرج.');
     }
 
     public function removeDeliverable(Request $r, Campaign $campaign, int $deliverable, CampaignWorkflowService $wf)
     {
         $this->authorize('update', $campaign);
-        try { $wf->removeDeliverable($campaign, $deliverable, $r->user()->id); }
-        catch (\RuntimeException $e) { return back()->withErrors(['deliverable' => $e->getMessage()]); }
+        try {
+            $wf->removeDeliverable($campaign, $deliverable, $r->user()->id);
+        } catch (\RuntimeException $e) {
+            return back()->withErrors(['deliverable' => $e->getMessage()]);
+        }
+
         return back()->with('ok', 'حُذف المخرج.');
     }
 
@@ -253,6 +288,7 @@ class CampaignDetailController extends Controller
      */
     /** نوع الأثر وإصدار القالب — تغيير الإصدار يُبطل النسخ القديمة. */
     private const BRIEF_TYPE = 'campaign_client_brief';
+
     private const BRIEF_TEMPLATE = 'v1';
 
     /** بيانات الملخّص الآمنة للعميل — بلا أتعاب مبدع/تكلفة. تُحدّد البصمة (بلا وقت). */
@@ -263,74 +299,80 @@ class CampaignDetailController extends Controller
         $cur = $campaign->currency ?: 'SAR';
 
         return [
-            'workspace' => \App\Domain\Tenancy\Models\Organization::find(\App\Domain\Tenancy\Support\TenantContext::organizationId())?->name ?? 'الوكالة',
+            'workspace' => Organization::find(TenantContext::organizationId())?->name ?? 'الوكالة',
             'number' => $campaign->campaign_number,
             'name' => $campaign->name,
             'client' => $campaign->client?->display_name ?? '—',
             'brand' => $campaign->brand?->name,
             'objective' => $campaign->objective,
             'brief' => $campaign->brief,
-            'statusLabel' => __('statuses.' . $campaign->status),
-            'budget' => $campaign->budget_minor ? number_format($campaign->budget_minor / 100, 0) . ' ' . $cur : null,
+            'statusLabel' => __('statuses.'.$campaign->status),
+            'budget' => $campaign->budget_minor ? number_format($campaign->budget_minor / 100, 0).' '.$cur : null,
             'start' => $campaign->start_date?->format('Y-m-d'),
             'end' => $campaign->end_date?->format('Y-m-d'),
             'progress' => (int) ($metrics['progress'] ?? 0),
             // مخرجات آمنة للعميل — بلا أتعاب المبدع (fee_minor مُستبعَد عمدًا)
             'deliverables' => $campaign->deliverables->map(fn ($d) => [
                 'platform' => $d->platform, 'type' => $d->type, 'quantity' => (int) $d->quantity,
-                'due' => $d->due_date?->format('Y-m-d') ?? '—', 'status' => __('statuses.' . $d->status),
+                'due' => $d->due_date?->format('Y-m-d') ?? '—', 'status' => __('statuses.'.$d->status),
             ])->values()->all(),
         ];
     }
 
     /** يعيد الأثر الحالي: أحدث نسخة مخزَّنة (ولو قديمة) أو يولّد الأولى. أو يجدّد صراحةً. */
-    private function briefArtifact(Campaign $campaign, \App\Domain\Exports\DocumentArtifactService $svc, bool $regenerate = false): \App\Domain\Exports\Models\ExportJob
+    private function briefArtifact(Campaign $campaign, DocumentArtifactService $svc, bool $regenerate = false): ExportJob
     {
         $data = $this->clientBriefData($campaign);
         $render = function () use ($campaign, $data, $svc) {
-            \App\Domain\Audit\Services\AuditLogger::log('export.generated', $campaign, [
+            AuditLogger::log('export.generated', $campaign, [
                 'type' => self::BRIEF_TYPE, 'format' => 'pdf', 'campaign' => $campaign->campaign_number,
-            ], \App\Domain\Tenancy\Support\TenantContext::tenantId(), request()->user()?->id);
+            ], TenantContext::tenantId(), request()->user()?->id);
+
             return $svc->pdfFromView('exports.campaign-brief', $data + ['generatedAt' => now()->format('Y-m-d H:i')]);
         };
 
         if (! $regenerate) {
             $latest = $svc->latest(self::BRIEF_TYPE, $campaign);
-            if ($latest) return $latest;
+            if ($latest) {
+                return $latest;
+            }
         }
+
         return $svc->current(self::BRIEF_TYPE, $campaign, 'pdf', self::BRIEF_TEMPLATE, $data,
-            'ملخّص حملة ' . $campaign->campaign_number, $render, request()->user()?->id);
+            'ملخّص حملة '.$campaign->campaign_number, $render, request()->user()?->id);
     }
 
-    private function streamArtifact(\App\Domain\Exports\Models\ExportJob $a, \App\Domain\Exports\DocumentArtifactService $svc, string $disposition): \Symfony\Component\HttpFoundation\Response
+    private function streamArtifact(ExportJob $a, DocumentArtifactService $svc, string $disposition): \Symfony\Component\HttpFoundation\Response
     {
         $bytes = $svc->bytes($a);
-        $name = \App\Support\Brand::documentFilename($a->title, $a->format);
+        $name = Brand::documentFilename($a->title, $a->format);
 
         return response($bytes, 200, [
             'Content-Type' => 'application/pdf',
-            'Content-Disposition' => $disposition . '; filename="' . $name . '"',
+            'Content-Disposition' => $disposition.'; filename="'.$name.'"',
             'Content-Length' => (string) strlen($bytes),
             'X-Artifact-Checksum' => $a->checksum,
         ]);
     }
 
     /** معاينة داخل الصفحة (inline) — نفس الأثر الذي يُنزَّل. Policy(view). */
-    public function clientBriefPreview(Campaign $campaign, \App\Domain\Exports\DocumentArtifactService $svc): \Symfony\Component\HttpFoundation\Response
+    public function clientBriefPreview(Campaign $campaign, DocumentArtifactService $svc): \Symfony\Component\HttpFoundation\Response
     {
         $this->authorize('view', $campaign);
+
         return $this->streamArtifact($this->briefArtifact($campaign, $svc), $svc, 'inline');
     }
 
     /** تنزيل — يبثّ **نفس** بايتات أثر المعاينة (attachment). Policy(view). */
-    public function clientBriefDownload(Campaign $campaign, \App\Domain\Exports\DocumentArtifactService $svc): \Symfony\Component\HttpFoundation\Response
+    public function clientBriefDownload(Campaign $campaign, DocumentArtifactService $svc): \Symfony\Component\HttpFoundation\Response
     {
         $this->authorize('view', $campaign);
+
         return $this->streamArtifact($this->briefArtifact($campaign, $svc), $svc, 'attachment');
     }
 
     /** إنشاء نسخة محدثة صراحةً عند تغيّر المصدر — لا تجديد صامت. Policy(view). */
-    public function clientBriefRegenerate(Campaign $campaign, \App\Domain\Exports\DocumentArtifactService $svc): \Illuminate\Http\RedirectResponse
+    public function clientBriefRegenerate(Campaign $campaign, DocumentArtifactService $svc): RedirectResponse
     {
         $this->authorize('view', $campaign);
         $this->briefArtifact($campaign, $svc, regenerate: true);
@@ -339,7 +381,7 @@ class CampaignDetailController extends Controller
     }
 
     /** توافق خلفي: الرابط القديم يُنزّل الأثر ذاته. */
-    public function exportClientPdf(Campaign $campaign, \App\Domain\Exports\DocumentArtifactService $svc): \Symfony\Component\HttpFoundation\Response
+    public function exportClientPdf(Campaign $campaign, DocumentArtifactService $svc): \Symfony\Component\HttpFoundation\Response
     {
         return $this->clientBriefDownload($campaign, $svc);
     }

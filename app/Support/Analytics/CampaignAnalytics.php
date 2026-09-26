@@ -2,7 +2,8 @@
 
 namespace App\Support\Analytics;
 
-use App\Domain\Campaigns\Models\{Campaign, CampaignDeliverable};
+use App\Domain\Campaigns\Models\Campaign;
+use App\Domain\Campaigns\Models\CampaignDeliverable;
 use App\Domain\Collaborations\Models\Collaboration;
 use App\Domain\Content\Models\ContentItem;
 use Illuminate\Support\Collection;
@@ -60,7 +61,9 @@ class CampaignAnalytics
     public static function forPage(Collection $campaigns): array
     {
         $ids = $campaigns->pluck('id')->all();
-        if (! $ids) return [];
+        if (! $ids) {
+            return [];
+        }
         $totalDeliv = self::countBy(CampaignDeliverable::query(), $ids, 'campaign_id');
         $doneDeliv = self::countBy(CampaignDeliverable::query()->whereIn('status', self::DONE_DELIV), $ids, 'campaign_id');
         $creators = Collaboration::query()->whereIn('campaign_id', $ids)
@@ -84,6 +87,7 @@ class CampaignAnalytics
                 'is_late' => $late,
             ];
         }
+
         return $out;
     }
 
@@ -97,7 +101,7 @@ class CampaignAnalytics
      * قائمة الجاهزية التنفيذية — كل معيار حالةٌ صادقة (جاهز/يحتاج انتباه/محظور/لا ينطبق)
      * مع السبب والدليل والإجراء العامل. لا شطب للمكتمل: المكتمل «جاهز» لا «ملغى».
      */
-    public static function readiness(\App\Domain\Campaigns\Models\Campaign $c, array $m): array
+    public static function readiness(Campaign $c, array $m): array
     {
         $delivs = $c->deliverables;
         $committed = (int) $delivs->sum(fn ($d) => (int) ($d->fee_minor ?? 0) * (int) $d->quantity);
@@ -106,15 +110,14 @@ class CampaignAnalytics
         $budget = (int) $c->budget_minor;
         $cur = $c->currency ?: 'SAR';
         // الريال بالعربية (ر.س) في واجهة المستأجر؛ رمز ISO للعملات الأخرى فقط.
-        $curLabel = $cur === 'SAR' ? 'ر.س' : $cur;
-        $fmt = fn (int $minor) => number_format($minor / 100, 0) . ' ' . $curLabel;
+        $curLabel = $cur === 'SAR' ? trans('campaigns.currency_sar') : $cur;
+        $fmt = fn (int $minor) => number_format($minor / 100, 0).' '.$curLabel;
         $unassigned = $delivs->whereNull('creator_id')->count();
         $cid = $c->id;
 
         // كل معيار: [label, state, reason, evidence, action]. الحالات:
         // ready | attention | blocked | not_applicable
-        $mk = fn (string $label, string $state, string $reason, ?string $evidence, ?array $action) =>
-            compact('label', 'state', 'reason', 'evidence', 'action');
+        $mk = fn (string $label, string $state, string $reason, ?string $evidence, ?array $action) => compact('label', 'state', 'reason', 'evidence', 'action');
 
         $clientOk = $c->client && in_array($c->client->status, ['active', 'qualified'], true);
         $brandNa = ! $c->brand_id;
@@ -122,40 +125,40 @@ class CampaignAnalytics
         $overBudget = $budget > 0 && $committed > $budget;
 
         $items = [
-            $mk('العميل نشِط', $clientOk ? 'ready' : 'blocked',
-                $clientOk ? 'العميل مؤهّل للتعاقد.' : 'حالة العميل ليست نشِطة/مؤهّلة — لا يمكن المضي في التنفيذ.',
-                $c->client ? 'الحالة الحالية: ' . __('statuses.' . $c->client->status) : 'لا عميل مرتبط',
-                $c->client_id ? ['title' => 'فتح ملفّ العميل', 'link' => "/app/clients/{$c->client_id}"] : null),
+            $mk(trans('campaigns.rdy_client_label'), $clientOk ? 'ready' : 'blocked',
+                $clientOk ? trans('campaigns.rdy_client_ok') : trans('campaigns.rdy_client_blocked'),
+                $c->client ? trans('campaigns.rdy_client_ev', ['status' => __('statuses.'.$c->client->status)]) : trans('campaigns.rdy_client_none'),
+                $c->client_id ? ['title' => trans('campaigns.rdy_client_action'), 'link' => "/app/clients/{$c->client_id}"] : null),
 
-            $mk('العلامة معتمدة', $brandNa ? 'not_applicable' : ($brandOk ? 'ready' : 'blocked'),
-                $brandNa ? 'لا علامة مرتبطة بهذه الحملة.' : ($brandOk ? 'العلامة معتمدة.' : 'العلامة بانتظار اعتماد المراجعة.'),
-                $c->brand ? 'العلامة: ' . $c->brand->name : null,
-                $brandOk ? null : ['title' => 'مراجعة العلامات', 'link' => '/app/brand-reviews']),
+            $mk(trans('campaigns.rdy_brand_label'), $brandNa ? 'not_applicable' : ($brandOk ? 'ready' : 'blocked'),
+                $brandNa ? trans('campaigns.rdy_brand_na') : ($brandOk ? trans('campaigns.rdy_brand_ok') : trans('campaigns.rdy_brand_blocked')),
+                $c->brand ? trans('campaigns.rdy_brand_ev', ['name' => $c->brand->name]) : null,
+                $brandOk ? null : ['title' => trans('campaigns.rdy_brand_action'), 'link' => '/app/brand-reviews']),
 
-            $mk('الميزانية محدّدة', $budget > 0 ? 'ready' : 'attention',
-                $budget > 0 ? 'ميزانية الحملة محدّدة.' : 'لم تُحدَّد ميزانية بعد — يتعذّر ضبط الالتزامات.',
-                $budget > 0 ? 'الميزانية: ' . $fmt($budget) : null,
-                $budget > 0 ? null : ['title' => 'تحديد الميزانية', 'link' => "/app/campaigns/{$cid}"]),
+            $mk(trans('campaigns.rdy_budget_label'), $budget > 0 ? 'ready' : 'attention',
+                $budget > 0 ? trans('campaigns.rdy_budget_ok') : trans('campaigns.rdy_budget_attention'),
+                $budget > 0 ? trans('campaigns.rdy_budget_ev', ['amount' => $fmt($budget)]) : null,
+                $budget > 0 ? null : ['title' => trans('campaigns.rdy_budget_action'), 'link' => "/app/campaigns/{$cid}"]),
 
-            $mk('مخرجات مُضافة', $delivs->count() > 0 ? 'ready' : 'attention',
-                $delivs->count() > 0 ? 'المخرجات مُضافة.' : 'أضِف مخرجًا واحدًا على الأقل لبدء التنفيذ.',
-                $delivs->count() . ' مخرج',
-                $delivs->count() > 0 ? null : ['title' => 'إضافة مخرج', 'link' => "/app/campaigns/{$cid}"]),
+            $mk(trans('campaigns.rdy_deliv_label'), $delivs->count() > 0 ? 'ready' : 'attention',
+                $delivs->count() > 0 ? trans('campaigns.rdy_deliv_ok') : trans('campaigns.rdy_deliv_attention'),
+                trans('campaigns.rdy_deliv_ev', ['n' => $delivs->count()]),
+                $delivs->count() > 0 ? null : ['title' => trans('campaigns.rdy_deliv_action'), 'link' => "/app/campaigns/{$cid}"]),
 
-            $mk('كل مخرج مُسنَد لمبدع', $delivs->count() === 0 ? 'attention' : ($unassigned === 0 ? 'ready' : 'attention'),
-                $delivs->count() === 0 ? 'لا مخرجات لإسنادها بعد.' : ($unassigned === 0 ? 'كل المخرجات مُسنَدة.' : "{$unassigned} مخرج بلا مبدع مُسنَد."),
-                $delivs->count() ? ($delivs->count() - $unassigned) . '/' . $delivs->count() . ' مُسنَد' : null,
-                $unassigned > 0 ? ['title' => 'إسناد المبدعين', 'link' => "/app/campaigns/{$cid}"] : null),
+            $mk(trans('campaigns.rdy_assign_label'), $delivs->count() === 0 ? 'attention' : ($unassigned === 0 ? 'ready' : 'attention'),
+                $delivs->count() === 0 ? trans('campaigns.rdy_assign_none') : ($unassigned === 0 ? trans('campaigns.rdy_assign_ok') : trans('campaigns.rdy_assign_attention', ['n' => $unassigned])),
+                $delivs->count() ? trans('campaigns.rdy_assign_ev', ['assigned' => $delivs->count() - $unassigned, 'total' => $delivs->count()]) : null,
+                $unassigned > 0 ? ['title' => trans('campaigns.rdy_assign_action'), 'link' => "/app/campaigns/{$cid}"] : null),
 
-            $mk('ضمن الميزانية', $budget === 0 ? 'not_applicable' : ($overBudget ? 'blocked' : 'ready'),
-                $budget === 0 ? 'الميزانية غير محدّدة بعد.' : ($overBudget ? 'الالتزامات تتجاوز الميزانية المعتمدة.' : 'الالتزامات ضمن الميزانية.'),
-                $budget === 0 ? null : 'الميزانية ' . $fmt($budget) . ' · الالتزامات ' . $fmt($committed),
-                $overBudget ? ['title' => 'مراجعة التكاليف', 'link' => "/app/campaigns/{$cid}#deliverables"] : null),
+            $mk(trans('campaigns.rdy_within_label'), $budget === 0 ? 'not_applicable' : ($overBudget ? 'blocked' : 'ready'),
+                $budget === 0 ? trans('campaigns.rdy_within_na') : ($overBudget ? trans('campaigns.rdy_within_blocked') : trans('campaigns.rdy_within_ok')),
+                $budget === 0 ? null : trans('campaigns.rdy_within_ev', ['budget' => $fmt($budget), 'committed' => $fmt($committed)]),
+                $overBudget ? ['title' => trans('campaigns.rdy_within_action'), 'link' => "/app/campaigns/{$cid}#deliverables"] : null),
 
-            $mk('المحتوى معتمد', $content->count() === 0 ? 'not_applicable' : ($approved === $content->count() ? 'ready' : 'attention'),
-                $content->count() === 0 ? 'لا محتوى مُقدَّم بعد.' : ($approved === $content->count() ? 'كل المحتوى معتمد.' : ($content->count() - $approved) . ' عنصر بانتظار الاعتماد.'),
-                $content->count() ? "{$approved}/{$content->count()} معتمد" : null,
-                ($content->count() && $approved < $content->count()) ? ['title' => 'مراجعة المحتوى', 'link' => '/app/content'] : null),
+            $mk(trans('campaigns.rdy_content_label'), $content->count() === 0 ? 'not_applicable' : ($approved === $content->count() ? 'ready' : 'attention'),
+                $content->count() === 0 ? trans('campaigns.rdy_content_na') : ($approved === $content->count() ? trans('campaigns.rdy_content_ok') : trans('campaigns.rdy_content_attention', ['n' => $content->count() - $approved])),
+                $content->count() ? trans('campaigns.rdy_content_ev', ['approved' => $approved, 'total' => $content->count()]) : null,
+                ($content->count() && $approved < $content->count()) ? ['title' => trans('campaigns.rdy_content_action'), 'link' => '/app/content'] : null),
         ];
 
         $ready = collect($items)->where('state', 'ready')->count();
@@ -179,22 +182,23 @@ class CampaignAnalytics
     }
 
     /** مخطط زمني موحّد لأحداث الحملة (مراحل + تعاونات + محتوى) مرتّب زمنيًا تنازليًا. */
-    public static function timeline(\App\Domain\Campaigns\Models\Campaign $c): array
+    public static function timeline(Campaign $c): array
     {
         $ev = [];
         foreach ($c->statusHistory as $h) {
             $ev[] = ['at' => $h->occurred_at ?? $h->created_at, 'icon' => 'rocket', 'tone' => 'primary',
-                'text' => 'الحملة → ' . __('statuses.' . $h->to_status), 'meta' => ''];
+                'text' => trans('campaigns.tl_campaign', ['status' => __('statuses.'.$h->to_status)]), 'meta' => ''];
         }
         foreach ($c->collaborations as $col) {
             $ev[] = ['at' => $col->created_at, 'icon' => 'git-merge', 'tone' => 'info',
-                'text' => 'تعاون ' . __('statuses.' . $col->status), 'meta' => $col->creator?->display_name ?? ''];
+                'text' => trans('campaigns.tl_collab', ['status' => __('statuses.'.$col->status)]), 'meta' => $col->creator?->display_name ?? ''];
         }
         foreach ($c->contentItems as $ci) {
             $ev[] = ['at' => $ci->created_at, 'icon' => 'image', 'tone' => 'accent',
-                'text' => 'محتوى ' . __('statuses.' . $ci->status), 'meta' => $ci->creator?->display_name ?? $ci->title];
+                'text' => trans('campaigns.tl_content', ['status' => __('statuses.'.$ci->status)]), 'meta' => $ci->creator?->display_name ?? $ci->title];
         }
         usort($ev, fn ($a, $b) => ($b['at']?->timestamp ?? 0) <=> ($a['at']?->timestamp ?? 0));
+
         return array_slice($ev, 0, 40);
     }
 
@@ -202,7 +206,7 @@ class CampaignAnalytics
      * مركز قيادة الحملة: رحلة أصلية (مراحل مشتقّة من الحالة الفعلية) + الخطوة التالية.
      * مسمّيات ومنطق InfluencerHub الأصلية — لا نسخ لشريط مراحل مرجعي.
      */
-    public static function commandCenter(\App\Domain\Campaigns\Models\Campaign $c, array $m): array
+    public static function commandCenter(Campaign $c, array $m): array
     {
         // رحلة أصلية مختصرة (7 مراحل) مربوطة بإشارات حقيقية
         $status = $c->status;
@@ -213,8 +217,8 @@ class CampaignAnalytics
 
         $order = ['setup', 'planning', 'sourcing', 'production', 'review', 'publishing', 'closure'];
         $labels = [
-            'setup' => 'الإعداد', 'planning' => 'التخطيط', 'sourcing' => 'الترشيح',
-            'production' => 'الإنتاج', 'review' => 'المراجعة', 'publishing' => 'النشر', 'closure' => 'الإغلاق',
+            'setup' => trans('campaigns.cmd_stage_setup'), 'planning' => trans('campaigns.cmd_stage_planning'), 'sourcing' => trans('campaigns.cmd_stage_sourcing'),
+            'production' => trans('campaigns.cmd_stage_production'), 'review' => trans('campaigns.cmd_stage_review'), 'publishing' => trans('campaigns.cmd_stage_publishing'), 'closure' => trans('campaigns.cmd_stage_closure'),
         ];
         // المرحلة الحالية المشتقّة
         $current = match (true) {
@@ -240,14 +244,14 @@ class CampaignAnalytics
 
         // الخطوة التالية (إجراء رئيسي واحد واضح)
         $next = match ($current) {
-            'setup' => ['نقل الحملة للتخطيط', 'حدّد النطاق والميزانية ثم انقلها للتخطيط.', "/app/campaigns/{$c->id}"],
-            'planning' => ['بدء الترشيح', 'رشّح المؤثرين المناسبين للحملة.', "/app/campaigns/{$c->id}/shortlist"],
-            'sourcing' => ['إرسال الترشيحات للعميل', 'أرسل قائمة المؤثرين لاعتماد العميل.', "/app/campaigns/{$c->id}/shortlist"],
-            'production' => ['متابعة إنتاج المحتوى', 'تابع المخرجات وحدّث حالاتها.', "/app/campaigns/{$c->id}"],
-            'review' => ['اعتماد المحتوى المعلّق', ($m['awaiting_client'] ?? 0) . ' عنصر بانتظار موافقة العميل.', "/app/content"],
-            'publishing' => ['التحقق من النشر واعتماد المستحقات', 'تحقّق من روابط النشر واعتمد مستحقات المبدعين.', "/app/payouts"],
-            'closure' => ['إغلاق الحملة', 'اكتملت الالتزامات — أغلق الحملة وأصدر التقرير.', "/app/campaigns/{$c->id}"],
-            default => ['متابعة الحملة', '', "/app/campaigns/{$c->id}"],
+            'setup' => [trans('campaigns.cmd_next_setup_title'), trans('campaigns.cmd_next_setup_hint'), "/app/campaigns/{$c->id}"],
+            'planning' => [trans('campaigns.cmd_next_planning_title'), trans('campaigns.cmd_next_planning_hint'), "/app/campaigns/{$c->id}/shortlist"],
+            'sourcing' => [trans('campaigns.cmd_next_sourcing_title'), trans('campaigns.cmd_next_sourcing_hint'), "/app/campaigns/{$c->id}/shortlist"],
+            'production' => [trans('campaigns.cmd_next_production_title'), trans('campaigns.cmd_next_production_hint'), "/app/campaigns/{$c->id}"],
+            'review' => [trans('campaigns.cmd_next_review_title'), trans('campaigns.cmd_next_review_hint', ['n' => $m['awaiting_client'] ?? 0]), '/app/content'],
+            'publishing' => [trans('campaigns.cmd_next_publishing_title'), trans('campaigns.cmd_next_publishing_hint'), '/app/payouts'],
+            'closure' => [trans('campaigns.cmd_next_closure_title'), trans('campaigns.cmd_next_closure_hint'), "/app/campaigns/{$c->id}"],
+            default => [trans('campaigns.cmd_next_default_title'), '', "/app/campaigns/{$c->id}"],
         };
 
         return [
