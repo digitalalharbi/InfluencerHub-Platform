@@ -85,4 +85,120 @@ return [
     'clear_filters' => 'Clear filters',
     'empty_title' => 'Start building your creator network',
     'empty_text' => 'Add influencers and creators and the system will tier them automatically by size, engagement and trust.',
+
+    // ===== Detail page (Show) =====
+    'show_heading' => 'Creator profile',
+    'no_capabilities' => 'No capabilities',
+    'back_all' => 'All creators',
+    'm_platform' => 'Platform',
+    'm_city' => 'City',
+    'm_trust' => 'Verification',
+    'verified' => 'Verified',
+    'unverified' => 'Unverified',
+    'm_categories' => 'Categories',
+    'currency_sar' => 'SAR',
+
+    // Status switcher (select options)
+    'status_label' => 'Status',
+    'opt_prospect' => 'Prospect',
+    'opt_active' => 'Active',
+    'opt_paused' => 'Paused',
+    'opt_blocked' => 'Blocked',
+
+    // Score and sub-scores
+    'score_label' => 'Creator score',
+    'tier_prefix' => 'Tier',
+    'subscores_title' => 'Sub-scores (computed automatically from real data)',
+    'top_factors' => 'Top factors:',
+    'risk_label' => 'Risk: :n overdue',
+
+    // Summary strip
+    'ss_followers' => 'Followers',
+    'ss_engagement' => 'Engagement (est.)',
+    'ss_campaigns' => 'Campaigns',
+    'ss_active_collabs' => 'Active collaborations',
+    'ss_content_published' => 'Published content',
+    'ss_paid' => 'Paid',
+    'ss_commitment' => 'Commitment',
+
+    // Tabs
+    'tab_overview' => 'Overview',
+    'tab_platforms' => 'Platforms',
+    'tab_collaborations' => 'Campaigns',
+    'tab_content' => 'Content',
+    'tab_contracts' => 'Contracts',
+    'tab_payouts' => 'Payouts',
+
+    // Overview
+    'sec_bio' => 'Bio & categories',
+    'no_bio' => 'No bio yet.',
+    'sec_contact' => 'Contact & pricing',
+    'c_email' => 'Email',
+    'c_phone' => 'Phone',
+    'c_rate' => 'Price per post',
+    'c_accept_rate' => 'Accept rate',
+
+    // Platforms
+    'no_platforms' => 'No platforms recorded',
+    'platforms_compare' => 'Reach comparison across platforms',
+    'followers' => 'Followers',
+
+    // Tab tables
+    'th_collab' => 'Collaboration',
+    'th_campaign' => 'Campaign',
+    'th_fee' => 'Fee',
+    'th_status' => 'Status',
+    'no_collaborations' => 'No collaborations yet.',
+    'no_content' => 'No content yet',
+    'needs_action' => 'Needs action',
+    'th_contract' => 'Contract',
+    'th_number' => 'Number',
+    'th_value' => 'Value',
+    'no_contracts' => 'No contracts yet.',
+    'th_payout' => 'Payout',
+    'th_amount' => 'Amount',
+    'no_payouts' => 'No payouts yet.',
+
+    // Creator portal (access panel)
+    'acc_title' => 'Creator portal',
+    'acc_link_once' => 'Copy the link now — it is shown only once.',
+    'acc_sent_to' => 'Sent to:',
+    'acc_verified' => 'verified',
+    'acc_phone' => 'Mobile:',
+    'acc_expires' => 'Expires:',
+    'acc_last_sent' => 'Last sent:',
+    'acc_f_email' => 'Email',
+    'acc_f_phone' => 'Mobile (optional)',
+    'acc_send' => 'Send invitation',
+    'acc_resend' => 'Resend',
+    'acc_revoke' => 'Revoke invitation',
+
+    // Access states (derived server-side)
+    'acc_state_active' => 'Portal active',
+    'acc_reason_linked' => 'The account is already linked — no invitation needed.',
+    'acc_reason_missing_email' => 'Add the creator’s email first — the invitation is sent to it.',
+    'acc_reason_no_perm' => 'You don’t have permission to invite a creator.',
+    'acc_state_unlinked' => 'Not linked',
+    'acc_state_revoked' => 'Invitation revoked',
+    'acc_state_expired' => 'Invitation expired',
+    'acc_state_phone_verified' => 'Mobile verified — awaiting password',
+    'acc_state_email_verified' => 'Email verified',
+    'acc_state_pending' => 'Invitation pending',
+
+    // Creator status (CREATOR_STATUS — badge label)
+    'st_prospect' => 'Prospect',
+    'st_active' => 'Active',
+    'st_paused' => 'Paused',
+    'st_blocked' => 'Blocked',
+
+    // Sub-scores (CreatorAnalytics)
+    'sub_audience' => 'Audience size',
+    'sub_engagement' => 'Engagement',
+    'sub_reliability' => 'Reliability',
+    'sub_content_quality' => 'Content quality',
+    'sub_commercial' => 'Commercial performance',
+    'sub_profile' => 'Profile completeness',
+    'sub_trust' => 'Trust',
+    'tier_under_review' => 'Under review',
+    'reason_overdue' => 'Overdue deliveries',
 ];
