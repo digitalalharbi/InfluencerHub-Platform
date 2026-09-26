@@ -258,9 +258,10 @@ export interface SeriesPoint { label: string; value: number }
 
 /** مخطط أعمدة أفقي/رأسي بسيط — يعرض القيم الفعلية ولا يخترع نقاطًا. */
 export function BarChart({ points, height = 132, format }: { points: SeriesPoint[]; height?: number; format?: (v: number) => string }) {
+  const t = useT();
   const max = Math.max(...points.map((p) => p.value), 1);
   if (points.every((p) => p.value === 0)) {
-    return <div style={{ padding: '1.6rem', textAlign: 'center', color: 'var(--ih-text-muted)', fontSize: '.84rem' }}>لا بيانات في هذه الفترة.</div>;
+    return <div style={{ padding: '1.6rem', textAlign: 'center', color: 'var(--ih-text-muted)', fontSize: '.84rem' }}>{t('common.no_data_period')}</div>;
   }
   return (
     <div style={{ display: 'flex', alignItems: 'flex-end', gap: '.5rem', height, padding: '.4rem .2rem 0' }}>
