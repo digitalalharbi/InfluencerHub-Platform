@@ -34,8 +34,8 @@ function fnum(n: number): string {
   if (n >= 1000) return Math.round(n / 1000) + 'K';
   return n.toLocaleString('en-US');
 }
-function sar(minor: number | null): string {
-  return minor == null ? '—' : Math.round(minor / 100).toLocaleString('en-US') + ' ر.س';
+function sar(minor: number | null, unit: string): string {
+  return minor == null ? '—' : Math.round(minor / 100).toLocaleString('en-US') + ' ' + unit;
 }
 
 const LBL: React.CSSProperties = { fontSize: '.8rem', fontWeight: 600, display: 'block', marginBottom: '.3rem' };
@@ -177,7 +177,7 @@ export default function CreatorsIndex({ creators, summary, type, filters, platfo
                       <td>{c.platform ? <span className="ih-tag">{c.platform}</span> : '—'}</td>
                       <td className="ih-dt__num" style={{ direction: 'ltr', textAlign: 'right' }}>{fnum(c.followers)}</td>
                       <td className="ih-dt__num">{c.engagement ?? '—'}%</td>
-                      <td className="ih-dt__num" style={{ direction: 'ltr', textAlign: 'right' }}>{sar(c.rateMinor)}</td>
+                      <td className="ih-dt__num" style={{ direction: 'ltr', textAlign: 'right' }}>{sar(c.rateMinor, t('common.currency_sar'))}</td>
                       <td>
                         <span className={`badge ih-status-${c.statusTone}`}>{c.statusLabel}</span>
                         {c.incomplete && <span className="badge" style={{ background: 'var(--ih-warning-soft)', color: 'var(--ih-warning-ink)', fontSize: '.56rem' }}>{t('creators.incomplete_badge')}</span>}
@@ -226,7 +226,7 @@ export default function CreatorsIndex({ creators, summary, type, filters, platfo
                   <div className="ih-mcard__grid">
                     <div className="ih-metric"><span className="ih-metric__v" style={{ direction: 'ltr' }}>{fnum(c.followers)}</span><span className="ih-metric__k">{c.platform ?? t('creators.m_followers')}</span></div>
                     <div className="ih-metric"><span className="ih-metric__v">{c.engagement ?? '—'}%</span><span className="ih-metric__k">{t('creators.m_engagement')}</span></div>
-                    <div className="ih-metric"><span className="ih-metric__v" style={{ direction: 'ltr' }}>{sar(c.rateMinor)}</span><span className="ih-metric__k">{t('creators.m_rate')}</span></div>
+                    <div className="ih-metric"><span className="ih-metric__v" style={{ direction: 'ltr' }}>{sar(c.rateMinor, t('common.currency_sar'))}</span><span className="ih-metric__k">{t('creators.m_rate')}</span></div>
                   </div>
                   {c.activeCollabs > 0 && <div style={{ marginTop: '.6rem', fontSize: '.76rem', color: 'var(--ih-primary)', fontWeight: 600 }}>{t('creators.active_collab_note', { n: c.activeCollabs })}</div>}
                 </a>

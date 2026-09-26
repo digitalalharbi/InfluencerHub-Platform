@@ -140,7 +140,7 @@ function NewInvoiceModal({ options, taxRateBp, onClose }: { options: Options; ta
                   onChange={(e) => setItem(idx, { description: e.target.value })} />
                 <input className="field" type="number" min="1" value={it.quantity}
                   onChange={(e) => setItem(idx, { quantity: e.target.value })} />
-                <input className="field" type="number" min="0" step="0.01" placeholder="ر.س"
+                <input className="field" type="number" min="0" step="0.01" placeholder={t('common.currency_sar')}
                   value={it.unit_price_riyals} onChange={(e) => setItem(idx, { unit_price_riyals: e.target.value })} />
                 <button type="button" className="btn btn-xs btn-ghost" aria-label={t('invoices.del_item')}
                   onClick={() => setItems((p) => p.filter((_, i) => i !== idx))} disabled={items.length === 1}>×</button>
@@ -188,10 +188,11 @@ function NewInvoiceModal({ options, taxRateBp, onClose }: { options: Options; ta
 }
 
 function Row({ label, value }: { label: string; value: number }) {
+  const t = useT();
   return (
     <div style={{ display: 'flex', justifyContent: 'space-between' }}>
       <span>{label}</span>
-      <span style={{ direction: 'ltr' }}>{value.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ر.س</span>
+      <span style={{ direction: 'ltr' }}>{value.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} {t('common.currency_sar')}</span>
     </div>
   )
 }
@@ -248,14 +249,14 @@ export default function InvoicesIndex({ invoices, filters, summary, canCreate, o
         const pct = Math.round((summary.collectedMinor / billed) * 100);
         return (
           <div className="card" style={{ padding: '1.1rem 1.3rem', marginBottom: '1.2rem', display: 'flex', alignItems: 'center', gap: '1.6rem', flexWrap: 'wrap' }}>
-            <Donut segments={segs} size={120} centerValue={`${pct}٪`} centerLabel={t('invoices.d_center')} ariaLabel={`${t('invoices.d_collected')} ${sarShort(summary.collectedMinor)} ر.س، ${t('invoices.d_outstanding')} ${sarShort(summary.outstandingMinor)} ر.س`} />
+            <Donut segments={segs} size={120} centerValue={`${pct}٪`} centerLabel={t('invoices.d_center')} ariaLabel={`${t('invoices.d_collected')} ${sarShort(summary.collectedMinor)} ${t('common.currency_sar')}، ${t('invoices.d_outstanding')} ${sarShort(summary.outstandingMinor)} ${t('common.currency_sar')}`} />
             <div style={{ flex: 1, minWidth: 200, display: 'grid', gap: '.55rem' }}>
               <div style={{ fontWeight: 800, fontSize: '.95rem' }}>{t('invoices.d_headline', { pct, total: sarShort(billed) })}</div>
               {segs.map((s) => (
                 <div key={s.label} style={{ display: 'flex', alignItems: 'center', gap: '.5rem', fontSize: '.85rem' }}>
                   <span style={{ width: 10, height: 10, borderRadius: 3, background: s.color, flexShrink: 0 }} />
                   <span style={{ color: 'var(--ih-text-muted)', flex: 1 }}>{s.label}</span>
-                  <span style={{ fontWeight: 700, direction: 'ltr' }}>{sarShort(s.value)} ر.س</span>
+                  <span style={{ fontWeight: 700, direction: 'ltr' }}>{sarShort(s.value)} {t('common.currency_sar')}</span>
                 </div>
               ))}
             </div>

@@ -87,7 +87,7 @@ export default function ClientsIndex({ clients, summary, operational, filters, s
         </span>} />
 
       <div className="ih-kpis">
-        <Kpi label={t('clients.kpi_revenue')} icon="wallet" tone="success" value={<>{kfmt(operational.revenue_minor)} <small>ر.س</small></>} sub={t('clients.kpi_revenue_sub', { vip: summary.vip })} />
+        <Kpi label={t('clients.kpi_revenue')} icon="wallet" tone="success" value={<>{kfmt(operational.revenue_minor)} <small>{t('common.currency_sar')}</small></>} sub={t('clients.kpi_revenue_sub', { vip: summary.vip })} />
         <Kpi label={t('clients.kpi_active_campaigns')} icon="megaphone" tone="accent" value={operational.active_campaigns.toLocaleString('en-US')} sub={t('clients.kpi_active_campaigns_sub', { n: summary.with_active_campaigns })} />
         <Kpi label={t('clients.kpi_pending_payouts')} icon="wallet" tone="warning" value={operational.pending_payouts.toLocaleString('en-US')} sub={t('clients.kpi_pending_payouts_sub')} />
         <div className="ih-kpi">

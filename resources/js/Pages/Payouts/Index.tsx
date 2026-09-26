@@ -91,9 +91,9 @@ export default function PayoutsIndex({ payouts, filters, summary, canCreate, cre
         </span>} />
 
       <div className="ih-kpis">
-        <Kpi label={t('payouts.kpi_open')} icon="wallet" tone="warning" value={<>{kfmt(summary.openMinor)} <small>ر.س</small></>} sub={t('payouts.kpi_open_sub', { n: summary.openCount })} />
-        <Kpi label={t('payouts.kpi_ready')} icon="wallet" tone="accent" value={<>{kfmt(summary.readyMinor)} <small>ر.س</small></>} sub={t('payouts.kpi_ready_sub', { n: summary.readyCount })} />
-        <Kpi label={t('payouts.kpi_paid')} icon="shield-check" tone="success" value={<>{kfmt(summary.paidMinor)} <small>ر.س</small></>} sub={t('payouts.kpi_paid_sub', { n: summary.paid })} />
+        <Kpi label={t('payouts.kpi_open')} icon="wallet" tone="warning" value={<>{kfmt(summary.openMinor)} <small>{t('common.currency_sar')}</small></>} sub={t('payouts.kpi_open_sub', { n: summary.openCount })} />
+        <Kpi label={t('payouts.kpi_ready')} icon="wallet" tone="accent" value={<>{kfmt(summary.readyMinor)} <small>{t('common.currency_sar')}</small></>} sub={t('payouts.kpi_ready_sub', { n: summary.readyCount })} />
+        <Kpi label={t('payouts.kpi_paid')} icon="shield-check" tone="success" value={<>{kfmt(summary.paidMinor)} <small>{t('common.currency_sar')}</small></>} sub={t('payouts.kpi_paid_sub', { n: summary.paid })} />
         <Kpi label={t('payouts.kpi_waiting')} icon="clipboard-check" value={summary.waiting.toLocaleString('en-US')} sub={t('payouts.kpi_waiting_sub', { n: summary.failed })} />
       </div>
 
@@ -110,14 +110,14 @@ export default function PayoutsIndex({ payouts, filters, summary, canCreate, cre
         ];
         return (
           <div className="card" style={{ padding: '1.1rem 1.3rem', marginBottom: '1.2rem', display: 'flex', alignItems: 'center', gap: '1.6rem', flexWrap: 'wrap' }}>
-            <Donut segments={segs} size={120} centerValue={`${kfmt(totalMinor)}`} centerLabel={t('payouts.donut_center')} ariaLabel={segs.map((s) => `${s.label}: ${kfmt(s.value)} ر.س`).join('، ')} />
+            <Donut segments={segs} size={120} centerValue={`${kfmt(totalMinor)}`} centerLabel={t('payouts.donut_center')} ariaLabel={segs.map((s) => `${s.label}: ${kfmt(s.value)} ${t('common.currency_sar')}`).join('، ')} />
             <div style={{ flex: 1, minWidth: 200, display: 'grid', gap: '.55rem' }}>
               <div style={{ fontWeight: 800, fontSize: '.95rem' }}>{t('payouts.donut_title')}</div>
               {segs.map((s) => (
                 <div key={s.label} style={{ display: 'flex', alignItems: 'center', gap: '.5rem', fontSize: '.85rem' }}>
                   <span style={{ width: 10, height: 10, borderRadius: 3, background: s.color, flexShrink: 0 }} />
                   <span style={{ color: 'var(--ih-text-muted)', flex: 1 }}>{s.label}</span>
-                  <span style={{ fontWeight: 700, direction: 'ltr' }}>{kfmt(s.value)} ر.س</span>
+                  <span style={{ fontWeight: 700, direction: 'ltr' }}>{kfmt(s.value)} {t('common.currency_sar')}</span>
                 </div>
               ))}
             </div>
@@ -159,7 +159,7 @@ export default function PayoutsIndex({ payouts, filters, summary, canCreate, cre
                   <div style={{ display: 'flex', alignItems: 'center', gap: '.5rem', marginBottom: '.55rem' }}>
                     <span style={{ fontWeight: 700, fontSize: '.88rem' }}>{label}</span>
                     <span className="ih-pipe__count">{grp.length}</span>
-                    <span style={{ marginInlineStart: 'auto', fontWeight: 700, direction: 'ltr', fontSize: '.86rem' }}>{kfmt(total)} ر.س</span>
+                    <span style={{ marginInlineStart: 'auto', fontWeight: 700, direction: 'ltr', fontSize: '.86rem' }}>{kfmt(total)} {t('common.currency_sar')}</span>
                   </div>
                   <div className="ih-triage">
                     {grp.map((p) => (
@@ -175,7 +175,7 @@ export default function PayoutsIndex({ payouts, filters, summary, canCreate, cre
                             {p.overdue ? `${t('payouts.overdue_prefix')} ` : ''}{p.dueDate}
                           </span>
                         )}
-                        <span style={{ fontWeight: 700, direction: 'ltr', fontSize: '.88rem', flexShrink: 0 }}>{kfmt(p.amountMinor)} ر.س</span>
+                        <span style={{ fontWeight: 700, direction: 'ltr', fontSize: '.88rem', flexShrink: 0 }}>{kfmt(p.amountMinor)} {t('common.currency_sar')}</span>
                         <StatusBadge tone={p.statusTone} label={p.statusLabel} />
                       </a>
                     ))}

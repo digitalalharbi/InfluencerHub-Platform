@@ -225,9 +225,9 @@ export default function Dashboard() {
         <div className="ih-kpis">
           <Kpi label={t('dashboard.kpi_clients')} icon="building-2" href={u("/clients")} value={numFmt(overview.kpis.clientsTotal)}
             sub={<><span className="ih-delta ih-delta--up">{overview.kpis.campaignsActive}</span> {t('dashboard.kpi_clients_sub', { n: '' }).trim()}</>} />
-          <Kpi label={t('dashboard.kpi_revenue')} icon="wallet" tone="success" value={<>{sarShort(overview.kpis.revenueMinor)} <small>ر.س</small></>}
+          <Kpi label={t('dashboard.kpi_revenue')} icon="wallet" tone="success" value={<>{sarShort(overview.kpis.revenueMinor)} <small>{t('common.currency_sar')}</small></>}
             sub={<>{t('dashboard.kpi_margin')} <span className={`ih-delta ${overview.kpis.margin >= 0 ? 'ih-delta--up' : 'ih-delta--down'}`}>{overview.kpis.margin}%</span> · {t('dashboard.kpi_profit')} {sarShort(overview.kpis.profitMinor)}</>} />
-          <Kpi label={t('dashboard.kpi_pending_payouts')} icon="wallet" tone="warning" href={u("/payouts")} value={<>{sarShort(overview.kpis.pendingPayoutMinor)} <small>ر.س</small></>}
+          <Kpi label={t('dashboard.kpi_pending_payouts')} icon="wallet" tone="warning" href={u("/payouts")} value={<>{sarShort(overview.kpis.pendingPayoutMinor)} <small>{t('common.currency_sar')}</small></>}
             sub={t('dashboard.kpi_pending_payouts_sub', { n: overview.kpis.pendingPayouts })} />
           <Kpi label={t('dashboard.kpi_creators')} icon="users" href={u("/creators")} value={numFmt(overview.kpis.creatorsTotal)}
             sub={t('dashboard.kpi_creators_sub', { verified: overview.kpis.creatorsVerified, tierA: overview.kpis.creatorsTierA })} />
