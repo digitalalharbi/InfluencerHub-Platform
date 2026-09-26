@@ -6,6 +6,7 @@ import { Icon } from '@/Components/Icon';
 import { PdfPreviewModal, type PreviewDoc } from '@/Components/PdfPreviewModal';
 import type { SharedProps } from '@/types';
 import { u } from '@/lib/href';
+import { useT } from '@/lib/i18n';
 
 interface Contract {
   id: number; number: string; title: string; party: string | null; partyType: string;
@@ -23,6 +24,7 @@ const money = (m: number, cur: string) => (m / 100).toLocaleString('en-US') + ' 
 const LBL: React.CSSProperties = { fontSize: '.8rem', fontWeight: 600, display: 'block', marginBottom: '.3rem' };
 
 export default function ContractShow({ contract, canManage, actions, history, waitingOn, documents }: Props) {
+  const t = useT();
   const [pdfOpen, setPdfOpen] = useState(false);
   const { props } = usePage<SharedProps>();
   const [reasonFor, setReasonFor] = useState<Action | null>(null);
@@ -66,23 +68,23 @@ export default function ContractShow({ contract, canManage, actions, history, wa
   };
 
   return (
-    <AppShell heading="عقد">
+    <AppShell heading={t('contracts.show_heading')}>
       <Head title={contract.title} />
 
       {props.flash?.ok && <div className="card" style={{ padding: '.7rem 1rem', marginBottom: '1rem', borderInlineStart: '3px solid var(--ih-success)', background: 'var(--ih-success-soft)', color: 'var(--ih-success-ink)' }}>{props.flash.ok}</div>}
 
       <WorkspaceHeader
-        eyebrow={`عقد · ${contract.number}`}
+        eyebrow={t('contracts.show_eyebrow', { num: contract.number })}
         title={contract.title}
         statusTone={contract.statusTone} statusLabel={contract.statusLabel}
-        back={u("/contracts")} backLabel="كل العقود"
+        back={u("/contracts")} backLabel={t('contracts.back_all')}
         meta={[
-          ['الطرف', `${contract.party ?? '—'} (${contract.partyType})`], ['القيمة', money(contract.valueMinor, contract.currency)],
-          ['البداية', contract.startDate ?? '—'], ['النهاية', contract.endDate ?? '—'],
+          [t('contracts.f_party'), `${contract.party ?? '—'} (${contract.partyType})`], [t('contracts.m_value'), money(contract.valueMinor, contract.currency)],
+          [t('contracts.f_start'), contract.startDate ?? '—'], [t('contracts.f_end'), contract.endDate ?? '—'],
         ]}
         actions={<>
-          <button onClick={() => setPdfOpen(true)} className="btn btn-sm btn-outline" title="معاينة العقد (PDF)">
-            <Icon name="file-text" size={14} /> معاينة PDF{documents.pdf.stale && <span style={{ width: 7, height: 7, borderRadius: '50%', background: 'var(--ih-warning-ink, #B54708)', display: 'inline-block', marginInlineStart: 5 }} />}
+          <button onClick={() => setPdfOpen(true)} className="btn btn-sm btn-outline" title={t('contracts.preview_pdf_title')}>
+            <Icon name="file-text" size={14} /> {t('contracts.preview_pdf')}{documents.pdf.stale && <span style={{ width: 7, height: 7, borderRadius: '50%', background: 'var(--ih-warning-ink, #B54708)', display: 'inline-block', marginInlineStart: 5 }} />}
           </button>
           {canManage && actions.map((a) => (
             <button key={a[0]} onClick={() => runAction(a)} className={`btn btn-sm ${BTN[a[2]] ?? 'btn-outline'}`}>{a[1]}</button>
@@ -95,62 +97,62 @@ export default function ContractShow({ contract, canManage, actions, history, wa
 
       {contract.signedAt && (
         <div className="card" style={{ padding: '.7rem 1rem', marginBottom: '1.2rem', borderInlineStart: '3px solid var(--ih-success)', background: 'var(--ih-success-soft)', color: 'var(--ih-success-ink)', fontSize: '.85rem' }}>
-          قُبِل في {contract.signedAt}{contract.signedByName ? ` — ${contract.signedByName}` : ''} · قبول داخل المنصّة (تسجيل موافقة، ليس توقيعًا قانونيًا خارجيًا).
+          {t('contracts.accepted_at', { date: contract.signedAt })}{contract.signedByName ? ` — ${contract.signedByName}` : ''} · {t('contracts.accepted_in_platform')}
         </div>
       )}
 
       <SummaryStrip items={[
-        { label: 'القيمة', value: money(contract.valueMinor, contract.currency), tone: 'primary', icon: 'wallet' },
-        { label: 'الطرف', value: contract.partyType },
-        { label: 'البداية', value: contract.startDate ?? '—' },
-        { label: 'النهاية', value: contract.endDate ?? '—' },
-        { label: 'قبِله', value: contract.signedByName ?? '—' },
+        { label: t('contracts.m_value'), value: money(contract.valueMinor, contract.currency), tone: 'primary', icon: 'wallet' },
+        { label: t('contracts.f_party'), value: contract.partyType },
+        { label: t('contracts.f_start'), value: contract.startDate ?? '—' },
+        { label: t('contracts.f_end'), value: contract.endDate ?? '—' },
+        { label: t('contracts.m_signed_by'), value: contract.signedByName ?? '—' },
       ]} />
 
       <div className="ih-overview-grid" style={{ display: 'grid', gridTemplateColumns: '1.3fr .7fr', gap: '1.1rem', alignItems: 'start' }}>
-        <Sec title="بنود العقد" icon="file-text">
+        <Sec title={t('contracts.sec_terms')} icon="file-text">
           <div className="ih-sec__body">
             {editable && !editing && (
               <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: '.7rem' }}>
-                <button onClick={() => setEditing(true)} className="btn btn-xs btn-outline">تحرير المسودة</button>
+                <button onClick={() => setEditing(true)} className="btn btn-xs btn-outline">{t('contracts.edit_draft')}</button>
               </div>
             )}
             {editing ? (
               <div style={{ display: 'grid', gap: '.8rem' }}>
-                <Field label="العنوان" labelStyle={LBL}>
+                <Field label={t('contracts.f_title')} labelStyle={LBL}>
                   <input value={draft.title} onChange={(e) => setDraft({ ...draft, title: e.target.value })} className="field" style={{ width: '100%' }} />
                   {editErrors.title && <div style={{ color: 'var(--ih-danger-ink)', fontSize: '.76rem', marginTop: '.3rem' }}>{editErrors.title}</div>}
                 </Field>
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '.8rem' }}>
-                  <Field label="القيمة (ر.س)" labelStyle={LBL}>
+                  <Field label={t('contracts.f_value')} labelStyle={LBL}>
                     <input type="number" min={0} step="0.01" value={draft.value} onChange={(e) => setDraft({ ...draft, value: e.target.value })}
                       className="field" style={{ width: '100%', direction: 'ltr' }} />
                   </Field>
-                  <Field label="البداية" labelStyle={LBL}>
+                  <Field label={t('contracts.f_start')} labelStyle={LBL}>
                     <input type="date" value={draft.start_date} onChange={(e) => setDraft({ ...draft, start_date: e.target.value })} className="field" style={{ width: '100%', direction: 'ltr' }} />
                   </Field>
-                  <Field label="النهاية" labelStyle={LBL}>
+                  <Field label={t('contracts.f_end')} labelStyle={LBL}>
                     <input type="date" value={draft.end_date} onChange={(e) => setDraft({ ...draft, end_date: e.target.value })} className="field" style={{ width: '100%', direction: 'ltr' }} />
                     {editErrors.end_date && <div style={{ color: 'var(--ih-danger-ink)', fontSize: '.72rem', marginTop: '.3rem' }}>{editErrors.end_date}</div>}
                   </Field>
                 </div>
-                <Field label="البنود" labelStyle={LBL}>
+                <Field label={t('contracts.f_terms')} labelStyle={LBL}>
                   <textarea value={draft.terms} onChange={(e) => setDraft({ ...draft, terms: e.target.value })} className="field" rows={8} style={{ width: '100%' }} />
                 </Field>
                 {editErrors.wf && <div style={{ color: 'var(--ih-danger-ink)', fontSize: '.8rem' }}>{editErrors.wf}</div>}
                 <div style={{ display: 'flex', gap: '.5rem' }}>
-                  <button disabled={saving || !draft.title.trim()} onClick={saveDraft} className="btn btn-sm btn-primary">حفظ</button>
-                  <button disabled={saving} onClick={() => { setEditing(false); setEditErrors({}); }} className="btn btn-sm btn-ghost">إلغاء</button>
+                  <button disabled={saving || !draft.title.trim()} onClick={saveDraft} className="btn btn-sm btn-primary">{t('contracts.save')}</button>
+                  <button disabled={saving} onClick={() => { setEditing(false); setEditErrors({}); }} className="btn btn-sm btn-ghost">{t('contracts.cancel')}</button>
                 </div>
               </div>
             ) : (
-              <p style={{ margin: 0, lineHeight: 1.8, whiteSpace: 'pre-wrap', color: contract.terms ? 'var(--ih-text)' : 'var(--ih-text-muted)' }}>{contract.terms ?? 'لا بنود مسجّلة.'}</p>
+              <p style={{ margin: 0, lineHeight: 1.8, whiteSpace: 'pre-wrap', color: contract.terms ? 'var(--ih-text)' : 'var(--ih-text-muted)' }}>{contract.terms ?? t('contracts.no_terms')}</p>
             )}
           </div>
         </Sec>
-        <Sec title="سجل الحالة" icon="bar-chart-3">
+        <Sec title={t('contracts.sec_history')} icon="bar-chart-3">
           <div className="ih-sec__body">
-            {history.length === 0 ? <div style={{ color: 'var(--ih-text-muted)', fontSize: '.85rem' }}>لا سجل بعد.</div> :
+            {history.length === 0 ? <div style={{ color: 'var(--ih-text-muted)', fontSize: '.85rem' }}>{t('contracts.no_history')}</div> :
               <div className="ih-tl">
                 {history.map((h, i) => (
                   <div key={i} className="ih-tl__item"><span className="ih-tl__dot" />
@@ -167,10 +169,10 @@ export default function ContractShow({ contract, canManage, actions, history, wa
         <div className="modal-backdrop" onClick={(e) => e.target === e.currentTarget && setReasonFor(null)}>
           <div className="modal" style={{ padding: '1.3rem' }}>
             <h3 style={{ fontWeight: 800, margin: '0 0 1rem' }}>{reasonFor[1]}</h3>
-            <textarea className="field" rows={3} value={reason} onChange={(e) => setReason(e.target.value)} placeholder="السبب" autoFocus />
+            <textarea className="field" rows={3} value={reason} onChange={(e) => setReason(e.target.value)} placeholder={t('contracts.reason_placeholder')} autoFocus />
             <div style={{ marginTop: '1rem', display: 'flex', gap: '.5rem' }}>
-              <button className={`btn ${BTN[reasonFor[2]] ?? 'btn-primary'}`} onClick={submitReason} disabled={!reason.trim()}>تأكيد</button>
-              <button className="btn btn-ghost" onClick={() => setReasonFor(null)}>إلغاء</button>
+              <button className={`btn ${BTN[reasonFor[2]] ?? 'btn-primary'}`} onClick={submitReason} disabled={!reason.trim()}>{t('contracts.confirm')}</button>
+              <button className="btn btn-ghost" onClick={() => setReasonFor(null)}>{t('contracts.cancel')}</button>
             </div>
           </div>
         </div>

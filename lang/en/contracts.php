@@ -67,4 +67,29 @@ return [
     'choose' => '— Choose —',
     'create_draft' => 'Create draft',
     'cancel' => 'Cancel',
+
+    // Detail page (Show)
+    'show_heading' => 'Contract',
+    'show_eyebrow' => 'Contract · :num',
+    'back_all' => 'All contracts',
+    'm_signed_by' => 'Accepted by',
+    'preview_pdf' => 'Preview PDF',
+    'preview_pdf_title' => 'Preview contract (PDF)',
+    'accepted_at' => 'Accepted on :date',
+    'accepted_in_platform' => 'In-platform acceptance (recorded consent, not an external legal signature).',
+    'sec_terms' => 'Contract terms',
+    'sec_history' => 'Status log',
+    'edit_draft' => 'Edit draft',
+    'save' => 'Save',
+    'no_terms' => 'No terms recorded.',
+    'no_history' => 'No log yet.',
+    'reason_placeholder' => 'Reason',
+    'confirm' => 'Confirm',
+
+    // Workflow action labels
+    'act_send' => 'Send to party',
+    'act_cancel' => 'Cancel',
+    'act_activate' => 'Activate contract',
+    'act_complete' => 'Complete',
+    'act_terminate' => 'Terminate',
 ];

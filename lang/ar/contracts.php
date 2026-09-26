@@ -67,4 +67,29 @@ return [
     'choose' => '— اختر —',
     'create_draft' => 'إنشاء مسودة',
     'cancel' => 'إلغاء',
+
+    // صفحة التفصيل (Show)
+    'show_heading' => 'عقد',
+    'show_eyebrow' => 'عقد · :num',
+    'back_all' => 'كل العقود',
+    'm_signed_by' => 'قبِله',
+    'preview_pdf' => 'معاينة PDF',
+    'preview_pdf_title' => 'معاينة العقد (PDF)',
+    'accepted_at' => 'قُبِل في :date',
+    'accepted_in_platform' => 'قبول داخل المنصّة (تسجيل موافقة، ليس توقيعًا قانونيًا خارجيًا).',
+    'sec_terms' => 'بنود العقد',
+    'sec_history' => 'سجل الحالة',
+    'edit_draft' => 'تحرير المسودة',
+    'save' => 'حفظ',
+    'no_terms' => 'لا بنود مسجّلة.',
+    'no_history' => 'لا سجل بعد.',
+    'reason_placeholder' => 'السبب',
+    'confirm' => 'تأكيد',
+
+    // تسميات إجراءات سير العمل
+    'act_send' => 'إرسال للطرف',
+    'act_cancel' => 'إلغاء',
+    'act_activate' => 'تفعيل العقد',
+    'act_complete' => 'إكمال',
+    'act_terminate' => 'إنهاء',
 ];
