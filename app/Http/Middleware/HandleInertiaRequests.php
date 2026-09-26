@@ -98,6 +98,7 @@ class HandleInertiaRequests extends Middleware
                 'campaigns' => (array) trans('campaigns'),
                 'creators' => (array) trans('creators'),
                 'creator_database' => (array) trans('creator_database'),
+                'collaborations' => (array) trans('collaborations'),
             ],
             'base' => MountPrefix::for($request),
             // معاينة مالك المنصّة (§P3) — يُشارَك فقط داخل معاينة نشطة. الرمز يمرَّر

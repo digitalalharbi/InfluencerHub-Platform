@@ -4,8 +4,14 @@ namespace App\Http\Controllers\Inertia;
 
 use App\Domain\Collaborations\Models\Collaboration;
 use App\Domain\Collaborations\Services\CollaborationWorkflowService;
+use App\Domain\Contracts\Models\Contract;
+use App\Domain\Contracts\Services\ContractWorkflowService;
+use App\Domain\Finance\Models\Payout;
+use App\Domain\Finance\Services\PayoutWorkflowService;
 use App\Domain\Identity\Models\User;
 use App\Http\Controllers\Controller;
+use App\Support\Http\MountPrefix;
+use App\Support\Workflow\WaitingOn;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
@@ -17,17 +23,17 @@ use Inertia\Response;
  */
 class CollaborationDetailController extends Controller
 {
-    /** [action, label, tone, needsReason]. */
+    /** [action, labelKey (collaborations.act_*), tone, needsReason]. التسمية تُترجَم في show. */
     private const ACTIONS = [
-        'offered' => [['cancel', 'إلغاء العرض', 'danger', false]],
+        'offered' => [['cancel', 'cancel_offer', 'danger', false]],
         // بعد القبول يأتي العقد — وهو الخطوة التالية في الرحلة لا إجراء جانبيًّا
-        'accepted' => [['issue-contract', 'إصدار العقد', 'primary', false], ['cancel', 'إلغاء', 'danger', false]],
-        'in_progress' => [['issue-contract', 'إصدار العقد', 'primary', false], ['cancel', 'إلغاء', 'danger', false]],
-        'submitted' => [['approve', 'اعتماد التسليم', 'primary', false], ['request-revision', 'طلب مراجعة', 'ghost', true], ['cancel', 'إلغاء', 'danger', false]],
+        'accepted' => [['issue-contract', 'issue_contract', 'primary', false], ['cancel', 'cancel', 'danger', false]],
+        'in_progress' => [['issue-contract', 'issue_contract', 'primary', false], ['cancel', 'cancel', 'danger', false]],
+        'submitted' => [['approve', 'approve_submission', 'primary', false], ['request-revision', 'request_revision', 'ghost', true], ['cancel', 'cancel', 'danger', false]],
         // العمل اعتُمد، فأجره صار مستحقًّا — الخطوة التالية في الرحلة لا إجراء جانبيّ
-        'approved' => [['complete', 'إكمال التعاون', 'primary', false], ['create-payout', 'إنشاء المستحقّ', 'primary', false], ['cancel', 'إلغاء', 'danger', false]],
+        'approved' => [['complete', 'complete', 'primary', false], ['create-payout', 'create_payout', 'primary', false], ['cancel', 'cancel', 'danger', false]],
         // التعاون المكتمل ما زال يستحقّ أجره — كانت قائمته فارغة فبدا الأجر منسيًّا
-        'completed' => [['create-payout', 'إنشاء المستحقّ', 'primary', false]],
+        'completed' => [['create-payout', 'create_payout', 'primary', false]],
         'declined' => [], 'cancelled' => [],
     ];
 
@@ -35,9 +41,9 @@ class CollaborationDetailController extends Controller
     private function actionsFor(Collaboration $c): array
     {
         $actions = self::ACTIONS[$c->status] ?? [];
-        $hasContract = \App\Domain\Contracts\Models\Contract::where('collaboration_id', $c->id)
+        $hasContract = Contract::where('collaboration_id', $c->id)
             ->whereNotIn('status', ['cancelled', 'terminated'])->exists();
-        $hasPayout = \App\Domain\Finance\Models\Payout::where('collaboration_id', $c->id)
+        $hasPayout = Payout::where('collaboration_id', $c->id)
             ->whereNotIn('status', ['cancelled', 'failed'])->exists();
 
         // كلٌّ يُصدَر مرّة؛ بعدها الإجراء هو فتحه لا إصداره ثانيةً
@@ -55,7 +61,7 @@ class CollaborationDetailController extends Controller
         $c = $collaboration->load('creator', 'campaign', 'statusHistory');
         $canManage = $r->user()->can('manage', $c);
         $actorNames = User::whereIn('id', $c->statusHistory->pluck('actor_id')->filter()->unique())->pluck('name', 'id');
-        $st = fn ($s) => __('statuses.' . $s);
+        $st = fn ($s) => __('statuses.'.$s);
 
         return Inertia::render('Collaborations/Show', [
             'collaboration' => [
@@ -64,16 +70,19 @@ class CollaborationDetailController extends Controller
                 'campaign' => $c->campaign?->name, 'campaignId' => $c->campaign_id,
                 'feeMinor' => (int) $c->fee_minor, 'currency' => $c->currency, 'dueDate' => $c->due_date?->format('Y-m-d'),
                 'submissionNote' => $c->submission_note, 'declineReason' => $c->decline_reason,
-                'status' => $c->status, 'statusLabel' => $st($c->status), 'statusTone' => __('statuses.tone.' . $c->status),
+                'status' => $c->status, 'statusLabel' => $st($c->status), 'statusTone' => __('statuses.tone.'.$c->status),
             ],
             'canManage' => $canManage,
             // العقد الحيّ لهذا التعاون إن وُجد — يُبدّل «إصدار العقد» بفتحه
-            'contractId' => \App\Domain\Contracts\Models\Contract::where('collaboration_id', $c->id)
+            'contractId' => Contract::where('collaboration_id', $c->id)
                 ->whereNotIn('status', ['cancelled', 'terminated'])->value('id'),
-            'actions' => $canManage ? $this->actionsFor($c) : [],
+            'actions' => $canManage ? array_map(
+                fn ($a) => [$a[0], trans("collaborations.act_{$a[1]}"), $a[2], $a[3]],
+                $this->actionsFor($c),
+            ) : [],
             // الانتظار حالة مشروعة لكنها تُعلَن: قائمة إجراءات فارغة
             // بلا تفسير تبدو عطلًا أو صلاحية ناقصة.
-            'waitingOn' => \App\Support\Workflow\WaitingOn::for('collaboration', $c->status),
+            'waitingOn' => WaitingOn::for('collaboration', $c->status),
             'history' => $c->statusHistory->sortByDesc('id')->values()->map(fn ($h) => [
                 'from' => $h->from_status ? $st($h->from_status) : '—', 'to' => $st($h->to_status),
                 'by' => $actorNames[$h->actor_id] ?? ($h->actor_type ?? '—'), 'reason' => $h->reason, 'at' => $h->occurred_at?->format('Y-m-d H:i'),
@@ -87,29 +96,29 @@ class CollaborationDetailController extends Controller
 
         // إصدار العقد ينقل المستخدم إلى العقد المُنشأ، فلا يندرج تحت «حُدّثت الحالة»
         if ($action === 'issue-contract') {
-            $this->authorize('create', \App\Domain\Contracts\Models\Contract::class);
+            $this->authorize('create', Contract::class);
             try {
-                $contract = app(\App\Domain\Contracts\Services\ContractWorkflowService::class)
+                $contract = app(ContractWorkflowService::class)
                     ->createFromCollaboration($collaboration, $r->user()->id);
             } catch (\RuntimeException $e) {
                 return back()->withErrors(['wf' => $e->getMessage()]);
             }
 
-            return redirect(\App\Support\Http\MountPrefix::path($r, "/contracts/{$contract->id}"))
+            return redirect(MountPrefix::path($r, "/contracts/{$contract->id}"))
                 ->with('ok', 'أُصدر العقد من التعاون — راجعه ثم أرسله للتوقيع.');
         }
 
         // المستحقّ ينقل المستخدم إليه، ويحتاج صلاحية مالية لا صلاحية تعاون
         if ($action === 'create-payout') {
-            $this->authorize('create', \App\Domain\Finance\Models\Payout::class);
+            $this->authorize('create', Payout::class);
             try {
-                $payout = app(\App\Domain\Finance\Services\PayoutWorkflowService::class)
+                $payout = app(PayoutWorkflowService::class)
                     ->createFromCollaboration($collaboration, $r->user()->id);
             } catch (\RuntimeException $e) {
                 return back()->withErrors(['wf' => $e->getMessage()]);
             }
 
-            return redirect(\App\Support\Http\MountPrefix::path($r, "/payouts/{$payout->id}"))
+            return redirect(MountPrefix::path($r, "/payouts/{$payout->id}"))
                 ->with('ok', 'أُنشئ المستحقّ من التعاون — راجعه ثم اعتمده.');
         }
 
@@ -124,6 +133,7 @@ class CollaborationDetailController extends Controller
         } catch (\RuntimeException $e) {
             return back()->withErrors(['wf' => $e->getMessage()]);
         }
+
         return back()->with('ok', 'حُدّثت حالة التعاون.');
     }
 }
