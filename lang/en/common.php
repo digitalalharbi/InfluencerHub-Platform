@@ -20,4 +20,8 @@ return [
     'notif_empty' => 'No notifications yet.',
     'waiting_turn' => "Now :party's turn — awaiting :expects.",
     'waiting_no_action' => 'No action needed from you right now.',
+    'privacy' => 'Privacy',
+    'terms' => 'Terms',
+    'help' => 'Help',
+    'footer_links' => 'Product links',
 ];

@@ -20,4 +20,8 @@ return [
     'notif_empty' => 'لا إشعارات بعد.',
     'waiting_turn' => 'الدور الآن على :party — بانتظار :expects.',
     'waiting_no_action' => 'لا إجراء مطلوب منك حاليًّا.',
+    'privacy' => 'الخصوصية',
+    'terms' => 'الشروط',
+    'help' => 'المساعدة',
+    'footer_links' => 'روابط المنتج',
 ];
