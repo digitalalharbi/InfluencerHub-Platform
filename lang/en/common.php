@@ -18,4 +18,6 @@ return [
     'notif_mark_all' => 'Mark all read',
     'notif_view_all' => 'View all',
     'notif_empty' => 'No notifications yet.',
+    'waiting_turn' => "Now :party's turn — awaiting :expects.",
+    'waiting_no_action' => 'No action needed from you right now.',
 ];
