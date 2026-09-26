@@ -5,6 +5,7 @@ import { Sec, WorkspaceHeader, sarShort } from '@/Components/ui'
 import { Icon } from '@/Components/Icon'
 import { u } from '@/lib/href'
 import { PdfPreviewModal, type PreviewDoc } from '@/Components/PdfPreviewModal'
+import { useT } from '@/lib/i18n'
 
 interface Invoice {
   id: number; number: string; client: string | null; campaign: string | null
@@ -29,6 +30,7 @@ interface Props {
 }
 
 export default function InvoiceShow({ invoice, items, payments, history, can, paymentMethods, documents }: Props) {
+  const t = useT()
   const [pdfOpen, setPdfOpen] = useState(false)
   const { errors } = usePage().props as { errors?: Record<string, string> }
   const [panel, setPanel] = useState<'pay' | 'cancel' | null>(null)
@@ -52,33 +54,33 @@ export default function InvoiceShow({ invoice, items, payments, history, can, pa
   const paidPct = invoice.totalMinor > 0 ? Math.round((invoice.paidMinor / invoice.totalMinor) * 100) : 0
 
   return (
-    <AppShell heading="فاتورة">
+    <AppShell heading={t('invoices.show_heading')}>
       <Head title={invoice.number} />
 
       <WorkspaceHeader
-        eyebrow={`فاتورة · ${invoice.number}`}
-        title={invoice.client ?? 'فاتورة'}
+        eyebrow={t('invoices.show_eyebrow', { num: invoice.number })}
+        title={invoice.client ?? t('invoices.show_heading')}
         statusTone={invoice.statusTone} statusLabel={invoice.statusLabel}
-        back={u('/invoices')} backLabel="كل الفواتير"
+        back={u('/invoices')} backLabel={t('invoices.back_all')}
         meta={[
-          ['الإجمالي', sarShort(invoice.totalMinor)],
-          ['المحصَّل', sarShort(invoice.paidMinor)],
-          ['المتبقّي', sarShort(invoice.balanceMinor)],
-          ['الاستحقاق', invoice.dueDate ?? '—'],
+          [t('invoices.m_total'), sarShort(invoice.totalMinor)],
+          [t('invoices.m_collected'), sarShort(invoice.paidMinor)],
+          [t('invoices.m_balance'), sarShort(invoice.balanceMinor)],
+          [t('invoices.m_due'), invoice.dueDate ?? '—'],
         ]}
         actions={
           <>
-            <button onClick={() => setPdfOpen(true)} className="btn btn-sm btn-outline" title="معاينة PDF">معاينة PDF{documents.pdf.stale && <span style={{ width: 7, height: 7, borderRadius: '50%', background: 'var(--ih-warning-ink, #B54708)', display: 'inline-block', marginInlineStart: 5 }} />}</button>
-            {can.issue && <button onClick={() => act('issue')} className="btn btn-sm" disabled={busy}>إصدار الفاتورة</button>}
-            {can.pay && <button onClick={() => setPanel(panel === 'pay' ? null : 'pay')} className="btn btn-sm">تسجيل دفعة</button>}
-            {can.cancel && <button onClick={() => setPanel(panel === 'cancel' ? null : 'cancel')} className="btn btn-sm btn-outline">إلغاء</button>}
+            <button onClick={() => setPdfOpen(true)} className="btn btn-sm btn-outline" title={t('invoices.preview_pdf')}>{t('invoices.preview_pdf')}{documents.pdf.stale && <span style={{ width: 7, height: 7, borderRadius: '50%', background: 'var(--ih-warning-ink, #B54708)', display: 'inline-block', marginInlineStart: 5 }} />}</button>
+            {can.issue && <button onClick={() => act('issue')} className="btn btn-sm" disabled={busy}>{t('invoices.act_issue')}</button>}
+            {can.pay && <button onClick={() => setPanel(panel === 'pay' ? null : 'pay')} className="btn btn-sm">{t('invoices.act_pay')}</button>}
+            {can.cancel && <button onClick={() => setPanel(panel === 'cancel' ? null : 'cancel')} className="btn btn-sm btn-outline">{t('invoices.cancel')}</button>}
           </>
         }
       />
 
       {/* سلسلة الاتصال: الفاتورة تعرف عميلها وحملتها */}
       <div style={{ display: 'flex', gap: '.5rem', flexWrap: 'wrap', alignItems: 'center', marginBottom: '1rem', fontSize: '.78rem' }}>
-        <span style={{ color: 'var(--ih-text-muted)' }}>متّصلة بـ</span>
+        <span style={{ color: 'var(--ih-text-muted)' }}>{t('invoices.linked_to')}</span>
         {invoice.clientId && (
           <a href={u(`/clients/${invoice.clientId}`)} className="btn btn-xs btn-outline">
             <Icon name="building-2" size={13} /> {invoice.client}
@@ -96,56 +98,56 @@ export default function InvoiceShow({ invoice, items, payments, history, can, pa
       )}
 
       {invoice.status === 'cancelled' && invoice.cancelReason && (
-        <Sec title="سبب الإلغاء"><p style={{ color: 'var(--ih-text-secondary)' }}>{invoice.cancelReason}</p></Sec>
+        <Sec title={t('invoices.cancel_reason_title')}><p style={{ color: 'var(--ih-text-secondary)' }}>{invoice.cancelReason}</p></Sec>
       )}
 
       {panel === 'pay' && (
-        <Sec title="تسجيل دفعة">
+        <Sec title={t('invoices.act_pay')}>
           {/* التسجيل لا التحصيل: لا مزوّد دفع مربوط، وهذه واقعة وقعت خارج النظام */}
           <p style={{ fontSize: '.8rem', color: 'var(--ih-text-muted)', marginBlockEnd: '.75rem' }}>
-            تُسجَّل هنا دفعة استُلمت فعلًا خارج النظام. المتبقّي على الفاتورة {sarShort(invoice.balanceMinor)}.
+            {t('invoices.pay_hint', { bal: sarShort(invoice.balanceMinor) })}
           </p>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: '.8rem' }}>
-            <Fld label="المبلغ (ر.س)"><input className="field" type="number" min="0.01" step="0.01" style={{ width: '100%' }}
+            <Fld label={t('invoices.f_amount')}><input className="field" type="number" min="0.01" step="0.01" style={{ width: '100%' }}
               value={amount} onChange={(e) => setAmount(e.target.value)} autoFocus /></Fld>
-            <Fld label="طريقة الدفع"><select className="field" style={{ width: '100%' }} value={method} onChange={(e) => setMethod(e.target.value)}>
+            <Fld label={t('invoices.f_method')}><select className="field" style={{ width: '100%' }} value={method} onChange={(e) => setMethod(e.target.value)}>
               {Object.entries(paymentMethods).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
             </select></Fld>
-            <Fld label="تاريخ الاستلام"><input className="field" type="date" style={{ width: '100%' }}
+            <Fld label={t('invoices.f_received')}><input className="field" type="date" style={{ width: '100%' }}
               value={receivedAt} onChange={(e) => setReceivedAt(e.target.value)} /></Fld>
-            <Fld label="المرجع"><input className="field" style={{ width: '100%' }} value={reference}
-              onChange={(e) => setReference(e.target.value)} placeholder="رقم الحوالة" /></Fld>
+            <Fld label={t('invoices.f_reference')}><input className="field" style={{ width: '100%' }} value={reference}
+              onChange={(e) => setReference(e.target.value)} placeholder={t('invoices.ref_placeholder')} /></Fld>
           </div>
           <div style={{ display: 'flex', gap: '.5rem', marginTop: '.9rem', alignItems: 'center' }}>
             <button className="btn btn-sm" disabled={busy || !(Number(amount) > 0)}
               onClick={() => act('pay', { amount_riyals: amount, method, received_at: receivedAt, provider_reference: reference })}>
-              حفظ الدفعة
+              {t('invoices.save_payment')}
             </button>
-            <button className="btn btn-sm btn-ghost" onClick={() => setPanel(null)}>إلغاء</button>
-            {!(Number(amount) > 0) && <span style={{ fontSize: '.72rem', color: 'var(--ih-text-muted)' }}>أدخل مبلغًا أكبر من صفر</span>}
+            <button className="btn btn-sm btn-ghost" onClick={() => setPanel(null)}>{t('invoices.cancel')}</button>
+            {!(Number(amount) > 0) && <span style={{ fontSize: '.72rem', color: 'var(--ih-text-muted)' }}>{t('invoices.amount_gt_zero')}</span>}
           </div>
         </Sec>
       )}
 
       {panel === 'cancel' && (
-        <Sec title="إلغاء الفاتورة">
-          <Fld label="سبب الإلغاء (إلزامي)">
+        <Sec title={t('invoices.cancel_title')}>
+          <Fld label={t('invoices.f_cancel_reason')}>
             <textarea className="field" style={{ width: '100%' }} rows={2} value={reason}
               onChange={(e) => setReason(e.target.value)} autoFocus />
           </Fld>
           <div style={{ display: 'flex', gap: '.5rem', marginTop: '.8rem', alignItems: 'center' }}>
             <button className="btn btn-sm btn-outline" disabled={busy || !reason.trim()}
-              onClick={() => act('cancel', { reason })}>تأكيد الإلغاء</button>
-            <button className="btn btn-sm btn-ghost" onClick={() => setPanel(null)}>تراجع</button>
-            {!reason.trim() && <span style={{ fontSize: '.72rem', color: 'var(--ih-text-muted)' }}>اكتب سببًا ليُصبح الإلغاء متاحًا</span>}
+              onClick={() => act('cancel', { reason })}>{t('invoices.confirm_cancel')}</button>
+            <button className="btn btn-sm btn-ghost" onClick={() => setPanel(null)}>{t('invoices.undo')}</button>
+            {!reason.trim() && <span style={{ fontSize: '.72rem', color: 'var(--ih-text-muted)' }}>{t('invoices.cancel_reason_hint')}</span>}
           </div>
         </Sec>
       )}
 
-      <Sec title="البنود" icon="file-text">
+      <Sec title={t('invoices.items')} icon="file-text">
         <div className="ih-dt-wrap"><div className="ih-dt-scroll">
           <table className="ih-dt">
-            <thead><tr><th>الوصف</th><th>الكمية</th><th>سعر الوحدة</th><th>الإجمالي</th></tr></thead>
+            <thead><tr><th>{t('invoices.item_desc')}</th><th>{t('invoices.th_qty')}</th><th>{t('invoices.th_unit')}</th><th>{t('invoices.m_total')}</th></tr></thead>
             <tbody>
               {items.map((i) => (
                 <tr key={i.id}>
@@ -160,25 +162,25 @@ export default function InvoiceShow({ invoice, items, payments, history, can, pa
         </div></div>
 
         <div style={{ marginTop: '1rem', display: 'grid', gap: '.3rem', maxWidth: 320, marginInlineStart: 'auto', fontSize: '.875rem' }}>
-          <Line label="المجموع" minor={invoice.subtotalMinor} />
-          {invoice.discountMinor > 0 && <Line label="الخصم" minor={-invoice.discountMinor} />}
-          <Line label={`ضريبة القيمة المضافة ${invoice.taxRateBp / 100}٪`} minor={invoice.taxMinor} />
+          <Line label={t('invoices.subtotal')} minor={invoice.subtotalMinor} />
+          {invoice.discountMinor > 0 && <Line label={t('invoices.discount_row')} minor={-invoice.discountMinor} />}
+          <Line label={t('invoices.vat', { rate: String(invoice.taxRateBp / 100) })} minor={invoice.taxMinor} />
           <div style={{ borderTop: '1px solid var(--ih-border)', paddingTop: '.35rem', fontWeight: 700 }}>
-            <Line label="الإجمالي" minor={invoice.totalMinor} />
+            <Line label={t('invoices.m_total')} minor={invoice.totalMinor} />
           </div>
           {invoice.paidMinor > 0 && (
             <>
-              <Line label="المحصَّل" minor={invoice.paidMinor} />
-              <Line label="المتبقّي" minor={invoice.balanceMinor} />
+              <Line label={t('invoices.m_collected')} minor={invoice.paidMinor} />
+              <Line label={t('invoices.m_balance')} minor={invoice.balanceMinor} />
             </>
           )}
         </div>
       </Sec>
 
-      <Sec title={`المدفوعات · ${paidPct}٪ محصَّل`} icon="wallet">
+      <Sec title={t('invoices.payments_title', { pct: String(paidPct) })} icon="wallet">
         {payments.length === 0 ? (
           <p style={{ color: 'var(--ih-text-secondary)', fontSize: '.875rem' }}>
-            {invoice.status === 'draft' ? 'لم تُصدَر الفاتورة بعد.' : 'لم تُسجَّل دفعات بعد.'}
+            {invoice.status === 'draft' ? t('invoices.no_payments_draft') : t('invoices.no_payments')}
           </p>
         ) : (
           <ul style={{ listStyle: 'none', margin: 0, padding: 0, display: 'grid', gap: '.5rem' }}>
@@ -194,7 +196,7 @@ export default function InvoiceShow({ invoice, items, payments, history, can, pa
         )}
       </Sec>
 
-      <Sec title="سجلّ الحالة" icon="activity">
+      <Sec title={t('invoices.history_title')} icon="activity">
         <ul style={{ listStyle: 'none', margin: 0, padding: 0, display: 'grid', gap: '.4rem', fontSize: '.82rem' }}>
           {history.map((h, i) => (
             <li key={i} style={{ display: 'flex', gap: '.6rem', color: 'var(--ih-text-secondary)' }}>
