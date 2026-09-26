@@ -13,6 +13,7 @@ use App\Domain\Identity\Models\User;
 use App\Http\Controllers\Controller;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Lang;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -22,35 +23,43 @@ use Inertia\Response;
  */
 class BrandDetailController extends Controller
 {
-    /** الإجراءات المتاحة لكل حالة → [action, label, tone, input(none|reason|note)]. */
+    /** الإجراءات المتاحة لكل حالة → [action, labelKey (brands.act_*), tone, input(none|reason|note)]. التسمية تُترجَم في show. */
     private const ACTIONS = [
-        'submitted' => [['start', 'بدء المراجعة', 'primary', 'none']],
+        'submitted' => [['start', 'start_review', 'primary', 'none']],
         // الاعتماد يفتح ملاحظة اختيارية (مبرّر المراجِع)؛ طلب التعديل يتطلّب سببًا.
-        'under_review' => [['approve', 'اعتماد العلامة', 'primary', 'note'], ['request-changes', 'طلب تعديل', 'ghost', 'reason']],
-        'approved' => [['suspend', 'تعليق العلامة', 'danger', 'reason']],
-        'suspended' => [['approve', 'إعادة الاعتماد', 'primary', 'note']],
+        'under_review' => [['approve', 'approve', 'primary', 'note'], ['request-changes', 'request_changes', 'ghost', 'reason']],
+        'approved' => [['suspend', 'suspend', 'danger', 'reason']],
+        'suspended' => [['approve', 'reapprove', 'primary', 'note']],
         // المسوّدة يرسلها العميل من بوابته عادةً، وتُرسلها الوكالة نيابةً عنه
         // حين لا يكون للعميل مستخدم بوابة بعد — وإلا بقيت المسوّدة عالقة أبدًا.
-        'draft' => [['submit', 'إرسال للاعتماد', 'primary', 'none']],
-        'changes_requested' => [['submit', 'إعادة الإرسال للاعتماد', 'primary', 'none']],
+        'draft' => [['submit', 'submit', 'primary', 'none']],
+        'changes_requested' => [['submit', 'resubmit', 'primary', 'none']],
         'archived' => [],
     ];
+
+    /** تسمية حالة الترشيح بلغة الطلب، مع رجوع لثابت محرّك الترشيح (عربيّ). */
+    private static function nomStatusLabel(?string $s): string
+    {
+        return $s && Lang::has("brands.nom_status_{$s}")
+            ? trans("brands.nom_status_{$s}")
+            : CampaignShortlistVersion::statusLabel($s);
+    }
 
     /** بنود جاهزية الاعتماد — حقول فعلية على العلامة، حرِجة تمنع الاعتماد المطمئن. */
     private function checklist(Brand $b, int $socialCount): array
     {
         $items = [
-            ['key' => 'name', 'label' => 'اسم العلامة', 'present' => filled($b->name), 'critical' => true],
-            ['key' => 'client', 'label' => 'مِلْكية العميل', 'present' => $b->client_id !== null || $b->isSelfOwned(), 'critical' => true],
-            ['key' => 'sector', 'label' => 'القطاع', 'present' => filled($b->sector), 'critical' => true],
-            ['key' => 'description', 'label' => 'وصف العلامة', 'present' => filled($b->description), 'critical' => true],
-            ['key' => 'logo', 'label' => 'الشعار', 'present' => filled($b->logo_path), 'critical' => false],
-            ['key' => 'website', 'label' => 'الموقع/النطاق', 'present' => filled($b->website) || filled($b->website_domain), 'critical' => false],
-            ['key' => 'cr', 'label' => 'السجل التجاري', 'present' => filled($b->commercial_registration), 'critical' => false],
-            ['key' => 'contact', 'label' => 'بيانات التواصل', 'present' => filled($b->contact_information), 'critical' => false],
-            ['key' => 'guidelines', 'label' => 'إرشادات العلامة', 'present' => filled($b->brand_guidelines_path) || filled($b->visual_guidelines), 'critical' => false],
-            ['key' => 'voice', 'label' => 'نبرة الصوت والجمهور', 'present' => filled($b->tone_of_voice) || filled($b->target_audience), 'critical' => false],
-            ['key' => 'accounts', 'label' => 'حساب اجتماعي واحد على الأقل', 'present' => $socialCount > 0, 'critical' => false],
+            ['key' => 'name', 'label' => trans('brands.ck_name'), 'present' => filled($b->name), 'critical' => true],
+            ['key' => 'client', 'label' => trans('brands.ck_client'), 'present' => $b->client_id !== null || $b->isSelfOwned(), 'critical' => true],
+            ['key' => 'sector', 'label' => trans('brands.ck_sector'), 'present' => filled($b->sector), 'critical' => true],
+            ['key' => 'description', 'label' => trans('brands.ck_description'), 'present' => filled($b->description), 'critical' => true],
+            ['key' => 'logo', 'label' => trans('brands.ck_logo'), 'present' => filled($b->logo_path), 'critical' => false],
+            ['key' => 'website', 'label' => trans('brands.ck_website'), 'present' => filled($b->website) || filled($b->website_domain), 'critical' => false],
+            ['key' => 'cr', 'label' => trans('brands.ck_cr'), 'present' => filled($b->commercial_registration), 'critical' => false],
+            ['key' => 'contact', 'label' => trans('brands.ck_contact'), 'present' => filled($b->contact_information), 'critical' => false],
+            ['key' => 'guidelines', 'label' => trans('brands.ck_guidelines'), 'present' => filled($b->brand_guidelines_path) || filled($b->visual_guidelines), 'critical' => false],
+            ['key' => 'voice', 'label' => trans('brands.ck_voice'), 'present' => filled($b->tone_of_voice) || filled($b->target_audience), 'critical' => false],
+            ['key' => 'accounts', 'label' => trans('brands.ck_accounts'), 'present' => $socialCount > 0, 'critical' => false],
         ];
         $present = collect($items)->where('present', true)->count();
         $criticalMissing = collect($items)->where('critical', true)->where('present', false)->count();
@@ -98,7 +107,8 @@ class BrandDetailController extends Controller
             ],
             'canReview' => $canReview,
             'actions' => collect($canReview ? (self::ACTIONS[$b->status] ?? []) : [])
-                ->reject(fn (array $a) => $a[0] === 'suspend' && ! $canSuspend)->values(),
+                ->reject(fn (array $a) => $a[0] === 'suspend' && ! $canSuspend)
+                ->map(fn (array $a) => [$a[0], trans("brands.act_{$a[1]}"), $a[2], $a[3]])->values(),
             // جاهزية الاعتماد — بنود فعلية تُعلِم قرار المراجِع بدل اعتماد على العمياء
             'checklist' => $this->checklist($b, $b->socialAccounts->count()),
             'metrics' => [
@@ -123,7 +133,7 @@ class BrandDetailController extends Controller
                     'status' => $c->status, 'statusLabel' => $st($c->status), 'statusTone' => $tone($c->status),
                     // سياق الترشيح — حالة القائمة إن وُجدت (رابط الـworkspace محميّ بـnomination:agency).
                     'nomination' => $sl
-                        ? ['has' => true, 'statusLabel' => CampaignShortlistVersion::statusLabel($slStatus)]
+                        ? ['has' => true, 'statusLabel' => self::nomStatusLabel($slStatus)]
                         : ['has' => false, 'statusLabel' => null],
                 ];
             })->values(),
