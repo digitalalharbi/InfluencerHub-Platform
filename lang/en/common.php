@@ -24,4 +24,7 @@ return [
     'terms' => 'Terms',
     'help' => 'Help',
     'footer_links' => 'Product links',
+
+    // Currency unit (Saudi riyal) — shown next to amounts across all surfaces
+    'currency_sar' => 'SAR',
 ];

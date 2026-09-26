@@ -94,7 +94,7 @@ export default function ContractsIndex({ contracts, filters, summary, canCreate,
       <div className="ih-kpis">
         <Kpi label={t('contracts.kpi_active')} icon="file-text" tone="accent" value={summary.active.toLocaleString('en-US')} sub={t('contracts.kpi_active_sub', { n: summary.signed })} />
         <Kpi label={t('contracts.kpi_awaiting')} icon="clipboard-check" tone={summary.sent ? 'warning' : undefined} value={summary.sent.toLocaleString('en-US')} sub={t('contracts.kpi_awaiting_sub')} />
-        <Kpi label={t('contracts.kpi_active_value')} icon="wallet" tone="success" value={<>{kfmt(summary.activeValueMinor)} <small>ر.س</small></>} sub={t('contracts.kpi_active_value_sub')} />
+        <Kpi label={t('contracts.kpi_active_value')} icon="wallet" tone="success" value={<>{kfmt(summary.activeValueMinor)} <small>{t('common.currency_sar')}</small></>} sub={t('contracts.kpi_active_value_sub')} />
         <Kpi label={t('contracts.kpi_completed')} icon="shield-check" value={summary.completed.toLocaleString('en-US')} sub={t('contracts.kpi_completed_sub', { n: summary.draft })} />
       </div>
 
@@ -141,7 +141,7 @@ export default function ContractsIndex({ contracts, filters, summary, canCreate,
                             <div className="ih-wcard__meta">{c.party ?? '—'} · {c.partyType} · <span style={{ direction: 'ltr' }}>{c.number}</span></div>
                           </div>
                           <div style={{ textAlign: 'end', flexShrink: 0 }}>
-                            <div style={{ fontWeight: 700, direction: 'ltr', fontSize: '.86rem' }}>{kfmt(c.valueMinor)} ر.س</div>
+                            <div style={{ fontWeight: 700, direction: 'ltr', fontSize: '.86rem' }}>{kfmt(c.valueMinor)} {t('common.currency_sar')}</div>
                             <StatusBadge tone={c.statusTone} label={c.statusLabel} />
                           </div>
                         </div>
