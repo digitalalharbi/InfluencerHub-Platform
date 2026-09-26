@@ -27,4 +27,6 @@ return [
 
     // Currency unit (Saudi riyal) — shown next to amounts across all surfaces
     'currency_sar' => 'SAR',
+    // Shared empty state for a timeline chart with no values
+    'no_data_period' => 'No data for this period.',
 ];

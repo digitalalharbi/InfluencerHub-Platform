@@ -3,12 +3,25 @@
 namespace App\Http\Controllers\Inertia;
 
 use App\Domain\Analytics\Services\AnalyticsService;
+use App\Domain\Audit\Services\AuditLogger;
 use App\Domain\Campaigns\Models\Campaign;
 use App\Domain\Content\Models\ContentItem;
+use App\Domain\Creators\Models\CreatorCapability;
 use App\Domain\CRM\Models\Client;
+use App\Domain\Exports\DocumentArtifactService;
+use App\Domain\Exports\ExportService;
+use App\Domain\Exports\Models\ExportJob;
+use App\Domain\Exports\TabularData;
+use App\Domain\Exports\Writers\PdfWriter;
 use App\Domain\Finance\Models\Payout;
+use App\Domain\Tenancy\Models\Organization;
+use App\Domain\Tenancy\Support\TenantContext;
 use App\Http\Controllers\Controller;
 use App\Support\Analytics\ClientAnalytics;
+use App\Support\Brand;
+use Illuminate\Http\RedirectResponse;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Lang;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -20,97 +33,107 @@ class ReportsController extends Controller
 {
     /** تصدير تقرير أداء العملاء (csv/xlsx/pdf) — من محرك التحليلات نفسه. */
     private const REPORT_TYPE = 'clients_report_pdf';
+
     private const REPORT_TEMPLATE = 'v1';
 
     /** جدول تقرير أداء العملاء — مصدر واحد للتصدير والمعاينة (بلا وقت في الصفوف). */
-    private function reportTabular(): \App\Domain\Exports\TabularData
+    private function reportTabular(): TabularData
     {
         $clients = Client::query()->get();
         $metrics = ClientAnalytics::forPage($clients);
-        $sar = fn (int $minor) => number_format($minor / 100, 0) . ' ر.س';
+        $sar = fn (int $minor) => number_format($minor / 100, 0).' ر.س';
         $rows = $clients->map(fn (Client $c) => [
             'name' => $c->display_name,
             'active' => (int) ($metrics[$c->id]['active_campaigns'] ?? 0),
-            'completion' => (int) ($metrics[$c->id]['completion'] ?? 0) . '%',
+            'completion' => (int) ($metrics[$c->id]['completion'] ?? 0).'%',
             'revenue' => $sar((int) ($metrics[$c->id]['revenue_minor'] ?? 0)),
         ])->sortByDesc(fn ($x) => $x['active'])->values();
 
-        return new \App\Domain\Exports\TabularData(
+        return new TabularData(
             title: 'تقرير أداء العملاء',
             columns: ['name' => 'العميل', 'active' => 'حملات نشطة', 'completion' => 'اكتمال الملف', 'revenue' => 'الإيراد (مُحصَّل)'],
             rows: $rows,
             meta: ['الفترة' => now()->format('Y')],
-            workspace: \App\Domain\Tenancy\Support\TenantContext::organizationId() ? \App\Domain\Tenancy\Models\Organization::find(\App\Domain\Tenancy\Support\TenantContext::organizationId())?->name : null,
+            workspace: TenantContext::organizationId() ? Organization::find(TenantContext::organizationId())?->name : null,
             generatedAt: now()->format('Y-m-d H:i'),
         );
     }
 
-    public function export(\Illuminate\Http\Request $r, \App\Domain\Exports\ExportService $svc)
+    public function export(Request $r, ExportService $svc)
     {
         $this->authorize('viewAny', Client::class);
         $data = $this->reportTabular();
         $count = is_countable($data->rows) ? count($data->rows) : 0;
 
-        return $svc->download($data, (string) $r->query('format', 'xlsx'), 'clients-report-' . now()->format('Ymd'), 'clients_report', $count, \App\Domain\Tenancy\Support\TenantContext::tenantId(), $r->user()->id);
+        return $svc->download($data, (string) $r->query('format', 'xlsx'), 'clients-report-'.now()->format('Ymd'), 'clients_report', $count, TenantContext::tenantId(), $r->user()->id);
     }
 
     /** التنظيم (المستأجر) هو موضوع أثر التقرير المجمَّع. */
-    private function reportSubject(): \App\Domain\Tenancy\Models\Organization
+    private function reportSubject(): Organization
     {
-        return \App\Domain\Tenancy\Models\Organization::findOrFail(\App\Domain\Tenancy\Support\TenantContext::organizationId());
+        return Organization::findOrFail(TenantContext::organizationId());
     }
 
-    private function reportArtifact(\Illuminate\Http\Request $r, \App\Domain\Exports\DocumentArtifactService $svc, \App\Domain\Exports\Writers\PdfWriter $pdf, bool $regenerate = false): \App\Domain\Exports\Models\ExportJob
+    private function reportArtifact(Request $r, DocumentArtifactService $svc, PdfWriter $pdf, bool $regenerate = false): ExportJob
     {
         $subject = $this->reportSubject();
         $tab = $this->reportTabular();
         $fpData = ['rows' => collect($tab->rows)->toArray()];   // البصمة من الصفوف لا الوقت
         $render = function () use ($tab, $pdf, $r) {
-            \App\Domain\Audit\Services\AuditLogger::log('export.generated', null,
-                ['type' => self::REPORT_TYPE, 'format' => 'pdf'], \App\Domain\Tenancy\Support\TenantContext::tenantId(), $r->user()?->id);
+            AuditLogger::log('export.generated', null,
+                ['type' => self::REPORT_TYPE, 'format' => 'pdf'], TenantContext::tenantId(), $r->user()?->id);
+
             return $pdf->render($tab);
         };
         if (! $regenerate) {
             $latest = $svc->latest(self::REPORT_TYPE, $subject);
-            if ($latest) return $latest;
+            if ($latest) {
+                return $latest;
+            }
         }
+
         return $svc->current(self::REPORT_TYPE, $subject, 'pdf', self::REPORT_TEMPLATE, $fpData, 'تقرير أداء العملاء', $render, $r->user()?->id);
     }
 
-    private function streamReport(\App\Domain\Exports\Models\ExportJob $a, \App\Domain\Exports\DocumentArtifactService $svc, string $disposition)
+    private function streamReport(ExportJob $a, DocumentArtifactService $svc, string $disposition)
     {
         $bytes = $svc->bytes($a);
+
         return response($bytes, 200, [
             'Content-Type' => 'application/pdf',
-            'Content-Disposition' => $disposition . '; filename="' . \App\Support\Brand::documentFilename("clients-report") . '"',
+            'Content-Disposition' => $disposition.'; filename="'.Brand::documentFilename('clients-report').'"',
             'Content-Length' => (string) strlen($bytes), 'X-Artifact-Checksum' => $a->checksum,
         ]);
     }
 
-    public function pdfPreview(\Illuminate\Http\Request $r, \App\Domain\Exports\DocumentArtifactService $svc, \App\Domain\Exports\Writers\PdfWriter $pdf)
+    public function pdfPreview(Request $r, DocumentArtifactService $svc, PdfWriter $pdf)
     {
         $this->authorize('viewAny', Client::class);
+
         return $this->streamReport($this->reportArtifact($r, $svc, $pdf), $svc, 'inline');
     }
 
-    public function pdfDownload(\Illuminate\Http\Request $r, \App\Domain\Exports\DocumentArtifactService $svc, \App\Domain\Exports\Writers\PdfWriter $pdf)
+    public function pdfDownload(Request $r, DocumentArtifactService $svc, PdfWriter $pdf)
     {
         $this->authorize('viewAny', Client::class);
+
         return $this->streamReport($this->reportArtifact($r, $svc, $pdf), $svc, 'attachment');
     }
 
-    public function pdfRegenerate(\Illuminate\Http\Request $r, \App\Domain\Exports\DocumentArtifactService $svc, \App\Domain\Exports\Writers\PdfWriter $pdf): \Illuminate\Http\RedirectResponse
+    public function pdfRegenerate(Request $r, DocumentArtifactService $svc, PdfWriter $pdf): RedirectResponse
     {
         $this->authorize('viewAny', Client::class);
         $this->reportArtifact($r, $svc, $pdf, regenerate: true);
+
         return back()->with('ok', 'أُنشئت نسخة محدّثة من التقرير.');
     }
 
     /** بيانات مستند التقرير لصفحة التقارير — مسارات نسبية للتركيب. */
-    public function reportDocMeta(\App\Domain\Exports\DocumentArtifactService $svc): array
+    public function reportDocMeta(DocumentArtifactService $svc): array
     {
         $latest = $svc->latest(self::REPORT_TYPE, $this->reportSubject());
         $currentFp = $svc->fingerprint(['rows' => collect($this->reportTabular()->rows)->toArray()], self::REPORT_TEMPLATE, 'pdf');
+
         return [
             'title' => 'تقرير أداء العملاء',
             'hasArtifact' => (bool) $latest,
@@ -120,19 +143,22 @@ class ReportsController extends Controller
         ];
     }
 
-    public function index(AnalyticsService $analytics, \App\Domain\Exports\DocumentArtifactService $artifacts): Response
+    public function index(AnalyticsService $analytics, DocumentArtifactService $artifacts): Response
     {
         $this->authorize('viewAny', Client::class);
         $o = $analytics->agencyOverview();
         $op = ClientAnalytics::operational();
-        $st = fn ($s) => __('statuses.' . $s);
-        $tone = fn ($s) => __('statuses.tone.' . $s);
+        $st = fn ($s) => __('statuses.'.$s);
+        $tone = fn ($s) => __('statuses.tone.'.$s);
 
         // توزيعات مُعنونة (label/tone/count) للعرض كأشرطة
         $breakdown = function (array $byStatus) use ($st, $tone) {
             $out = [];
             arsort($byStatus);
-            foreach ($byStatus as $k => $v) $out[] = ['label' => $st($k), 'tone' => $tone($k), 'count' => (int) $v];
+            foreach ($byStatus as $k => $v) {
+                $out[] = ['label' => $st($k), 'tone' => $tone($k), 'count' => (int) $v];
+            }
+
             return $out;
         };
 
@@ -151,9 +177,11 @@ class ReportsController extends Controller
             '07' => 'يوليو', '08' => 'أغسطس', '09' => 'سبتمبر', '10' => 'أكتوبر', '11' => 'نوفمبر', '12' => 'ديسمبر'];
         $timeline = $months->map(function ($m) use ($paidByMonth, $campaignsByMonth, $publishedByMonth, $AR_MONTHS) {
             $key = $m->format('Y-m');
+            $mm = $m->format('m');
+
             return [
                 'key' => $key,
-                'label' => $AR_MONTHS[$m->format('m')],
+                'label' => Lang::has("reports.mon_{$mm}") ? trans("reports.mon_{$mm}") : $AR_MONTHS[$mm],
                 'paidMinor' => (int) ($paidByMonth[$key] ?? 0),
                 'budgetMinor' => (int) (($campaignsByMonth[$key] ?? collect())->sum('budget_minor')),
                 'campaigns' => ($campaignsByMonth[$key] ?? collect())->count(),
@@ -205,7 +233,7 @@ class ReportsController extends Controller
             ],
             // التسميات من مصدر القدرات نفسه — لا خريطة ثالثة تتخلّف عن الأولى
             'creatorsByType' => collect($o['creators']['by_capability'])->map(fn ($v, $k) => [
-                'label' => \App\Domain\Creators\Models\CreatorCapability::label($k), 'count' => (int) $v,
+                'label' => CreatorCapability::label($k), 'count' => (int) $v,
             ])->values(),
         ]);
     }

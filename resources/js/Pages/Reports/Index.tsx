@@ -4,6 +4,7 @@ import AppShell from '@/Layouts/AppShell';
 import { BarChart, DonutChart, Kpi, ListHead, Sec, StatusBadge } from '@/Components/ui';
 import { Icon, type IconName } from '@/Components/Icon';
 import { u } from '@/lib/href';
+import { useT } from '@/lib/i18n';
 import { ExportButtons } from '@/Components/ExportButtons';
 import { PdfPreviewModal, type PreviewDoc } from '@/Components/PdfPreviewModal';
 
@@ -44,11 +45,12 @@ function sar(m: number): string {
 }
 
 function Breakdown({ title, icon, bars }: { title: string; icon: IconName; bars: Bar[] }) {
+  const t = useT();
   const max = Math.max(1, ...bars.map((b) => b.count));
   return (
     <Sec title={title} icon={icon}>
       <div className="ih-sec__body" style={{ display: 'grid', gap: '.7rem' }}>
-        {bars.length === 0 ? <div style={{ color: 'var(--ih-text-muted)', fontSize: '.85rem' }}>لا بيانات.</div> :
+        {bars.length === 0 ? <div style={{ color: 'var(--ih-text-muted)', fontSize: '.85rem' }}>{t('reports.no_data')}</div> :
           bars.map((b, i) => (
             <div key={i}>
               <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '.78rem', marginBottom: '.25rem' }}>
@@ -64,54 +66,55 @@ function Breakdown({ title, icon, bars }: { title: string; icon: IconName; bars:
 }
 
 export default function ReportsIndex({ timeline, topClients, financial, kpis, breakdowns, creatorsByType, documents }: Props) {
+  const t = useT();
   const [reportOpen, setReportOpen] = useState(false);
   return (
-    <AppShell heading="التقارير">
-      <Head title="التقارير" />
+    <AppShell heading={t('reports.title')}>
+      <Head title={t('reports.title')} />
 
-      <ListHead eyebrow="البيانات والتقارير" title="التقارير"
-        sub="نظرة تجميعية على الأداء المالي والتشغيلي — مشتقّة من بيانات PostgreSQL الحقيقية"
+      <ListHead eyebrow={t('reports.eyebrow')} title={t('reports.title')}
+        sub={t('reports.sub')}
         actions={<span style={{ display: 'inline-flex', gap: '.4rem', alignItems: 'center' }}>
-          <button onClick={() => setReportOpen(true)} className="btn btn-sm btn-outline" title="معاينة تقرير PDF">
-            <Icon name="file-text" size={14} /> معاينة PDF{documents.report.stale && <span style={{ width: 7, height: 7, borderRadius: '50%', background: 'var(--ih-warning-ink, #B54708)', display: 'inline-block', marginInlineStart: 5 }} />}
+          <button onClick={() => setReportOpen(true)} className="btn btn-sm btn-outline" title={t('reports.pdf_preview_title')}>
+            <Icon name="file-text" size={14} /> {t('reports.pdf_preview')}{documents.report.stale && <span style={{ width: 7, height: 7, borderRadius: '50%', background: 'var(--ih-warning-ink, #B54708)', display: 'inline-block', marginInlineStart: 5 }} />}
           </button>
           <ExportButtons path="/reports/export" formats={['xlsx', 'csv']} />
         </span>} />
 
       {/* المالية */}
       <div className="ih-kpis">
-        <Kpi label="صافي الإيراد" icon="wallet" tone="success"
-          value={<>{sar(financial.revenueMinor)} <small>ر.س</small></>}
-          sub={`بلا ضريبة ${sar(financial.taxMinor)} · مفوتَر ${sar(financial.billedMinor)}`} />
-        <Kpi label="تكلفة صناع المحتوى" icon="wallet"
-          value={<>{sar(financial.costMinor)} <small>ر.س</small></>}
-          sub={`صُرف منها ${sar(financial.costPaidMinor)}`} />
-        <Kpi label="الربح" icon="wallet" tone="accent"
-          value={<>{sar(financial.profitMinor)} <small>ر.س</small></>}
-          sub={<>هامش <span className={`ih-delta ${financial.margin >= 0 ? 'ih-delta--up' : 'ih-delta--down'}`}>{financial.margin}%</span></>} />
-        <Kpi label="التحصيل" icon="wallet"
-          value={<>{sar(financial.collectedMinor)} <small>ر.س</small></>}
-          sub={`متبقٍّ ${sar(financial.outstandingMinor)}`} />
+        <Kpi label={t('reports.fin_revenue')} icon="wallet" tone="success"
+          value={<>{sar(financial.revenueMinor)} <small>{t('common.currency_sar')}</small></>}
+          sub={t('reports.fin_revenue_sub', { tax: sar(financial.taxMinor), billed: sar(financial.billedMinor) })} />
+        <Kpi label={t('reports.fin_cost')} icon="wallet"
+          value={<>{sar(financial.costMinor)} <small>{t('common.currency_sar')}</small></>}
+          sub={t('reports.fin_cost_sub', { paid: sar(financial.costPaidMinor) })} />
+        <Kpi label={t('reports.fin_profit')} icon="wallet" tone="accent"
+          value={<>{sar(financial.profitMinor)} <small>{t('common.currency_sar')}</small></>}
+          sub={<>{t('reports.fin_margin')} <span className={`ih-delta ${financial.margin >= 0 ? 'ih-delta--up' : 'ih-delta--down'}`}>{financial.margin}%</span></>} />
+        <Kpi label={t('reports.fin_collected')} icon="wallet"
+          value={<>{sar(financial.collectedMinor)} <small>{t('common.currency_sar')}</small></>}
+          sub={t('reports.fin_collected_sub', { out: sar(financial.outstandingMinor) })} />
       </div>
 
       {/* اتجاه زمني حقيقي — آخر 6 أشهر */}
       <div className="ih-overview-grid" style={{ display: 'grid', gridTemplateColumns: 'minmax(0,1.45fr) minmax(0,1fr)', gap: '1.1rem', alignItems: 'start', marginBottom: '1.2rem' }}>
-        <Sec title="المدفوع للمبدعين — آخر 6 أشهر" icon="trending-up">
+        <Sec title={t('reports.sec_paid_timeline')} icon="trending-up">
           <div className="ih-sec__body">
-            <BarChart points={timeline.map((t) => ({ label: t.label, value: Math.round(t.paidMinor / 100) }))} format={(v) => v >= 1000 ? Math.round(v / 1000) + 'K' : String(v)} />
+            <BarChart points={timeline.map((pt) => ({ label: pt.label, value: Math.round(pt.paidMinor / 100) }))} format={(v) => v >= 1000 ? Math.round(v / 1000) + 'K' : String(v)} />
           </div>
         </Sec>
-        <Sec title="حملات ومحتوى منشور" icon="bar-chart-3">
+        <Sec title={t('reports.sec_campaigns_content')} icon="bar-chart-3">
           <div className="ih-sec__body" style={{ display: 'grid', gap: '.55rem' }}>
-            {timeline.map((t) => {
+            {timeline.map((pt) => {
               const maxC = Math.max(...timeline.map((x) => x.campaigns + x.published), 1);
               return (
-                <div key={t.key}>
+                <div key={pt.key}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '.78rem', marginBottom: '.2rem' }}>
-                    <span style={{ fontWeight: 600 }}>{t.label}</span>
-                    <span style={{ color: 'var(--ih-text-muted)', direction: 'ltr' }}>{t.campaigns} حملة · {t.published} منشور</span>
+                    <span style={{ fontWeight: 600 }}>{pt.label}</span>
+                    <span style={{ color: 'var(--ih-text-muted)', direction: 'ltr' }}>{t('reports.tl_campaigns_published', { c: pt.campaigns, p: pt.published })}</span>
                   </div>
-                  <div className="ih-bar"><span style={{ width: `${Math.round(((t.campaigns + t.published) / maxC) * 100)}%` }} /></div>
+                  <div className="ih-bar"><span style={{ width: `${Math.round(((pt.campaigns + pt.published) / maxC) * 100)}%` }} /></div>
                 </div>
               );
             })}
@@ -121,19 +124,19 @@ export default function ReportsIndex({ timeline, topClients, financial, kpis, br
 
       {/* توزيع الحملات + أبرز العملاء */}
       <div className="ih-overview-grid" style={{ display: 'grid', gridTemplateColumns: 'minmax(0,1fr) minmax(0,1.35fr)', gap: '1.1rem', alignItems: 'start', marginBottom: '1.2rem' }}>
-        <Sec title="توزيع الحملات" icon="megaphone">
+        <Sec title={t('reports.sec_campaign_dist')} icon="megaphone">
           <div className="ih-sec__body">
             <DonutChart
-              centerValue={String(kpis.campaigns)} centerLabel="حملة"
+              centerValue={String(kpis.campaigns)} centerLabel={t('reports.center_campaign')}
               slices={breakdowns.campaigns.slice(0, 5).map((b, i) => ({
                 label: b.label, value: b.count,
                 color: ['var(--ih-primary)', 'var(--ih-accent-500)', 'var(--ih-success)', 'var(--ih-warning)', 'var(--ih-gray-400)'][i] ?? 'var(--ih-gray-300)',
               }))} />
           </div>
         </Sec>
-        <Sec title="أبرز العملاء بالإيراد" icon="building-2">
+        <Sec title={t('reports.sec_top_clients')} icon="building-2">
           {topClients.length === 0 ? (
-            <div style={{ padding: '1.6rem', textAlign: 'center', color: 'var(--ih-text-muted)', fontSize: '.84rem' }}>لا إيرادات مسجّلة بعد.</div>
+            <div style={{ padding: '1.6rem', textAlign: 'center', color: 'var(--ih-text-muted)', fontSize: '.84rem' }}>{t('reports.no_revenue')}</div>
           ) : (
             <div className="ih-sec__body" style={{ display: 'grid', gap: '.6rem' }}>
               {topClients.map((c) => {
@@ -142,7 +145,7 @@ export default function ReportsIndex({ timeline, topClients, financial, kpis, br
                   <a key={c.id} href={u(`/clients/${c.id}`)} style={{ textDecoration: 'none', color: 'inherit', display: 'block' }}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '.82rem', marginBottom: '.2rem' }}>
                       <span style={{ fontWeight: 600, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{c.name}</span>
-                      <span style={{ color: 'var(--ih-text-muted)', direction: 'ltr', flexShrink: 0 }}>{sar(c.revenueMinor)} ر.س · {c.campaigns} نشطة</span>
+                      <span style={{ color: 'var(--ih-text-muted)', direction: 'ltr', flexShrink: 0 }}>{sar(c.revenueMinor)} {t('common.currency_sar')} · {t('reports.tc_active', { n: c.campaigns })}</span>
                     </div>
                     <div className="ih-bar"><span style={{ width: `${Math.round((c.revenueMinor / max) * 100)}%` }} /></div>
                   </a>
@@ -155,29 +158,29 @@ export default function ReportsIndex({ timeline, topClients, financial, kpis, br
 
       {/* تشغيلي */}
       <div className="ih-kpis">
-        <Kpi label="العملاء" icon="building-2" value={kpis.clients.toLocaleString('en-US')} sub={`${kpis.clientsActive} نشط`} />
-        <Kpi label="المبدعون" icon="users" value={kpis.creators.toLocaleString('en-US')} sub={`${kpis.creatorsActive} نشط`} />
-        <Kpi label="الحملات" icon="megaphone" tone="accent" value={kpis.campaigns.toLocaleString('en-US')} sub={`${kpis.campaignsActive} نشطة · ميزانية ${sar(kpis.campaignsBudgetMinor)}`} />
-        <Kpi label="طلبات مفتوحة" icon="inbox" tone={kpis.requestsOverdue ? 'danger' : undefined} value={kpis.requestsOpen.toLocaleString('en-US')} sub={`${kpis.requestsOverdue} متأخرة`} />
-        <Kpi label="محتوى منشور" icon="image" value={kpis.contentPublished.toLocaleString('en-US')} sub={`${kpis.contentAwaiting} بانتظار المراجعة`} />
-        <Kpi label="التعاونات" icon="handshake" value={kpis.collaborations.toLocaleString('en-US')} sub="إجمالي" />
+        <Kpi label={t('reports.op_clients')} icon="building-2" value={kpis.clients.toLocaleString('en-US')} sub={t('reports.active_n', { n: kpis.clientsActive })} />
+        <Kpi label={t('reports.op_creators')} icon="users" value={kpis.creators.toLocaleString('en-US')} sub={t('reports.active_n', { n: kpis.creatorsActive })} />
+        <Kpi label={t('reports.op_campaigns')} icon="megaphone" tone="accent" value={kpis.campaigns.toLocaleString('en-US')} sub={t('reports.op_campaigns_sub', { n: kpis.campaignsActive, budget: sar(kpis.campaignsBudgetMinor) })} />
+        <Kpi label={t('reports.op_requests')} icon="inbox" tone={kpis.requestsOverdue ? 'danger' : undefined} value={kpis.requestsOpen.toLocaleString('en-US')} sub={t('reports.op_requests_sub', { n: kpis.requestsOverdue })} />
+        <Kpi label={t('reports.op_content')} icon="image" value={kpis.contentPublished.toLocaleString('en-US')} sub={t('reports.op_content_sub', { n: kpis.contentAwaiting })} />
+        <Kpi label={t('reports.op_collabs')} icon="handshake" value={kpis.collaborations.toLocaleString('en-US')} sub={t('reports.op_collabs_sub')} />
       </div>
 
       <div className="ih-overview-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.1rem', alignItems: 'start' }}>
-        <Breakdown title="الحملات حسب الحالة" icon="megaphone" bars={breakdowns.campaigns} />
-        <Breakdown title="الطلبات حسب الحالة" icon="inbox" bars={breakdowns.requests} />
-        <Breakdown title="المحتوى حسب الحالة" icon="image" bars={breakdowns.content} />
-        <Breakdown title="التعاونات حسب الحالة" icon="handshake" bars={breakdowns.collaborations} />
+        <Breakdown title={t('reports.bd_campaigns')} icon="megaphone" bars={breakdowns.campaigns} />
+        <Breakdown title={t('reports.bd_requests')} icon="inbox" bars={breakdowns.requests} />
+        <Breakdown title={t('reports.bd_content')} icon="image" bars={breakdowns.content} />
+        <Breakdown title={t('reports.bd_collabs')} icon="handshake" bars={breakdowns.collaborations} />
       </div>
 
       <div style={{ marginTop: '1.1rem' }}>
-        <Sec title="المبدعون حسب النوع" icon="users">
+        <Sec title={t('reports.sec_creators_type')} icon="users">
           <div className="ih-sec__body" style={{ display: 'flex', gap: '1.5rem', flexWrap: 'wrap' }}>
-            {creatorsByType.length === 0 ? <div style={{ color: 'var(--ih-text-muted)' }}>لا بيانات.</div> :
-              creatorsByType.map((t, i) => (
+            {creatorsByType.length === 0 ? <div style={{ color: 'var(--ih-text-muted)' }}>{t('reports.no_data')}</div> :
+              creatorsByType.map((ct, i) => (
                 <div key={i} style={{ textAlign: 'center' }}>
-                  <div style={{ fontSize: '1.8rem', fontWeight: 800, color: 'var(--ih-primary)' }}>{t.count}</div>
-                  <div style={{ fontSize: '.8rem', color: 'var(--ih-text-muted)' }}>{t.label}</div>
+                  <div style={{ fontSize: '1.8rem', fontWeight: 800, color: 'var(--ih-primary)' }}>{ct.count}</div>
+                  <div style={{ fontSize: '.8rem', color: 'var(--ih-text-muted)' }}>{ct.label}</div>
                 </div>
               ))}
           </div>
