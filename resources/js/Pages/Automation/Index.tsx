@@ -12,12 +12,13 @@ interface Rule {
   lastRun: string | null; runCount: number; failures: number;
 }
 interface Run { id: number; trigger: string; status: string; eventKey: string | null; actions: string[]; error: string | null; at: string | null }
-interface Props { rules: Rule[]; runs: Run[] }
+interface ScheduledReminder { key: string; description: string; schedule: string; count: number; lastRun: string | null }
+interface Props { rules: Rule[]; runs: Run[]; scheduledReminders: ScheduledReminder[] }
 
 const RUN_TONE: Record<string, string> = { executed: 'active', skipped: 'draft', failed: 'changes_requested' };
 const RUN_LABEL: Record<string, string> = { executed: 'نُفِّذت', skipped: 'تُخطّيت', failed: 'فشلت' };
 
-export default function AutomationIndex({ rules, runs }: Props) {
+export default function AutomationIndex({ rules, runs, scheduledReminders }: Props) {
   const flash = usePage<SharedProps>().props.flash;
   const toggle = (id: number) => router.post(u(`/automation/${id}/toggle`), {}, { preserveScroll: true });
 
@@ -81,6 +82,29 @@ export default function AutomationIndex({ rules, runs }: Props) {
               <button onClick={() => toggle(r.id)} className={`btn btn-xs ${r.enabled ? 'btn-outline' : 'btn-primary'}`} style={{ flexShrink: 0 }}>
                 {r.enabled ? 'تعطيل' : 'تفعيل'}
               </button>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* التذكيرات المجدولة — أوامر زمنيّة تعمل دوريًّا (لا قواعد أحداث): «متى ← ماذا» + الجدولة
+          والعدّ وآخر تنفيذ من سجلّ التدقيق. تجعل الأتمتة الزمنيّة مرئيّة وموثوقة. */}
+      <div className="ih-sec" style={{ marginBottom: '1.2rem' }}>
+        <div className="ih-sec__head"><span className="ih-sec__title"><Icon name="calendar-days" size={16} /> التذكيرات المجدولة</span></div>
+        <div style={{ display: 'grid', gap: '.6rem', padding: '.6rem' }}>
+          {scheduledReminders.map((rm) => (
+            <div key={rm.key} className="card" style={{ padding: '.85rem 1rem', display: 'flex', alignItems: 'center', gap: '1rem', flexWrap: 'wrap' }}>
+              <div style={{ flex: 1, minWidth: 220 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '.45rem', flexWrap: 'wrap' }}>
+                  <span className="ih-tag" style={{ background: 'var(--ih-primary-soft)', color: 'var(--ih-primary-700)', fontSize: '.62rem' }}>{rm.schedule}</span>
+                  <StatusBadge tone="active" label="مُفعّلة" />
+                </div>
+                <div style={{ fontSize: '.82rem', color: 'var(--ih-text-secondary)', marginTop: '.3rem' }}>{rm.description}</div>
+                <div style={{ fontSize: '.72rem', color: 'var(--ih-text-muted)', marginTop: '.35rem', display: 'flex', gap: '.8rem', flexWrap: 'wrap' }}>
+                  <span>أُطلِقت <b style={{ color: 'var(--ih-text)' }}>{rm.count.toLocaleString('en-US')}</b> مرة</span>
+                  <span>آخر إطلاق: <span style={{ direction: 'ltr', display: 'inline-block' }}>{rm.lastRun ?? '—'}</span></span>
+                </div>
+              </div>
             </div>
           ))}
         </div>

@@ -2,12 +2,16 @@
 
 namespace App\Http\Controllers\Inertia;
 
-use App\Domain\Automation\Models\{AutomationRule, AutomationRun};
-use App\Domain\Identity\Models\User;
+use App\Domain\Audit\Models\AuditLog;
+use App\Domain\Audit\Services\AuditLogger;
+use App\Domain\Automation\DefaultAutomationRules;
+use App\Domain\Automation\Models\AutomationRule;
+use App\Domain\Automation\Models\AutomationRun;
 use App\Domain\Tenancy\Support\TenantContext;
 use App\Http\Controllers\Controller;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Carbon;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -25,6 +29,7 @@ class AutomationController extends Controller
         'content.approved' => 'اعتماد محتوى', 'content.submitted' => 'تقديم محتوى',
         'content.revision_requested' => 'طلب تعديل محتوى', 'creator.declined' => 'اعتذار مبدع',
     ];
+
     private const ACTION_LABEL = ['notify' => 'إشعار', 'create_task' => 'إنشاء مهمة', 'escalate' => 'تصعيد'];
 
     // وصف بلغة المستخدم لكل محفّز: «متى» يعمل التشغيل — لا مصطلحات أحداث تقنية.
@@ -36,8 +41,28 @@ class AutomationController extends Controller
         'content.revision_requested' => 'عند طلب تعديل على محتوى',
         'creator.declined' => 'عند اعتذار مبدع عن التعاون',
     ];
+
     // وصف بلغة المستخدم لكل إجراء: «ماذا» يحدث.
     private const ACTION_DESC = ['notify' => 'يُرسَل إشعار للمعنيّ', 'create_task' => 'تُنشأ مهمة متابعة', 'escalate' => 'يُصعَّد الأمر للمسؤول'];
+
+    /**
+     * التذكيرات الزمنيّة المجدولة (أوامر مجدولة تعمل دوريًّا، لا قواعد أحداث).
+     * كلٌّ يعتمد تاريخًا حقيقيًّا ويكتب سجلّ تدقيق عند إطلاقه — منه نشتقّ العدّ وآخر تنفيذ.
+     */
+    private const SCHEDULED_REMINDERS = [
+        ['key' => 'invoice_overdue', 'action' => 'invoice.overdue_notified', 'schedule' => 'يوميًّا',
+            'desc' => 'إذا تأخّرت فاتورة مُصدَرة عن موعد استحقاقها ← تذكير المسؤولين لمتابعة التحصيل'],
+        ['key' => 'content_publishing', 'action' => 'content.publish_reminded', 'schedule' => 'كل ساعة',
+            'desc' => 'إذا اقترب موعد نشر محتوى مُجدوَل أو فات دون نشر ← تذكير المبدع وصاحب الحملة'],
+        ['key' => 'creator_response', 'action' => 'collaboration.response_reminded', 'schedule' => 'كل ساعة',
+            'desc' => 'إذا لم يردّ المؤثر على عرض التعاون خلال ٤٨ ساعة ← تذكيره وصاحب العرض'],
+        ['key' => 'client_decision', 'action' => 'shortlist.decision_reminded', 'schedule' => 'كل ساعة',
+            'desc' => 'إذا لم يبتّ العميل في الترشيح خلال ٧٢ ساعة ← تذكير العميل والوكالة'],
+        ['key' => 'contract_signature', 'action' => 'contract.signature_reminded', 'schedule' => 'كل ساعة',
+            'desc' => 'إذا لم يوقّع الطرف العقد المُرسَل خلال ٧٢ ساعة ← تذكير الطرف وصاحب العقد'],
+        ['key' => 'sla', 'action' => 'sla.breach', 'schedule' => 'كل ساعة',
+            'desc' => 'إذا تجاوز طلب خدمة موعد استحقاقه ← رصد التجاوز وإشعار المسؤولين'],
+    ];
 
     /** جملة «متى → ماذا» مقروءة للإنسان من محفّز القاعدة وأول إجراء فيها. */
     private function humanDescription(AutomationRule $rule): string
@@ -60,7 +85,7 @@ class AutomationController extends Controller
     {
         $this->gate($r);
         // تثبيت الافتراضيات حتى تظهر أوّل مرة
-        app(\App\Domain\Automation\DefaultAutomationRules::class)->ensure(TenantContext::tenantId());
+        app(DefaultAutomationRules::class)->ensure(TenantContext::tenantId());
 
         $lastRuns = AutomationRun::whereNotNull('rule_id')->where('status', 'executed')
             ->get(['rule_id', 'created_at'])->groupBy('rule_id')->map(fn ($g) => $g->max('created_at'));
@@ -89,7 +114,24 @@ class AutomationController extends Controller
             'error' => $x->error, 'at' => $x->created_at?->format('Y-m-d H:i'),
         ]);
 
-        return Inertia::render('Automation/Index', ['rules' => $rules, 'runs' => $runs]);
+        // التذكيرات المجدولة — العدّ وآخر تنفيذ من سجلّ التدقيق (لكلّ إجراء) لهذا المستأجر.
+        $reminderActions = array_column(self::SCHEDULED_REMINDERS, 'action');
+        $reminderStats = AuditLog::where('tenant_id', TenantContext::tenantId())
+            ->whereIn('action', $reminderActions)
+            ->selectRaw('action, count(*) as c, max(created_at) as last')
+            ->groupBy('action')->get()->keyBy('action');
+
+        $scheduledReminders = collect(self::SCHEDULED_REMINDERS)->map(function (array $rm) use ($reminderStats) {
+            $stat = $reminderStats[$rm['action']] ?? null;
+
+            return [
+                'key' => $rm['key'], 'description' => $rm['desc'], 'schedule' => $rm['schedule'],
+                'count' => (int) ($stat->c ?? 0),
+                'lastRun' => $stat?->last ? Carbon::parse($stat->last)->format('Y-m-d H:i') : null,
+            ];
+        })->values();
+
+        return Inertia::render('Automation/Index', ['rules' => $rules, 'runs' => $runs, 'scheduledReminders' => $scheduledReminders]);
     }
 
     public function toggle(Request $r, int $rule): RedirectResponse
@@ -97,7 +139,7 @@ class AutomationController extends Controller
         $this->gate($r);
         $m = AutomationRule::findOrFail($rule);
         $m->update(['enabled' => ! $m->enabled]);
-        \App\Domain\Audit\Services\AuditLogger::log('automation.rule_toggled', $m, ['enabled' => $m->enabled], $m->tenant_id, $r->user()->id);
+        AuditLogger::log('automation.rule_toggled', $m, ['enabled' => $m->enabled], $m->tenant_id, $r->user()->id);
 
         return back()->with('ok', $m->enabled ? 'فُعّلت القاعدة.' : 'عُطّلت القاعدة.');
     }
