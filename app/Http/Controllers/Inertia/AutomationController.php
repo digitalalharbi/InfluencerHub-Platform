@@ -12,6 +12,7 @@ use App\Http\Controllers\Controller;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\Lang;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -64,12 +65,97 @@ class AutomationController extends Controller
             'desc' => 'إذا تجاوز طلب خدمة موعد استحقاقه ← رصد التجاوز وإشعار المسؤولين'],
     ];
 
+    // ===== محلّلات locale-aware: العربية (المصدر) تُعاد حرفيًّا من الثوابت أعلاه؛
+    // غير العربية تُحلّ من مجموعة automation.* مع الثابت العربي كاحتياط. =====
+
+    /** تسمية المحفّز (TRIGGER_LABEL) — النقاط في المفتاح تُستبدل بشرطة سفلية للمفتاح اللغوي. */
+    private static function trigLabel(string $k): string
+    {
+        $ar = self::TRIGGER_LABEL;
+        if (app()->getLocale() === 'ar') {
+            return $ar[$k] ?? $k;
+        }
+        $key = 'automation.trig_'.str_replace('.', '_', $k);
+
+        return Lang::has($key) ? trans($key) : ($ar[$k] ?? $k);
+    }
+
+    /** تسمية الإجراء (ACTION_LABEL). */
+    private static function actLabel(string $k): string
+    {
+        $ar = self::ACTION_LABEL;
+        if (app()->getLocale() === 'ar') {
+            return $ar[$k] ?? $k;
+        }
+        $key = 'automation.act_'.str_replace('.', '_', $k);
+
+        return Lang::has($key) ? trans($key) : ($ar[$k] ?? $k);
+    }
+
+    /** وصف المحفّز (TRIGGER_DESC). */
+    private static function trigDesc(string $k): string
+    {
+        $ar = self::TRIGGER_DESC;
+        if (app()->getLocale() === 'ar') {
+            return $ar[$k] ?? $k;
+        }
+        $key = 'automation.trigdesc_'.str_replace('.', '_', $k);
+
+        return Lang::has($key) ? trans($key) : ($ar[$k] ?? $k);
+    }
+
+    /** وصف الإجراء (ACTION_DESC). */
+    private static function actDesc(string $k): string
+    {
+        $ar = self::ACTION_DESC;
+        if (app()->getLocale() === 'ar') {
+            return $ar[$k] ?? $k;
+        }
+        $key = 'automation.actdesc_'.str_replace('.', '_', $k);
+
+        return Lang::has($key) ? trans($key) : ($ar[$k] ?? $k);
+    }
+
+    /** جدولة التذكير (SCHEDULED_REMINDERS.schedule) — تُحلّ السلسلتان العربيّتان المتمايزتان. */
+    private static function schedLabel(string $schedule): string
+    {
+        $map = ['يوميًّا' => 'sched_daily', 'كل ساعة' => 'sched_hourly'];
+        if (app()->getLocale() === 'ar' || ! isset($map[$schedule])) {
+            return $schedule;
+        }
+        $key = 'automation.'.$map[$schedule];
+
+        return Lang::has($key) ? trans($key) : $schedule;
+    }
+
+    /** وصف التذكير المجدول (SCHEDULED_REMINDERS.desc) — حسب key التذكير. */
+    private static function rmDesc(array $rm): string
+    {
+        if (app()->getLocale() === 'ar') {
+            return $rm['desc'];
+        }
+        $key = 'automation.rmdesc_'.$rm['key'];
+
+        return Lang::has($key) ? trans($key) : $rm['desc'];
+    }
+
+    /** اسم القاعدة (AutomationRule.name) — قواعد النظام تُترجَم حسب key؛ المخصّصة تعود لاسم قاعدة البيانات. */
+    private static function ruleName(AutomationRule $rule): string
+    {
+        if (app()->getLocale() === 'ar') {
+            return $rule->name;
+        }
+        $key = 'automation.rule_'.str_replace('.', '_', $rule->key);
+
+        return Lang::has($key) ? trans($key) : $rule->name;
+    }
+
     /** جملة «متى → ماذا» مقروءة للإنسان من محفّز القاعدة وأول إجراء فيها. */
     private function humanDescription(AutomationRule $rule): string
     {
-        $when = self::TRIGGER_DESC[$rule->trigger] ?? (self::TRIGGER_LABEL[$rule->trigger] ?? $rule->trigger);
+        $when = self::trigDesc($rule->trigger);
         $firstAction = collect($rule->actions ?? [])->first()['type'] ?? null;
-        $then = $firstAction ? (self::ACTION_DESC[$firstAction] ?? null) : null;
+        $then = ($firstAction && isset(self::ACTION_DESC[$firstAction])) ? self::actDesc($firstAction) : null;
 
         return $then ? "{$when} ← {$then}" : $when;
     }
@@ -96,19 +182,19 @@ class AutomationController extends Controller
             ->groupBy('rule_id')->get()->keyBy('rule_id');
 
         $rules = AutomationRule::orderByDesc('is_system')->orderBy('priority')->get()->map(fn (AutomationRule $rule) => [
-            'id' => $rule->id, 'name' => $rule->name, 'key' => $rule->key,
-            'trigger' => $rule->trigger, 'triggerLabel' => self::TRIGGER_LABEL[$rule->trigger] ?? $rule->trigger,
+            'id' => $rule->id, 'name' => self::ruleName($rule), 'key' => $rule->key,
+            'trigger' => $rule->trigger, 'triggerLabel' => self::trigLabel($rule->trigger),
             'description' => $this->humanDescription($rule),
             'enabled' => $rule->enabled, 'isSystem' => $rule->is_system,
             'conditions' => $rule->conditions ?? [],
-            'actions' => collect($rule->actions ?? [])->map(fn ($a) => self::ACTION_LABEL[$a['type'] ?? ''] ?? ($a['type'] ?? '?'))->values(),
+            'actions' => collect($rule->actions ?? [])->map(fn ($a) => self::actLabel($a['type'] ?? '?'))->values(),
             'lastRun' => optional($lastRuns[$rule->id] ?? null)?->format('Y-m-d H:i'),
             'runCount' => (int) ($runStats[$rule->id]->executed ?? 0),
             'failures' => (int) ($runStats[$rule->id]->failed ?? 0),
         ]);
 
         $runs = AutomationRun::with([])->latest('id')->limit(40)->get()->map(fn (AutomationRun $x) => [
-            'id' => $x->id, 'trigger' => self::TRIGGER_LABEL[$x->trigger] ?? $x->trigger,
+            'id' => $x->id, 'trigger' => self::trigLabel($x->trigger),
             'status' => $x->status, 'eventKey' => $x->event_key,
             'actions' => collect($x->result ?? [])->map(fn ($rr) => $rr['type'] ?? '?')->values(),
             'error' => $x->error, 'at' => $x->created_at?->format('Y-m-d H:i'),
@@ -125,7 +211,7 @@ class AutomationController extends Controller
             $stat = $reminderStats[$rm['action']] ?? null;
 
             return [
-                'key' => $rm['key'], 'description' => $rm['desc'], 'schedule' => $rm['schedule'],
+                'key' => $rm['key'], 'description' => self::rmDesc($rm), 'schedule' => self::schedLabel($rm['schedule']),
                 'count' => (int) ($stat->c ?? 0),
                 'lastRun' => $stat?->last ? Carbon::parse($stat->last)->format('Y-m-d H:i') : null,
             ];
