@@ -3,6 +3,7 @@ import {
   type CSSProperties, type ReactElement, type ReactNode,
 } from 'react';
 import { Icon, type IconName } from '@/Components/Icon';
+import { useT } from '@/lib/i18n';
 
 /** تنسيق مبلغ من الوحدات الصغرى (هللة) إلى نص مختصر. */
 export function sarShort(minor: number | null | undefined): string {
@@ -330,7 +331,11 @@ export function WaitingNotice({
   waiting: { party: string; expects: string; canRemind: boolean } | null
 }) {
   if (!waiting) return null
+  return <WaitingNoticeInner waiting={waiting} />
+}
 
+function WaitingNoticeInner({ waiting }: { waiting: { party: string; expects: string; canRemind: boolean } }) {
+  const t = useT()
   return (
     <div
       role="status"
@@ -344,8 +349,8 @@ export function WaitingNotice({
     >
       <Icon name="clipboard-check" size={16} />
       <span>
-        الدور الآن على <b>{waiting.party}</b> — بانتظار {waiting.expects}.
-        {!waiting.canRemind && ' لا إجراء مطلوب منك حاليًّا.'}
+        {t('common.waiting_turn', { party: waiting.party, expects: waiting.expects })}
+        {!waiting.canRemind && ` ${t('common.waiting_no_action')}`}
       </span>
     </div>
   )

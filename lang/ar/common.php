@@ -18,4 +18,6 @@ return [
     'notif_mark_all' => 'تعليم الكل مقروءًا',
     'notif_view_all' => 'عرض الكل',
     'notif_empty' => 'لا إشعارات بعد.',
+    'waiting_turn' => 'الدور الآن على :party — بانتظار :expects.',
+    'waiting_no_action' => 'لا إجراء مطلوب منك حاليًّا.',
 ];

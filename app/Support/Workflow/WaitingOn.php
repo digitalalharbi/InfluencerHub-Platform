@@ -45,14 +45,49 @@ class WaitingOn
         ],
     ];
 
+    /** المرآة الإنجليزية (party/expects). العربية تبقى المصدر في MAP؛ canRemind لا يتغيّر باللغة. */
+    private const MAP_EN = [
+        'collaboration' => [
+            'offered' => ['the creator', 'their response to the offer'],
+            'accepted' => ['the creator', 'them to start and upload deliverables'],
+            'in_progress' => ['the creator', 'the final deliverable'],
+        ],
+        'content' => [
+            'draft' => ['the creator', 'the content to be uploaded and submitted'],
+            'changes_requested' => ['the creator', 'the requested edits and resubmission'],
+            'client_review' => ['the client', "the client's approval or change request"],
+            'scheduled' => ['the system', 'the scheduled publish time'],
+        ],
+        'contract' => [
+            'sent' => ['the counterparty', 'the contract to be signed from their portal'],
+        ],
+        'brand' => [
+            'submitted' => ['the review team', 'the review to begin'],
+        ],
+        'shortlist' => [
+            'submitted' => ['the client', "the client's approval or rejection of the candidates"],
+        ],
+        'payout' => [
+            'waiting_for_provider' => ['finance', 'the transfer to be recorded after it is executed'],
+        ],
+        'invoice' => [
+            'issued' => ['the client', "the client's payment"],
+            'partially_paid' => ['the client', 'payment of the balance'],
+        ],
+    ];
+
     /**
      * @return array{party:string,expects:string,canRemind:bool}|null
-     *   null يعني أن الدور على صاحب الشاشة لا على غيره.
+     *                                                                null يعني أن الدور على صاحب الشاشة لا على غيره. التسميات تتبع لغة الطلب.
      */
     public static function for(string $entity, string $status): ?array
     {
         $row = self::MAP[$entity][$status] ?? null;
+        if (! $row) {
+            return null;
+        }
+        $labels = app()->getLocale() === 'en' ? (self::MAP_EN[$entity][$status] ?? $row) : $row;
 
-        return $row ? ['party' => $row[0], 'expects' => $row[1], 'canRemind' => $row[2]] : null;
+        return ['party' => $labels[0], 'expects' => $labels[1], 'canRemind' => $row[2]];
     }
 }
