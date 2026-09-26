@@ -5,6 +5,7 @@ import { Sec, SummaryStrip, WorkspaceHeader } from '@/Components/ui';
 import { Icon } from '@/Components/Icon';
 import type { SharedProps } from '@/types';
 import { u } from '@/lib/href';
+import { useT } from '@/lib/i18n';
 import { PdfPreviewModal, type PreviewDoc } from '@/Components/PdfPreviewModal';
 
 interface Payout {
@@ -23,6 +24,7 @@ const money = (m: number, cur: string) => (m / 100).toLocaleString('en-US') + ' 
 const PAYLOAD_KEY: Record<string, string> = { reason: 'reason', date: 'due_date', reference: 'payment_reference' };
 
 export default function PayoutShow({ payout, actions, providerNote, history, documents }: Props) {
+  const t = useT();
   const [stmtOpen, setStmtOpen] = useState(false);
   const { props } = usePage<SharedProps>();
   const [modalFor, setModalFor] = useState<Action | null>(null);
@@ -39,27 +41,27 @@ export default function PayoutShow({ payout, actions, providerNote, history, doc
   };
 
   return (
-    <AppShell heading="مستحق">
+    <AppShell heading={t('payouts.show_heading')}>
       <Head title={payout.number} />
 
       {props.flash?.ok && <div className="card" style={{ padding: '.7rem 1rem', marginBottom: '1rem', borderInlineStart: '3px solid var(--ih-success)', background: 'var(--ih-success-soft)', color: 'var(--ih-success-ink)' }}>{props.flash.ok}</div>}
 
       <WorkspaceHeader
-        eyebrow={`مستحق · ${payout.number}`}
+        eyebrow={t('payouts.show_eyebrow', { num: payout.number })}
         title={payout.creator ?? '—'}
         statusTone={payout.statusTone} statusLabel={payout.statusLabel}
-        back={u("/payouts")} backLabel="كل المستحقات"
+        back={u("/payouts")} backLabel={t('payouts.back_all')}
         meta={[
-          ['المبلغ', money(payout.amountMinor, payout.currency)], ['IBAN', payout.ibanLast4 ? `•••• ${payout.ibanLast4}` : '—'],
-          ['الاستحقاق', payout.dueDate ?? '—'], ['دُفع', payout.paidAt ?? '—'],
+          [t('payouts.m_amount'), money(payout.amountMinor, payout.currency)], ['IBAN', payout.ibanLast4 ? `•••• ${payout.ibanLast4}` : '—'],
+          [t('payouts.m_due'), payout.dueDate ?? '—'], [t('payouts.m_paid'), payout.paidAt ?? '—'],
         ]}
         /* `canManage` هو صلاحية *التعديل* وهي مقصورة على «قيد الانتظار»
            (`isEditable`). ربط شريط الإجراءات بها كان يُخفي الجدولة والصرف عن
            المالية فور الاعتماد — فيقف المستحقّ المعتمَد بلا مخرج رغم أن
            المتحكّم فحص كل فعل بقاعدته وأرسله في `actions`. */
         actions={<>
-          <button onClick={() => setStmtOpen(true)} className="btn btn-sm btn-outline" title="معاينة كشف المستحق (PDF)">
-            <Icon name="file-text" size={14} /> كشف PDF{documents.statement.stale && <span style={{ width: 7, height: 7, borderRadius: '50%', background: 'var(--ih-warning-ink, #B54708)', display: 'inline-block', marginInlineStart: 5 }} />}
+          <button onClick={() => setStmtOpen(true)} className="btn btn-sm btn-outline" title={t('payouts.stmt_preview_title')}>
+            <Icon name="file-text" size={14} /> {t('payouts.stmt_pdf')}{documents.statement.stale && <span style={{ width: 7, height: 7, borderRadius: '50%', background: 'var(--ih-warning-ink, #B54708)', display: 'inline-block', marginInlineStart: 5 }} />}
           </button>
           {actions.map((a) => (
             <button key={a[0]} onClick={() => runAction(a)} className={`btn btn-sm ${BTN[a[2]] ?? 'btn-outline'}`}>{a[1]}</button>
@@ -69,29 +71,29 @@ export default function PayoutShow({ payout, actions, providerNote, history, doc
 
       {providerNote && (
         <div className="card" style={{ padding: '.8rem 1rem', marginBottom: '1.2rem', borderInlineStart: '3px solid var(--ih-warning)', background: 'var(--ih-warning-soft)', color: 'var(--ih-warning-ink)', fontSize: '.84rem' }}>
-          <Icon name="clipboard-check" size={15} /> بانتظار ربط مزوّد دفع. النظام لا ينفّذ التحويل — تُسجَّل «مدفوع» يدويًا بمرجع تحويل بعد التسوية الفعلية.
+          <Icon name="clipboard-check" size={15} /> {t('payouts.provider_note')}
         </div>
       )}
 
       <SummaryStrip items={[
-        { label: 'المبلغ', value: money(payout.amountMinor, payout.currency), tone: 'primary', icon: 'wallet' },
+        { label: t('payouts.m_amount'), value: money(payout.amountMinor, payout.currency), tone: 'primary', icon: 'wallet' },
         { label: 'IBAN', value: payout.ibanLast4 ? `•••• ${payout.ibanLast4}` : '—' },
-        { label: 'الاستحقاق', value: payout.dueDate ?? '—' },
-        { label: 'مرجع الدفع', value: payout.paymentReference ?? '—' },
-        { label: 'دُفع في', value: payout.paidAt ?? '—' },
+        { label: t('payouts.m_due'), value: payout.dueDate ?? '—' },
+        { label: t('payouts.m_reference'), value: payout.paymentReference ?? '—' },
+        { label: t('payouts.ss_paid_at'), value: payout.paidAt ?? '—' },
       ]} />
 
       <div className="ih-overview-grid" style={{ display: 'grid', gridTemplateColumns: '1.3fr .7fr', gap: '1.1rem', alignItems: 'start' }}>
-        <Sec title="تفاصيل المستحق" icon="wallet">
+        <Sec title={t('payouts.sec_details')} icon="wallet">
           <div className="ih-sec__body" style={{ display: 'grid', gap: '.7rem' }}>
             {payout.description && <p style={{ margin: 0, lineHeight: 1.7 }}>{payout.description}</p>}
-            {payout.failureReason && <div style={{ padding: '.6rem .8rem', background: 'var(--ih-danger-soft)', color: 'var(--ih-danger-ink)', borderRadius: 'var(--ih-radius-sm)', fontSize: '.85rem' }}><b>سبب الفشل:</b> {payout.failureReason}</div>}
-            {!payout.description && !payout.failureReason && <div style={{ color: 'var(--ih-text-muted)', fontSize: '.85rem' }}>لا وصف إضافي.</div>}
+            {payout.failureReason && <div style={{ padding: '.6rem .8rem', background: 'var(--ih-danger-soft)', color: 'var(--ih-danger-ink)', borderRadius: 'var(--ih-radius-sm)', fontSize: '.85rem' }}><b>{t('payouts.failure_label')}</b> {payout.failureReason}</div>}
+            {!payout.description && !payout.failureReason && <div style={{ color: 'var(--ih-text-muted)', fontSize: '.85rem' }}>{t('payouts.no_description')}</div>}
           </div>
         </Sec>
-        <Sec title="سجل الحالة" icon="bar-chart-3">
+        <Sec title={t('payouts.sec_history')} icon="bar-chart-3">
           <div className="ih-sec__body">
-            {history.length === 0 ? <div style={{ color: 'var(--ih-text-muted)', fontSize: '.85rem' }}>لا سجل بعد.</div> :
+            {history.length === 0 ? <div style={{ color: 'var(--ih-text-muted)', fontSize: '.85rem' }}>{t('payouts.no_history')}</div> :
               <div className="ih-tl">
                 {history.map((h, i) => (
                   <div key={i} className="ih-tl__item"><span className="ih-tl__dot" />
@@ -111,13 +113,13 @@ export default function PayoutShow({ payout, actions, providerNote, history, doc
             {modalFor[3] === 'date' ? (
               <input className="field" type="date" value={value} onChange={(e) => setValue(e.target.value)} autoFocus />
             ) : modalFor[3] === 'reference' ? (
-              <input className="field" value={value} onChange={(e) => setValue(e.target.value)} placeholder="مرجع التحويل (إلزامي)" style={{ direction: 'ltr' }} autoFocus />
+              <input className="field" value={value} onChange={(e) => setValue(e.target.value)} placeholder={t('payouts.ref_placeholder')} style={{ direction: 'ltr' }} autoFocus />
             ) : (
-              <textarea className="field" rows={3} value={value} onChange={(e) => setValue(e.target.value)} placeholder="السبب" autoFocus />
+              <textarea className="field" rows={3} value={value} onChange={(e) => setValue(e.target.value)} placeholder={t('payouts.reason_placeholder')} autoFocus />
             )}
             <div style={{ marginTop: '1rem', display: 'flex', gap: '.5rem' }}>
-              <button className={`btn ${BTN[modalFor[2]] ?? 'btn-primary'}`} onClick={submitModal} disabled={(modalFor[3] === 'reference' || modalFor[3] === 'reason') && !value.trim()}>تأكيد</button>
-              <button className="btn btn-ghost" onClick={() => setModalFor(null)}>إلغاء</button>
+              <button className={`btn ${BTN[modalFor[2]] ?? 'btn-primary'}`} onClick={submitModal} disabled={(modalFor[3] === 'reference' || modalFor[3] === 'reason') && !value.trim()}>{t('payouts.confirm')}</button>
+              <button className="btn btn-ghost" onClick={() => setModalFor(null)}>{t('payouts.cancel')}</button>
             </div>
           </div>
         </div>
