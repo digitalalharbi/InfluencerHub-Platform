@@ -38,6 +38,7 @@ export default function AppShell({
   const nl = (s?: string) => (s ? navLabel(s, locale) : s);
   const { auth, workspace, showcase, nav, flash } = page.props;
   const preview = page.props.preview ?? null;
+  const unread = page.props.unreadNotifications ?? 0;
   const url = page.url;
   const [open, setOpen] = useState(false);
   // طيّ الشريط — تفضيل واجهة غير حسّاس، يُحفظ محليًا فقط
@@ -214,6 +215,16 @@ export default function AppShell({
           <button className="ih-icon-btn" onClick={() => setOpen(true)} aria-label="فتح القائمة"><Icon name="menu" size={22} /></button>
           <BrandLink href={home} height={26} surface="auto" label={`${brand} — الرئيسية`} />
           <span style={{ marginInlineStart: 'auto', fontWeight: 700, fontSize: '.9rem' }}>{heading}</span>
+          {/* جرس الجوال — إشارة غير المقروء بلمحة + وصول بلمسة (بلا حفر في القائمة) */}
+          <Link href={u('/notifications')} className="ih-bell" aria-label="الإشعارات"
+            style={{ position: 'relative', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: 34, height: 34, borderRadius: 9, color: 'var(--ih-text-muted)', marginInlineStart: '.4rem', flex: 'none' }}>
+            <Icon name="message-circle" size={20} />
+            {unread > 0 && (
+              <span style={{ position: 'absolute', top: 2, insetInlineEnd: 2, minWidth: 16, height: 16, padding: '0 4px', borderRadius: 8, background: 'var(--ih-danger)', color: '#fff', fontSize: '.62rem', fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center', direction: 'ltr' }}>
+                {unread > 99 ? '99+' : unread}
+              </span>
+            )}
+          </Link>
         </div>
 
         <header className="ih-topbar ih-only-desktop">
