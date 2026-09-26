@@ -7,8 +7,8 @@ use App\Domain\Campaigns\Models\CampaignShortlist;
 use App\Domain\Campaigns\Models\CampaignShortlistItem;
 use App\Domain\Campaigns\Models\CampaignShortlistVersion;
 use App\Domain\Collaborations\Models\Collaboration;
-use App\Domain\Contracts\Models\Contract;
 use App\Domain\Content\Models\ContentItem;
+use App\Domain\Contracts\Models\Contract;
 use App\Domain\Finance\Models\Invoice;
 use App\Domain\Finance\Models\Payout;
 use App\Domain\Tenancy\Support\TenantContext;
@@ -59,15 +59,17 @@ class CampaignLifecycleService
         $s = $this->gather($c);
         $link = fn (string $path) => "/app{$path}";
 
+        // خرائط المفاتيح لأصحاب المراحل — الترجمة لغة-واعية عبر trans (العربية بايت-مطابقة للأصل).
+        $ownerKeys = ['مدير الحملة' => 'manager', 'العمليات' => 'ops', 'العميل' => 'client', 'المالية' => 'finance', 'المبدع' => 'creator'];
         $stages = [];
         foreach (self::STAGES as $key) {
             [$labelAr, $labelEn, $owner] = self::LABELS[$key];
             $d = $this->derive($key, $c, $s, $link);
             $stages[] = array_merge([
                 'key' => $key,
-                'label' => $labelAr,
+                'label' => trans("campaigns.lc_stage_{$key}"),
                 'label_en' => $labelEn,
-                'owner' => $owner,
+                'owner' => isset($ownerKeys[$owner]) ? trans("campaigns.lc_owner_{$ownerKeys[$owner]}") : $owner,
             ], $d);
         }
 
@@ -81,7 +83,7 @@ class CampaignLifecycleService
                 $current = $st['key'];
             }
         }
-        $currentLabel = $current ? self::LABELS[$current][0] : self::LABELS['closure'][0];
+        $currentLabel = trans('campaigns.lc_stage_'.($current ?? 'closure'));
 
         // فصل الحالة التشغيلية عن المالية (درس تشغيليّ: قد تُغلَق تشغيليًّا ويبقى المال معلّقًا)
         $byKey = collect($stages)->keyBy('key');
@@ -99,15 +101,15 @@ class CampaignLifecycleService
             'progress' => (int) round($completed / count(self::STAGES) * 100),
             'operational' => [
                 'state' => $c->status === 'completed' ? 'closed' : ($opDone ? 'ready_to_close' : 'in_progress'),
-                'label' => $c->status === 'completed' ? 'مُغلَقة تشغيليًّا' : ($opDone ? 'جاهزة للإغلاق' : 'قيد التنفيذ'),
+                'label' => $c->status === 'completed' ? trans('campaigns.lc_op_closed') : ($opDone ? trans('campaigns.lc_op_ready') : trans('campaigns.lc_op_in_progress')),
             ],
             'financial' => [
                 'collection' => $collectionDone ? 'settled' : ($s['invoiceCount'] ? 'outstanding' : 'not_started'),
                 'payout' => $payoutDone ? 'settled' : ($s['payoutCount'] ? 'outstanding' : 'not_started'),
                 'settled' => $collectionDone && $payoutDone,
-                'label' => ($collectionDone && $payoutDone) ? 'مُسوّاة ماليًّا'
-                    : ((! $collectionDone && $s['invoiceCount']) ? 'تحصيل العميل معلّق'
-                        : ((! $payoutDone && $s['payoutCount']) ? 'صرف المبدع معلّق' : 'لا التزام ماليّ بعد')),
+                'label' => ($collectionDone && $payoutDone) ? trans('campaigns.lc_fin_settled')
+                    : ((! $collectionDone && $s['invoiceCount']) ? trans('campaigns.lc_fin_collection_pending')
+                        : ((! $payoutDone && $s['payoutCount']) ? trans('campaigns.lc_fin_payout_pending') : trans('campaigns.lc_fin_none'))),
             ],
         ];
     }
@@ -162,8 +164,7 @@ class CampaignLifecycleService
     private function derive(string $key, Campaign $c, array $s, callable $link): array
     {
         $none = ['state' => 'not_started', 'evidence' => null, 'blockers' => [], 'missing' => [], 'next_action' => null, 'due_date' => null, 'entities' => []];
-        $make = fn (string $state, ?string $ev, array $blockers = [], array $missing = [], ?array $next = null, array $entities = []) =>
-            compact('state', 'blockers', 'missing', 'entities') + ['evidence' => $ev, 'next_action' => $next, 'due_date' => null];
+        $make = fn (string $state, ?string $ev, array $blockers = [], array $missing = [], ?array $next = null, array $entities = []) => compact('state', 'blockers', 'missing', 'entities') + ['evidence' => $ev, 'next_action' => $next, 'due_date' => null];
 
         $collab = $s['collabCounts'];
         $bookedCollabs = (int) ($collab['accepted'] ?? 0) + (int) ($collab['in_progress'] ?? 0) + (int) ($collab['submitted'] ?? 0) + (int) ($collab['approved'] ?? 0) + (int) ($collab['completed'] ?? 0);
@@ -179,28 +180,28 @@ class CampaignLifecycleService
 
         return match ($key) {
             'creation' => (($c->budget_minor > 0 && $delivCount > 0)
-                ? $make('complete', "أُنشئت الحملة #{$c->campaign_number} (ميزانية محدّدة، {$delivCount} مخرجًا)", entities: ['deliverables' => $delivCount])
-                : $make('in_progress', 'الحملة قيد الإعداد',
-                    missing: array_values(array_filter([$c->budget_minor > 0 ? null : 'حدّد الميزانية', $delivCount > 0 ? null : 'أضِف مخرجًا واحدًا على الأقل'])),
-                    next: ['title' => 'استكمال بيانات الحملة', 'link' => $link("/campaigns/{$c->id}")])),
+                ? $make('complete', trans('campaigns.lc_creation_ev', ['num' => $c->campaign_number, 'n' => $delivCount]), entities: ['deliverables' => $delivCount])
+                : $make('in_progress', trans('campaigns.lc_creation_ip'),
+                    missing: array_values(array_filter([$c->budget_minor > 0 ? null : trans('campaigns.lc_missing_budget'), $delivCount > 0 ? null : trans('campaigns.lc_missing_deliv')])),
+                    next: ['title' => trans('campaigns.lc_creation_next'), 'link' => $link("/campaigns/{$c->id}")])),
 
             'nomination' => ($s['items']->count() > 0
-                ? $make('complete', "رُشِّح {$s['items']->count()} مؤثرًا", entities: ['nominated' => $s['items']->count()])
-                : $make('not_started', null, missing: ['رشّح مؤثرين للحملة'],
-                    next: ['title' => 'بدء الترشيح', 'link' => $link("/campaigns/{$c->id}/shortlist")])),
+                ? $make('complete', trans('campaigns.lc_nomination_ev', ['n' => $s['items']->count()]), entities: ['nominated' => $s['items']->count()])
+                : $make('not_started', null, missing: [trans('campaigns.lc_nomination_missing')],
+                    next: ['title' => trans('campaigns.lc_nomination_next'), 'link' => $link("/campaigns/{$c->id}/shortlist")])),
 
             'internal_approval' => ($s['internallyApproved']
-                ? $make('complete', 'اعتمد الفريق نسخة الترشيح داخليًّا وقفلها', entities: [])
+                ? $make('complete', trans('campaigns.lc_internal_ev'), entities: [])
                 : ($s['items']->count() > 0
-                    ? $make('in_progress', 'الترشيح مسوّدة — بانتظار اعتماد الفريق', missing: ['اعتمد النسخة داخليًّا'],
-                        next: ['title' => 'اعتماد الترشيح داخليًّا', 'link' => $link("/campaigns/{$c->id}/shortlist")])
+                    ? $make('in_progress', trans('campaigns.lc_internal_ip'), missing: [trans('campaigns.lc_internal_missing')],
+                        next: ['title' => trans('campaigns.lc_internal_next'), 'link' => $link("/campaigns/{$c->id}/shortlist")])
                     : $none)),
 
             'send_to_client' => ($s['submittedVersion']
-                ? $make('complete', 'أُرسلت نسخة الترشيح للعميل', entities: [])
+                ? $make('complete', trans('campaigns.lc_send_ev'), entities: [])
                 : ($s['internallyApproved']
-                    ? $make('in_progress', 'معتمدة داخليًّا — لم تُرسل بعد', missing: ['أرسل النسخة للعميل'],
-                        next: ['title' => 'إرسال الترشيح للعميل', 'link' => $link("/campaigns/{$c->id}/shortlist")])
+                    ? $make('in_progress', trans('campaigns.lc_send_ip'), missing: [trans('campaigns.lc_send_missing')],
+                        next: ['title' => trans('campaigns.lc_send_next'), 'link' => $link("/campaigns/{$c->id}/shortlist")])
                     : $none)),
 
             'client_decision' => (function () use ($s, $make, $none, $link, $c) {
@@ -208,92 +209,92 @@ class CampaignLifecycleService
                     return $none;
                 }
                 if ($s['rejectedItems'] > 0 && $s['approvedItems'] === 0) {
-                    return $make('blocked', null, blockers: ['رفض العميل المرشّحين — رشّح بدائل'],
-                        next: ['title' => 'ترشيح بدائل', 'link' => $link("/campaigns/{$c->id}/shortlist")]);
+                    return $make('blocked', null, blockers: [trans('campaigns.lc_decision_blocker')],
+                        next: ['title' => trans('campaigns.lc_decision_next_alt'), 'link' => $link("/campaigns/{$c->id}/shortlist")]);
                 }
                 if (in_array($s['latestVersionStatus'], ['approved', 'partially_approved'], true) || ($s['items']->count() > 0 && $s['decidedItems'] >= $s['items']->count())) {
-                    return $make('complete', "قرّر العميل ({$s['approvedItems']} معتمد)", entities: ['approved' => $s['approvedItems'], 'rejected' => $s['rejectedItems']]);
+                    return $make('complete', trans('campaigns.lc_decision_ev', ['n' => $s['approvedItems']]), entities: ['approved' => $s['approvedItems'], 'rejected' => $s['rejectedItems']]);
                 }
 
-                return $make('in_progress', 'بانتظار قرار العميل', missing: ['ينتظر قرار العميل على المرشّحين']);
+                return $make('in_progress', trans('campaigns.lc_decision_ip'), missing: [trans('campaigns.lc_decision_missing')]);
             })(),
 
             'quotation_contract' => ($signedContracts > 0
-                ? $make('complete', 'العقد موقّع/فعّال', entities: ['signed' => $signedContracts])
+                ? $make('complete', trans('campaigns.lc_quote_ev'), entities: ['signed' => $signedContracts])
                 : ($sentContracts > 0
-                    ? $make('in_progress', 'العقد مُرسَل — بانتظار التوقيع', missing: ['توقيع العقد'],
-                        next: ['title' => 'متابعة توقيع العقد', 'link' => $link('/contracts')])
-                    : $make('not_started', null, missing: ['أصدر عرض السعر/العقد'],
-                        next: ['title' => 'إصدار العقد', 'link' => $link('/contracts')]))),
+                    ? $make('in_progress', trans('campaigns.lc_quote_ip'), missing: [trans('campaigns.lc_quote_missing_sign')],
+                        next: ['title' => trans('campaigns.lc_quote_next_follow'), 'link' => $link('/contracts')])
+                    : $make('not_started', null, missing: [trans('campaigns.lc_quote_missing_issue')],
+                        next: ['title' => trans('campaigns.lc_quote_next_issue'), 'link' => $link('/contracts')]))),
 
             'client_collection' => ($s['invoiceCount'] > 0 && $s['openInvoices'] === 0
-                ? $make('complete', 'حُصِّلت كل الفواتير', entities: ['invoices' => $s['invoiceCount']])
+                ? $make('complete', trans('campaigns.lc_collection_ev'), entities: ['invoices' => $s['invoiceCount']])
                 : ($s['openInvoices'] > 0
-                    ? $make('in_progress', "{$s['openInvoices']} فاتورة لم تُحصَّل", missing: ['تحصيل الفواتير المفتوحة'],
-                        next: ['title' => 'متابعة التحصيل', 'link' => $link('/invoices')])
-                    : $make('not_started', null, missing: ['أصدر فاتورة العميل'],
-                        next: ['title' => 'إصدار فاتورة', 'link' => $link('/invoices')]))),
+                    ? $make('in_progress', trans('campaigns.lc_collection_ip', ['n' => $s['openInvoices']]), missing: [trans('campaigns.lc_collection_missing')],
+                        next: ['title' => trans('campaigns.lc_collection_next_follow'), 'link' => $link('/invoices')])
+                    : $make('not_started', null, missing: [trans('campaigns.lc_collection_missing_issue')],
+                        next: ['title' => trans('campaigns.lc_collection_next_issue'), 'link' => $link('/invoices')]))),
 
             'creator_booking' => (function () use ($bookedCollabs, $offeredCollabs, $declinedCollabs, $make, $none, $link) {
                 if ($bookedCollabs === 0 && $offeredCollabs === 0 && $declinedCollabs > 0) {
-                    return $make('blocked', null, blockers: ['اعتذر المبدع — احجز بديلًا'],
-                        next: ['title' => 'حجز بديل', 'link' => $link('/collaborations')]);
+                    return $make('blocked', null, blockers: [trans('campaigns.lc_booking_blocker')],
+                        next: ['title' => trans('campaigns.lc_booking_next_alt'), 'link' => $link('/collaborations')]);
                 }
                 if ($bookedCollabs > 0 && $offeredCollabs === 0) {
-                    return $make('complete', "حُجز {$bookedCollabs} مبدعًا (قبِلوا)", entities: ['booked' => $bookedCollabs]);
+                    return $make('complete', trans('campaigns.lc_booking_ev', ['n' => $bookedCollabs]), entities: ['booked' => $bookedCollabs]);
                 }
                 if ($offeredCollabs > 0) {
-                    return $make('in_progress', "{$offeredCollabs} عرض بانتظار قبول المبدع", missing: ['بانتظار قبول المبدع'],
-                        next: ['title' => 'متابعة الحجز', 'link' => $link('/collaborations')]);
+                    return $make('in_progress', trans('campaigns.lc_booking_ip', ['n' => $offeredCollabs]), missing: [trans('campaigns.lc_booking_missing')],
+                        next: ['title' => trans('campaigns.lc_booking_next_follow'), 'link' => $link('/collaborations')]);
                 }
 
                 return $none;
             })(),
 
             'scheduling' => ($delivCount > 0 && $datedDelivs === $delivCount
-                ? $make('complete', 'كل المخرجات مجدولة بتواريخ', entities: ['scheduled' => $datedDelivs])
+                ? $make('complete', trans('campaigns.lc_sched_ev'), entities: ['scheduled' => $datedDelivs])
                 : ($datedDelivs > 0
-                    ? $make('in_progress', "{$datedDelivs}/{$delivCount} مخرج مجدول", missing: ['حدّد تواريخ النشر لبقيّة المخرجات'],
-                        next: ['title' => 'جدولة المخرجات', 'link' => $link("/campaigns/{$c->id}")])
-                    : $make('not_started', null, missing: ['حدّد تواريخ النشر للمخرجات']))),
+                    ? $make('in_progress', trans('campaigns.lc_sched_ip', ['done' => $datedDelivs, 'total' => $delivCount]), missing: [trans('campaigns.lc_sched_missing_rest')],
+                        next: ['title' => trans('campaigns.lc_sched_next'), 'link' => $link("/campaigns/{$c->id}")])
+                    : $make('not_started', null, missing: [trans('campaigns.lc_sched_missing_all')]))),
 
             'creator_finance' => ($s['payoutCount'] > 0 && $s['openPayouts'] === 0
-                ? $make('complete', 'صُرفت كل المستحقات', entities: ['payouts' => $s['payoutCount']])
+                ? $make('complete', trans('campaigns.lc_finance_ev'), entities: ['payouts' => $s['payoutCount']])
                 : ($s['openPayouts'] > 0
-                    ? $make('in_progress', "{$s['openPayouts']} مستحقًّا لم يُصرف", missing: ['اعتماد/صرف المستحقات'],
-                        next: ['title' => 'متابعة المستحقات', 'link' => $link('/payouts')])
-                    : $make('not_started', null, missing: ['أنشئ مستحقات المبدعين']))),
+                    ? $make('in_progress', trans('campaigns.lc_finance_ip', ['n' => $s['openPayouts']]), missing: [trans('campaigns.lc_finance_missing')],
+                        next: ['title' => trans('campaigns.lc_finance_next'), 'link' => $link('/payouts')])
+                    : $make('not_started', null, missing: [trans('campaigns.lc_finance_missing_create')]))),
 
             'publishing' => ($content->count() > 0 && $publishedProof === $content->count()
-                ? $make('complete', "نُشر وأُثبت {$publishedProof} محتوى", entities: ['published' => $publishedProof])
+                ? $make('complete', trans('campaigns.lc_publish_ev', ['n' => $publishedProof]), entities: ['published' => $publishedProof])
                 : ($publishedProof > 0
-                    ? $make('in_progress', "{$publishedProof}/{$content->count()} نُشر بإثبات", missing: ['إثبات نشر بقيّة المحتوى'],
-                        next: ['title' => 'التحقّق من النشر', 'link' => $link('/content')])
-                    : $make('not_started', null, missing: ['نشر المحتوى وإرفاق رابط الإثبات']))),
+                    ? $make('in_progress', trans('campaigns.lc_publish_ip', ['done' => $publishedProof, 'total' => $content->count()]), missing: [trans('campaigns.lc_publish_missing_rest')],
+                        next: ['title' => trans('campaigns.lc_publish_next'), 'link' => $link('/content')])
+                    : $make('not_started', null, missing: [trans('campaigns.lc_publish_missing_all')]))),
 
             'archive_performance' => ($publishedProof > 0 && $withMetrics === $publishedProof
-                ? $make('complete', "أُرشِف وسُجِّل أداء {$withMetrics} محتوى", entities: ['with_metrics' => $withMetrics])
+                ? $make('complete', trans('campaigns.lc_archive_ev', ['n' => $withMetrics]), entities: ['with_metrics' => $withMetrics])
                 : ($publishedProof > 0
-                    ? $make('in_progress', "أداء {$withMetrics}/{$publishedProof} مُسجّل", missing: ['سجّل مقاييس الأداء (يدويًّا أو عبر تكامل)'],
-                        next: ['title' => 'تسجيل الأداء', 'link' => $link('/content')])
+                    ? $make('in_progress', trans('campaigns.lc_archive_ip', ['done' => $withMetrics, 'total' => $publishedProof]), missing: [trans('campaigns.lc_archive_missing')],
+                        next: ['title' => trans('campaigns.lc_archive_next'), 'link' => $link('/content')])
                     : $none)),
 
-            'closure' => (function () use ($c, $s, $bookedCollabs, $make) {
+            'closure' => (function () use ($c, $s, $make) {
                 $obligations = array_values(array_filter([
-                    (int) (($s['collabCounts']['offered'] ?? 0) + ($s['collabCounts']['accepted'] ?? 0) + ($s['collabCounts']['in_progress'] ?? 0) + ($s['collabCounts']['submitted'] ?? 0)) ? 'تعاونات لم تُغلَق' : null,
-                    $s['content']->whereIn('status', ['submitted', 'agency_review', 'client_review', 'changes_requested'])->count() ? 'محتوى في المراجعة' : null,
-                    $s['openInvoices'] ? "{$s['openInvoices']} فاتورة لم تُحصَّل" : null,
-                    $s['openPayouts'] ? "{$s['openPayouts']} مستحقًّا لم يُصرف" : null,
+                    (int) (($s['collabCounts']['offered'] ?? 0) + ($s['collabCounts']['accepted'] ?? 0) + ($s['collabCounts']['in_progress'] ?? 0) + ($s['collabCounts']['submitted'] ?? 0)) ? trans('campaigns.lc_obl_collabs') : null,
+                    $s['content']->whereIn('status', ['submitted', 'agency_review', 'client_review', 'changes_requested'])->count() ? trans('campaigns.lc_obl_content') : null,
+                    $s['openInvoices'] ? trans('campaigns.lc_collection_ip', ['n' => $s['openInvoices']]) : null,
+                    $s['openPayouts'] ? trans('campaigns.lc_finance_ip', ['n' => $s['openPayouts']]) : null,
                 ]));
                 if ($c->status === 'completed') {
-                    return $make('complete', 'أُغلقت الحملة', entities: []);
+                    return $make('complete', trans('campaigns.lc_closure_ev'), entities: []);
                 }
                 if ($obligations) {
-                    return $make('blocked', null, blockers: $obligations, missing: ['أغلِق الالتزامات المفتوحة قبل الإقفال']);
+                    return $make('blocked', null, blockers: $obligations, missing: [trans('campaigns.lc_closure_missing_blocked')]);
                 }
 
-                return $make('in_progress', 'الالتزامات مكتملة — جاهزة للإقفال', missing: ['أغلِق الحملة وأصدر التقرير'],
-                    next: ['title' => 'إقفال الحملة', 'link' => "/app/campaigns/{$c->id}"]);
+                return $make('in_progress', trans('campaigns.lc_closure_ip'), missing: [trans('campaigns.lc_closure_missing')],
+                    next: ['title' => trans('campaigns.lc_closure_next'), 'link' => "/app/campaigns/{$c->id}"]);
             })(),
 
             default => $none,

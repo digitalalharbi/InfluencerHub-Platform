@@ -7,6 +7,9 @@ import { OverflowMenu } from '@/Components/OverflowMenu';
 import { Icon } from '@/Components/Icon';
 import { PdfPreviewModal, type PreviewDoc } from '@/Components/PdfPreviewModal';
 import { u } from '@/lib/href';
+import { useT } from '@/lib/i18n';
+
+type TFn = ReturnType<typeof useT>;
 
 interface Stage { key: string; label: string; state: 'done' | 'current' | 'pending' }
 interface Command {
@@ -69,19 +72,18 @@ type CampaignAction = [string, string, string, boolean];
 
 const ABTN: Record<string, string> = { primary: 'btn-primary', danger: 'btn-danger', ghost: 'btn-ghost' };
 
-/** حالات معايير الجاهزية — علامة/تسمية/ألوان مهنية. لا شطب للمكتمل. */
-const READY_STATE: Record<ReadyState, { label: string; mark: string; bg: string; fg: string; accent: string }> = {
-  ready: { label: 'جاهز', mark: '✓', bg: 'var(--ih-success-soft, #ECFDF3)', fg: 'var(--ih-success-700, #067647)', accent: 'var(--ih-success-700, #067647)' },
-  attention: { label: 'يحتاج انتباه', mark: '!', bg: 'var(--ih-warning-soft, #FFFAEB)', fg: 'var(--ih-warning-ink, #B54708)', accent: 'var(--ih-warning-ink, #B54708)' },
-  blocked: { label: 'محظور', mark: '×', bg: 'var(--ih-danger-soft, #FEF3F2)', fg: 'var(--ih-danger-ink, #B42318)', accent: 'var(--ih-danger-ink, #B42318)' },
-  not_applicable: { label: 'لا ينطبق', mark: '—', bg: 'var(--ih-surface-sunken, #F2F4F7)', fg: 'var(--ih-text-muted)', accent: 'var(--ih-gray-300, #D0D5DD)' },
+/** حالات معايير الجاهزية — علامة/ألوان مهنية (التسمية تُترجَم داخل المكوّن). لا شطب للمكتمل. */
+const READY_STATE: Record<ReadyState, { stateKey: string; mark: string; bg: string; fg: string; accent: string }> = {
+  ready: { stateKey: 'ready', mark: '✓', bg: 'var(--ih-success-soft, #ECFDF3)', fg: 'var(--ih-success-700, #067647)', accent: 'var(--ih-success-700, #067647)' },
+  attention: { stateKey: 'attention', mark: '!', bg: 'var(--ih-warning-soft, #FFFAEB)', fg: 'var(--ih-warning-ink, #B54708)', accent: 'var(--ih-warning-ink, #B54708)' },
+  blocked: { stateKey: 'blocked', mark: '×', bg: 'var(--ih-danger-soft, #FEF3F2)', fg: 'var(--ih-danger-ink, #B42318)', accent: 'var(--ih-danger-ink, #B42318)' },
+  not_applicable: { stateKey: 'na', mark: '—', bg: 'var(--ih-surface-sunken, #F2F4F7)', fg: 'var(--ih-text-muted)', accent: 'var(--ih-gray-300, #D0D5DD)' },
 };
 
 const LBL: React.CSSProperties = { fontSize: '.8rem', fontWeight: 600, display: 'block', marginBottom: '.3rem' };
 
 /** الريال بالعربية (ر.س) في واجهة المستأجر؛ رمز ISO للعملات الأخرى فقط. */
-const CUR_LABEL: Record<string, string> = { SAR: 'ر.س' };
-const money = (m: number, cur: string) => (m / 100).toLocaleString('en-US', { minimumFractionDigits: 0 }) + ' ' + (CUR_LABEL[cur] ?? cur);
+const makeMoney = (t: TFn) => (m: number, cur: string) => (m / 100).toLocaleString('en-US', { minimumFractionDigits: 0 }) + ' ' + (cur === 'SAR' ? t('campaigns.currency_sar') : cur);
 
 function DataTable({ head, children }: { head: string[]; children: ReactNode }) {
   return (
@@ -95,6 +97,12 @@ function EmptyRow({ span, text }: { span: number; text: string }) {
 }
 
 export default function CampaignShow({ campaign, metrics, command, lifecycle, readiness, timeline, deliverables, collaborations, content, canManage, deliverableTypes, actions, invoices, canInvoice, contracts, payouts, documents, nomination }: Props) {
+  const t = useT();
+  const money = makeMoney(t);
+  const readyLabel: Record<ReadyState, string> = {
+    ready: t('campaigns.rdy_state_ready'), attention: t('campaigns.rdy_state_attention'),
+    blocked: t('campaigns.rdy_state_blocked'), not_applicable: t('campaigns.rdy_state_na'),
+  };
   const [briefOpen, setBriefOpen] = useState(false);
   const [actionFor, setActionFor] = useState<CampaignAction | null>(null);
   const [actionReason, setActionReason] = useState('');
@@ -157,17 +165,17 @@ export default function CampaignShow({ campaign, metrics, command, lifecycle, re
   };
 
   return (
-    <AppShell heading="حملة">
+    <AppShell heading={t('campaigns.show_heading')}>
       <Head title={campaign.name} />
 
       <WorkspaceHeader
-        eyebrow={`حملة · ${campaign.number}`}
+        eyebrow={t('campaigns.show_eyebrow', { num: campaign.number })}
         title={campaign.name}
         statusTone={campaign.statusTone} statusLabel={campaign.statusLabel}
-        back={u("/campaigns")} backLabel="كل الحملات"
+        back={u("/campaigns")} backLabel={t('campaigns.back_all')}
         meta={[
-          ['العميل', campaign.client ?? '—'], ['العلامة', campaign.brand ?? '—'],
-          ['البداية', campaign.startDate ?? '—'], ['النهاية', campaign.endDate ?? '—'],
+          [t('campaigns.m_client'), campaign.client ?? '—'], [t('campaigns.m_brand'), campaign.brand ?? '—'],
+          [t('campaigns.m_start'), campaign.startDate ?? '—'], [t('campaigns.m_finish'), campaign.endDate ?? '—'],
         ]}
 
         actions={
@@ -176,10 +184,10 @@ export default function CampaignShow({ campaign, metrics, command, lifecycle, re
             {actions.map((a) => (
               <button key={a[0]} onClick={() => runAction(a)} className={`btn btn-sm ${ABTN[a[2]] ?? 'btn-outline'}`}>{a[1]}</button>
             ))}
-            <a href={u(`/campaigns/${campaign.id}/shortlist`)} className="btn btn-sm">الترشيحات</a>
-            <OverflowMenu items={[
-              ...(canManage ? [{ label: 'تعديل الحملة', icon: 'file-text' as const, onClick: openEdit }] : []),
-              { label: documents.clientBrief.stale ? 'ملخّص للعميل (يحتاج تحديثًا)' : 'ملخّص للعميل', icon: 'file-text' as const, onClick: () => setBriefOpen(true) },
+            <a href={u(`/campaigns/${campaign.id}/shortlist`)} className="btn btn-sm">{t('campaigns.nominations')}</a>
+            <OverflowMenu label={t('campaigns.more')} items={[
+              ...(canManage ? [{ label: t('campaigns.edit_title'), icon: 'file-text' as const, onClick: openEdit }] : []),
+              { label: documents.clientBrief.stale ? t('campaigns.client_brief_stale') : t('campaigns.client_brief'), icon: 'file-text' as const, onClick: () => setBriefOpen(true) },
             ]} />
           </>
         }
@@ -187,10 +195,10 @@ export default function CampaignShow({ campaign, metrics, command, lifecycle, re
 
       {/* السلسلة التي أنتجت هذه الحملة — مرئية لا مضمرة في قاعدة البيانات */}
       <div style={{ display: 'flex', gap: '.5rem', flexWrap: 'wrap', alignItems: 'center', marginBottom: '1rem', fontSize: '.78rem' }}>
-        <span style={{ color: 'var(--ih-text-muted)' }}>متّصل بـ</span>
+        <span style={{ color: 'var(--ih-text-muted)' }}>{t('campaigns.conn_to')}</span>
         {campaign.sourceRequest && (
           <a href={u(`/service-requests/${campaign.sourceRequest.id}`)} className="btn btn-xs btn-outline">
-            <Icon name="inbox" size={13} /> الطلب {campaign.sourceRequest.number}
+            <Icon name="inbox" size={13} /> {t('campaigns.conn_request', { num: campaign.sourceRequest.number })}
           </a>
         )}
         {campaign.clientId && (
@@ -204,7 +212,7 @@ export default function CampaignShow({ campaign, metrics, command, lifecycle, re
           </a>
         )}
         {!campaign.sourceRequest && (
-          <span style={{ color: 'var(--ih-text-muted)' }}>· أُنشئت مباشرةً بلا طلب سابق</span>
+          <span style={{ color: 'var(--ih-text-muted)' }}>{t('campaigns.conn_direct')}</span>
         )}
       </div>
 
@@ -213,11 +221,11 @@ export default function CampaignShow({ campaign, metrics, command, lifecycle, re
         <div className="ih-nba">
           <span className="ih-nba__icon"><Icon name="rocket" size={22} /></span>
           <div className="ih-nba__body">
-            <div className="ih-nba__eyebrow">الخطوة التالية · المرحلة: {command.current_label}</div>
+            <div className="ih-nba__eyebrow">{t('campaigns.next_eyebrow', { stage: command.current_label })}</div>
             <div className="ih-nba__title">{command.next_action.title}</div>
             {command.next_action.hint && <div className="ih-nba__hint">{command.next_action.hint}</div>}
           </div>
-          <a href={command.next_action.link} className="btn btn-sm">تنفيذ الآن</a>
+          <a href={command.next_action.link} className="btn btn-sm">{t('campaigns.do_now')}</a>
         </div>
       )}
 
@@ -235,13 +243,13 @@ export default function CampaignShow({ campaign, metrics, command, lifecycle, re
         return (
           <div className="card" style={{ padding: '1rem 1.2rem', marginBottom: '1.1rem' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '1.3rem', marginBottom: '.9rem', flexWrap: 'wrap' }}>
-              <ProgressRing value={lifecycle.progress} size={92} label="دورة الحملة" tone={ringTone} />
+              <ProgressRing value={lifecycle.progress} size={92} label={t('campaigns.cc_cycle')} tone={ringTone} />
               <div style={{ flex: 1, minWidth: 220, display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '.5rem' }}>
-                <span style={{ fontWeight: 800, fontSize: '.95rem' }}>مركز قيادة الحملة — {lifecycle.total} مراحل</span>
+                <span style={{ fontWeight: 800, fontSize: '.95rem' }}>{t('campaigns.cc_title', { n: lifecycle.total })}</span>
                 <span style={{ display: 'flex', gap: '.5rem', alignItems: 'center', flexWrap: 'wrap', fontSize: '.74rem' }}>
-                  <span style={{ color: 'var(--ih-text-muted)' }}>{lifecycle.completed}/{lifecycle.total} · المرحلة: {lifecycle.current_label}</span>
-                  <span className="badge" style={{ background: 'var(--ih-surface-sunken)', color: 'var(--ih-text-secondary)' }}>تشغيليًّا: {lifecycle.operational.label}</span>
-                  <span className="badge" style={{ background: lifecycle.financial.settled ? 'var(--ih-success-soft)' : 'var(--ih-warning-soft, #FFFAEB)', color: lifecycle.financial.settled ? 'var(--ih-success-700, #067647)' : 'var(--ih-warning-ink, #B54708)' }}>ماليًّا: {lifecycle.financial.label}</span>
+                  <span style={{ color: 'var(--ih-text-muted)' }}>{t('campaigns.cc_stage', { done: lifecycle.completed, total: lifecycle.total, stage: lifecycle.current_label })}</span>
+                  <span className="badge" style={{ background: 'var(--ih-surface-sunken)', color: 'var(--ih-text-secondary)' }}>{t('campaigns.cc_operational', { label: lifecycle.operational.label })}</span>
+                  <span className="badge" style={{ background: lifecycle.financial.settled ? 'var(--ih-success-soft)' : 'var(--ih-warning-soft, #FFFAEB)', color: lifecycle.financial.settled ? 'var(--ih-success-700, #067647)' : 'var(--ih-warning-ink, #B54708)' }}>{t('campaigns.cc_financial', { label: lifecycle.financial.label })}</span>
                 </span>
               </div>
             </div>
@@ -271,29 +279,29 @@ export default function CampaignShow({ campaign, metrics, command, lifecycle, re
       {/* تقدّم الدورة وجاهزية التنفيذ تعرضهما الحلقة والدونات أعلاه — فلا تُكرَّر هنا.
           يبقى ما لا يظهر في الرسوم: المخرجات وصنّاع المحتوى والمبلغ الملتزم. */}
       <SummaryStrip items={[
-        { label: 'المخرجات', value: metrics.deliverables, icon: 'image' },
-        { label: 'صناع المحتوى', value: metrics.creators, icon: 'users' },
-        { label: 'المبلغ الملتزم به', value: money(campaign.committedMinor, campaign.currency), tone: overBudget ? 'danger' : 'primary' },
+        { label: t('campaigns.ss_deliverables'), value: metrics.deliverables, icon: 'image' },
+        { label: t('campaigns.ss_creators'), value: metrics.creators, icon: 'users' },
+        { label: t('campaigns.ss_committed'), value: money(campaign.committedMinor, campaign.currency), tone: overBudget ? 'danger' : 'primary' },
       ]} />
 
       {/* لوحة التحكّم المالي — ميزانية/التزامات/متبقٍّ أو تجاوز، بدلًا من رقمين مجرّدين */}
       {readiness.budget.budgetMinor > 0 && (() => {
         const b = readiness.budget;
         const over = b.overBudget;
-        const remLabel = over ? 'تجاوز الميزانية' : 'المتبقّي من الميزانية';
+        const remLabel = over ? t('campaigns.fin_over') : t('campaigns.fin_remaining');
         const remColor = over ? 'var(--ih-danger-ink, #B42318)' : 'var(--ih-success-700, #067647)';
         const cells: { k: string; v: string; c?: string }[] = [
-          { k: 'الميزانية المعتمدة', v: money(b.budgetMinor, b.currency) },
-          { k: 'إجمالي الالتزامات', v: money(b.committedMinor, b.currency), c: over ? 'var(--ih-danger-ink, #B42318)' : undefined },
+          { k: t('campaigns.fin_approved_budget'), v: money(b.budgetMinor, b.currency) },
+          { k: t('campaigns.fin_total_commitments'), v: money(b.committedMinor, b.currency), c: over ? 'var(--ih-danger-ink, #B42318)' : undefined },
           { k: remLabel, v: money(Math.abs(b.remainingMinor), b.currency), c: remColor },
-          { k: 'الفارق', v: `${over ? '+' : ''}${b.variancePct}%`, c: over ? 'var(--ih-danger-ink, #B42318)' : 'var(--ih-text-secondary)' },
+          { k: t('campaigns.fin_variance'), v: `${over ? '+' : ''}${b.variancePct}%`, c: over ? 'var(--ih-danger-ink, #B42318)' : 'var(--ih-text-secondary)' },
         ];
         return (
           <div className="card" style={{ padding: '.9rem 1.1rem', marginBottom: '1.1rem', borderInlineStart: `3px solid ${over ? 'var(--ih-danger, #D92D20)' : 'var(--ih-success-700, #067647)'}` }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '.5rem', marginBottom: '.7rem', flexWrap: 'wrap' }}>
               <Icon name="wallet" size={16} />
-              <span style={{ fontWeight: 800, fontSize: '.92rem' }}>الحالة المالية</span>
-              {over && <span className="badge" style={{ background: 'var(--ih-danger-soft, #FEF3F2)', color: 'var(--ih-danger-ink, #B42318)', fontWeight: 700 }}>الالتزامات تتجاوز الميزانية</span>}
+              <span style={{ fontWeight: 800, fontSize: '.92rem' }}>{t('campaigns.fin_status')}</span>
+              {over && <span className="badge" style={{ background: 'var(--ih-danger-soft, #FEF3F2)', color: 'var(--ih-danger-ink, #B42318)', fontWeight: 700 }}>{t('campaigns.fin_over_badge')}</span>}
             </div>
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(130px, 1fr))', gap: '.7rem' }}>
               {cells.map((c) => (
@@ -305,8 +313,8 @@ export default function CampaignShow({ campaign, metrics, command, lifecycle, re
             </div>
             {over && canManage && (
               <div style={{ display: 'flex', gap: '.5rem', flexWrap: 'wrap', marginTop: '.8rem' }}>
-                <a href={u(`/campaigns/${campaign.id}#deliverables`)} className="btn btn-xs btn-outline">مراجعة التكاليف</a>
-                <a href={u(`/campaigns/${campaign.id}/shortlist`)} className="btn btn-xs btn-outline">فتح المؤثرين</a>
+                <a href={u(`/campaigns/${campaign.id}#deliverables`)} className="btn btn-xs btn-outline">{t('campaigns.fin_review_costs')}</a>
+                <a href={u(`/campaigns/${campaign.id}/shortlist`)} className="btn btn-xs btn-outline">{t('campaigns.fin_open_influencers')}</a>
               </div>
             )}
           </div>
@@ -317,15 +325,15 @@ export default function CampaignShow({ campaign, metrics, command, lifecycle, re
       <div className="card" style={{ padding: '.9rem 1.1rem', marginBottom: '1.1rem' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '.5rem', flexWrap: 'wrap', marginBottom: nomination ? '.75rem' : 0 }}>
           <Icon name="users" size={16} />
-          <span style={{ fontWeight: 800, fontSize: '.92rem' }}>المؤثرون</span>
+          <span style={{ fontWeight: 800, fontSize: '.92rem' }}>{t('campaigns.inf_title')}</span>
           {nomination && <StatusBadge tone={nomination.stage === 'draft' ? 'draft' : nomination.stage === 'submitted' ? 'submitted' : 'approved'} label={nomination.stageLabel} />}
           <div style={{ marginInlineStart: 'auto', display: 'flex', gap: '.4rem', flexWrap: 'wrap' }}>
-            <a href={u(`/campaigns/${campaign.id}/shortlist`)} className="btn btn-xs btn-primary">{nomination ? 'مراجعة القائمة' : 'ابدأ الترشيح'}</a>
+            <a href={u(`/campaigns/${campaign.id}/shortlist`)} className="btn btn-xs btn-primary">{nomination ? t('campaigns.inf_review_list') : t('campaigns.inf_start')}</a>
           </div>
         </div>
         {nomination ? (
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(110px, 1fr))', gap: '.7rem' }}>
-            {([['الأساسيون', nomination.primary], ['الاحتياط', nomination.backup], ['معتمَد', nomination.approved], ['بانتظار العميل', nomination.pending]] as [string, number][]).map(([k, v]) => (
+            {([[t('campaigns.inf_primary'), nomination.primary], [t('campaigns.inf_backup'), nomination.backup], [t('campaigns.inf_approved'), nomination.approved], [t('campaigns.inf_pending'), nomination.pending]] as [string, number][]).map(([k, v]) => (
               <div key={k}>
                 <div style={{ fontSize: '.72rem', color: 'var(--ih-text-muted)' }}>{k}</div>
                 <div style={{ fontWeight: 800, fontVariantNumeric: 'tabular-nums' }}>{v}</div>
@@ -333,13 +341,13 @@ export default function CampaignShow({ campaign, metrics, command, lifecycle, re
             ))}
           </div>
         ) : (
-          <div style={{ fontSize: '.82rem', color: 'var(--ih-text-muted)' }}>لم تبدأ الترشيحات لهذه الحملة بعد — ابدأ باختيار المؤثرين المناسبين.</div>
+          <div style={{ fontSize: '.82rem', color: 'var(--ih-text-muted)' }}>{t('campaigns.inf_empty')}</div>
         )}
       </div>
 
       <div style={{ display: 'grid', gridTemplateColumns: '1.3fr .7fr', gap: '1.1rem', alignItems: 'start' }} className="ih-overview-grid">
         <div style={{ display: 'grid', gap: '1.1rem' }}>
-          <Sec title="جاهزية التنفيذ" icon="clipboard-check">
+          <Sec title={t('campaigns.rdy_title')} icon="clipboard-check">
             <div className="ih-sec__body">
               {/* نظرة الجاهزية — دونات تركيب الحالات (بيانات حقيقية من المعايير) */}
               {(() => {
@@ -347,15 +355,15 @@ export default function CampaignShow({ campaign, metrics, command, lifecycle, re
                 // فتُبنى الحلقة من الحالات المنطبقة فقط: جاهز + يحتاج انتباه + محظور = الإجمالي.
                 const attention = Math.max(0, readiness.total - readiness.ready - readiness.blocked);
                 const readySegs = [
-                  { label: 'جاهز', value: readiness.ready, color: 'var(--ih-success-700, #067647)' },
-                  { label: 'يحتاج انتباه', value: attention, color: 'var(--ih-warning-ink, #B54708)' },
-                  { label: 'محظور', value: readiness.blocked, color: 'var(--ih-danger-ink, #B42318)' },
+                  { label: t('campaigns.rdy_state_ready'), value: readiness.ready, color: 'var(--ih-success-700, #067647)' },
+                  { label: t('campaigns.rdy_state_attention'), value: attention, color: 'var(--ih-warning-ink, #B54708)' },
+                  { label: t('campaigns.rdy_state_blocked'), value: readiness.blocked, color: 'var(--ih-danger-ink, #B42318)' },
                 ];
                 return (
                   <div style={{ display: 'flex', alignItems: 'center', gap: '1.3rem', flexWrap: 'wrap', marginBottom: '1rem' }}>
-                    <Donut segments={readySegs} size={116} centerValue={`${readiness.ready}/${readiness.total}`} centerLabel="جاهز" ariaLabel={readySegs.map((s) => `${s.label}: ${s.value}`).join('، ')} />
+                    <Donut segments={readySegs} size={116} centerValue={`${readiness.ready}/${readiness.total}`} centerLabel={t('campaigns.rdy_state_ready')} ariaLabel={readySegs.map((s) => `${s.label}: ${s.value}`).join('، ')} />
                     <div style={{ flex: 1, minWidth: 170 }}>
-                      <div style={{ fontWeight: 800, fontSize: '.9rem', marginBottom: '.5rem' }}>{readiness.percent}٪ جاهز للتنفيذ</div>
+                      <div style={{ fontWeight: 800, fontSize: '.9rem', marginBottom: '.5rem' }}>{t('campaigns.rdy_percent', { n: readiness.percent })}</div>
                       <Legend segments={readySegs} />
                     </div>
                   </div>
@@ -369,7 +377,7 @@ export default function CampaignShow({ campaign, metrics, command, lifecycle, re
                       <div style={{ display: 'flex', alignItems: 'center', gap: '.5rem' }}>
                         <span style={{ width: 20, height: 20, borderRadius: 6, flexShrink: 0, display: 'grid', placeItems: 'center', background: S.bg, color: S.fg, fontWeight: 800, fontSize: '.7rem' }}>{S.mark}</span>
                         <span style={{ fontWeight: 700, fontSize: '.85rem', flex: 1, minWidth: 0 }}>{it.label}</span>
-                        <span className="badge" style={{ background: S.bg, color: S.fg, fontWeight: 700, fontSize: '.66rem' }}>{S.label}</span>
+                        <span className="badge" style={{ background: S.bg, color: S.fg, fontWeight: 700, fontSize: '.66rem' }}>{readyLabel[it.state]}</span>
                       </div>
                       <div style={{ fontSize: '.75rem', color: 'var(--ih-text-secondary)', marginTop: '.35rem', marginInlineStart: '1.7rem' }}>{it.reason}</div>
                       <div style={{ display: 'flex', alignItems: 'center', gap: '.6rem', flexWrap: 'wrap', marginTop: it.evidence || it.action ? '.35rem' : 0, marginInlineStart: '1.7rem' }}>
@@ -385,24 +393,24 @@ export default function CampaignShow({ campaign, metrics, command, lifecycle, re
 
           <div>
             <WorkTabs active={tab} onChange={setTab} tabs={[
-              { key: 'deliverables', label: 'المخرجات', icon: 'image', count: deliverables.length },
-              { key: 'collaborations', label: 'التعاونات', icon: 'git-merge', count: collaborations.length },
-              { key: 'content', label: 'المحتوى', icon: 'image', count: content.length },
-              { key: 'contracts', label: 'العقود', icon: 'file-text', count: contracts.length },
+              { key: 'deliverables', label: t('campaigns.tab_deliverables'), icon: 'image', count: deliverables.length },
+              { key: 'collaborations', label: t('campaigns.tab_collaborations'), icon: 'git-merge', count: collaborations.length },
+              { key: 'content', label: t('campaigns.tab_content'), icon: 'image', count: content.length },
+              { key: 'contracts', label: t('campaigns.tab_contracts'), icon: 'file-text', count: contracts.length },
               // التحصيل من العميل (الفواتير) ومستحقات المبدعين تبقى منفصلة عمدًا
-              { key: 'finance', label: 'التحصيل', icon: 'wallet', count: invoices.length },
-              { key: 'payouts', label: 'المستحقات', icon: 'wallet', count: payouts.length },
+              { key: 'finance', label: t('campaigns.tab_finance'), icon: 'wallet', count: invoices.length },
+              { key: 'payouts', label: t('campaigns.tab_payouts'), icon: 'wallet', count: payouts.length },
             ]} />
             {tab === 'finance' && (
-              <Sec title="فواتير الحملة" icon="wallet">
+              <Sec title={t('campaigns.fin_invoices_title')} icon="wallet">
                 {invoices.length === 0 ? (
                   <>
                     <p style={{ color: 'var(--ih-text-secondary)', fontSize: '.875rem' }}>
-                      لا فواتير على هذه الحملة بعد. عند الإنشاء تُقترح البنود من مخرجاتها المسجّلة.
+                      {t('campaigns.fin_no_invoices')}
                     </p>
                     {canInvoice && (
                       <a href={u('/invoices')} className="btn btn-sm" style={{ marginBlockStart: '.7rem' }}>
-                        إنشاء فاتورة
+                        {t('campaigns.fin_create_invoice')}
                       </a>
                     )}
                   </>
@@ -417,7 +425,7 @@ export default function CampaignShow({ campaign, metrics, command, lifecycle, re
                           <span style={{ direction: 'ltr', fontSize: '.85rem' }}>{sarShort(inv.totalMinor)}</span>
                           {inv.balanceMinor > 0 && (
                             <span style={{ direction: 'ltr', fontSize: '.78rem', color: 'var(--ih-warning-ink)' }}>
-                              متبقٍّ {sarShort(inv.balanceMinor)}
+                              {t('campaigns.fin_balance', { amount: sarShort(inv.balanceMinor) })}
                             </span>
                           )}
                         </a>
@@ -432,11 +440,11 @@ export default function CampaignShow({ campaign, metrics, command, lifecycle, re
               <>
                 {canEditDeliverables && (
                   <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: '.7rem' }}>
-                    <button onClick={() => setDelivOpen(true)} className="btn btn-sm btn-outline"><Icon name="plus" size={14} /> إضافة مخرج</button>
+                    <button onClick={() => setDelivOpen(true)} className="btn btn-sm btn-outline"><Icon name="plus" size={14} /> {t('campaigns.deliv_add')}</button>
                   </div>
                 )}
-                <DataTable head={['النوع', 'المنصّة', 'الكمية', 'المبدع', 'الحالة', ...(canEditDeliverables ? ['—'] : [])]}>
-                  {deliverables.length === 0 ? <EmptyRow span={canEditDeliverables ? 6 : 5} text="لا مخرجات بعد." /> :
+                <DataTable head={[t('campaigns.th_type'), t('campaigns.th_platform'), t('campaigns.th_quantity'), t('campaigns.th_creator'), t('campaigns.th_status'), ...(canEditDeliverables ? ['—'] : [])]}>
+                  {deliverables.length === 0 ? <EmptyRow span={canEditDeliverables ? 6 : 5} text={t('campaigns.deliv_empty')} /> :
                     deliverables.map((d) => (
                       <tr key={d.id}><td style={{ fontWeight: 600 }}>{d.typeLabel}</td><td>{d.platform ?? '—'}</td><td className="ih-dt__num">{d.quantity}</td>
                         <td>{d.creator ?? '—'}</td><td><StatusBadge tone={d.statusTone} label={d.statusLabel} /></td>
@@ -444,8 +452,8 @@ export default function CampaignShow({ campaign, metrics, command, lifecycle, re
                           <td>
                             <span className="ih-dt__row-actions">
                               {/* المطابقة تقترح مبدعين لهذا المخرَج تحديدًا */}
-                              {!d.creator && <a href={u(`/campaigns/${campaign.id}/deliverables/${d.id}/suggest`)} className="btn btn-xs btn-outline">اقترح مبدعين</a>}
-                              <button disabled={busy} onClick={() => removeDeliverable(d.id)} className="btn btn-xs btn-danger">حذف</button>
+                              {!d.creator && <a href={u(`/campaigns/${campaign.id}/deliverables/${d.id}/suggest`)} className="btn btn-xs btn-outline">{t('campaigns.deliv_suggest')}</a>}
+                              <button disabled={busy} onClick={() => removeDeliverable(d.id)} className="btn btn-xs btn-danger">{t('campaigns.action_delete')}</button>
                             </span>
                           </td>
                         )}</tr>
@@ -454,8 +462,8 @@ export default function CampaignShow({ campaign, metrics, command, lifecycle, re
               </>
             )}
             {tab === 'collaborations' && (
-              <DataTable head={['المبدع', 'التعاون', 'الأجر', 'الحالة']}>
-                {collaborations.length === 0 ? <EmptyRow span={4} text="لا تعاونات بعد." /> :
+              <DataTable head={[t('campaigns.th_creator'), t('campaigns.th_collab'), t('campaigns.th_fee'), t('campaigns.th_status')]}>
+                {collaborations.length === 0 ? <EmptyRow span={4} text={t('campaigns.collab_empty')} /> :
                   collaborations.map((c) => (
                     <tr key={c.id}><td style={{ fontWeight: 600 }}>{c.creator ?? '—'}</td><td>{c.title}</td>
                       <td className="ih-dt__num" style={{ direction: 'ltr', textAlign: 'right' }}>{money(c.feeMinor, campaign.currency)}</td>
@@ -464,8 +472,8 @@ export default function CampaignShow({ campaign, metrics, command, lifecycle, re
               </DataTable>
             )}
             {tab === 'content' && (
-              <DataTable head={['المحتوى', 'المبدع', 'المنصّة', 'الحالة']}>
-                {content.length === 0 ? <EmptyRow span={4} text="لا محتوى بعد." /> :
+              <DataTable head={[t('campaigns.th_content'), t('campaigns.th_creator'), t('campaigns.th_platform'), t('campaigns.th_status')]}>
+                {content.length === 0 ? <EmptyRow span={4} text={t('campaigns.content_empty')} /> :
                   content.map((c) => (
                     <tr key={c.id}><td style={{ fontWeight: 600 }}>{c.title}</td><td>{c.creator ?? '—'}</td><td>{c.platform ?? '—'}</td>
                       <td><StatusBadge tone={c.statusTone} label={c.statusLabel} /></td></tr>
@@ -473,8 +481,8 @@ export default function CampaignShow({ campaign, metrics, command, lifecycle, re
               </DataTable>
             )}
             {tab === 'contracts' && (
-              <DataTable head={['العقد', 'الطرف', 'القيمة', 'الحالة']}>
-                {contracts.length === 0 ? <EmptyRow span={4} text="لا عقود على هذه الحملة بعد." /> :
+              <DataTable head={[t('campaigns.th_contract'), t('campaigns.th_party'), t('campaigns.th_value'), t('campaigns.th_status')]}>
+                {contracts.length === 0 ? <EmptyRow span={4} text={t('campaigns.contract_empty')} /> :
                   contracts.map((c) => (
                     <tr key={c.id} style={{ cursor: 'pointer' }} onClick={() => router.visit(u(`/contracts/${c.id}`))}>
                       <td style={{ fontWeight: 600 }}><span style={{ direction: 'ltr', display: 'inline-block' }}>{c.number}</span> · {c.title}</td>
@@ -487,10 +495,10 @@ export default function CampaignShow({ campaign, metrics, command, lifecycle, re
             {tab === 'payouts' && (
               <>
                 <p style={{ color: 'var(--ih-text-secondary)', fontSize: '.8rem', marginBottom: '.6rem' }}>
-                  مستحقات مبدعي هذه الحملة — منفصلة عن التحصيل من العميل.
+                  {t('campaigns.payout_note')}
                 </p>
-                <DataTable head={['المستحق', 'المبدع', 'القيمة', 'الاستحقاق', 'الحالة']}>
-                  {payouts.length === 0 ? <EmptyRow span={5} text="لا مستحقات على هذه الحملة بعد." /> :
+                <DataTable head={[t('campaigns.th_payout'), t('campaigns.th_creator'), t('campaigns.th_value'), t('campaigns.th_due'), t('campaigns.th_status')]}>
+                  {payouts.length === 0 ? <EmptyRow span={5} text={t('campaigns.payout_empty')} /> :
                     payouts.map((p) => (
                       <tr key={p.id} style={{ cursor: 'pointer' }} onClick={() => router.visit(u(`/payouts/${p.id}`))}>
                         <td style={{ fontWeight: 600, direction: 'ltr', textAlign: 'right' }}>{p.number}</td>
@@ -506,10 +514,10 @@ export default function CampaignShow({ campaign, metrics, command, lifecycle, re
         </div>
 
         {/* المخطط الزمني */}
-        <Sec title="المخطط الزمني" icon="bar-chart-3">
+        <Sec title={t('campaigns.tl_title')} icon="bar-chart-3">
           <div className="ih-sec__body">
             {timeline.length === 0 ? (
-              <div style={{ textAlign: 'center', color: 'var(--ih-text-muted)', padding: '1rem', fontSize: '.85rem' }}>لا أحداث بعد.</div>
+              <div style={{ textAlign: 'center', color: 'var(--ih-text-muted)', padding: '1rem', fontSize: '.85rem' }}>{t('campaigns.tl_empty')}</div>
             ) : (
               <div className="ih-tl">
                 {timeline.map((e, i) => (
@@ -527,29 +535,29 @@ export default function CampaignShow({ campaign, metrics, command, lifecycle, re
       {editOpen && (
         <div className="modal-backdrop" onClick={(e) => e.target === e.currentTarget && !busy && setEditOpen(false)}>
           <div className="modal" style={{ padding: '1.3rem', maxWidth: 540 }}>
-            <h3 style={{ fontWeight: 800, margin: '0 0 1rem' }}>تعديل الحملة</h3>
+            <h3 style={{ fontWeight: 800, margin: '0 0 1rem' }}>{t('campaigns.edit_title')}</h3>
             <div style={{ display: 'grid', gap: '.8rem' }}>
-              <Field label="اسم الحملة" labelStyle={LBL}>
+              <Field label={t('campaigns.f_name')} labelStyle={LBL}>
                 <input value={eform.name} onChange={(e) => setEform({ ...eform, name: e.target.value })} className="field" style={{ width: '100%' }} />
               </Field>
-              <Field label="الهدف" labelStyle={LBL}>
+              <Field label={t('campaigns.edit_objective')} labelStyle={LBL}>
                 <textarea value={eform.objective} onChange={(e) => setEform({ ...eform, objective: e.target.value })} className="field" rows={2} style={{ width: '100%', resize: 'vertical' }} />
               </Field>
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '.8rem' }}>
-                <Field label="الميزانية (ر.س)" labelStyle={LBL}>
+                <Field label={t('campaigns.f_budget')} labelStyle={LBL}>
                   <input type="number" min="0" value={eform.budget} onChange={(e) => setEform({ ...eform, budget: e.target.value })} className="field" style={{ width: '100%', direction: 'ltr' }} />
                 </Field>
-                <Field label="البداية" labelStyle={LBL}>
+                <Field label={t('campaigns.f_start')} labelStyle={LBL}>
                   <input type="date" value={eform.start_date} onChange={(e) => setEform({ ...eform, start_date: e.target.value })} className="field" style={{ width: '100%', direction: 'ltr' }} />
                 </Field>
-                <Field label="النهاية" labelStyle={LBL}>
+                <Field label={t('campaigns.f_end')} labelStyle={LBL}>
                   <input type="date" value={eform.end_date} onChange={(e) => setEform({ ...eform, end_date: e.target.value })} className="field" style={{ width: '100%', direction: 'ltr' }} />
                 </Field>
               </div>
             </div>
             <div style={{ marginTop: '1rem', display: 'flex', gap: '.5rem' }}>
-              <button disabled={busy || !eform.name.trim()} onClick={saveEdit} className="btn btn-primary">حفظ</button>
-              <button disabled={busy} onClick={() => setEditOpen(false)} className="btn btn-ghost">إلغاء</button>
+              <button disabled={busy || !eform.name.trim()} onClick={saveEdit} className="btn btn-primary">{t('campaigns.action_save')}</button>
+              <button disabled={busy} onClick={() => setEditOpen(false)} className="btn btn-ghost">{t('campaigns.cancel')}</button>
             </div>
           </div>
         </div>
@@ -557,30 +565,30 @@ export default function CampaignShow({ campaign, metrics, command, lifecycle, re
       {delivOpen && (
         <div className="modal-backdrop" onClick={(e) => e.target === e.currentTarget && !busy && setDelivOpen(false)}>
           <div className="modal" style={{ padding: '1.3rem', maxWidth: 460 }}>
-            <h3 style={{ fontWeight: 800, margin: '0 0 1rem' }}>إضافة مخرج</h3>
+            <h3 style={{ fontWeight: 800, margin: '0 0 1rem' }}>{t('campaigns.deliv_add')}</h3>
             <div style={{ display: 'grid', gap: '.8rem' }}>
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '.8rem' }}>
-                <Field label="النوع" labelStyle={LBL}>
+                <Field label={t('campaigns.th_type')} labelStyle={LBL}>
                   <select value={dform.type} onChange={(e) => setDform({ ...dform, type: e.target.value })} className="field" style={{ width: '100%' }}>
-                    {deliverableTypes.map((t) => <option key={t.value} value={t.value}>{t.label}</option>)}
+                    {deliverableTypes.map((opt) => <option key={opt.value} value={opt.value}>{opt.label}</option>)}
                   </select>
                 </Field>
-                <Field label="الكمية" labelStyle={LBL}>
+                <Field label={t('campaigns.th_quantity')} labelStyle={LBL}>
                   <input type="number" min="1" value={dform.quantity} onChange={(e) => setDform({ ...dform, quantity: e.target.value })} className="field" style={{ width: '100%', direction: 'ltr' }} />
                 </Field>
               </div>
-              <Field label="المنصّة (اختياري)" labelStyle={LBL}>
+              <Field label={t('campaigns.d_platform_opt')} labelStyle={LBL}>
                 <input value={dform.platform} onChange={(e) => setDform({ ...dform, platform: e.target.value })} className="field" style={{ width: '100%', direction: 'ltr' }} placeholder="instagram / tiktok…" />
               </Field>
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '.8rem' }}>
                 {/* «أتعاب الوحدة» لا «الأتعاب»: الحساب يضربها في الكمية، ولفظ
                     مبهم هنا يعني تسعير حملة كاملة بالخطأ. */}
-                <Field label="أتعاب الوحدة (ر.س)" labelStyle={LBL}>
+                <Field label={t('campaigns.d_unit_fee')} labelStyle={LBL}>
                   <input type="number" min="0" step="0.01" value={dform.fee_riyals}
                     onChange={(e) => setDform({ ...dform, fee_riyals: e.target.value })}
                     className="field" style={{ width: '100%', direction: 'ltr' }} />
                 </Field>
-                <Field label="تاريخ الاستحقاق" labelStyle={LBL}>
+                <Field label={t('campaigns.d_due_date')} labelStyle={LBL}>
                   <input type="date" value={dform.due_date}
                     onChange={(e) => setDform({ ...dform, due_date: e.target.value })}
                     className="field" style={{ width: '100%', direction: 'ltr' }} />
@@ -589,21 +597,21 @@ export default function CampaignShow({ campaign, metrics, command, lifecycle, re
               <p style={{ fontSize: '.72rem', color: 'var(--ih-text-muted)', margin: 0 }}>
                 {dform.fee_riyals && Number(dform.fee_riyals) > 0 ? (
                   <>
-                    إجمالي هذا المخرَج{' '}
+                    {t('campaigns.d_total_prefix')}{' '}
                     <b style={{ direction: 'ltr', display: 'inline-block' }}>
                       {(Number(dform.fee_riyals) * (parseInt(dform.quantity) || 1))
-                        .toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ر.س
+                        .toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} {t('campaigns.currency_sar')}
                     </b>{' '}
-                    — ينتقل إلى بند الفاتورة وإلى مستحق المبدع فلا يُدخَل مرّتين.
+                    {t('campaigns.d_total_suffix')}
                   </>
                 ) : (
-                  'أتعاب الوحدة تنتقل إلى بند الفاتورة وإلى مستحق المبدع — فلا تُدخَل مرّتين.'
+                  t('campaigns.d_fee_note')
                 )}
               </p>
             </div>
             <div style={{ marginTop: '1rem', display: 'flex', gap: '.5rem' }}>
-              <button disabled={busy} onClick={addDeliverable} className="btn btn-primary">إضافة</button>
-              <button disabled={busy} onClick={() => setDelivOpen(false)} className="btn btn-ghost">إلغاء</button>
+              <button disabled={busy} onClick={addDeliverable} className="btn btn-primary">{t('campaigns.action_add')}</button>
+              <button disabled={busy} onClick={() => setDelivOpen(false)} className="btn btn-ghost">{t('campaigns.cancel')}</button>
             </div>
           </div>
         </div>
@@ -613,10 +621,10 @@ export default function CampaignShow({ campaign, metrics, command, lifecycle, re
           <div className="modal" style={{ padding: '1.3rem', maxWidth: 460 }}>
             <h3 style={{ fontWeight: 800, margin: '0 0 1rem' }}>{actionFor[1]}</h3>
             <textarea value={actionReason} onChange={(e) => setActionReason(e.target.value)} className="field" rows={3}
-              style={{ width: '100%' }} placeholder="ملاحظة (اختياري)" autoFocus />
+              style={{ width: '100%' }} placeholder={t('campaigns.action_note_ph')} autoFocus />
             <div style={{ marginTop: '1rem', display: 'flex', gap: '.5rem' }}>
-              <button onClick={submitAction} className={`btn ${ABTN[actionFor[2]] ?? 'btn-primary'}`}>تأكيد</button>
-              <button onClick={() => setActionFor(null)} className="btn btn-ghost">إلغاء</button>
+              <button onClick={submitAction} className={`btn ${ABTN[actionFor[2]] ?? 'btn-primary'}`}>{t('campaigns.confirm')}</button>
+              <button onClick={() => setActionFor(null)} className="btn btn-ghost">{t('campaigns.cancel')}</button>
             </div>
           </div>
         </div>
