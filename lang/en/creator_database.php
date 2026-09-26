@@ -59,9 +59,27 @@ return [
     'cat_all_count' => 'Show all categories (:n)',
     'filter_by' => 'Filter: :cat',
 
+    // Phase G filters
+    'f_category' => 'Category',
+    'all_categories' => 'All categories',
+    'clear_all' => 'Clear all',
+    'active_filters' => 'Active filters',
+
+    // Quick-preview drawer
+    'preview_aria' => 'Creator preview',
+    'view_profile' => 'Full profile',
+    'add_to_campaign' => 'Add to campaign',
+    'sec_about' => 'About',
+    'sec_reach' => 'Reach',
+    'sec_pricing' => 'Pricing',
+    'sec_notes' => 'Your private notes',
+    'notes_none' => 'No notes yet.',
+    'loading' => 'Loading…',
+
     // Empty state
     'empty_title' => 'No matching creators',
     'empty_text' => 'No results for the current search or filters.',
+    'empty_hint' => 'Try removing some filters or widening your search.',
 
     // Creator card
     'm_followers' => 'Followers',
