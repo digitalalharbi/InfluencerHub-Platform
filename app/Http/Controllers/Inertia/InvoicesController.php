@@ -2,14 +2,25 @@
 
 namespace App\Http\Controllers\Inertia;
 
+use App\Domain\Audit\Services\AuditLogger;
+use App\Domain\Campaigns\Models\Campaign;
+use App\Domain\Campaigns\Models\CampaignDeliverable;
 use App\Domain\CRM\Models\Client;
-use App\Domain\Campaigns\Models\{Campaign, CampaignDeliverable};
-use App\Domain\Finance\Models\{Invoice, InvoicePayment};
+use App\Domain\Exports\DocumentArtifactService;
+use App\Domain\Exports\Models\ExportJob;
+use App\Domain\Finance\Models\Invoice;
+use App\Domain\Finance\Models\InvoicePayment;
 use App\Domain\Finance\Services\InvoiceService;
+use App\Domain\Tenancy\Models\Organization;
+use App\Domain\Tenancy\Support\TenantContext;
 use App\Http\Controllers\Controller;
+use App\Support\Brand;
 use App\Support\Http\MountPrefix;
-use Illuminate\Http\{RedirectResponse, Request};
-use Inertia\{Inertia, Response};
+use Illuminate\Http\JsonResponse;
+use Illuminate\Http\RedirectResponse;
+use Illuminate\Http\Request;
+use Inertia\Inertia;
+use Inertia\Response;
 
 /**
  * فواتير العملاء.
@@ -22,9 +33,7 @@ use Inertia\{Inertia, Response};
  */
 class InvoicesController extends Controller
 {
-    public function __construct(private InvoiceService $svc)
-    {
-    }
+    public function __construct(private InvoiceService $svc) {}
 
     public function index(Request $r): Response
     {
@@ -50,7 +59,7 @@ class InvoicesController extends Controller
             'filters' => $r->only('q', 'seg'),
             'canCreate' => $r->user()->can('create', Invoice::class),
             // معاينة الإنشاء تحسب الضريبة، فتأخذ النسبة من مصدرها لا من رقم ثابت
-            'defaultTaxRateBp' => \App\Domain\Finance\Services\InvoiceService::DEFAULT_TAX_RATE_BP,
+            'defaultTaxRateBp' => InvoiceService::DEFAULT_TAX_RATE_BP,
             'summary' => [
                 'total' => Invoice::count(),
                 'draft' => $count('draft'),
@@ -66,6 +75,7 @@ class InvoicesController extends Controller
 
     /** فاتورة PDF عربية RTL احترافية (تنزيل مُوثّق، لا رابط عام). */
     private const INV_TYPE = 'invoice_pdf';
+
     private const INV_TEMPLATE = 'v1';
 
     /** بيانات الفاتورة للقالب — حتمية (تُحدّد البصمة). العملة بالرمز ISO مناسبة للمستند المالي. */
@@ -73,7 +83,7 @@ class InvoicesController extends Controller
     {
         $invoice->loadMissing('client', 'campaign', 'brand', 'items');
         $cur = $invoice->currency ?: 'SAR';
-        $m = fn (int $minor) => number_format($minor / 100, 2) . ' ' . $cur;
+        $m = fn (int $minor) => number_format($minor / 100, 2).' '.$cur;
         $statusMap = [
             'draft' => ['مسودة', ['#eef2f7', '#475467']], 'issued' => ['صادرة', ['#eff8ff', '#175cd3']],
             'partially_paid' => ['مدفوعة جزئيًا', ['#fffaeb', '#b54708']], 'paid' => ['مدفوعة', ['#ecfdf3', '#067647']],
@@ -82,14 +92,14 @@ class InvoicesController extends Controller
         [$statusLabel, $statusColor] = $statusMap[$invoice->status] ?? [$invoice->status, ['#eef2f7', '#475467']];
 
         return [
-            'workspace' => \App\Domain\Tenancy\Support\TenantContext::organizationId()
-                ? \App\Domain\Tenancy\Models\Organization::find(\App\Domain\Tenancy\Support\TenantContext::organizationId())?->name : \App\Support\Brand::name(),
+            'workspace' => TenantContext::organizationId()
+                ? Organization::find(TenantContext::organizationId())?->name : Brand::name(),
             'inv' => [
                 'number' => $invoice->invoice_number, 'client' => $invoice->client?->display_name ?? '—',
                 'brand' => $invoice->brand?->name, 'campaign' => $invoice->campaign?->name,
                 'statusLabel' => $statusLabel, 'statusColor' => $statusColor,
                 'issueDate' => $invoice->issue_date?->format('Y-m-d'), 'dueDate' => $invoice->due_date?->format('Y-m-d'),
-                'currency' => $cur, 'taxRate' => number_format(($invoice->tax_rate_bp ?? 0) / 100, 2) . '%',
+                'currency' => $cur, 'taxRate' => number_format(($invoice->tax_rate_bp ?? 0) / 100, 2).'%',
                 'items' => $invoice->items->map(fn ($it) => [
                     'description' => $it->description, 'quantity' => $it->quantity,
                     'unitPrice' => $m($it->unit_price_minor), 'lineTotal' => $m($it->line_total_minor),
@@ -103,64 +113,73 @@ class InvoicesController extends Controller
         ];
     }
 
-    private function invoiceArtifact(Request $r, Invoice $invoice, \App\Domain\Exports\DocumentArtifactService $svc, bool $regenerate = false): \App\Domain\Exports\Models\ExportJob
+    private function invoiceArtifact(Request $r, Invoice $invoice, DocumentArtifactService $svc, bool $regenerate = false): ExportJob
     {
         $data = $this->invoiceData($invoice);
         $render = function () use ($invoice, $data, $svc, $r) {
-            \App\Domain\Audit\Services\AuditLogger::log('export.generated', $invoice, ['type' => self::INV_TYPE, 'format' => 'pdf'], $invoice->tenant_id, $r->user()?->id);
+            AuditLogger::log('export.generated', $invoice, ['type' => self::INV_TYPE, 'format' => 'pdf'], $invoice->tenant_id, $r->user()?->id);
+
             return $svc->pdfFromView('exports.invoice', $data);
         };
         if (! $regenerate) {
             $latest = $svc->latest(self::INV_TYPE, $invoice);
-            if ($latest) return $latest;
+            if ($latest) {
+                return $latest;
+            }
         }
+
         return $svc->current(self::INV_TYPE, $invoice, 'pdf', self::INV_TEMPLATE, $data,
-            'فاتورة ' . $invoice->invoice_number, $render, $r->user()?->id);
+            'فاتورة '.$invoice->invoice_number, $render, $r->user()?->id);
     }
 
-    private function streamInvoice(\App\Domain\Exports\Models\ExportJob $a, \App\Domain\Exports\DocumentArtifactService $svc, string $disposition)
+    private function streamInvoice(ExportJob $a, DocumentArtifactService $svc, string $disposition)
     {
         $bytes = $svc->bytes($a);
+
         return response($bytes, 200, [
             'Content-Type' => 'application/pdf',
-            'Content-Disposition' => $disposition . '; filename="' . \App\Support\Brand::documentFilename($a->title) . '"',
+            'Content-Disposition' => $disposition.'; filename="'.Brand::documentFilename($a->title).'"',
             'Content-Length' => (string) strlen($bytes), 'X-Artifact-Checksum' => $a->checksum,
         ]);
     }
 
-    public function pdfPreview(Request $r, Invoice $invoice, \App\Domain\Exports\DocumentArtifactService $svc)
+    public function pdfPreview(Request $r, Invoice $invoice, DocumentArtifactService $svc)
     {
         $this->authorize('view', $invoice);
+
         return $this->streamInvoice($this->invoiceArtifact($r, $invoice, $svc), $svc, 'inline');
     }
 
-    public function pdfDownload(Request $r, Invoice $invoice, \App\Domain\Exports\DocumentArtifactService $svc)
+    public function pdfDownload(Request $r, Invoice $invoice, DocumentArtifactService $svc)
     {
         $this->authorize('view', $invoice);
+
         return $this->streamInvoice($this->invoiceArtifact($r, $invoice, $svc), $svc, 'attachment');
     }
 
-    public function pdfRegenerate(Request $r, Invoice $invoice, \App\Domain\Exports\DocumentArtifactService $svc): \Illuminate\Http\RedirectResponse
+    public function pdfRegenerate(Request $r, Invoice $invoice, DocumentArtifactService $svc): RedirectResponse
     {
         $this->authorize('view', $invoice);
         $this->invoiceArtifact($r, $invoice, $svc, regenerate: true);
+
         return back()->with('ok', 'أُنشئت نسخة محدّثة من الفاتورة.');
     }
 
     /** توافق خلفي: الرابط القديم يُنزّل الأثر ذاته. */
-    public function exportPdf(Request $r, Invoice $invoice, \App\Domain\Exports\DocumentArtifactService $svc)
+    public function exportPdf(Request $r, Invoice $invoice, DocumentArtifactService $svc)
     {
         return $this->pdfDownload($r, $invoice, $svc);
     }
 
     /** بيانات مستند الفاتورة لصفحة العرض — مسارات نسبية للتركيب. */
-    public function invoiceDocMeta(Invoice $invoice, \App\Domain\Exports\DocumentArtifactService $svc): array
+    public function invoiceDocMeta(Invoice $invoice, DocumentArtifactService $svc): array
     {
         $latest = $svc->latest(self::INV_TYPE, $invoice);
         $currentFp = $svc->fingerprint($this->invoiceData($invoice), self::INV_TEMPLATE, 'pdf');
         $base = "/invoices/{$invoice->id}/pdf";
+
         return [
-            'title' => 'فاتورة ' . $invoice->invoice_number,
+            'title' => 'فاتورة '.$invoice->invoice_number,
             'hasArtifact' => (bool) $latest,
             'generatedAt' => $latest?->created_at?->format('Y-m-d H:i'),
             'stale' => $svc->isStale($latest, $currentFp),
@@ -168,7 +187,7 @@ class InvoicesController extends Controller
         ];
     }
 
-    public function show(Request $r, Invoice $invoice, \App\Domain\Exports\DocumentArtifactService $artifacts): Response
+    public function show(Request $r, Invoice $invoice, DocumentArtifactService $artifacts): Response
     {
         $this->authorize('view', $invoice);
         $invoice->load('client', 'campaign', 'brand', 'items', 'payments', 'statusHistory');
@@ -197,8 +216,8 @@ class InvoicesController extends Controller
                 'receivedAt' => $p->received_at?->format('Y-m-d'), 'note' => $p->note,
             ]),
             'history' => $invoice->statusHistory->sortByDesc('id')->values()->map(fn ($h) => [
-                'from' => $h->from_status ? __('statuses.' . $h->from_status) : '—',
-                'to' => __('statuses.' . $h->to_status),
+                'from' => $h->from_status ? __('statuses.'.$h->from_status) : '—',
+                'to' => __('statuses.'.$h->to_status),
                 'reason' => $h->reason, 'at' => $h->occurred_at?->format('Y-m-d H:i'),
             ]),
             // كل زرّ بصلاحيته: الواجهة تعكس ما يسمح به الخادم لا أكثر
@@ -210,7 +229,7 @@ class InvoicesController extends Controller
                 'cancel' => $r->user()->can('cancel', $invoice)
                     && in_array($invoice->status, ['draft', ...Invoice::OPEN], true),
             ],
-            'paymentMethods' => InvoicePayment::METHODS,
+            'paymentMethods' => InvoicePayment::methods(),
         ]);
     }
 
@@ -262,7 +281,7 @@ class InvoicesController extends Controller
 
         $data = $r->validate([
             'amount_riyals' => 'required|numeric|min:0.01',
-            'method' => 'required|string|in:' . implode(',', array_keys(InvoicePayment::METHODS)),
+            'method' => 'required|string|in:'.implode(',', array_keys(InvoicePayment::METHODS)),
             'received_at' => 'required|date',
             'provider_reference' => 'nullable|string|max:120',
             'note' => 'nullable|string|max:500',
@@ -301,12 +320,12 @@ class InvoicesController extends Controller
      * بنود مقترحة من مخرجات الحملة — لا يُعاد إدخال ما هو مسجّل أصلًا.
      * اقتراح لا إلزام: قد تُفوتَر الحملة على دفعات.
      */
-    public function suggestItems(Request $r, Campaign $campaign): \Illuminate\Http\JsonResponse
+    public function suggestItems(Request $r, Campaign $campaign): JsonResponse
     {
         $this->authorize('create', Invoice::class);
 
         $items = CampaignDeliverable::where('campaign_id', $campaign->id)->get()->map(fn ($d) => [
-            'description' => trim(($d->type ?? 'مخرَج') . ' · ' . ($d->platform ?? '')),
+            'description' => trim(($d->type ?? 'مخرَج').' · '.($d->platform ?? '')),
             'quantity' => (int) ($d->quantity ?: 1),
             'unit_price_minor' => (int) ($d->fee_minor ?? 0),
             'deliverable_id' => $d->id,
@@ -394,8 +413,8 @@ class InvoicesController extends Controller
             'client' => $i->client?->display_name,
             'campaign' => $i->campaign?->name,
             'status' => $i->status,
-            'statusLabel' => __('statuses.' . $i->status),
-            'statusTone' => __('statuses.tone.' . $i->status),
+            'statusLabel' => __('statuses.'.$i->status),
+            'statusTone' => __('statuses.tone.'.$i->status),
             'currency' => $i->currency,
             'totalMinor' => $i->total_minor,
             'paidMinor' => $paid,
