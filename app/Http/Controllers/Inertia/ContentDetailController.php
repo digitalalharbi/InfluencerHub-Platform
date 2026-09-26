@@ -6,8 +6,10 @@ use App\Domain\Content\Models\ContentItem;
 use App\Domain\Content\Services\ContentWorkflowService;
 use App\Domain\Identity\Models\User;
 use App\Http\Controllers\Controller;
+use App\Support\Workflow\WaitingOn;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Lang;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -20,14 +22,27 @@ class ContentDetailController extends Controller
     private const TYPE_LABEL = ['post' => 'منشور', 'story' => 'ستوري', 'reel' => 'ريل', 'video' => 'فيديو', 'ugc' => 'UGC'];
 
     /** [action, label, tone, input(none|reason|schedule)]. */
+    /** [action, labelKey (content.act_*), tone, prompt]. التسمية تُترجَم في build. */
     private const ACTIONS = [
-        'submitted' => [['start-review', 'بدء المراجعة', 'primary', 'none']],
-        'agency_review' => [['send-to-client', 'إرسال للعميل', 'primary', 'none'], ['request-changes', 'طلب تعديل', 'ghost', 'reason'], ['reject', 'رفض', 'danger', 'reason']],
-        'approved' => [['publish', 'نشر', 'primary', 'none'], ['schedule', 'جدولة النشر', 'ghost', 'schedule']],
-        'scheduled' => [['publish', 'نشر الآن', 'primary', 'none'], ['reschedule', 'تغيير الموعد', 'ghost', 'schedule']],
+        'submitted' => [['start-review', 'start_review', 'primary', 'none']],
+        'agency_review' => [['send-to-client', 'send_client', 'primary', 'none'], ['request-changes', 'request_changes', 'ghost', 'reason'], ['reject', 'reject', 'danger', 'reason']],
+        'approved' => [['publish', 'publish', 'primary', 'none'], ['schedule', 'schedule', 'ghost', 'schedule']],
+        'scheduled' => [['publish', 'publish_now', 'primary', 'none'], ['reschedule', 'reschedule', 'ghost', 'schedule']],
         'draft' => [], 'changes_requested' => [], 'client_review' => [], 'published' => [], 'rejected' => [],
     ];
+
     private const DECISION_LABEL = ['approved' => 'موافقة', 'changes_requested' => 'طلب تعديل', 'rejected' => 'رفض'];
+
+    /** تسمية دور الفاعل/القرار بلغة الطلب، مع رجوع للثابت العربيّ إن غابت الترجمة. */
+    private static function actorLabel(?string $t): string
+    {
+        return $t && Lang::has("content.actor_{$t}") ? trans("content.actor_{$t}") : (self::ACTOR_LABEL[$t] ?? (string) $t);
+    }
+
+    private static function decisionLabel(string $d): string
+    {
+        return Lang::has("content.dec_{$d}") ? trans("content.dec_{$d}") : (self::DECISION_LABEL[$d] ?? $d);
+    }
 
     /** أسماء المراحل/الحالات في السجل — لا مفاتيح خام في الواجهة. */
     private const ACTOR_LABEL = ['agency' => 'الوكالة', 'client' => 'العميل', 'creator' => 'المبدع'];
@@ -37,17 +52,17 @@ class ContentDetailController extends Controller
         $this->authorize('view', $content);
         $c = $content->load('creator', 'client', 'campaign', 'approvals', 'statusHistory');
         $canReview = $r->user()->can('review', $c);
-        $st = fn ($s) => __('statuses.' . $s);
+        $st = fn ($s) => __('statuses.'.$s);
 
         return Inertia::render('Content/Show', [
             'content' => [
                 'id' => $c->id, 'number' => $c->content_number, 'title' => $c->title,
-                'type' => self::TYPE_LABEL[$c->type] ?? $c->type, 'platform' => $c->platform,
+                'type' => Lang::has("content.t_{$c->type}") ? trans("content.t_{$c->type}") : (self::TYPE_LABEL[$c->type] ?? $c->type), 'platform' => $c->platform,
                 'caption' => $c->caption, 'mediaUrl' => $c->media_url, 'version' => (int) $c->version,
                 'creator' => $c->creator?->display_name, 'creatorId' => $c->creator_id,
                 'client' => $c->client?->display_name, 'clientId' => $c->client_id,
                 'campaign' => $c->campaign?->name, 'campaignId' => $c->campaign_id,
-                'status' => $c->status, 'statusLabel' => $st($c->status), 'statusTone' => __('statuses.tone.' . $c->status),
+                'status' => $c->status, 'statusLabel' => $st($c->status), 'statusTone' => __('statuses.tone.'.$c->status),
                 'scheduledAt' => $c->scheduled_at?->format('Y-m-d H:i'), 'publishedAt' => $c->published_at?->format('Y-m-d H:i'),
                 // إثبات النشر ونتائجه — الفاتورة والتقرير يُبنيان عليهما
                 'publishedUrl' => $c->published_url, 'proofNote' => $c->proof_note,
@@ -56,15 +71,17 @@ class ContentDetailController extends Controller
                     'reach' => $c->reach, 'impressions' => $c->impressions,
                     'engagements' => $c->engagements, 'clicks' => $c->clicks,
                     // المصدر يُعرَض دائمًا: رقم بلا مصدر ادّعاء
-                    'source' => $c->results_source === 'platform' ? 'من المنصّة' : 'إدخال يدوي',
+                    'source' => trans('content.src_'.($c->results_source === 'platform' ? 'platform' : 'manual')),
                     'at' => $c->results_at->format('Y-m-d H:i'),
                 ] : null,
             ],
             'canReview' => $canReview,
-            'actions' => $canReview ? (self::ACTIONS[$c->status] ?? []) : [],
+            'actions' => $canReview
+                ? array_map(fn ($a) => [$a[0], trans("content.act_{$a[1]}"), $a[2], $a[3]], self::ACTIONS[$c->status] ?? [])
+                : [],
             // الانتظار حالة مشروعة لكنها تُعلَن: قائمة إجراءات فارغة
             // بلا تفسير تبدو عطلًا أو صلاحية ناقصة.
-            'waitingOn' => \App\Support\Workflow\WaitingOn::for('content', $c->status),
+            'waitingOn' => WaitingOn::for('content', $c->status),
             'approvals' => $c->approvals->sortByDesc('id')->values()->map(fn ($a) => [
                 'stage' => $a->stage === 'client' ? 'العميل' : 'الوكالة',
                 'decision' => self::DECISION_LABEL[$a->decision] ?? $a->decision,
@@ -83,17 +100,17 @@ class ContentDetailController extends Controller
             ->merge($c->approvals->pluck('reviewer_id'))
             ->filter()->unique()->values();
         $names = User::whereIn('id', $userIds)->pluck('name', 'id');
-        $st = fn ($s) => __('statuses.' . $s);
+        $st = fn ($s) => __('statuses.'.$s);
 
         $entries = [];
         foreach ($c->statusHistory as $h) {
             $isReschedule = $h->from_status === 'scheduled' && $h->to_status === 'scheduled';
             $entries[] = [
                 'kind' => 'status',
-                'label' => $isReschedule ? 'إعادة جدولة' : ($h->from_status ? $st($h->from_status) . ' ← ' . $st($h->to_status) : $st($h->to_status)),
+                'label' => $isReschedule ? trans('content.tl_reschedule') : ($h->from_status ? $st($h->from_status).' ← '.$st($h->to_status) : $st($h->to_status)),
                 'toStatus' => $h->to_status,
                 'actor' => $names[$h->actor_id] ?? null,
-                'role' => self::ACTOR_LABEL[$h->actor_type] ?? $h->actor_type,
+                'role' => self::actorLabel($h->actor_type),
                 'note' => $h->reason,
                 'version' => null,
                 'at' => $h->occurred_at?->format('Y-m-d H:i'),
@@ -103,7 +120,7 @@ class ContentDetailController extends Controller
         foreach ($c->approvals as $a) {
             $entries[] = [
                 'kind' => 'decision',
-                'label' => (self::ACTOR_LABEL[$a->reviewer_type] ?? $a->stage) . ': ' . (self::DECISION_LABEL[$a->decision] ?? $a->decision),
+                'label' => (Lang::has("content.actor_{$a->reviewer_type}") ? trans("content.actor_{$a->reviewer_type}") : (self::ACTOR_LABEL[$a->reviewer_type] ?? $a->stage)).': '.self::decisionLabel($a->decision),
                 'toStatus' => null,
                 'decision' => $a->decision,
                 'actor' => $names[$a->reviewer_id] ?? null,
@@ -149,6 +166,7 @@ class ContentDetailController extends Controller
         } catch (\RuntimeException $e) {
             return back()->withErrors(['wf' => $e->getMessage()]);
         }
+
         return back()->with('ok', 'حُدّثت حالة المحتوى.');
     }
 }

@@ -4,6 +4,7 @@ import AppShell from '@/Layouts/AppShell';
 import { Sec, SummaryStrip, WorkspaceHeader , WaitingNotice } from '@/Components/ui';
 import type { SharedProps } from '@/types';
 import { u } from '@/lib/href';
+import { useT } from '@/lib/i18n';
 
 interface Content {
   id: number; number: string; title: string; type: string; platform: string | null;
@@ -23,6 +24,7 @@ interface Props { content: Content; canReview: boolean; actions: Action[]; appro
 const BTN: Record<string, string> = { primary: 'btn-primary', danger: 'btn-danger', ghost: 'btn-ghost' };
 
 export default function ContentShow({ content, canReview, actions, approvals, timeline, waitingOn}: Props) {
+  const t = useT();
   const { props } = usePage<SharedProps>();
   const [modalFor, setModalFor] = useState<Action | null>(null);
   const [reason, setReason] = useState('');
@@ -61,20 +63,20 @@ export default function ContentShow({ content, canReview, actions, approvals, ti
   const modalValid = modalFor?.[3] === 'schedule' ? !!scheduledAt : !!reason.trim();
 
   return (
-    <AppShell heading="مراجعة محتوى">
+    <AppShell heading={t('content.show_heading')}>
       <Head title={content.title} />
 
       {props.flash?.ok && <div className="card" style={{ padding: '.7rem 1rem', marginBottom: '1rem', borderInlineStart: '3px solid var(--ih-success)', background: 'var(--ih-success-soft)', color: 'var(--ih-success-ink)' }}>{props.flash.ok}</div>}
 
       <WorkspaceHeader
-        eyebrow={`مراجعة محتوى · ${content.number} · v${content.version}`}
+        eyebrow={t('content.show_eyebrow', { num: content.number, ver: content.version })}
         title={content.title}
         statusTone={content.statusTone} statusLabel={content.statusLabel}
-        back={u("/content")} backLabel="كل المحتوى"
+        back={u("/content")} backLabel={t('content.back_all')}
         meta={[
-          ['المبدع', content.creator ?? '—'], ['العميل', content.client ?? '—'],
-          ['النوع', content.type], ['المنصّة', content.platform ?? '—'],
-          ...(content.campaign ? [['الحملة', content.campaign] as [string, string]] : []),
+          [t('content.m_creator'), content.creator ?? '—'], [t('content.m_client'), content.client ?? '—'],
+          [t('content.m_type'), content.type], [t('content.m_platform'), content.platform ?? '—'],
+          ...(content.campaign ? [[t('content.m_campaign'), content.campaign] as [string, string]] : []),
         ]}
         actions={canReview && actions.length > 0 ? <>{actions.map((a) => (
           <button key={a[0]} onClick={() => runAction(a)} className={`btn btn-sm ${BTN[a[2]] ?? 'btn-outline'}`}>{a[1]}</button>
@@ -85,33 +87,33 @@ export default function ContentShow({ content, canReview, actions, approvals, ti
       <WaitingNotice waiting={waitingOn} />
 
       <SummaryStrip items={[
-        { label: 'الإصدار', value: `v${content.version}`, icon: 'file-text' },
-        { label: 'النوع', value: content.type, icon: 'image' },
-        { label: 'قرارات المراجعة', value: approvals.length, icon: 'clipboard-check' },
-        { label: 'مجدول', value: content.scheduledAt ?? '—' },
-        { label: 'نُشر', value: content.publishedAt ?? '—' },
+        { label: t('content.ss_version'), value: `v${content.version}`, icon: 'file-text' },
+        { label: t('content.m_type'), value: content.type, icon: 'image' },
+        { label: t('content.ss_review_decisions'), value: approvals.length, icon: 'clipboard-check' },
+        { label: t('content.ss_scheduled'), value: content.scheduledAt ?? '—' },
+        { label: t('content.ss_published'), value: content.publishedAt ?? '—' },
       ]} />
 
       <div className="ih-overview-grid" style={{ display: 'grid', gridTemplateColumns: '1.3fr .7fr', gap: '1.1rem', alignItems: 'start' }}>
         <div style={{ display: 'grid', gap: '1.1rem' }}>
-          <Sec title="المحتوى" icon="image">
+          <Sec title={t('content.sec_content')} icon="image">
             <div className="ih-sec__body" style={{ display: 'grid', gap: '.9rem' }}>
-              {content.mediaUrl && <div><div style={{ fontSize: '.74rem', color: 'var(--ih-text-muted)' }}>رابط المحتوى</div><a href={content.mediaUrl} target="_blank" rel="noopener" style={{ color: 'var(--ih-primary)', direction: 'ltr', display: 'inline-block' }}>{content.mediaUrl}</a></div>}
-              {content.caption && <div><div style={{ fontSize: '.74rem', color: 'var(--ih-text-muted)' }}>النص</div><p style={{ margin: '.3rem 0 0', lineHeight: 1.7, whiteSpace: 'pre-wrap' }}>{content.caption}</p></div>}
-              {!content.mediaUrl && !content.caption && <div style={{ color: 'var(--ih-text-muted)', fontSize: '.85rem' }}>لا رابط ولا نص بعد.</div>}
+              {content.mediaUrl && <div><div style={{ fontSize: '.74rem', color: 'var(--ih-text-muted)' }}>{t('content.media_url')}</div><a href={content.mediaUrl} target="_blank" rel="noopener" style={{ color: 'var(--ih-primary)', direction: 'ltr', display: 'inline-block' }}>{content.mediaUrl}</a></div>}
+              {content.caption && <div><div style={{ fontSize: '.74rem', color: 'var(--ih-text-muted)' }}>{t('content.caption')}</div><p style={{ margin: '.3rem 0 0', lineHeight: 1.7, whiteSpace: 'pre-wrap' }}>{content.caption}</p></div>}
+              {!content.mediaUrl && !content.caption && <div style={{ color: 'var(--ih-text-muted)', fontSize: '.85rem' }}>{t('content.no_media')}</div>}
             </div>
           </Sec>
 
           {/* السياق والروابط — تنقّل فعلي عبر الوحدات (حملة/مبدع/عميل/منشور حيّ) */}
-          <Sec title="السياق والروابط" icon="external-link">
+          <Sec title={t('content.sec_context')} icon="external-link">
             <div className="ih-sec__body" style={{ display: 'grid', gap: '.55rem', fontSize: '.85rem' }}>
-              <CtxRow label="الحملة" value={content.campaign} href={content.campaignId ? u(`/campaigns/${content.campaignId}`) : null} hint="مراحل الحملة الـ13" />
-              <CtxRow label="المبدع" value={content.creator} href={content.creatorId ? u(`/creators/${content.creatorId}`) : null} />
-              <CtxRow label="العميل" value={content.client} href={content.clientId ? u(`/clients/${content.clientId}`) : null} />
-              <CtxRow label="المنصّة" value={content.platform} />
+              <CtxRow label={t('content.m_campaign')} value={content.campaign} href={content.campaignId ? u(`/campaigns/${content.campaignId}`) : null} hint={t('content.ctx_campaign_hint')} />
+              <CtxRow label={t('content.m_creator')} value={content.creator} href={content.creatorId ? u(`/creators/${content.creatorId}`) : null} />
+              <CtxRow label={t('content.m_client')} value={content.client} href={content.clientId ? u(`/clients/${content.clientId}`) : null} />
+              <CtxRow label={t('content.m_platform')} value={content.platform} />
               {content.publishedUrl && (
                 <div style={{ display: 'flex', justifyContent: 'space-between', gap: '1rem' }}>
-                  <span style={{ color: 'var(--ih-text-muted)' }}>المنشور الحيّ</span>
+                  <span style={{ color: 'var(--ih-text-muted)' }}>{t('content.live_post')}</span>
                   <a href={content.publishedUrl} target="_blank" rel="noopener" style={{ color: 'var(--ih-primary)', direction: 'ltr', fontWeight: 600, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: '60%' }}>{content.publishedUrl}</a>
                 </div>
               )}
@@ -121,31 +123,31 @@ export default function ContentShow({ content, canReview, actions, approvals, ti
 
         {/* إثبات النشر ونتائجه — يظهر بعد النشر فقط، فقبله لا معنى لإثبات */}
         {content.status === 'published' && (
-          <Sec title="إثبات النشر والنتائج" icon="clipboard-check">
+          <Sec title={t('content.sec_proof')} icon="clipboard-check">
             <div className="ih-sec__body" style={{ display: 'grid', gap: '1rem' }}>
               {content.publishedUrl ? (
                 <div style={{ display: 'grid', gap: '.35rem' }}>
-                  <div style={{ fontSize: '.74rem', color: 'var(--ih-text-muted)' }}>رابط المنشور الحيّ</div>
+                  <div style={{ fontSize: '.74rem', color: 'var(--ih-text-muted)' }}>{t('content.live_post_url')}</div>
                   <a href={content.publishedUrl} target="_blank" rel="noopener"
                      style={{ color: 'var(--ih-primary)', direction: 'ltr', fontWeight: 600 }}>{content.publishedUrl}</a>
                   <div style={{ fontSize: '.75rem', color: 'var(--ih-text-muted)' }}>
-                    {['أُثبت ' + (content.proofAt ?? ''), content.proofNote].filter(Boolean).join(' · ')}
+                    {[content.proofAt ? t('content.proved_at', { date: content.proofAt }) : '', content.proofNote].filter(Boolean).join(' · ')}
                   </div>
                 </div>
               ) : (
                 <div style={{ display: 'grid', gap: '.6rem' }}>
                   <div style={{ fontSize: '.85rem', color: 'var(--ih-text-muted)', lineHeight: 1.7 }}>
-                    نُشر المحتوى ولم يُسجَّل رابط المنشور بعد. الإثبات هو ما تُبنى عليه الفاتورة والتقرير.
+                    {t('content.proof_missing_hint')}
                   </div>
-                  {canReview && <button className="btn btn-sm btn-primary" onClick={() => setProofOpen(true)}>سجّل إثبات النشر</button>}
+                  {canReview && <button className="btn btn-sm btn-primary" onClick={() => setProofOpen(true)}>{t('content.record_proof')}</button>}
                 </div>
               )}
 
               {content.results ? (
                 <div>
                   <div style={{ display: 'flex', flexWrap: 'wrap', gap: '1.4rem' }}>
-                    {([['الوصول', content.results.reach], ['الظهور', content.results.impressions],
-                       ['التفاعل', content.results.engagements], ['النقرات', content.results.clicks]] as const)
+                    {([[t('content.r_reach'), content.results.reach], [t('content.r_impressions'), content.results.impressions],
+                       [t('content.r_engagements'), content.results.engagements], [t('content.r_clicks'), content.results.clicks]] as const)
                       .filter(([, v]) => v !== null)
                       .map(([label, v]) => (
                         <div key={label}>
@@ -160,16 +162,16 @@ export default function ContentShow({ content, canReview, actions, approvals, ti
                   </div>
                 </div>
               ) : content.publishedUrl && canReview && (
-                <button className="btn btn-sm btn-outline" onClick={() => setResultsOpen(true)}>سجّل النتائج</button>
+                <button className="btn btn-sm btn-outline" onClick={() => setResultsOpen(true)}>{t('content.record_results')}</button>
               )}
             </div>
           </Sec>
         )}
 
         {/* سجل موحّد: كل قرار مراجعة + كل انتقال حالة، بفاعله ودوره ووقته وإصداره */}
-        <Sec title={timeline.length ? `سجل المراجعة والحالة (${timeline.length})` : 'سجل المراجعة والحالة'} icon="clipboard-check">
+        <Sec title={timeline.length ? t('content.sec_timeline_n', { n: timeline.length }) : t('content.sec_timeline')} icon="clipboard-check">
           <div className="ih-sec__body">
-            {timeline.length === 0 ? <div style={{ color: 'var(--ih-text-muted)', fontSize: '.85rem' }}>لا سجل بعد.</div> :
+            {timeline.length === 0 ? <div style={{ color: 'var(--ih-text-muted)', fontSize: '.85rem' }}>{t('content.no_timeline')}</div> :
               <div className="ih-tl">
                 {timeline.map((e, i) => (
                   <div key={i} className="ih-tl__item">
@@ -188,18 +190,18 @@ export default function ContentShow({ content, canReview, actions, approvals, ti
       {proofOpen && (
         <div className="modal-backdrop" onClick={(e) => e.target === e.currentTarget && setProofOpen(false)}>
           <div className="modal" style={{ padding: '1.3rem' }}>
-            <h3 style={{ fontWeight: 800, margin: '0 0 .3rem' }}>إثبات النشر</h3>
+            <h3 style={{ fontWeight: 800, margin: '0 0 .3rem' }}>{t('content.proof_modal_title')}</h3>
             <p style={{ margin: '0 0 1rem', fontSize: '.82rem', color: 'var(--ih-text-muted)', lineHeight: 1.7 }}>
-              رابط المنشور الحيّ على المنصّة — لا رابط الملف الإبداعي.
+              {t('content.proof_modal_hint')}
             </p>
-            <label style={{ display: 'block', fontSize: '.8rem', fontWeight: 600, marginBottom: '.3rem' }} htmlFor="proof-url">الرابط</label>
+            <label style={{ display: 'block', fontSize: '.8rem', fontWeight: 600, marginBottom: '.3rem' }} htmlFor="proof-url">{t('content.f_url')}</label>
             <input id="proof-url" className="field" style={{ width: '100%', direction: 'ltr' }} value={proofUrl}
                    onChange={(e) => setProofUrl(e.target.value)} placeholder="https://…" autoFocus />
-            <label style={{ display: 'block', fontSize: '.8rem', fontWeight: 600, margin: '.8rem 0 .3rem' }} htmlFor="proof-note">ملاحظة (اختياري)</label>
+            <label style={{ display: 'block', fontSize: '.8rem', fontWeight: 600, margin: '.8rem 0 .3rem' }} htmlFor="proof-note">{t('content.f_note_optional')}</label>
             <input id="proof-note" className="field" style={{ width: '100%' }} value={proofNote} onChange={(e) => setProofNote(e.target.value)} />
             <div style={{ display: 'flex', gap: '.5rem', marginTop: '1.1rem' }}>
-              <button className="btn btn-primary" disabled={!proofUrl.trim()} onClick={submitProof}>حفظ الإثبات</button>
-              <button className="btn btn-ghost" onClick={() => setProofOpen(false)}>إلغاء</button>
+              <button className="btn btn-primary" disabled={!proofUrl.trim()} onClick={submitProof}>{t('content.save_proof')}</button>
+              <button className="btn btn-ghost" onClick={() => setProofOpen(false)}>{t('content.cancel')}</button>
             </div>
           </div>
         </div>
@@ -208,12 +210,12 @@ export default function ContentShow({ content, canReview, actions, approvals, ti
       {resultsOpen && (
         <div className="modal-backdrop" onClick={(e) => e.target === e.currentTarget && setResultsOpen(false)}>
           <div className="modal" style={{ padding: '1.3rem' }}>
-            <h3 style={{ fontWeight: 800, margin: '0 0 .3rem' }}>نتائج المنشور</h3>
+            <h3 style={{ fontWeight: 800, margin: '0 0 .3rem' }}>{t('content.results_modal_title')}</h3>
             <p style={{ margin: '0 0 1rem', fontSize: '.82rem', color: 'var(--ih-text-muted)', lineHeight: 1.7 }}>
-              تُدخَل يدويًّا وتُوسَم بذلك — لا مزوّد منصّة مربوط. اترك ما لم تقِسه فارغًا.
+              {t('content.results_modal_hint')}
             </p>
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(130px,1fr))', gap: '.7rem' }}>
-              {([['reach', 'الوصول'], ['impressions', 'الظهور'], ['engagements', 'التفاعل'], ['clicks', 'النقرات']] as const).map(([k, label]) => (
+              {([['reach', t('content.r_reach')], ['impressions', t('content.r_impressions')], ['engagements', t('content.r_engagements')], ['clicks', t('content.r_clicks')]] as const).map(([k, label]) => (
                 <div key={k}>
                   <label style={{ display: 'block', fontSize: '.78rem', fontWeight: 600, marginBottom: '.25rem' }} htmlFor={`m-${k}`}>{label}</label>
                   <input id={`m-${k}`} className="field" style={{ width: '100%', direction: 'ltr' }} inputMode="numeric"
@@ -222,8 +224,8 @@ export default function ContentShow({ content, canReview, actions, approvals, ti
               ))}
             </div>
             <div style={{ display: 'flex', gap: '.5rem', marginTop: '1.1rem' }}>
-              <button className="btn btn-primary" disabled={!anyMetric} onClick={submitResults}>حفظ النتائج</button>
-              <button className="btn btn-ghost" onClick={() => setResultsOpen(false)}>إلغاء</button>
+              <button className="btn btn-primary" disabled={!anyMetric} onClick={submitResults}>{t('content.save_results')}</button>
+              <button className="btn btn-ghost" onClick={() => setResultsOpen(false)}>{t('content.cancel')}</button>
             </div>
           </div>
         </div>
@@ -236,11 +238,11 @@ export default function ContentShow({ content, canReview, actions, approvals, ti
             {modalFor[3] === 'schedule' ? (
               <input className="field" type="datetime-local" value={scheduledAt} onChange={(e) => setScheduledAt(e.target.value)} autoFocus />
             ) : (
-              <textarea className="field" rows={3} value={reason} onChange={(e) => setReason(e.target.value)} placeholder="السبب (يظهر للمبدع)" autoFocus />
+              <textarea className="field" rows={3} value={reason} onChange={(e) => setReason(e.target.value)} placeholder={t('content.reason_placeholder')} autoFocus />
             )}
             <div style={{ marginTop: '1rem', display: 'flex', gap: '.5rem' }}>
-              <button className={`btn ${BTN[modalFor[2]] ?? 'btn-primary'}`} onClick={submitModal} disabled={!modalValid}>تأكيد</button>
-              <button className="btn btn-ghost" onClick={() => setModalFor(null)}>إلغاء</button>
+              <button className={`btn ${BTN[modalFor[2]] ?? 'btn-primary'}`} onClick={submitModal} disabled={!modalValid}>{t('content.confirm')}</button>
+              <button className="btn btn-ghost" onClick={() => setModalFor(null)}>{t('content.cancel')}</button>
             </div>
           </div>
         </div>
