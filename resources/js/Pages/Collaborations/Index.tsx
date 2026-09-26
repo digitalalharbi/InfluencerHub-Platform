@@ -5,6 +5,7 @@ import { Field, Kpi, ListHead, StatusBadge } from '@/Components/ui';
 import { Icon } from '@/Components/Icon';
 import { Pagination, type Paginated } from '@/Components/Pagination';
 import { u } from '@/lib/href';
+import { useT } from '@/lib/i18n';
 
 interface CollabRow {
   id: number; number: string; title: string; creator: string | null; campaign: string | null;
@@ -37,6 +38,7 @@ function clean(obj: Record<string, unknown>): Record<string, string> {
 }
 
 export default function CollaborationsIndex({ collaborations, filters, summary, canCreate, creatorOptions }: Props) {
+  const t = useT();
   const [createOpen, setCreateOpen] = useState(false);
   const [busy, setBusy] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
@@ -68,24 +70,24 @@ export default function CollaborationsIndex({ collaborations, filters, summary, 
   const seg = filters.seg ?? '';
   const hasFilters = !!(filters.q || seg);
   const segments: [string, string, number][] = [
-    ['', 'الكل', summary.total], ['active', 'نشطة', summary.active], ['offered', 'مَعروضة', summary.offered],
-    ['submitted', 'بانتظار الاعتماد', summary.submitted], ['approved', 'معتمدة', summary.approved],
-    ['completed', 'مكتملة', summary.completed], ['declined', 'مُعتذَر عنها', summary.declined],
+    ['', t('collaborations.seg_all'), summary.total], ['active', t('collaborations.seg_active'), summary.active], ['offered', t('collaborations.seg_offered'), summary.offered],
+    ['submitted', t('collaborations.seg_submitted'), summary.submitted], ['approved', t('collaborations.seg_approved'), summary.approved],
+    ['completed', t('collaborations.seg_completed'), summary.completed], ['declined', t('collaborations.seg_declined'), summary.declined],
   ];
 
   return (
-    <AppShell heading="التعاونات">
-      <Head title="التعاونات" />
+    <AppShell heading={t('collaborations.idx_title')}>
+      <Head title={t('collaborations.idx_title')} />
 
-      <ListHead eyebrow="التشغيل" title="التعاونات"
-        sub="تعاونات المبدعين ضمن الحملات: عرض، قبول، تسليم، واعتماد"
-        actions={canCreate ? <button onClick={() => setCreateOpen(true)} className="btn btn-sm btn-primary"><Icon name="plus" size={15} /> عرض تعاون</button> : undefined} />
+      <ListHead eyebrow={t('collaborations.idx_eyebrow')} title={t('collaborations.idx_title')}
+        sub={t('collaborations.idx_sub')}
+        actions={canCreate ? <button onClick={() => setCreateOpen(true)} className="btn btn-sm btn-primary"><Icon name="plus" size={15} /> {t('collaborations.idx_offer')}</button> : undefined} />
 
       <div className="ih-kpis">
-        <Kpi label="تعاونات نشطة" icon="handshake" tone="accent" value={summary.active.toLocaleString('en-US')} sub={`${summary.offered} مَعروضة`} />
-        <Kpi label="بانتظار الاعتماد" icon="clipboard-check" tone={summary.submitted ? 'warning' : undefined} value={summary.submitted.toLocaleString('en-US')} sub="تسليمات تحتاج مراجعتك" />
-        <Kpi label="الملتزَم" icon="wallet" tone="success" value={<>{kfmt(summary.committedMinor)} <small>ر.س</small></>} sub="أجور التعاونات النشطة" />
-        <Kpi label="مكتملة" icon="shield-check" value={summary.completed.toLocaleString('en-US')} sub={`${summary.declined} مُعتذَر عنها`} />
+        <Kpi label={t('collaborations.kpi_active')} icon="handshake" tone="accent" value={summary.active.toLocaleString('en-US')} sub={t('collaborations.kpi_active_sub', { n: summary.offered })} />
+        <Kpi label={t('collaborations.kpi_pending')} icon="clipboard-check" tone={summary.submitted ? 'warning' : undefined} value={summary.submitted.toLocaleString('en-US')} sub={t('collaborations.kpi_pending_sub')} />
+        <Kpi label={t('collaborations.kpi_committed')} icon="wallet" tone="success" value={<>{kfmt(summary.committedMinor)} <small>{t('common.currency_sar')}</small></>} sub={t('collaborations.kpi_committed_sub')} />
+        <Kpi label={t('collaborations.kpi_completed')} icon="shield-check" value={summary.completed.toLocaleString('en-US')} sub={t('collaborations.kpi_completed_sub', { n: summary.declined })} />
       </div>
 
       <div className="ih-chips" style={{ marginBottom: '.9rem', overflowX: 'auto', paddingBottom: '.2rem', flexWrap: 'nowrap' }}>
@@ -96,7 +98,7 @@ export default function CollaborationsIndex({ collaborations, filters, summary, 
 
       <div className="ih-filterbar">
         <label className="ih-search"><Icon name="search" size={16} />
-          <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="ابحث بالعنوان أو الرقم أو المبدع…" />
+          <input value={q} onChange={(e) => setQ(e.target.value)} placeholder={t('collaborations.search_placeholder')} />
         </label>
       </div>
 
@@ -104,9 +106,9 @@ export default function CollaborationsIndex({ collaborations, filters, summary, 
         <div className="ih-dt-wrap"><div className="ih-empty">
           <span className="ih-empty__icon"><Icon name="handshake" size={26} /></span>
           {hasFilters ? (
-            <><div className="ih-empty__title">لا تعاونات مطابقة</div><div className="ih-empty__text">لا نتائج للبحث أو الشريحة الحالية.</div><a href={u("/collaborations")} className="btn btn-sm btn-outline">مسح الفلاتر</a></>
+            <><div className="ih-empty__title">{t('collaborations.empty_filtered_title')}</div><div className="ih-empty__text">{t('collaborations.empty_filtered_text')}</div><a href={u("/collaborations")} className="btn btn-sm btn-outline">{t('collaborations.clear_filters')}</a></>
           ) : (
-            <><div className="ih-empty__title">لا تعاونات بعد</div><div className="ih-empty__text">تظهر هنا تعاونات المبدعين عند عرضها ضمن الحملات.</div></>
+            <><div className="ih-empty__title">{t('collaborations.empty_title')}</div><div className="ih-empty__text">{t('collaborations.empty_text')}</div></>
           )}
         </div></div>
       ) : (
@@ -114,13 +116,13 @@ export default function CollaborationsIndex({ collaborations, filters, summary, 
           {/* دورة التعاون — لوحة مراحل ببطاقات */}
           <div className="ih-only-desktop">
             <div className="ih-pipe">
-              {([['offered', 'معروض ومقبول'], ['progress', 'قيد التنفيذ'], ['done', 'مكتمل'], ['closed', 'مغلق']] as [string, string][]).map(([stage, label]) => {
+              {([['offered', t('collaborations.stage_offered')], ['progress', t('collaborations.stage_progress')], ['done', t('collaborations.stage_done')], ['closed', t('collaborations.stage_closed')]] as [string, string][]).map(([stage, label]) => {
                 const col = collaborations.data.filter((c) => c.stage === stage);
                 return (
                   <div key={stage} className="ih-pipe__col">
                     <div className="ih-pipe__head"><span>{label}</span><span className="ih-pipe__count">{col.length}</span></div>
                     <div className="ih-pipe__body">
-                      {col.length === 0 ? <div className="ih-pipe__empty">لا تعاونات هنا.</div> : col.map((c) => (
+                      {col.length === 0 ? <div className="ih-pipe__empty">{t('collaborations.pipe_empty')}</div> : col.map((c) => (
                         <a key={c.id} href={u(`/collaborations/${c.id}`)} className="ih-wcard">
                           <div style={{ display: 'flex', justifyContent: 'space-between', gap: '.5rem', alignItems: 'flex-start' }}>
                             <span className="ih-wcard__title">{c.title}</span>
@@ -128,13 +130,13 @@ export default function CollaborationsIndex({ collaborations, filters, summary, 
                           </div>
                           <div className="ih-wcard__meta">{c.creator ?? '—'}{c.campaign ? ` · ${c.campaign}` : ''}</div>
                           <div className="ih-wcard__row">
-                            <span style={{ fontWeight: 700, direction: 'ltr', fontSize: '.84rem' }}>{kfmt(c.feeMinor)} ر.س</span>
+                            <span style={{ fontWeight: 700, direction: 'ltr', fontSize: '.84rem' }}>{kfmt(c.feeMinor)} {t('common.currency_sar')}</span>
                             <span style={{ fontSize: '.72rem', color: c.overdue ? 'var(--ih-danger-ink)' : 'var(--ih-text-muted)', direction: 'ltr', fontWeight: c.overdue ? 700 : 400 }}>
                               {c.dueDate ?? '—'}
                             </span>
                           </div>
-                          {c.needsApproval && <div className="ih-wcard__risk" style={{ background: 'var(--ih-warning-soft)', color: 'var(--ih-warning-ink)' }}>بانتظار اعتمادك</div>}
-                          {c.overdue && <div className="ih-wcard__risk">تأخر عن الاستحقاق</div>}
+                          {c.needsApproval && <div className="ih-wcard__risk" style={{ background: 'var(--ih-warning-soft)', color: 'var(--ih-warning-ink)' }}>{t('collaborations.needs_your_approval')}</div>}
+                          {c.overdue && <div className="ih-wcard__risk">{t('collaborations.overdue')}</div>}
                         </a>
                       ))}
                     </div>
@@ -142,7 +144,7 @@ export default function CollaborationsIndex({ collaborations, filters, summary, 
                 );
               })}
             </div>
-            <div className="ih-dt__foot" style={{ marginTop: '1rem' }}><span>{collaborations.total} تعاون</span><Pagination links={collaborations.links} /></div>
+            <div className="ih-dt__foot" style={{ marginTop: '1rem' }}><span>{t('collaborations.count_item', { n: collaborations.total })}</span><Pagination links={collaborations.links} /></div>
           </div>
 
           <div className="ih-only-mobile">
@@ -170,36 +172,36 @@ export default function CollaborationsIndex({ collaborations, filters, summary, 
       {createOpen && (
         <div className="modal-backdrop" onClick={(e) => e.target === e.currentTarget && !busy && setCreateOpen(false)}>
           <div className="modal" style={{ padding: '1.3rem', maxWidth: 560 }}>
-            <h3 style={{ fontWeight: 800, margin: '0 0 1rem' }}>عرض تعاون جديد</h3>
+            <h3 style={{ fontWeight: 800, margin: '0 0 1rem' }}>{t('collaborations.create_title')}</h3>
             <div style={{ display: 'grid', gap: '.8rem' }}>
-              <Field label="المبدع" labelStyle={LBL}>
+              <Field label={t('collaborations.f_creator')} labelStyle={LBL}>
                 <select value={form.creator_id} onChange={(e) => setForm({ ...form, creator_id: e.target.value })} className="field" style={{ width: '100%' }} autoFocus>
-                  <option value="">— اختر —</option>
+                  <option value="">{t('collaborations.choose')}</option>
                   {creatorOptions.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
                 </select>
                 {errors.creator_id && <div style={{ color: 'var(--ih-danger-ink)', fontSize: '.76rem', marginTop: '.3rem' }}>{errors.creator_id}</div>}
               </Field>
-              <Field label="عنوان التعاون" labelStyle={LBL}>
+              <Field label={t('collaborations.f_title')} labelStyle={LBL}>
                 <input value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })} className="field" style={{ width: '100%' }} />
                 {errors.title && <div style={{ color: 'var(--ih-danger-ink)', fontSize: '.76rem', marginTop: '.3rem' }}>{errors.title}</div>}
               </Field>
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '.8rem' }}>
-                <Field label="الأجر (ر.س)" labelStyle={LBL}>
+                <Field label={t('collaborations.f_fee')} labelStyle={LBL}>
                   <input type="number" min={0} step="0.01" value={form.fee} onChange={(e) => setForm({ ...form, fee: e.target.value })}
                     className="field" style={{ width: '100%', direction: 'ltr' }} placeholder="0" />
                 </Field>
-                <Field label="تاريخ التسليم" labelStyle={LBL}>
+                <Field label={t('collaborations.f_due')} labelStyle={LBL}>
                   <input type="date" value={form.due_date} onChange={(e) => setForm({ ...form, due_date: e.target.value })} className="field" style={{ width: '100%', direction: 'ltr' }} />
                 </Field>
               </div>
-              <Field label="الموجز" labelStyle={LBL}>
+              <Field label={t('collaborations.f_brief')} labelStyle={LBL}>
                 <textarea value={form.brief} onChange={(e) => setForm({ ...form, brief: e.target.value })} className="field" rows={3} style={{ width: '100%' }} />
               </Field>
               {errors.offer && <div style={{ color: 'var(--ih-danger-ink)', fontSize: '.8rem' }}>{errors.offer}</div>}
             </div>
             <div style={{ marginTop: '1rem', display: 'flex', gap: '.5rem' }}>
-              <button disabled={busy || !form.creator_id || !form.title.trim()} onClick={submitCreate} className="btn btn-primary">إرسال العرض</button>
-              <button disabled={busy} onClick={() => setCreateOpen(false)} className="btn btn-ghost">إلغاء</button>
+              <button disabled={busy || !form.creator_id || !form.title.trim()} onClick={submitCreate} className="btn btn-primary">{t('collaborations.submit_offer')}</button>
+              <button disabled={busy} onClick={() => setCreateOpen(false)} className="btn btn-ghost">{t('collaborations.cancel')}</button>
             </div>
           </div>
         </div>
