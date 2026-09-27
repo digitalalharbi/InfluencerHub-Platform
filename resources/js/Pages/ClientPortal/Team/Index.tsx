@@ -5,6 +5,7 @@ import { clientNav } from '@/lib/nav';
 import { ListHead, StatusBadge, Avatar, Sec, Field } from '@/Components/ui';
 import type { SharedProps } from '@/types';
 import { u } from '@/lib/href';
+import { useT } from '@/lib/i18n';
 
 const LBL: React.CSSProperties = { fontSize: '.8rem', fontWeight: 600, display: 'block', marginBottom: '.3rem' };
 
@@ -17,6 +18,7 @@ interface Option { value: string; label: string }
 interface Props { clientName: string; members: Member[]; invites: Invite[]; canManage: boolean; roles: Option[] }
 
 export default function ClientTeamIndex({ clientName, members, invites, canManage, roles }: Props) {
+  const t = useT();
   const inviteToken = usePage<SharedProps>().props.flash?.inviteToken ?? null;
   const [modal, setModal] = useState(false);
   const [busy, setBusy] = useState(false);
@@ -31,23 +33,23 @@ export default function ClientTeamIndex({ clientName, members, invites, canManag
   const setStatus = (id: number, action: string) => router.post(u(`/team/${id}/status`), { action }, { preserveScroll: true });
 
   return (
-    <AppShell heading="الفريق" nav={clientNav} portal="client" wsName={clientName} wsPlan="بوابة العميل">
-      <Head title="فريق العميل" />
-      <ListHead eyebrow="بوابة العميل" title="الفريق" sub="أعضاء حسابك وأدوارهم."
-        actions={canManage ? <button onClick={() => setModal(true)} className="btn btn-sm">+ دعوة عضو</button> : undefined} />
+    <AppShell heading={t('client_portal.team_title')} nav={clientNav} portal="client" wsName={clientName} wsPlan={t('client_portal.ws_plan')}>
+      <Head title={t('client_portal.team_head_title')} />
+      <ListHead eyebrow={t('client_portal.eyebrow')} title={t('client_portal.team_title')} sub={t('client_portal.team_sub')}
+        actions={canManage ? <button onClick={() => setModal(true)} className="btn btn-sm">{t('client_portal.invite_member')}</button> : undefined} />
 
       {inviteToken && (
         <div className="card" style={{ padding: '.9rem 1rem', marginBottom: '1rem', borderInlineStart: '3px solid var(--ih-warning)', background: 'var(--ih-warning-soft)', color: 'var(--ih-warning-ink)' }}>
-          <div style={{ fontWeight: 700, marginBottom: '.3rem' }}>رمز الدعوة — يُعرض مرة واحدة</div>
-          <div style={{ fontSize: '.8rem', marginBottom: '.5rem' }}>انسخه الآن وسلّمه للعضو؛ لا يمكن استرجاعه بعد مغادرة الصفحة.</div>
+          <div style={{ fontWeight: 700, marginBottom: '.3rem' }}>{t('client_portal.invite_token_title')}</div>
+          <div style={{ fontSize: '.8rem', marginBottom: '.5rem' }}>{t('client_portal.invite_token_hint')}</div>
           <code style={{ direction: 'ltr', display: 'block', wordBreak: 'break-all', fontSize: '.86rem', fontWeight: 700 }}>{inviteToken}</code>
         </div>
       )}
 
-      <Sec title="الأعضاء" icon="users">
+      <Sec title={t('client_portal.sec_members')} icon="users">
         <div className="ih-dt-wrap"><div className="ih-dt-scroll">
           <table className="ih-dt">
-            <thead><tr><th>العضو</th><th>الدور</th><th>الحالة</th>{canManage && <th>إجراءات</th>}</tr></thead>
+            <thead><tr><th>{t('client_portal.th_member')}</th><th>{t('client_portal.th_role')}</th><th>{t('client_portal.th_status')}</th>{canManage && <th>{t('client_portal.th_actions')}</th>}</tr></thead>
             <tbody>
               {members.map((m) => (
                 <tr key={m.id}>
@@ -55,7 +57,7 @@ export default function ClientTeamIndex({ clientName, members, invites, canManag
                     <div style={{ display: 'flex', alignItems: 'center', gap: '.5rem' }}>
                       <Avatar name={m.name} round />
                       <div>
-                        <div style={{ fontWeight: 600 }}>{m.name}{m.isMe && <span style={{ fontSize: '.7rem', color: 'var(--ih-text-muted)' }}> (أنت)</span>}</div>
+                        <div style={{ fontWeight: 600 }}>{m.name}{m.isMe && <span style={{ fontSize: '.7rem', color: 'var(--ih-text-muted)' }}>{t('client_portal.you')}</span>}</div>
                         <div style={{ fontSize: '.72rem', color: 'var(--ih-text-muted)', direction: 'ltr' }}>{m.email}</div>
                       </div>
                     </div>
@@ -72,11 +74,11 @@ export default function ClientTeamIndex({ clientName, members, invites, canManag
                     <td>
                       {m.isMe ? <span style={{ fontSize: '.75rem', color: 'var(--ih-text-muted)' }}>—</span> : m.status === 'active' ? (
                         <div style={{ display: 'flex', gap: '.3rem' }}>
-                          <button onClick={() => setStatus(m.id, 'suspend')} className="btn btn-xs btn-outline">تعليق</button>
-                          <button onClick={() => setStatus(m.id, 'revoke')} className="btn btn-xs btn-danger">إزالة</button>
+                          <button onClick={() => setStatus(m.id, 'suspend')} className="btn btn-xs btn-outline">{t('client_portal.suspend')}</button>
+                          <button onClick={() => setStatus(m.id, 'revoke')} className="btn btn-xs btn-danger">{t('client_portal.remove')}</button>
                         </div>
                       ) : m.status === 'suspended' ? (
-                        <button onClick={() => setStatus(m.id, 'reactivate')} className="btn btn-xs">تفعيل</button>
+                        <button onClick={() => setStatus(m.id, 'reactivate')} className="btn btn-xs">{t('client_portal.activate')}</button>
                       ) : <span style={{ fontSize: '.75rem', color: 'var(--ih-text-muted)' }}>—</span>}
                     </td>
                   )}
@@ -88,10 +90,10 @@ export default function ClientTeamIndex({ clientName, members, invites, canManag
       </Sec>
 
       {invites.length > 0 && (
-        <Sec title="دعوات معلّقة" icon="user-plus">
+        <Sec title={t('client_portal.sec_pending_invites')} icon="user-plus">
           <div className="ih-dt-wrap"><div className="ih-dt-scroll">
             <table className="ih-dt">
-              <thead><tr><th>البريد</th><th>الدور</th><th>تنتهي</th></tr></thead>
+              <thead><tr><th>{t('client_portal.th_email')}</th><th>{t('client_portal.th_role')}</th><th>{t('client_portal.th_expires')}</th></tr></thead>
               <tbody>
                 {invites.map((i) => (
                   <tr key={i.id}>
@@ -109,20 +111,20 @@ export default function ClientTeamIndex({ clientName, members, invites, canManag
       {modal && (
         <div className="modal-backdrop" onClick={(e) => e.target === e.currentTarget && !busy && setModal(false)}>
           <div className="modal" style={{ padding: '1.3rem', maxWidth: 460 }}>
-            <h3 style={{ fontWeight: 800, margin: '0 0 1rem' }}>دعوة عضو جديد</h3>
+            <h3 style={{ fontWeight: 800, margin: '0 0 1rem' }}>{t('client_portal.invite_modal_title')}</h3>
             <div style={{ display: 'grid', gap: '.8rem' }}>
-              <Field label="البريد الإلكتروني" labelStyle={LBL}>
+              <Field label={t('client_portal.f_email')} labelStyle={LBL}>
                 <input value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} className="field" style={{ width: '100%', direction: 'ltr' }} placeholder="name@example.com" autoFocus />
               </Field>
-              <Field label="الدور" labelStyle={LBL}>
+              <Field label={t('client_portal.f_role')} labelStyle={LBL}>
                 <select value={form.role} onChange={(e) => setForm({ ...form, role: e.target.value })} className="field" style={{ width: '100%' }}>
                   {roles.map((r) => <option key={r.value} value={r.value}>{r.label}</option>)}
                 </select>
               </Field>
             </div>
             <div style={{ marginTop: '1rem', display: 'flex', gap: '.5rem' }}>
-              <button disabled={busy || !form.email.trim()} onClick={invite} className="btn btn-primary">إرسال الدعوة</button>
-              <button disabled={busy} onClick={() => setModal(false)} className="btn btn-ghost">إلغاء</button>
+              <button disabled={busy || !form.email.trim()} onClick={invite} className="btn btn-primary">{t('client_portal.send_invite')}</button>
+              <button disabled={busy} onClick={() => setModal(false)} className="btn btn-ghost">{t('client_portal.cancel')}</button>
             </div>
           </div>
         </div>

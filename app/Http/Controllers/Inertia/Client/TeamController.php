@@ -2,13 +2,17 @@
 
 namespace App\Http\Controllers\Inertia\Client;
 
-use App\Domain\CRM\Actions\{ChangeClientMemberRole, ChangeClientMemberStatus, InviteClientMember};
+use App\Domain\CRM\Actions\ChangeClientMemberRole;
+use App\Domain\CRM\Actions\ChangeClientMemberStatus;
+use App\Domain\CRM\Actions\InviteClientMember;
 use App\Domain\CRM\Enums\ClientMemberRole;
-use App\Domain\CRM\Models\{ClientMember, ClientMemberInvitation};
+use App\Domain\CRM\Models\ClientMember;
+use App\Domain\CRM\Models\ClientMemberInvitation;
 use App\Domain\CRM\Support\ClientPortalAbilities;
 use App\Domain\Tenancy\Support\TenantContext;
 use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Lang;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -23,6 +27,14 @@ class TeamController extends Controller
         'client_finance' => 'مالية', 'client_report_viewer' => 'مشاهدة التقارير', 'client_member' => 'عضو',
     ];
 
+    /** تسمية الدور بلغة الطلب، مع رجوع للثابت العربيّ (byte-identical). */
+    private static function roleLabel(string $role): string
+    {
+        return Lang::has("client_portal.role_{$role}")
+            ? trans("client_portal.role_{$role}")
+            : (self::ROLE_LABEL[$role] ?? $role);
+    }
+
     private function canManage(Request $r): bool
     {
         return ClientPortalAbilities::can($r->attributes->get('clientMembership')->role, ClientPortalAbilities::MANAGE_TEAM);
@@ -35,19 +47,19 @@ class TeamController extends Controller
         $members = ClientMember::with('user')->where('client_id', $c->id)->orderByRaw("status='active' desc")->orderBy('id')->get()
             ->map(fn (ClientMember $m) => [
                 'id' => $m->id, 'name' => $m->user?->name ?? '—', 'email' => $m->user?->email,
-                'role' => $m->role, 'roleLabel' => self::ROLE_LABEL[$m->role] ?? $m->role,
+                'role' => $m->role, 'roleLabel' => self::roleLabel($m->role),
                 'status' => $m->status, 'statusLabel' => __("statuses.{$m->status}"), 'statusTone' => __("statuses.tone.{$m->status}"),
                 'isMe' => $m->id === $meId,
             ]);
         $invites = ClientMemberInvitation::where('client_id', $c->id)->whereNull('accepted_at')->where('expires_at', '>', now())->latest()->get()
-            ->map(fn ($i) => ['id' => $i->id, 'email' => $i->email, 'role' => $i->role, 'roleLabel' => self::ROLE_LABEL[$i->role] ?? $i->role, 'expires' => $i->expires_at?->format('Y-m-d')]);
+            ->map(fn ($i) => ['id' => $i->id, 'email' => $i->email, 'role' => $i->role, 'roleLabel' => self::roleLabel($i->role), 'expires' => $i->expires_at?->format('Y-m-d')]);
 
         return Inertia::render('ClientPortal/Team/Index', [
             'clientName' => $c->display_name,
             'members' => $members,
             'invites' => $invites,
             'canManage' => $this->canManage($r),
-            'roles' => collect(ClientMemberRole::values())->map(fn ($v) => ['value' => $v, 'label' => self::ROLE_LABEL[$v] ?? $v])->values(),
+            'roles' => collect(ClientMemberRole::values())->map(fn ($v) => ['value' => $v, 'label' => self::roleLabel($v)])->values(),
         ]);
     }
 
@@ -70,9 +82,15 @@ class TeamController extends Controller
         abort_unless($this->canManage($r), 403);
         $data = $r->validate(['role' => 'required|string']);
         $m = $this->memberOf($r, $member);
-        if ($this->wouldRemoveLastAdmin($m, $data['role'])) return back()->withErrors(['team' => 'لا يمكن إزالة آخر مدير للعميل.']);
-        try { TenantContext::withTenant($m->tenant_id, fn () => $action->handle($m, $data['role'], $r->user())); }
-        catch (\RuntimeException $e) { return back()->withErrors(['team' => $e->getMessage()]); }
+        if ($this->wouldRemoveLastAdmin($m, $data['role'])) {
+            return back()->withErrors(['team' => 'لا يمكن إزالة آخر مدير للعميل.']);
+        }
+        try {
+            TenantContext::withTenant($m->tenant_id, fn () => $action->handle($m, $data['role'], $r->user()));
+        } catch (\RuntimeException $e) {
+            return back()->withErrors(['team' => $e->getMessage()]);
+        }
+
         return back()->with('ok', 'حُدّث دور العضو.');
     }
 
@@ -84,16 +102,25 @@ class TeamController extends Controller
         if (in_array($data['action'], ['suspend', 'revoke'], true) && $m->role === 'client_admin' && $this->wouldRemoveLastAdmin($m, null)) {
             return back()->withErrors(['team' => 'لا يمكن تعليق/إزالة آخر مدير نشِط للعميل.']);
         }
-        try { TenantContext::withTenant($m->tenant_id, fn () => $action->handle($m, $data['action'], $r->user())); }
-        catch (\RuntimeException $e) { return back()->withErrors(['team' => $e->getMessage()]); }
+        try {
+            TenantContext::withTenant($m->tenant_id, fn () => $action->handle($m, $data['action'], $r->user()));
+        } catch (\RuntimeException $e) {
+            return back()->withErrors(['team' => $e->getMessage()]);
+        }
+
         return back()->with('ok', 'حُدّثت حالة العضو.');
     }
 
     private function wouldRemoveLastAdmin(ClientMember $m, ?string $newRole): bool
     {
-        if ($m->role !== 'client_admin' || $m->status !== 'active') return false;
-        if ($newRole === 'client_admin') return false;
+        if ($m->role !== 'client_admin' || $m->status !== 'active') {
+            return false;
+        }
+        if ($newRole === 'client_admin') {
+            return false;
+        }
         $activeAdmins = ClientMember::where('client_id', $m->client_id)->where('role', 'client_admin')->where('status', 'active')->count();
+
         return $activeAdmins <= 1;
     }
 
@@ -102,6 +129,7 @@ class TeamController extends Controller
         $c = $r->attributes->get('activeClient');
         $m = ClientMember::where('id', $id)->where('client_id', $c->id)->first();
         abort_unless($m, 404);
+
         return $m;
     }
 }
