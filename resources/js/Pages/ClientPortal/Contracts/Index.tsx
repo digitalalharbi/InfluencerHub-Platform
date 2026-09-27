@@ -4,6 +4,7 @@ import { clientNav } from '@/lib/nav';
 import { ListHead, StatusBadge, Kpi } from '@/Components/ui';
 import { Pagination, type Paginated } from '@/Components/Pagination';
 import { u } from '@/lib/href';
+import { useT } from '@/lib/i18n';
 
 interface Row {
   id: number; number: string; title: string; campaignName: string | null;
@@ -14,24 +15,25 @@ interface Props { clientName: string; items: Paginated<Row>; awaiting: number }
 const money = (m: number, cur: string) => (m / 100).toLocaleString('en-US') + ' ' + cur;
 
 export default function ClientContractsIndex({ clientName, items, awaiting }: Props) {
+  const t = useT();
   return (
-    <AppShell heading="العقود" nav={clientNav} portal="client" wsName={clientName} wsPlan="بوابة العميل">
-      <Head title="العقود" />
-      <ListHead eyebrow="بوابة العميل" title="العقود" sub="راجع عقودك ووقّع ما بانتظار قبولك." />
+    <AppShell heading={t('client_portal.contracts_title')} nav={clientNav} portal="client" wsName={clientName} wsPlan={t('client_portal.ws_plan')}>
+      <Head title={t('client_portal.contracts_title')} />
+      <ListHead eyebrow={t('client_portal.eyebrow')} title={t('client_portal.contracts_title')} sub={t('client_portal.contracts_sub')} />
 
       <div className="ih-kpis">
-        <Kpi label="بانتظار توقيعك" icon="clipboard-check" tone={awaiting ? 'warning' : 'success'}
-          value={awaiting.toLocaleString('en-US')} sub={awaiting ? 'يحتاج قبولك' : 'لا شيء معلّق'} />
-        <Kpi label="إجمالي العقود" icon="file-text" value={items.total.toLocaleString('en-US')} sub="في نطاقك" />
+        <Kpi label={t('client_portal.ct_kpi_awaiting')} icon="clipboard-check" tone={awaiting ? 'warning' : 'success'}
+          value={awaiting.toLocaleString('en-US')} sub={awaiting ? t('client_portal.ct_kpi_awaiting_sub') : t('client_portal.c_kpi_none')} />
+        <Kpi label={t('client_portal.ct_kpi_total')} icon="file-text" value={items.total.toLocaleString('en-US')} sub={t('client_portal.c_kpi_total_sub')} />
       </div>
 
       {items.data.length === 0 ? (
-        <div className="card" style={{ padding: '2rem', textAlign: 'center', color: 'var(--ih-text-muted)' }}>لا عقود بعد.</div>
+        <div className="card" style={{ padding: '2rem', textAlign: 'center', color: 'var(--ih-text-muted)' }}>{t('client_portal.contracts_empty')}</div>
       ) : (
         <>
           <div className="ih-dt-wrap"><div className="ih-dt-scroll">
             <table className="ih-dt">
-              <thead><tr><th>العقد</th><th>الحملة</th><th>القيمة</th><th>الحالة</th><th>—</th></tr></thead>
+              <thead><tr><th>{t('client_portal.th_contract')}</th><th>{t('client_portal.th_campaign')}</th><th>{t('client_portal.th_value')}</th><th>{t('client_portal.th_status')}</th><th>—</th></tr></thead>
               <tbody>
                 {items.data.map((ct) => (
                   <tr key={ct.id}>
@@ -42,7 +44,7 @@ export default function ClientContractsIndex({ clientName, items, awaiting }: Pr
                     <td>{ct.campaignName ?? '—'}</td>
                     <td style={{ direction: 'ltr', fontWeight: 600 }}>{ct.valueMinor ? money(ct.valueMinor, ct.currency) : '—'}</td>
                     <td><StatusBadge tone={ct.statusTone} label={ct.statusLabel} /></td>
-                    <td><Link href={u(`/contracts/${ct.id}`)} className="btn btn-xs btn-outline">{ct.status === 'sent' ? 'مراجعة وتوقيع' : 'عرض'}</Link></td>
+                    <td><Link href={u(`/contracts/${ct.id}`)} className="btn btn-xs btn-outline">{ct.status === 'sent' ? t('client_portal.review_sign') : t('client_portal.view')}</Link></td>
                   </tr>
                 ))}
               </tbody>

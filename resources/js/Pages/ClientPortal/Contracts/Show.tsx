@@ -5,6 +5,7 @@ import { clientNav } from '@/lib/nav';
 import { WorkspaceHeader, Sec, StatusBadge, Field } from '@/Components/ui';
 import { Icon } from '@/Components/Icon';
 import { u } from '@/lib/href';
+import { useT } from '@/lib/i18n';
 
 interface Contract {
   id: number; number: string; title: string; campaign: string | null; campaignName: string | null;
@@ -17,6 +18,7 @@ interface Props { clientName: string; contract: Contract; history: History[]; ca
 const money = (m: number, cur: string) => (m / 100).toLocaleString('en-US') + ' ' + cur;
 
 export default function ClientContractShow({ clientName, contract, history, canSign, isPending }: Props) {
+  const t = useT();
   const [modal, setModal] = useState(false);
   const [name, setName] = useState('');
   const [agree, setAgree] = useState(false);
@@ -32,43 +34,43 @@ export default function ClientContractShow({ clientName, contract, history, canS
   };
 
   return (
-    <AppShell heading="عقد" nav={clientNav} portal="client" wsName={clientName} wsPlan="بوابة العميل">
+    <AppShell heading={t('client_portal.contract_heading')} nav={clientNav} portal="client" wsName={clientName} wsPlan={t('client_portal.ws_plan')}>
       <Head title={contract.title} />
 
       <WorkspaceHeader
-        eyebrow={`عقد · ${contract.number}`}
+        eyebrow={t('client_portal.contract_eyebrow', { num: contract.number })}
         title={contract.title}
         statusTone={contract.statusTone} statusLabel={contract.statusLabel}
-        back={u("/contracts")} backLabel="العقود"
+        back={u("/contracts")} backLabel={t('client_portal.contracts_title')}
         meta={[
-          ['الحملة', contract.campaign ?? '—'],
-          ['القيمة', contract.valueMinor ? money(contract.valueMinor, contract.currency) : '—'],
-          ['البداية', contract.startDate ?? '—'], ['النهاية', contract.endDate ?? '—'],
+          [t('client_portal.m_campaign'), contract.campaign ?? '—'],
+          [t('client_portal.m_value'), contract.valueMinor ? money(contract.valueMinor, contract.currency) : '—'],
+          [t('client_portal.m_start'), contract.startDate ?? '—'], [t('client_portal.m_end'), contract.endDate ?? '—'],
         ]}
-        actions={canSign && isPending ? <button disabled={busy} onClick={() => setModal(true)} className="btn btn-sm">مراجعة وقبول العقد</button> : undefined}
+        actions={canSign && isPending ? <button disabled={busy} onClick={() => setModal(true)} className="btn btn-sm">{t('client_portal.review_accept')}</button> : undefined}
       />
 
       {isPending && !canSign && (
         <div className="card" style={{ padding: '.8rem 1rem', marginBottom: '1.2rem', borderInlineStart: '3px solid var(--ih-info)', background: 'var(--ih-info-soft)', color: 'var(--ih-info-ink)', fontSize: '.84rem' }}>
-          <Icon name="shield-check" size={14} /> قبول العقد متاح لمدير حساب العميل فقط.
+          <Icon name="shield-check" size={14} /> {t('client_portal.sign_only_note')}
         </div>
       )}
       {contract.signedByName && (
         <div className="card" style={{ padding: '.8rem 1rem', marginBottom: '1.2rem', borderInlineStart: '3px solid var(--ih-success)', background: 'var(--ih-success-soft)', color: 'var(--ih-success-ink)', fontSize: '.84rem' }}>
-          <Icon name="shield-check" size={14} /> قُبِل بواسطة <b>{contract.signedByName}</b>{contract.signedAt && <span style={{ direction: 'ltr' }}> · {contract.signedAt}</span>}
+          <Icon name="shield-check" size={14} /> {t('client_portal.signed_by')} <b>{contract.signedByName}</b>{contract.signedAt && <span style={{ direction: 'ltr' }}> · {contract.signedAt}</span>}
         </div>
       )}
 
       <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1.4fr) minmax(0, 1fr)', gap: '1.2rem', alignItems: 'start' }} className="ih-settings-grid">
-        <Sec title="بنود العقد" icon="file-text">
+        <Sec title={t('client_portal.sec_terms')} icon="file-text">
           <div className="card" style={{ padding: '1rem 1.1rem', whiteSpace: 'pre-wrap', fontSize: '.9rem', lineHeight: 1.8, minHeight: 100 }}>
-            {contract.terms || <span style={{ color: 'var(--ih-text-muted)' }}>لا بنود مُدرجة.</span>}
+            {contract.terms || <span style={{ color: 'var(--ih-text-muted)' }}>{t('client_portal.no_terms')}</span>}
           </div>
         </Sec>
 
-        <Sec title="سجل الحالة" icon="clipboard-check">
+        <Sec title={t('client_portal.sec_history')} icon="clipboard-check">
           {history.length === 0 ? (
-            <div style={{ fontSize: '.84rem', color: 'var(--ih-text-muted)' }}>لا سجل بعد.</div>
+            <div style={{ fontSize: '.84rem', color: 'var(--ih-text-muted)' }}>{t('client_portal.no_history')}</div>
           ) : (
             <div style={{ display: 'grid', gap: '.7rem' }}>
               {history.map((h, i) => (
@@ -89,18 +91,18 @@ export default function ClientContractShow({ clientName, contract, history, canS
       {modal && (
         <div className="modal-backdrop" onClick={(e) => e.target === e.currentTarget && !busy && setModal(false)}>
           <div className="modal" style={{ padding: '1.3rem', maxWidth: 480 }}>
-            <h3 style={{ fontWeight: 800, margin: '0 0 .4rem' }}>قبول العقد</h3>
-            <p style={{ fontSize: '.84rem', color: 'var(--ih-text-muted)', margin: '0 0 1rem' }}>بإدخال اسمك وتأكيد الموافقة، تُسجّل قبولك لهذا العقد رسميًا.</p>
-            <Field label="الاسم الكامل للموقِّع" labelStyle={{ fontSize: '.82rem', fontWeight: 600, display: 'block', marginBottom: '.3rem' }}>
-              <input value={name} onChange={(e) => setName(e.target.value)} className="field" placeholder="مثال: محمد العلي" style={{ width: '100%' }} autoFocus />
+            <h3 style={{ fontWeight: 800, margin: '0 0 .4rem' }}>{t('client_portal.accept_title')}</h3>
+            <p style={{ fontSize: '.84rem', color: 'var(--ih-text-muted)', margin: '0 0 1rem' }}>{t('client_portal.accept_desc')}</p>
+            <Field label={t('client_portal.signer_name_label')} labelStyle={{ fontSize: '.82rem', fontWeight: 600, display: 'block', marginBottom: '.3rem' }}>
+              <input value={name} onChange={(e) => setName(e.target.value)} className="field" placeholder={t('client_portal.signer_placeholder')} style={{ width: '100%' }} autoFocus />
             </Field>
             <label style={{ display: 'flex', gap: '.5rem', alignItems: 'flex-start', marginTop: '.9rem', fontSize: '.84rem', cursor: 'pointer' }}>
               <input type="checkbox" checked={agree} onChange={(e) => setAgree(e.target.checked)} style={{ marginTop: '.2rem' }} />
-              <span>أقرّ بأنني مخوّل بقبول هذا العقد نيابة عن {clientName}، وأوافق على بنوده.</span>
+              <span>{t('client_portal.agree_label', { name: clientName })}</span>
             </label>
             <div style={{ marginTop: '1rem', display: 'flex', gap: '.5rem' }}>
-              <button disabled={busy || !name.trim() || !agree} onClick={sign} className="btn btn-primary">تأكيد القبول</button>
-              <button disabled={busy} onClick={() => setModal(false)} className="btn btn-ghost">إلغاء</button>
+              <button disabled={busy || !name.trim() || !agree} onClick={sign} className="btn btn-primary">{t('client_portal.confirm_accept')}</button>
+              <button disabled={busy} onClick={() => setModal(false)} className="btn btn-ghost">{t('client_portal.cancel')}</button>
             </div>
           </div>
         </div>
