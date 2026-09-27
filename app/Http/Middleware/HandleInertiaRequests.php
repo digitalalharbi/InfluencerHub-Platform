@@ -101,6 +101,7 @@ class HandleInertiaRequests extends Middleware
                 'collaborations' => (array) trans('collaborations'),
                 'service_requests' => (array) trans('service_requests'),
                 'reports' => (array) trans('reports'),
+                'client_portal' => (array) trans('client_portal'),
                 'automation' => (array) trans('automation'),
             ],
             'base' => MountPrefix::for($request),
