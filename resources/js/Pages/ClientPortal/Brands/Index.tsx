@@ -4,6 +4,7 @@ import AppShell from '@/Layouts/AppShell';
 import { clientNav } from '@/lib/nav';
 import { ListHead, StatusBadge, Field } from '@/Components/ui';
 import { u } from '@/lib/href';
+import { useT } from '@/lib/i18n';
 
 const LBL: React.CSSProperties = { fontSize: '.8rem', fontWeight: 600, display: 'block', marginBottom: '.3rem' };
 
@@ -11,6 +12,7 @@ interface Brand { id: number; name: string; sector: string | null; status: strin
 interface Props { clientName: string; brands: Brand[]; canManage: boolean }
 
 export default function ClientBrandsIndex({ clientName, brands, canManage }: Props) {
+  const t = useT();
   const [modal, setModal] = useState(false);
   const [busy, setBusy] = useState(false);
   const [form, setForm] = useState({ name: '', sector: '', website: '', description: '' });
@@ -22,13 +24,13 @@ export default function ClientBrandsIndex({ clientName, brands, canManage }: Pro
   };
 
   return (
-    <AppShell heading="العلامات" nav={clientNav} portal="client" wsName={clientName} wsPlan="بوابة العميل">
-      <Head title="العلامات" />
-      <ListHead eyebrow="بوابة العميل" title="العلامات" sub="عرّف علاماتك وأرسلها لاعتماد الوكالة."
-        actions={canManage ? <button onClick={() => setModal(true)} className="btn btn-sm">+ علامة جديدة</button> : undefined} />
+    <AppShell heading={t('client_portal.brands_title')} nav={clientNav} portal="client" wsName={clientName} wsPlan={t('client_portal.ws_plan')}>
+      <Head title={t('client_portal.brands_title')} />
+      <ListHead eyebrow={t('client_portal.eyebrow')} title={t('client_portal.brands_title')} sub={t('client_portal.brands_sub')}
+        actions={canManage ? <button onClick={() => setModal(true)} className="btn btn-sm">{t('client_portal.new_brand')}</button> : undefined} />
 
       {brands.length === 0 ? (
-        <div className="card" style={{ padding: '2rem', textAlign: 'center', color: 'var(--ih-text-muted)' }}>لا علامات بعد.</div>
+        <div className="card" style={{ padding: '2rem', textAlign: 'center', color: 'var(--ih-text-muted)' }}>{t('client_portal.brands_empty')}</div>
       ) : (
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '1rem' }}>
           {brands.map((b) => (
@@ -48,26 +50,26 @@ export default function ClientBrandsIndex({ clientName, brands, canManage }: Pro
       {modal && (
         <div className="modal-backdrop" onClick={(e) => e.target === e.currentTarget && !busy && setModal(false)}>
           <div className="modal" style={{ padding: '1.3rem', maxWidth: 500 }}>
-            <h3 style={{ fontWeight: 800, margin: '0 0 1rem' }}>علامة تجارية جديدة</h3>
+            <h3 style={{ fontWeight: 800, margin: '0 0 1rem' }}>{t('client_portal.brand_modal_title')}</h3>
             <div style={{ display: 'grid', gap: '.8rem' }}>
-              <Field label="اسم العلامة" labelStyle={LBL}>
+              <Field label={t('client_portal.f_name')} labelStyle={LBL}>
                 <input value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} className="field" style={{ width: '100%' }} autoFocus />
               </Field>
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '.8rem' }}>
-                <Field label="القطاع" labelStyle={LBL}>
+                <Field label={t('client_portal.f_sector')} labelStyle={LBL}>
                   <input value={form.sector} onChange={(e) => setForm({ ...form, sector: e.target.value })} className="field" style={{ width: '100%' }} />
                 </Field>
-                <Field label="الموقع" labelStyle={LBL}>
+                <Field label={t('client_portal.f_website')} labelStyle={LBL}>
                   <input value={form.website} onChange={(e) => setForm({ ...form, website: e.target.value })} className="field" style={{ width: '100%', direction: 'ltr' }} placeholder="https://…" />
                 </Field>
               </div>
-              <Field label="وصف مختصر" labelStyle={LBL}>
+              <Field label={t('client_portal.f_desc_short')} labelStyle={LBL}>
                 <textarea value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} className="field" rows={3} style={{ width: '100%', resize: 'vertical' }} />
               </Field>
             </div>
             <div style={{ marginTop: '1rem', display: 'flex', gap: '.5rem' }}>
-              <button disabled={busy || !form.name.trim()} onClick={submit} className="btn btn-primary">حفظ كمسودة</button>
-              <button disabled={busy} onClick={() => setModal(false)} className="btn btn-ghost">إلغاء</button>
+              <button disabled={busy || !form.name.trim()} onClick={submit} className="btn btn-primary">{t('client_portal.save_draft')}</button>
+              <button disabled={busy} onClick={() => setModal(false)} className="btn btn-ghost">{t('client_portal.cancel')}</button>
             </div>
           </div>
         </div>
