@@ -5,6 +5,7 @@ import { clientNav } from '@/lib/nav';
 import { Field, ListHead, StatusBadge, Kpi } from '@/Components/ui';
 import { Pagination, type Paginated } from '@/Components/Pagination';
 import { u } from '@/lib/href';
+import { useT } from '@/lib/i18n';
 
 interface Row {
   id: number; number: string; title: string; type: string; typeLabel: string;
@@ -24,6 +25,7 @@ const EMPTY_FORM = (type: string) => ({
 });
 
 export default function ClientRequestsIndex({ clientName, items, open, brands, types, priorities, platformOptions }: Props) {
+  const t = useT();
   const [modal, setModal] = useState(false);
   const [busy, setBusy] = useState(false);
   const [form, setForm] = useState(EMPTY_FORM(types[0]?.value ?? 'other'));
@@ -51,23 +53,23 @@ export default function ClientRequestsIndex({ clientName, items, open, brands, t
   };
 
   return (
-    <AppShell heading="الطلبات" nav={clientNav} portal="client" wsName={clientName} wsPlan="بوابة العميل">
-      <Head title="الطلبات" />
-      <ListHead eyebrow="بوابة العميل" title="الطلبات" sub="أرسل طلباتك للوكالة وتابع حالتها."
-        actions={<button onClick={() => setModal(true)} className="btn btn-sm">+ طلب جديد</button>} />
+    <AppShell heading={t('client_portal.requests_title')} nav={clientNav} portal="client" wsName={clientName} wsPlan={t('client_portal.ws_plan')}>
+      <Head title={t('client_portal.requests_title')} />
+      <ListHead eyebrow={t('client_portal.eyebrow')} title={t('client_portal.requests_title')} sub={t('client_portal.requests_sub')}
+        actions={<button onClick={() => setModal(true)} className="btn btn-sm">{t('client_portal.new_request')}</button>} />
 
       <div className="ih-kpis">
-        <Kpi label="طلبات مفتوحة" icon="inbox" tone={open ? 'warning' : 'success'} value={open.toLocaleString('en-US')} sub={open ? 'قيد التنفيذ' : 'لا شيء مفتوح'} />
-        <Kpi label="إجمالي الطلبات" icon="clipboard-check" value={items.total.toLocaleString('en-US')} sub="لديك" />
+        <Kpi label={t('client_portal.r_kpi_open')} icon="inbox" tone={open ? 'warning' : 'success'} value={open.toLocaleString('en-US')} sub={open ? t('client_portal.r_kpi_in_progress') : t('client_portal.r_kpi_none')} />
+        <Kpi label={t('client_portal.r_kpi_total')} icon="clipboard-check" value={items.total.toLocaleString('en-US')} sub={t('client_portal.r_kpi_total_sub')} />
       </div>
 
       {items.data.length === 0 ? (
-        <div className="card" style={{ padding: '2rem', textAlign: 'center', color: 'var(--ih-text-muted)' }}>لا طلبات بعد — ابدأ بطلب جديد.</div>
+        <div className="card" style={{ padding: '2rem', textAlign: 'center', color: 'var(--ih-text-muted)' }}>{t('client_portal.requests_empty')}</div>
       ) : (
         <>
           <div className="ih-dt-wrap"><div className="ih-dt-scroll">
             <table className="ih-dt">
-              <thead><tr><th>الطلب</th><th>النوع</th><th>الأولوية</th><th>المسؤول</th><th>الحالة</th><th>—</th></tr></thead>
+              <thead><tr><th>{t('client_portal.th_request')}</th><th>{t('client_portal.m_type')}</th><th>{t('client_portal.priority_label')}</th><th>{t('client_portal.assignee_label')}</th><th>{t('client_portal.th_status')}</th><th>—</th></tr></thead>
               <tbody>
                 {items.data.map((s) => (
                   <tr key={s.id}>
@@ -79,7 +81,7 @@ export default function ClientRequestsIndex({ clientName, items, open, brands, t
                     <td>{s.priorityLabel}</td>
                     <td>{s.assignee ?? '—'}</td>
                     <td><StatusBadge tone={s.statusTone} label={s.statusLabel} /></td>
-                    <td><Link href={u(`/requests/${s.id}`)} className="btn btn-xs btn-outline">عرض</Link></td>
+                    <td><Link href={u(`/requests/${s.id}`)} className="btn btn-xs btn-outline">{t('client_portal.view')}</Link></td>
                   </tr>
                 ))}
               </tbody>
@@ -92,61 +94,61 @@ export default function ClientRequestsIndex({ clientName, items, open, brands, t
       {modal && (
         <div className="modal-backdrop" onClick={(e) => e.target === e.currentTarget && !busy && setModal(false)}>
           <div className="modal" style={{ padding: '1.3rem', maxWidth: 520 }}>
-            <h3 style={{ fontWeight: 800, margin: '0 0 1rem' }}>طلب خدمة جديد</h3>
+            <h3 style={{ fontWeight: 800, margin: '0 0 1rem' }}>{t('client_portal.req_modal_title')}</h3>
             <div style={{ display: 'grid', gap: '.8rem' }}>
-              <Field label="العنوان" labelStyle={LBL}>
-                <input value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })} className="field" style={{ width: '100%' }} placeholder="ملخص مختصر للطلب" autoFocus />
+              <Field label={t('client_portal.f_title')} labelStyle={LBL}>
+                <input value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })} className="field" style={{ width: '100%' }} placeholder={t('client_portal.f_title_ph')} autoFocus />
               </Field>
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '.8rem' }}>
-                <Field label="النوع" labelStyle={LBL}>
+                <Field label={t('client_portal.m_type')} labelStyle={LBL}>
                   <select value={form.type} onChange={(e) => setForm({ ...form, type: e.target.value })} className="field" style={{ width: '100%' }}>
-                    {types.map((t) => <option key={t.value} value={t.value}>{t.label}</option>)}
+                    {types.map((opt) => <option key={opt.value} value={opt.value}>{opt.label}</option>)}
                   </select>
                 </Field>
-                <Field label="الأولوية" labelStyle={LBL}>
+                <Field label={t('client_portal.priority_label')} labelStyle={LBL}>
                   <select value={form.priority} onChange={(e) => setForm({ ...form, priority: e.target.value })} className="field" style={{ width: '100%' }}>
                     {priorities.map((p) => <option key={p.value} value={p.value}>{p.label}</option>)}
                   </select>
                 </Field>
               </div>
               {brands.length > 0 && (
-                <Field label="العلامة التجارية (اختياري)" labelStyle={LBL}>
+                <Field label={t('client_portal.f_brand')} labelStyle={LBL}>
                   <select value={form.brand_id} onChange={(e) => setForm({ ...form, brand_id: e.target.value })} className="field" style={{ width: '100%' }}>
-                    <option value="">— بدون —</option>
+                    <option value="">{t('client_portal.r_no_brand')}</option>
                     {brands.map((b) => <option key={b.id} value={b.id}>{b.name}</option>)}
                   </select>
                 </Field>
               )}
-              <Field label="التفاصيل (اختياري)" labelStyle={LBL}>
-                <textarea value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} className="field" rows={4} style={{ width: '100%', resize: 'vertical' }} placeholder="اشرح ما تحتاجه بالتفصيل…" />
+              <Field label={t('client_portal.f_details')} labelStyle={LBL}>
+                <textarea value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} className="field" rows={4} style={{ width: '100%', resize: 'vertical' }} placeholder={t('client_portal.f_details_ph')} />
               </Field>
 
               {isCampaign && (
                 <div style={{ borderTop: '1px solid var(--ih-border)', paddingTop: '.9rem', display: 'grid', gap: '.8rem' }}>
                   <div>
-                    <div style={{ fontWeight: 700, fontSize: '.86rem' }}>موجز الحملة</div>
+                    <div style={{ fontWeight: 700, fontSize: '.86rem' }}>{t('client_portal.brief_title')}</div>
                     <div style={{ fontSize: '.76rem', color: 'var(--ih-text-muted)', marginTop: '.15rem' }}>
-                      ما تُدخله هنا ينتقل تلقائيًا إلى الحملة عند اعتماد طلبك — لن يُطلب منك مرّة أخرى.
+                      {t('client_portal.brief_hint')}
                     </div>
                   </div>
                   <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '.8rem' }}>
-                    <Field label="الميزانية (ر.س)" labelStyle={LBL}>
+                    <Field label={t('client_portal.f_budget')} labelStyle={LBL}>
                       <input type="number" min={0} step="0.01" value={form.budget}
                         onChange={(e) => setForm({ ...form, budget: e.target.value })}
                         className="field" style={{ width: '100%', direction: 'ltr' }} placeholder="50000" />
                     </Field>
-                    <Field label="البداية المفضّلة" labelStyle={LBL}>
+                    <Field label={t('client_portal.f_start')} labelStyle={LBL}>
                       <input type="date" value={form.preferred_start_date}
                         onChange={(e) => setForm({ ...form, preferred_start_date: e.target.value })}
                         className="field" style={{ width: '100%', direction: 'ltr' }} />
                     </Field>
-                    <Field label="النهاية المفضّلة" labelStyle={LBL}>
+                    <Field label={t('client_portal.f_end')} labelStyle={LBL}>
                       <input type="date" value={form.preferred_end_date}
                         onChange={(e) => setForm({ ...form, preferred_end_date: e.target.value })}
                         className="field" style={{ width: '100%', direction: 'ltr' }} />
                     </Field>
                   </div>
-                  <Field label="المنصّات المطلوبة" labelStyle={LBL}>
+                  <Field label={t('client_portal.f_platforms')} labelStyle={LBL}>
                     {(g) => (
                       <div {...g} role="group" style={{ display: 'flex', gap: '.5rem', flexWrap: 'wrap' }}>
                         {Object.entries(platformOptions).map(([k, v]) => (
@@ -160,17 +162,17 @@ export default function ClientRequestsIndex({ clientName, items, open, brands, t
                       </div>
                     )}
                   </Field>
-                  <Field label="نطاق العمل المطلوب" labelStyle={LBL}>
+                  <Field label={t('client_portal.f_scope')} labelStyle={LBL}>
                     <textarea value={form.scope_notes} onChange={(e) => setForm({ ...form, scope_notes: e.target.value })}
                       className="field" rows={2} style={{ width: '100%', resize: 'vertical' }}
-                      placeholder="عدد المنشورات، نوع المحتوى، الجمهور المستهدف…" />
+                      placeholder={t('client_portal.f_scope_ph')} />
                   </Field>
                 </div>
               )}
             </div>
             <div style={{ marginTop: '1rem', display: 'flex', gap: '.5rem' }}>
-              <button disabled={busy || !form.title.trim()} onClick={submit} className="btn btn-primary">إرسال الطلب</button>
-              <button disabled={busy} onClick={() => setModal(false)} className="btn btn-ghost">إلغاء</button>
+              <button disabled={busy || !form.title.trim()} onClick={submit} className="btn btn-primary">{t('client_portal.submit_request')}</button>
+              <button disabled={busy} onClick={() => setModal(false)} className="btn btn-ghost">{t('client_portal.cancel')}</button>
             </div>
           </div>
         </div>

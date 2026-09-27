@@ -4,6 +4,7 @@ import AppShell from '@/Layouts/AppShell';
 import { clientNav } from '@/lib/nav';
 import { WorkspaceHeader, Sec, StatusBadge } from '@/Components/ui';
 import { u } from '@/lib/href';
+import { useT } from '@/lib/i18n';
 
 interface RequestT {
   id: number; number: string; title: string; type: string; typeLabel: string;
@@ -15,6 +16,7 @@ interface History { to: string; tone: string; actor: string; note: string | null
 interface Props { clientName: string; request: RequestT; comments: Comment[]; history: History[] }
 
 export default function ClientRequestShow({ clientName, request, comments, history }: Props) {
+  const t = useT();
   const [body, setBody] = useState('');
   const [busy, setBusy] = useState(false);
 
@@ -29,32 +31,32 @@ export default function ClientRequestShow({ clientName, request, comments, histo
   };
 
   return (
-    <AppShell heading="طلب خدمة" nav={clientNav} portal="client" wsName={clientName} wsPlan="بوابة العميل">
+    <AppShell heading={t('client_portal.req_heading')} nav={clientNav} portal="client" wsName={clientName} wsPlan={t('client_portal.ws_plan')}>
       <Head title={request.title} />
 
       <WorkspaceHeader
-        eyebrow={`طلب · ${request.number}`}
+        eyebrow={t('client_portal.req_eyebrow', { num: request.number })}
         title={request.title}
         statusTone={request.statusTone} statusLabel={request.statusLabel}
-        back={u("/requests")} backLabel="الطلبات"
+        back={u("/requests")} backLabel={t('client_portal.requests_title')}
         meta={[
-          ['النوع', request.typeLabel], ['الأولوية', request.priorityLabel],
-          ['المسؤول', request.assignee ?? 'قيد الإسناد'],
-          ...(request.brand ? [['العلامة', request.brand] as [string, string]] : []),
+          [t('client_portal.m_type'), request.typeLabel], [t('client_portal.priority_label'), request.priorityLabel],
+          [t('client_portal.assignee_label'), request.assignee ?? t('client_portal.assignee_pending')],
+          ...(request.brand ? [[t('client_portal.m_brand'), request.brand] as [string, string]] : []),
         ]}
       />
 
       <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1.4fr) minmax(0, 1fr)', gap: '1.2rem', alignItems: 'start' }} className="ih-settings-grid">
         <div style={{ display: 'grid', gap: '1.2rem' }}>
           {request.description && (
-            <Sec title="التفاصيل" icon="inbox">
+            <Sec title={t('client_portal.sec_details')} icon="inbox">
               <div style={{ whiteSpace: 'pre-wrap', fontSize: '.9rem', lineHeight: 1.8 }}>{request.description}</div>
             </Sec>
           )}
 
-          <Sec title="المحادثة" icon="clipboard-check">
+          <Sec title={t('client_portal.sec_conversation')} icon="clipboard-check">
             {comments.length === 0 ? (
-              <div style={{ fontSize: '.84rem', color: 'var(--ih-text-muted)', marginBottom: '.9rem' }}>لا رسائل بعد — اكتب أول رسالة للوكالة.</div>
+              <div style={{ fontSize: '.84rem', color: 'var(--ih-text-muted)', marginBottom: '.9rem' }}>{t('client_portal.no_messages')}</div>
             ) : (
               <div style={{ display: 'grid', gap: '.7rem', marginBottom: '1rem' }}>
                 {comments.map((cm) => {
@@ -74,18 +76,18 @@ export default function ClientRequestShow({ clientName, request, comments, histo
             {request.isOpen ? (
               <div style={{ display: 'flex', gap: '.5rem', alignItems: 'flex-end' }}>
                 <textarea value={body} onChange={(e) => setBody(e.target.value)} className="field" rows={2}
-                  placeholder="اكتب رسالة…" style={{ flex: 1, resize: 'vertical' }} />
-                <button disabled={busy || !body.trim()} onClick={send} className="btn btn-sm">إرسال</button>
+                  placeholder={t('client_portal.msg_placeholder')} style={{ flex: 1, resize: 'vertical' }} />
+                <button disabled={busy || !body.trim()} onClick={send} className="btn btn-sm">{t('client_portal.send')}</button>
               </div>
             ) : (
-              <div style={{ fontSize: '.82rem', color: 'var(--ih-text-muted)' }}>الطلب مُغلق — لا يمكن إضافة رسائل جديدة.</div>
+              <div style={{ fontSize: '.82rem', color: 'var(--ih-text-muted)' }}>{t('client_portal.closed_note')}</div>
             )}
           </Sec>
         </div>
 
-        <Sec title="سجل الحالة" icon="clipboard-check">
+        <Sec title={t('client_portal.sec_history')} icon="clipboard-check">
           {history.length === 0 ? (
-            <div style={{ fontSize: '.84rem', color: 'var(--ih-text-muted)' }}>لا سجل بعد.</div>
+            <div style={{ fontSize: '.84rem', color: 'var(--ih-text-muted)' }}>{t('client_portal.no_history')}</div>
           ) : (
             <div style={{ display: 'grid', gap: '.7rem' }}>
               {history.map((h, i) => (
@@ -102,7 +104,7 @@ export default function ClientRequestShow({ clientName, request, comments, histo
           )}
           {request.dueAt && (
             <div style={{ marginTop: '1rem', fontSize: '.78rem', color: 'var(--ih-text-muted)', display: 'flex', justifyContent: 'space-between' }}>
-              <span>الاستحقاق</span><span style={{ direction: 'ltr', fontWeight: 600 }}>{request.dueAt}</span>
+              <span>{t('client_portal.due_label')}</span><span style={{ direction: 'ltr', fontWeight: 600 }}>{request.dueAt}</span>
             </div>
           )}
         </Sec>
