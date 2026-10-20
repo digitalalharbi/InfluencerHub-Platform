@@ -12,15 +12,13 @@
 - **Stack:** Laravel 12 · PHP 8.4 · PostgreSQL · Inertia + React 19 + TypeScript + Vite · Tailwind. Arabic-first, RTL. Latin digits everywhere.
 - **Domain-driven:** business logic under `app/Domain/<Domain>/**`; HTTP controllers under `app/Http/Controllers/**`; React under `resources/js/**`.
 
-## 0. HARD PROJECT BOUNDARY (CampaignsHub firewall)
+## 0. HARD PROJECT BOUNDARY (code firewall) + benchmark policy
 
-InfluencerHub is **100% independent** of CampaignsHub / campaignshub.io. CampaignsHub is **OUT OF SCOPE**.
+InfluencerHub is **100% independent** of CampaignsHub / campaignshub.io and of digitalSmart. They are **separate products with separate IP**.
 
-Forbidden, always: merging any CampaignsHub PR/branch/commit/diff, copying its code, reusing its worktree, unifying the two projects, or making InfluencerHub architecture decisions based on CampaignsHub.
+**Code firewall — absolute, always:** merging any CampaignsHub/digitalSmart PR/branch/commit/diff = 0 · copying their code = 0 · reusing their worktree = 0 · unifying projects = 0 · code/migration/class/component transfer = 0. Never modify either repository.
 
-**Invariant:** cross-project merge = 0 · commit transfer = 0 · branch reuse = 0 · code migration = 0.
-
-If anything CampaignsHub-related appears: **IGNORE AS OUT-OF-SCOPE** — do not ask what to do with it.
+**Benchmark policy (owner decision 2026-10-20):** CampaignsHub and digitalSmart MAY be read as **READ-ONLY PRODUCT BENCHMARKS** to extract *product principles and operating patterns only* (e.g. fail-closed tenancy, propose→approve→execute, provider-readiness ladder, visual-first doctrine). This supersedes the previous "ignore entirely" rule. The line is bright: **patterns and principles — yes; code, commits, assets, trade dress — never.** Write target is `digitalalharbi/InfluencerHub-Platform` ONLY. Assert at each unit: `CampaignsHub touched = 0 · digitalSmart touched = 0`.
 
 ## Sources of truth (in order)
 
