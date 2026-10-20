@@ -81,6 +81,40 @@
   --ih-accent:        var(--ih-accent-500);
   --ih-accent-soft:   var(--ih-accent-50);
 
+  /* ---- Lime (product accent LAYER — references-inspired energy; NOT the brand) ----
+     الهوية تبقى بنفسجية. الليموني طبقة أكسنت مقيّدة: التنقّل النشط، تمييز إيجابي،
+     إبراز رسم — وليس زرّ CTA الأساسي. */
+  --ih-lime-50:  #F7FEE7;
+  --ih-lime-100: #ECFCCB;
+  --ih-lime-200: #D9F99D;
+  --ih-lime-300: #BEF264;
+  --ih-lime-400: #A3E635;
+  --ih-lime-500: #84CC16;
+  --ih-lime-600: #65A30D;
+  --ih-lime-700: #4D7C0F;
+  --ih-lime:      var(--ih-lime-400);
+  --ih-lime-soft: var(--ih-lime-100);
+  --ih-lime-ink:  #3F6212; /* نصّ ليموني داكن على أسطح فاتحة — AA على الأبيض */
+  --ih-positive:  var(--ih-success);
+
+  /* ---- Dark navigation (sidebar) semantic tokens ----
+     شريط جانبي داكن (ink) + حالة نشطة ليمونية. تباين AA مقيس على ink-900. */
+  --ih-nav:              var(--ih-ink-900);
+  --ih-nav-raised:       var(--ih-ink-850);
+  --ih-nav-border:       rgba(255, 255, 255, .08);
+  --ih-nav-text:         #AEB8CC;  /* ~8:1 على ink-900 */
+  --ih-nav-text-strong:  #F4F7FC;
+  --ih-nav-muted:        #8893A8;  /* ~5:1 — عناوين المجموعات */
+  --ih-nav-icon:         #8893A8;
+  --ih-nav-hover:        rgba(255, 255, 255, .06);
+  --ih-nav-active-bg:    rgba(163, 230, 53, .15);
+  --ih-nav-active-text:  #CBF17A;  /* ليموني عالي التباين على ink */
+  --ih-nav-active-indicator: var(--ih-lime-400);
+
+  /* ---- Elevated surface + larger card radius (18–24px) ---- */
+  --ih-surface-raised: #FFFFFF;
+  --ih-radius-2xl: 24px;
+
   /* ---- Typography ---- */
   --ih-font-sans: "IBM Plex Sans Arabic", "IBM Plex Sans", "Tajawal", system-ui, -apple-system, "Segoe UI", sans-serif;
   --ih-font-mono: "IBM Plex Mono", ui-monospace, "SF Mono", Menlo, monospace;
