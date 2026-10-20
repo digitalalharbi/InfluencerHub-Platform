@@ -148,4 +148,52 @@ return [
     'f_language' => 'Preferred language',
     'f_desc' => 'Description',
     'save' => 'Save',
+
+    // Documents (Documents/Index)
+    'documents_title' => 'Documents',
+    'documents_sub' => 'Documents the agency has shared with you.',
+    'documents_empty' => 'No documents available yet.',
+    'th_document' => 'Document',
+    'th_category' => 'Category',
+    'th_size' => 'Size',
+    'th_date' => 'Date',
+    'download' => 'Download',
+
+    // Notifications
+    'notifs_title' => 'Notifications',
+    'notifs_sub' => 'Content, contract, nomination and request alerts for your account',
+    'mark_all_read' => 'Mark all as read (:n)',
+    'notifs_empty_title' => 'No notifications',
+    'notifs_empty_text' => 'Alerts that need your attention arrive here: content awaiting your approval, a contract to sign, or a reply to a request.',
+
+    // Team (Team/Index)
+    'team_title' => 'Team',
+    'team_head_title' => 'Client team',
+    'team_sub' => 'Your account members and their roles.',
+    'invite_member' => '+ Invite member',
+    'invite_token_title' => 'Invitation code — shown once',
+    'invite_token_hint' => 'Copy it now and hand it to the member; it can’t be retrieved after you leave the page.',
+    'sec_members' => 'Members',
+    'th_member' => 'Member',
+    'th_role' => 'Role',
+    'th_actions' => 'Actions',
+    'you' => ' (you)',
+    'suspend' => 'Suspend',
+    'remove' => 'Remove',
+    'activate' => 'Activate',
+    'sec_pending_invites' => 'Pending invitations',
+    'th_email' => 'Email',
+    'th_expires' => 'Expires',
+    'invite_modal_title' => 'Invite a new member',
+    'f_email' => 'Email',
+    'f_role' => 'Role',
+    'send_invite' => 'Send invitation',
+
+    // Client team roles (ClientMemberRole — resolved in the controller)
+    'role_client_admin' => 'Account admin',
+    'role_client_campaign_manager' => 'Campaign manager',
+    'role_client_content_reviewer' => 'Content reviewer',
+    'role_client_finance' => 'Finance',
+    'role_client_report_viewer' => 'Reports viewer',
+    'role_client_member' => 'Member',
 ];

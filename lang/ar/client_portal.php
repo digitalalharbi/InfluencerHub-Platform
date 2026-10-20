@@ -151,4 +151,52 @@ return [
     'f_language' => 'اللغة المفضّلة',
     'f_desc' => 'الوصف',
     'save' => 'حفظ',
+
+    // المستندات (Documents/Index)
+    'documents_title' => 'المستندات',
+    'documents_sub' => 'المستندات التي شاركتها معك الوكالة.',
+    'documents_empty' => 'لا مستندات متاحة بعد.',
+    'th_document' => 'المستند',
+    'th_category' => 'الفئة',
+    'th_size' => 'الحجم',
+    'th_date' => 'التاريخ',
+    'download' => 'تنزيل',
+
+    // الإشعارات (Notifications)
+    'notifs_title' => 'الإشعارات',
+    'notifs_sub' => 'تنبيهات المحتوى والعقود والترشيحات والطلبات الخاصة بحسابك',
+    'mark_all_read' => 'تعليم الكل كمقروء (:n)',
+    'notifs_empty_title' => 'لا إشعارات',
+    'notifs_empty_text' => 'تصلك هنا تنبيهات ما يحتاج انتباهك: محتوى بانتظار اعتمادك، عقد للتوقيع، أو ردّ على طلب.',
+
+    // الفريق (Team/Index)
+    'team_title' => 'الفريق',
+    'team_head_title' => 'فريق العميل',
+    'team_sub' => 'أعضاء حسابك وأدوارهم.',
+    'invite_member' => '+ دعوة عضو',
+    'invite_token_title' => 'رمز الدعوة — يُعرض مرة واحدة',
+    'invite_token_hint' => 'انسخه الآن وسلّمه للعضو؛ لا يمكن استرجاعه بعد مغادرة الصفحة.',
+    'sec_members' => 'الأعضاء',
+    'th_member' => 'العضو',
+    'th_role' => 'الدور',
+    'th_actions' => 'إجراءات',
+    'you' => ' (أنت)',
+    'suspend' => 'تعليق',
+    'remove' => 'إزالة',
+    'activate' => 'تفعيل',
+    'sec_pending_invites' => 'دعوات معلّقة',
+    'th_email' => 'البريد',
+    'th_expires' => 'تنتهي',
+    'invite_modal_title' => 'دعوة عضو جديد',
+    'f_email' => 'البريد الإلكتروني',
+    'f_role' => 'الدور',
+    'send_invite' => 'إرسال الدعوة',
+
+    // أدوار فريق العميل (ClientMemberRole — تُحلّ في المتحكّم)
+    'role_client_admin' => 'مدير الحساب',
+    'role_client_campaign_manager' => 'مدير حملات',
+    'role_client_content_reviewer' => 'مراجع محتوى',
+    'role_client_finance' => 'مالية',
+    'role_client_report_viewer' => 'مشاهدة التقارير',
+    'role_client_member' => 'عضو',
 ];

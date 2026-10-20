@@ -5,6 +5,7 @@ import { Icon } from '@/Components/Icon';
 import { Pagination, type Paginated } from '@/Components/Pagination';
 import { clientNav } from '@/lib/nav';
 import { u } from '@/lib/href';
+import { useT } from '@/lib/i18n';
 
 interface Item {
   id: number; title: string; body: string | null; category: string | null;
@@ -13,25 +14,26 @@ interface Item {
 interface Props { items: Paginated<Item>; unread: number }
 
 export default function ClientNotifications({ items, unread }: Props) {
+  const t = useT();
   const open = (n: Item) => router.post(u(`/notifications/${n.id}/read`));
 
   return (
-    <AppShell heading="الإشعارات" nav={clientNav} portal="client">
-      <Head title="الإشعارات" />
+    <AppShell heading={t('client_portal.notifs_title')} nav={clientNav} portal="client">
+      <Head title={t('client_portal.notifs_title')} />
 
-      <ListHead eyebrow="بوابة العميل" title="الإشعارات"
-        sub="تنبيهات المحتوى والعقود والترشيحات والطلبات الخاصة بحسابك"
+      <ListHead eyebrow={t('client_portal.eyebrow')} title={t('client_portal.notifs_title')}
+        sub={t('client_portal.notifs_sub')}
         actions={unread > 0
           ? <button onClick={() => router.post(u('/notifications/read-all'))} className="btn btn-sm btn-outline">
-              تعليم الكل كمقروء ({unread})
+              {t('client_portal.mark_all_read', { n: unread })}
             </button>
           : undefined} />
 
       {items.data.length === 0 ? (
         <div className="ih-dt-wrap"><div className="ih-empty">
           <span className="ih-empty__icon"><Icon name="inbox" size={26} /></span>
-          <div className="ih-empty__title">لا إشعارات</div>
-          <div className="ih-empty__text">تصلك هنا تنبيهات ما يحتاج انتباهك: محتوى بانتظار اعتمادك، عقد للتوقيع، أو ردّ على طلب.</div>
+          <div className="ih-empty__title">{t('client_portal.notifs_empty_title')}</div>
+          <div className="ih-empty__text">{t('client_portal.notifs_empty_text')}</div>
         </div></div>
       ) : (
         <>
