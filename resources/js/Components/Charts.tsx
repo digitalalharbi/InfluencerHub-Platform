@@ -145,9 +145,9 @@ export function Sparkline({
  * خطوط مستقيمة (لا تنعيم) ولا جسر للفجوات ولا بيانات مُختلَقة؛ عند غيابها حالة فارغة.
  */
 export function AreaChart({
-  data, height = 190, color = 'var(--ih-primary)', emptyLabel = 'لا بيانات كافية بعد', ariaLabel,
+  data, height = 190, line = 'var(--ih-text)', fill = 'var(--ih-lime)', emptyLabel = 'لا بيانات كافية بعد', ariaLabel,
 }: {
-  data: { label: string; value: number }[]; height?: number; color?: string; emptyLabel?: string; ariaLabel?: string;
+  data: { label: string; value: number }[]; height?: number; line?: string; fill?: string; emptyLabel?: string; ariaLabel?: string;
 }) {
   const vals = data.map((d) => d.value);
   const hasData = data.length >= 2 && vals.some((v) => v > 0);
@@ -158,8 +158,8 @@ export function AreaChart({
   const n = data.length;
   const px = (i: number) => (i / (n - 1)) * 100;
   const py = (v: number) => 4 + (1 - v / max) * 92; // حشوة 4% أعلى/أسفل
-  const line = data.map((d, i) => `${i === 0 ? 'M' : 'L'}${px(i).toFixed(2)},${py(d.value).toFixed(2)}`).join(' ');
-  const area = `${line} L100,100 L0,100 Z`;
+  const linePath = data.map((d, i) => `${i === 0 ? 'M' : 'L'}${px(i).toFixed(2)},${py(d.value).toFixed(2)}`).join(' ');
+  const area = `${linePath} L100,100 L0,100 Z`;
   const gid = `iharea-${n}-${Math.round(max)}`;
   const label = ariaLabel ?? data.map((d) => `${d.label}: ${d.value}`).join('، ');
   const lastX = px(n - 1), lastY = py(data[n - 1].value);
@@ -171,8 +171,8 @@ export function AreaChart({
         <svg width="100%" height="100%" viewBox="0 0 100 100" preserveAspectRatio="none" style={{ display: 'block', overflow: 'visible' }} aria-hidden="true">
           <defs>
             <linearGradient id={gid} x1="0" y1="0" x2="0" y2="1">
-              <stop offset="0%" stopColor={color} stopOpacity="0.20" />
-              <stop offset="100%" stopColor={color} stopOpacity="0" />
+              <stop offset="0%" stopColor={fill} stopOpacity="0.55" />
+              <stop offset="100%" stopColor={fill} stopOpacity="0.04" />
             </linearGradient>
           </defs>
           {[4, 50, 96].map((gy) => (
@@ -180,9 +180,9 @@ export function AreaChart({
               vectorEffect="non-scaling-stroke" strokeDasharray={gy === 96 ? undefined : '2 3'} />
           ))}
           <path d={area} fill={`url(#${gid})`} />
-          <path d={line} fill="none" stroke={color} strokeWidth={2.25} strokeLinejoin="round" strokeLinecap="round" vectorEffect="non-scaling-stroke" />
+          <path d={linePath} fill="none" stroke={line} strokeWidth={2.25} strokeLinejoin="round" strokeLinecap="round" vectorEffect="non-scaling-stroke" />
         </svg>
-        <span aria-hidden="true" style={{ position: 'absolute', left: `${lastX}%`, top: `${lastY}%`, width: 10, height: 10, marginInlineStart: -5, marginTop: -5, borderRadius: '50%', background: color, border: '2px solid var(--ih-surface)' }} />
+        <span aria-hidden="true" style={{ position: 'absolute', left: `${lastX}%`, top: `${lastY}%`, width: 10, height: 10, marginInlineStart: -5, marginTop: -5, borderRadius: '50%', background: line, border: '2px solid var(--ih-surface)' }} />
       </div>
       <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 8, fontSize: '.66rem', color: 'var(--ih-text-muted)', direction: 'ltr' }}>
         {data.map((d, i) => <span key={i} style={{ visibility: showLabel(i) ? undefined : 'hidden' }}>{d.label}</span>)}

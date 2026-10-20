@@ -1405,3 +1405,46 @@ a.ih-kpi:hover, .ih-kpi--link:hover { box-shadow: var(--ih-shadow); transform: t
   .ih-dash-head__title { font-size: 1.45rem; }
   .ih-focus { gap: .5rem; }
 }
+
+/* ============================================================================
+   RADICAL-IDENTITY-01 — فرض الهوية (حبر/كحلي + أوف-وايت دافئ + ليموني حمضي)
+   مرجع Eduplex. يَلغي هيمنة البنفسجي. يأتي آخر الملف ليفوز على التعريفات الأقدم.
+   ============================================================================ */
+
+/* أزرار — الأساسي ليموني + حبر، الثانوي أبيض بحدّ */
+.btn-primary { background: var(--ih-lime); color: var(--ih-lime-ink); border-color: var(--ih-lime); box-shadow: 0 1px 2px rgba(39,51,12,.14); font-weight: 650; }
+.btn-primary:hover { background: var(--ih-lime-hover); border-color: var(--ih-lime-hover); color: var(--ih-lime-ink); }
+.btn-primary:active { background: var(--ih-lime-hover); }
+.btn-secondary { background: var(--ih-surface); color: var(--ih-text); border-color: var(--ih-border); box-shadow: none; }
+.btn-secondary:hover { background: var(--ih-surface-muted); border-color: var(--ih-border-strong); }
+.btn-outline { color: var(--ih-text); border-color: var(--ih-border-strong); }
+.btn-outline:hover { background: var(--ih-surface-muted); }
+
+/* شريط جانبي — كبسولة نشطة ليمونية صلبة، حالة واحدة فقط */
+.ih-side .nav-link.active { background: var(--ih-lime); color: var(--ih-lime-ink); font-weight: 700; }
+.ih-side .nav-link.active::before { display: none; }
+.ih-side .ih-nav__link.active .ih-icon { color: var(--ih-lime-ink); }
+.ih-side .ih-nav__badge { background: rgba(255,255,255,.08); color: var(--ih-nav-text); }
+.ih-side .ih-nav__link.active .ih-nav__badge { background: var(--ih-lime-ink); color: var(--ih-lime); }
+
+/* العمود الأيمن — بطاقات بيضاء مدمجة بدل ريل ثقيل */
+@media (min-width: 1120px) {
+  .ih-workarea--rail .ih-context-rail { background: transparent; border-inline-start: none; padding: 1.75rem 1.25rem 1.75rem 1.5rem; gap: 1.1rem; }
+}
+.ih-rail__group { background: var(--ih-surface); border-radius: var(--ih-radius-lg); padding: 1.1rem 1.15rem; box-shadow: var(--ih-shadow-sm); }
+.ih-rail__title svg { color: var(--ih-lime-700); }
+.ih-rail__lead { background: var(--ih-surface-muted); border-color: var(--ih-border); }
+.ih-rail__lead-bar > span, .ih-rail__lead-foot b { background: var(--ih-lime-600); }
+.ih-rail__lead-foot b { background: none; color: var(--ih-lime-700); }
+
+/* بطاقات KPI — شريحة الأيقونة الأساسية ليمونية (حضور ليموني مقيّد) */
+.ih-tile__icon--primary { background: var(--ih-lime-soft); color: var(--ih-lime-ink); }
+
+/* تدرّج طباعة أقوى (مرجع Eduplex) */
+.ih-dash-head__title { font-size: 1.9rem; font-weight: 700; letter-spacing: -.02em; }
+.ih-dash-head__eyebrow { color: var(--ih-text-muted); }
+.ih-sectionbar__count { background: var(--ih-lime-soft); color: var(--ih-lime-ink); }
+
+/* بطاقة الإعداد — ليموني بدل التدرّج البنفسجي */
+.ih-setup-cta { background: var(--ih-ink-900); color: #fff; }
+.ih-setup-cta .btn { background: var(--ih-lime); color: var(--ih-lime-ink); border-color: var(--ih-lime); }
