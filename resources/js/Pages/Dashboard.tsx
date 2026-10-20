@@ -141,6 +141,9 @@ function WorkRow({ w }: { w: WorkItem }) {
   );
 }
 
+/** بطاقة لمحة تشغيلية — رقم حقيقي واحد + مدخل مهيمن واحد. */
+const GLANCE_ICON = { campaigns: 'megaphone', decisions: 'handshake', approvals: 'clipboard-check', payouts: 'wallet', late: 'alert-triangle' } as const;
+
 export default function Dashboard() {
   const { props } = usePage<DashboardProps>();
   const t = useT();
@@ -157,6 +160,28 @@ export default function Dashboard() {
     : setup?.isSettingUp
       ? t('dashboard.brief_setup', { next: setup.next?.title ?? t('dashboard.brief_first_client') })
       : t('dashboard.brief_clear');
+
+  // ROW1 — لمحة تشغيلية: أعداد حقيقية، كلٌّ مدخل مهيمن لسطحه. للمديرين فقط (overview).
+  type Glance = { key: keyof typeof GLANCE_ICON; label: string; value: number; href: string; tone?: 'warning' | 'danger' };
+  const glance: Glance[] = overview ? [
+    { key: 'campaigns', label: t('dashboard.glance_campaigns'), value: overview.kpis.campaignsActive, href: u('/campaigns') },
+    { key: 'decisions', label: t('dashboard.glance_client_decisions'), value: overview.kpis.awaitingClient, href: u('/campaigns'), tone: overview.kpis.awaitingClient > 0 ? 'warning' : undefined },
+    { key: 'approvals', label: t('dashboard.glance_approvals'), value: brief.approvals, href: u('/content'), tone: brief.approvals > 0 ? 'warning' : undefined },
+    { key: 'payouts', label: t('dashboard.glance_payouts'), value: overview.kpis.pendingPayouts, href: u('/payouts'), tone: overview.kpis.pendingPayouts > 0 ? 'warning' : undefined },
+    { key: 'late', label: t('dashboard.glance_late'), value: overview.kpis.late, href: u('/campaigns'), tone: overview.kpis.late > 0 ? 'danger' : undefined },
+  ] : [];
+
+  // ROW with the priority donut (real myWork distribution)
+  const cnt = (pred: (p: string) => boolean) => myWork.filter((w) => pred(w.prio)).reduce((n, w) => n + (w.count ?? 1), 0);
+  const urgent = cnt((p) => p === 'overdue' || p === 'critical');
+  const approvalN = cnt((p) => p === 'approval');
+  const upcoming = cnt((p) => !['overdue', 'critical', 'approval'].includes(p));
+  const workSegs = [
+    { label: t('dashboard.insight_urgent'), value: urgent, color: 'var(--ih-danger, #D92D20)' },
+    { label: t('dashboard.insight_approval'), value: approvalN, color: 'var(--ih-warning-ink, #B54708)' },
+    { label: t('dashboard.insight_upcoming'), value: upcoming, color: 'var(--ih-primary, #5B45E0)' },
+  ];
+  const totalWork = urgent + approvalN + upcoming;
 
   return (
     <AppShell heading={t('dashboard.title')}>
@@ -177,6 +202,15 @@ export default function Dashboard() {
         <a href={u("/creators")} className="btn btn-sm btn-outline"><Icon name="users" size={15} /> {t('dashboard.qa_creators')}</a>
       </div>
 
+      {/* ROW1 — لمحة تشغيلية: أعداد حقيقية، كلٌّ بطاقة مدخل مهيمن */}
+      {glance.length > 0 && (
+        <div className="ih-kpis" style={{ marginBottom: '1.2rem' }} aria-label={t('dashboard.glance_title')}>
+          {glance.map((g) => (
+            <Kpi key={g.key} label={g.label} icon={GLANCE_ICON[g.key]} tone={g.tone} href={g.href} value={numFmt(g.value)} />
+          ))}
+        </div>
+      )}
+
       {/* الملخّص اليومي */}
       <div className="ih-nba" style={{ marginBottom: '1.2rem' }}>
         <span className="ih-nba__icon"><Icon name="rocket" size={22} /></span>
@@ -189,51 +223,6 @@ export default function Dashboard() {
           : <a href="#my-work" className="btn btn-sm">{t('dashboard.start_work')}</a>}
       </div>
 
-      {/* لوحة القيادة المرئية — متوسط الإكمال + توزيع المطلوب حسب الأولوية (بيانات حقيقية) */}
-      {(() => {
-        const cnt = (pred: (p: string) => boolean) => myWork.filter((w) => pred(w.prio)).reduce((n, w) => n + (w.count ?? 1), 0);
-        const urgent = cnt((p) => p === 'overdue' || p === 'critical');
-        const approval = cnt((p) => p === 'approval');
-        const upcoming = cnt((p) => !['overdue', 'critical', 'approval'].includes(p));
-        const workSegs = [
-          { label: t('dashboard.insight_urgent'), value: urgent, color: 'var(--ih-danger, #D92D20)' },
-          { label: t('dashboard.insight_approval'), value: approval, color: 'var(--ih-warning-ink, #B54708)' },
-          { label: t('dashboard.insight_upcoming'), value: upcoming, color: 'var(--ih-primary, #5B45E0)' },
-        ];
-        const totalWork = urgent + approval + upcoming;
-        if (!overview && totalWork === 0) return null;
-        return (
-          <div className="card" style={{ padding: '1.2rem 1.3rem', marginBottom: '1.2rem', display: 'flex', alignItems: 'center', gap: '1.8rem', flexWrap: 'wrap' }}>
-            {overview && (
-              <div style={{ display: 'grid', placeItems: 'center', gap: '.2rem' }}>
-                <ProgressRing value={overview.kpis.avgCompletion} label={t('dashboard.insight_avg_completion')} />
-              </div>
-            )}
-            <div style={{ display: 'flex', alignItems: 'center', gap: '1.3rem', flexWrap: 'wrap', flex: 1, minWidth: 240 }}>
-              <Donut segments={workSegs} size={116} centerValue={totalWork} centerLabel={t('dashboard.insight_required')} emptyLabel={t('dashboard.insight_no_tasks')} />
-              <div style={{ minWidth: 172 }}>
-                <div style={{ fontWeight: 800, fontSize: '.92rem', marginBottom: '.6rem' }}>{t('dashboard.insight_by_priority')}</div>
-                <Legend segments={workSegs} />
-              </div>
-            </div>
-          </div>
-        );
-      })()}
-
-      {/* مؤشرات المدير المالية/التشغيلية — فقط لمن يملك الصلاحية */}
-      {overview && (
-        <div className="ih-kpis">
-          <Kpi label={t('dashboard.kpi_clients')} icon="building-2" href={u("/clients")} value={numFmt(overview.kpis.clientsTotal)}
-            sub={<><span className="ih-delta ih-delta--up">{overview.kpis.campaignsActive}</span> {t('dashboard.kpi_clients_sub', { n: '' }).trim()}</>} />
-          <Kpi label={t('dashboard.kpi_revenue')} icon="wallet" tone="success" value={<>{sarShort(overview.kpis.revenueMinor)} <small>{t('common.currency_sar')}</small></>}
-            sub={<>{t('dashboard.kpi_margin')} <span className={`ih-delta ${overview.kpis.margin >= 0 ? 'ih-delta--up' : 'ih-delta--down'}`}>{overview.kpis.margin}%</span> · {t('dashboard.kpi_profit')} {sarShort(overview.kpis.profitMinor)}</>} />
-          <Kpi label={t('dashboard.kpi_pending_payouts')} icon="wallet" tone="warning" href={u("/payouts")} value={<>{sarShort(overview.kpis.pendingPayoutMinor)} <small>{t('common.currency_sar')}</small></>}
-            sub={t('dashboard.kpi_pending_payouts_sub', { n: overview.kpis.pendingPayouts })} />
-          <Kpi label={t('dashboard.kpi_creators')} icon="users" href={u("/creators")} value={numFmt(overview.kpis.creatorsTotal)}
-            sub={t('dashboard.kpi_creators_sub', { verified: overview.kpis.creatorsVerified, tierA: overview.kpis.creatorsTierA })} />
-        </div>
-      )}
-
       {/* التهيئة تتصدّر ما دامت ناقصة: هي عمل اليوم الحقيقي في مساحة جديدة */}
       {setup?.isSettingUp && (
         <div style={{ marginBottom: '1.2rem' }}>
@@ -241,23 +230,26 @@ export default function Dashboard() {
         </div>
       )}
 
-      <div className="ih-overview-grid" style={{ display: 'grid', gridTemplateColumns: '1.15fr .85fr', gap: '1.1rem', alignItems: 'start' }}>
-        {/* المطلوب مني الآن */}
-        <div style={{ display: 'grid', gap: '1.1rem' }} id="my-work">
-          <Sec title={t('dashboard.my_work')} icon="clipboard-check">
-            <div style={{ padding: '.7rem' }}>
-              {myWork.length === 0 ? (
-                <div style={{ textAlign: 'center', padding: '2rem 1rem' }}>
-                  <span className="ih-empty__icon" style={{ background: 'var(--ih-success-soft)', color: 'var(--ih-success-ink)' }}><Icon name="shield-check" size={26} /></span>
-                  <div style={{ marginTop: '.6rem', fontWeight: 800 }}>{t('dashboard.my_work_empty_title')}</div>
-                  <div style={{ fontSize: '.85rem', color: 'var(--ih-text-muted)' }}>{t('dashboard.my_work_empty_text')}</div>
-                </div>
-              ) : (
-                myWork.map((w) => <WorkRow key={w.key} w={w} />)
-              )}
-            </div>
-          </Sec>
+      {/* ROW2 — المطلوب منك الآن: القسم التشغيلي الأهم، بعرض كامل ومتصدّر */}
+      <div id="my-work" style={{ marginBottom: '1.2rem' }}>
+        <Sec title={t('dashboard.my_work')} icon="clipboard-check">
+          <div style={{ padding: '.7rem' }}>
+            {myWork.length === 0 ? (
+              <div style={{ textAlign: 'center', padding: '2rem 1rem' }}>
+                <span className="ih-empty__icon" style={{ background: 'var(--ih-success-soft)', color: 'var(--ih-success-ink)' }}><Icon name="shield-check" size={26} /></span>
+                <div style={{ marginTop: '.6rem', fontWeight: 800 }}>{t('dashboard.my_work_empty_title')}</div>
+                <div style={{ fontSize: '.85rem', color: 'var(--ih-text-muted)' }}>{t('dashboard.my_work_empty_text')}</div>
+              </div>
+            ) : (
+              myWork.map((w) => <WorkRow key={w.key} w={w} />)
+            )}
+          </div>
+        </Sec>
+      </div>
 
+      <div className="ih-overview-grid" style={{ display: 'grid', gridTemplateColumns: '1.15fr .85fr', gap: '1.1rem', alignItems: 'start' }}>
+        {/* ROW3 — عمليات الحملات */}
+        <div style={{ display: 'grid', gap: '1.1rem' }}>
           {overview && overview.activeCampaigns.length > 0 && (
             <Sec title={t('dashboard.campaigns_follow')} icon="megaphone" link={{ href: u('/campaigns'), label: t('dashboard.all_campaigns') }}>
               <div style={{ padding: '.4rem .5rem' }}>
@@ -328,6 +320,37 @@ export default function Dashboard() {
           )}
         </div>
       </div>
+
+      {/* ROW4/5 — لمحة مرئية + مالية (للمديرين). رسوم من بيانات حقيقية فقط. */}
+      {(overview || totalWork > 0) && (
+        <div className="card" style={{ padding: '1.2rem 1.3rem', margin: '1.2rem 0', display: 'flex', alignItems: 'center', gap: '1.8rem', flexWrap: 'wrap' }}>
+          {overview && (
+            <div style={{ display: 'grid', placeItems: 'center', gap: '.2rem' }}>
+              <ProgressRing value={overview.kpis.avgCompletion} label={t('dashboard.insight_avg_completion')} />
+            </div>
+          )}
+          <div style={{ display: 'flex', alignItems: 'center', gap: '1.3rem', flexWrap: 'wrap', flex: 1, minWidth: 240 }}>
+            <Donut segments={workSegs} size={116} centerValue={totalWork} centerLabel={t('dashboard.insight_required')} emptyLabel={t('dashboard.insight_no_tasks')} />
+            <div style={{ minWidth: 172 }}>
+              <div style={{ fontWeight: 800, fontSize: '.92rem', marginBottom: '.6rem' }}>{t('dashboard.insight_by_priority')}</div>
+              <Legend segments={workSegs} />
+            </div>
+          </div>
+        </div>
+      )}
+
+      {overview && (
+        <div className="ih-kpis">
+          <Kpi label={t('dashboard.kpi_clients')} icon="building-2" href={u("/clients")} value={numFmt(overview.kpis.clientsTotal)}
+            sub={<><span className="ih-delta ih-delta--up">{overview.kpis.campaignsActive}</span> {t('dashboard.kpi_clients_sub', { n: '' }).trim()}</>} />
+          <Kpi label={t('dashboard.kpi_revenue')} icon="wallet" tone="success" value={<>{sarShort(overview.kpis.revenueMinor)} <small>{t('common.currency_sar')}</small></>}
+            sub={<>{t('dashboard.kpi_margin')} <span className={`ih-delta ${overview.kpis.margin >= 0 ? 'ih-delta--up' : 'ih-delta--down'}`}>{overview.kpis.margin}%</span> · {t('dashboard.kpi_profit')} {sarShort(overview.kpis.profitMinor)}</>} />
+          <Kpi label={t('dashboard.kpi_pending_payouts')} icon="wallet" tone="warning" href={u("/payouts")} value={<>{sarShort(overview.kpis.pendingPayoutMinor)} <small>{t('common.currency_sar')}</small></>}
+            sub={t('dashboard.kpi_pending_payouts_sub', { n: overview.kpis.pendingPayouts })} />
+          <Kpi label={t('dashboard.kpi_creators')} icon="users" href={u("/creators")} value={numFmt(overview.kpis.creatorsTotal)}
+            sub={t('dashboard.kpi_creators_sub', { verified: overview.kpis.creatorsVerified, tierA: overview.kpis.creatorsTierA })} />
+        </div>
+      )}
     </AppShell>
   );
 }

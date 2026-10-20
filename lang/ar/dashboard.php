@@ -123,4 +123,12 @@ return [
     'role_finance' => 'مالية',
     'role_agency_employee' => 'موظف',
     'role_super_admin' => 'مدير عام',
+
+    // لمحة تشغيلية (صفّ البطاقات العلوي — THEME-02)
+    'glance_title' => 'لمحة تشغيلية',
+    'glance_campaigns' => 'حملات نشطة',
+    'glance_client_decisions' => 'قرارات عملاء معلّقة',
+    'glance_approvals' => 'بانتظار الاعتماد',
+    'glance_payouts' => 'مستحقات قيد الصرف',
+    'glance_late' => 'حملات متأخرة',
 ];

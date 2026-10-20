@@ -123,4 +123,12 @@ return [
     'role_finance' => 'Finance',
     'role_agency_employee' => 'Employee',
     'role_super_admin' => 'Super admin',
+
+    // Operational glance (top tile row — THEME-02)
+    'glance_title' => 'Operational glance',
+    'glance_campaigns' => 'Active campaigns',
+    'glance_client_decisions' => 'Pending client decisions',
+    'glance_approvals' => 'Awaiting approval',
+    'glance_payouts' => 'Outstanding payouts',
+    'glance_late' => 'Late campaigns',
 ];
