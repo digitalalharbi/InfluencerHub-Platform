@@ -657,10 +657,20 @@ button.ih-nav__group--toggle:focus-visible { outline: 2px solid var(--ih-primary
    قاعدة: الشريط لا يسيطر بصريًا. خلفية قريبة جدًا من الصفحة + حد شعري،
    لا كتلة داكنة. العنصر النشط يتمايز بلون هادئ لا بلون صاخب. */
 .ih-side {
+  /* شريط جانبي داكن: نعيد تعيين التوكنز الدلالية داخل النطاق فقط، فتتحوّل كل
+     العناصر الفرعية (الأسطح/النصوص/الحدود/الأيقونات) تلقائيًا دون لمس قواعدها. */
+  --ih-surface: var(--ih-nav);
+  --ih-surface-muted: var(--ih-nav-raised);
+  --ih-surface-sunken: var(--ih-nav-hover);
+  --ih-border: var(--ih-nav-border);
+  --ih-text: var(--ih-nav-text-strong);
+  --ih-text-secondary: var(--ih-nav-text);
+  --ih-text-muted: var(--ih-nav-muted);
+  --ih-gray-400: var(--ih-nav-icon);
   width: var(--ih-sidebar-w); flex-shrink: 0; display: flex; flex-direction: column;
-  background: var(--ih-surface);
-  border-inline-start: 1px solid var(--ih-border);
-  padding: 0; color: var(--ih-text); padding-bottom: var(--ih-safe-bottom);
+  background: var(--ih-nav);
+  border-inline-start: 1px solid var(--ih-nav-border);
+  padding: 0; color: var(--ih-nav-text); padding-bottom: var(--ih-safe-bottom);
   transition: width var(--ih-motion) var(--ih-ease);
 }
 /* يبقى الشريط ثابتًا أثناء تمرير المحتوى (وتظهر القائمة كاملة في اللقطات الطويلة) */
@@ -703,20 +713,20 @@ button.ih-nav__group--toggle:focus-visible { outline: 2px solid var(--ih-primary
 }
 .ih-side .nav-link:hover { background: var(--ih-surface-sunken); color: var(--ih-text); }
 .ih-side .nav-link.active {
-  background: var(--ih-primary-soft); color: var(--ih-primary-800); font-weight: 650;
+  background: var(--ih-nav-active-bg); color: var(--ih-nav-active-text); font-weight: 650;
   position: relative;
 }
-/* مؤشر صغير أنيق بدل الظل الثقيل */
+/* مؤشر ليموني أنيق بدل الظل الثقيل */
 .ih-side .nav-link.active::before {
   content: ''; position: absolute; inset-inline-start: 0; top: 50%;
   transform: translateY(-50%); width: 3px; height: 17px; border-radius: 0 3px 3px 0;
-  background: var(--ih-primary);
+  background: var(--ih-nav-active-indicator);
 }
-.ih-side .ih-nav__link .ih-icon { color: var(--ih-gray-400); transition: color var(--ih-motion-fast) var(--ih-ease); }
-.ih-side .ih-nav__link:hover .ih-icon { color: var(--ih-text-secondary); }
-.ih-side .ih-nav__link.active .ih-icon { color: var(--ih-primary); }
-.ih-side .ih-nav__badge { background: var(--ih-surface-sunken); color: var(--ih-text-secondary); font-weight: 650; }
-.ih-side .ih-nav__link.active .ih-nav__badge { background: var(--ih-primary); color: #fff; }
+.ih-side .ih-nav__link .ih-icon { color: var(--ih-nav-icon); transition: color var(--ih-motion-fast) var(--ih-ease); }
+.ih-side .ih-nav__link:hover .ih-icon { color: var(--ih-nav-text); }
+.ih-side .ih-nav__link.active .ih-icon { color: var(--ih-nav-active-text); }
+.ih-side .ih-nav__badge { background: var(--ih-nav-hover); color: var(--ih-nav-text); font-weight: 650; }
+.ih-side .ih-nav__link.active .ih-nav__badge { background: var(--ih-nav-active-indicator); color: var(--ih-nav); }
 
 /* ---- Collapsed rail (icon + tooltip) ---- */
 .ih-shell.rail-collapsed .ih-side { width: var(--ih-rail-w); }
