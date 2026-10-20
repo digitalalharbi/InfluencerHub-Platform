@@ -123,4 +123,23 @@ return [
     'role_finance' => 'مالية',
     'role_agency_employee' => 'موظف',
     'role_super_admin' => 'مدير عام',
+
+    // RADICAL-UI-01 — تكوين اللوحة الجديد
+    'k_campaigns' => 'حملات نشطة',
+    'k_decisions' => 'قرارات عملاء معلّقة',
+    'k_review' => 'محتوى بانتظار الاعتماد',
+    'k_payouts' => 'مستحقات قيد الصرف',
+    'trend_title' => 'اتجاه النشاط التشغيلي',
+    'trend_sub' => 'محتوى وتعاونات — آخر 8 أسابيع',
+    'focus_title' => 'التركيز',
+    'completion' => 'الإكمال',
+    'campaign_creators' => ':n مبدع',
+    'campaign_deliverables' => ':n مخرج',
+    'rail_today' => 'اليوم',
+    'rail_overdue' => ':n متأخّرة',
+    'rail_approvals' => ':n بانتظار الاعتماد',
+    'rail_decisions' => ':n قرار عميل',
+    'rail_attention' => 'يحتاج انتباهك',
+    'rail_clear' => 'لا شيء عاجل الآن.',
+    'rail_lead' => 'حملة في الصدارة',
 ];

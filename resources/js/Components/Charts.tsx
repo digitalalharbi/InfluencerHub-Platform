@@ -140,6 +140,57 @@ export function Sparkline({
   );
 }
 
+/**
+ * رسم مساحي/خطّي كبير — اتّجاه زمنيّ حقيقي فقط. مستجيب بعرض كامل (viewBox 0..100).
+ * خطوط مستقيمة (لا تنعيم) ولا جسر للفجوات ولا بيانات مُختلَقة؛ عند غيابها حالة فارغة.
+ */
+export function AreaChart({
+  data, height = 190, color = 'var(--ih-primary)', emptyLabel = 'لا بيانات كافية بعد', ariaLabel,
+}: {
+  data: { label: string; value: number }[]; height?: number; color?: string; emptyLabel?: string; ariaLabel?: string;
+}) {
+  const vals = data.map((d) => d.value);
+  const hasData = data.length >= 2 && vals.some((v) => v > 0);
+  if (!hasData) {
+    return <div style={{ height, display: 'grid', placeItems: 'center', color: 'var(--ih-text-muted)', fontSize: '.85rem', textAlign: 'center', padding: '0 1rem' }}>{emptyLabel}</div>;
+  }
+  const max = Math.max(...vals, 1);
+  const n = data.length;
+  const px = (i: number) => (i / (n - 1)) * 100;
+  const py = (v: number) => 4 + (1 - v / max) * 92; // حشوة 4% أعلى/أسفل
+  const line = data.map((d, i) => `${i === 0 ? 'M' : 'L'}${px(i).toFixed(2)},${py(d.value).toFixed(2)}`).join(' ');
+  const area = `${line} L100,100 L0,100 Z`;
+  const gid = `iharea-${n}-${Math.round(max)}`;
+  const label = ariaLabel ?? data.map((d) => `${d.label}: ${d.value}`).join('، ');
+  const lastX = px(n - 1), lastY = py(data[n - 1].value);
+  // على الضيق نُظهر تسميات متباعدة فقط حتى لا تتزاحم
+  const showLabel = (i: number) => n <= 6 || i === 0 || i === n - 1 || i % 2 === 0;
+  return (
+    <figure style={{ margin: 0 }} aria-label={label} role="img">
+      <div style={{ position: 'relative', height }}>
+        <svg width="100%" height="100%" viewBox="0 0 100 100" preserveAspectRatio="none" style={{ display: 'block', overflow: 'visible' }} aria-hidden="true">
+          <defs>
+            <linearGradient id={gid} x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0%" stopColor={color} stopOpacity="0.20" />
+              <stop offset="100%" stopColor={color} stopOpacity="0" />
+            </linearGradient>
+          </defs>
+          {[4, 50, 96].map((gy) => (
+            <line key={gy} x1="0" y1={gy} x2="100" y2={gy} stroke="var(--ih-border)" strokeWidth={1}
+              vectorEffect="non-scaling-stroke" strokeDasharray={gy === 96 ? undefined : '2 3'} />
+          ))}
+          <path d={area} fill={`url(#${gid})`} />
+          <path d={line} fill="none" stroke={color} strokeWidth={2.25} strokeLinejoin="round" strokeLinecap="round" vectorEffect="non-scaling-stroke" />
+        </svg>
+        <span aria-hidden="true" style={{ position: 'absolute', left: `${lastX}%`, top: `${lastY}%`, width: 10, height: 10, marginInlineStart: -5, marginTop: -5, borderRadius: '50%', background: color, border: '2px solid var(--ih-surface)' }} />
+      </div>
+      <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 8, fontSize: '.66rem', color: 'var(--ih-text-muted)', direction: 'ltr' }}>
+        {data.map((d, i) => <span key={i} style={{ visibility: showLabel(i) ? undefined : 'hidden' }}>{d.label}</span>)}
+      </div>
+    </figure>
+  );
+}
+
 /** هيكل تحميل عظميّ (skeleton) — لا قيَم زائفة أثناء الانتظار. */
 export function Skeleton({ width = '100%', height = 16, radius = 8 }: { width?: number | string; height?: number; radius?: number }) {
   return <span className="ih-skeleton" style={{ display: 'block', width, height, borderRadius: radius }} aria-hidden="true" />;
