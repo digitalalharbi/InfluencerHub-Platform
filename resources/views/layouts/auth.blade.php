@@ -31,7 +31,7 @@
 <div class="ih-auth">
     {{-- ============ القسم التسويقي ============ --}}
     <section class="ih-auth__brand">
-        <a href="/" class="ih-auth__logo" aria-label="InfluencerHub — الرئيسية"><x-ih-logo :size="30" :withWordmark="true" color="#FFFFFF" hubColor="#9D8CFF"/></a>
+        <a href="/" class="ih-auth__logo" aria-label="InfluencerHub — الرئيسية"><x-ih-logo :size="30" :withWordmark="true" :inverted="true" color="#FFFFFF"/></a>
         <h1 class="ih-auth__headline">@yield('headline', 'منصّة تشغيل متكاملة لوكالات المؤثرين')</h1>
         <p class="ih-auth__sub">@yield('sub', 'أدر العملاء والعلامات والمؤثرين والطلبات والحملات والمحتوى والعقود والمدفوعات والتقارير — في بيئة تشغيل موحّدة بدل الرسائل والملفات المتفرّقة.')</p>
         <div class="ih-auth__benefits">

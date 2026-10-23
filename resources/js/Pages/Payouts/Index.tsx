@@ -105,7 +105,7 @@ export default function PayoutsIndex({ payouts, filters, summary, canCreate, cre
         if (totalMinor <= 0) return null;
         const segs = [
           { label: t('payouts.stage_in_process'), value: inProcessMinor, color: 'var(--ih-warning-ink, #B54708)' },
-          { label: t('payouts.stage_ready'), value: summary.readyMinor, color: 'var(--ih-primary, #5B45E0)' },
+          { label: t('payouts.stage_ready'), value: summary.readyMinor, color: 'var(--ih-primary, #171A1D)' },
           { label: t('payouts.stage_paid'), value: summary.paidMinor, color: 'var(--ih-success-700, #067647)' },
         ];
         return (

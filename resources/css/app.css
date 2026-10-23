@@ -13,8 +13,8 @@
 }
 
 /* ============================================================================
-   InfluencerHub — Design System (original ih identity, violet #6252E5)
-   Mobile-first · RTL-first · no horizontal page scroll · dark-ready via tokens
+   InfluencerHub — Design System · IDENTITY-02 (EMERALD): graphite + porcelain + emerald
+   Mobile-first · RTL-first · no horizontal page scroll · light+dark via tokens
    ============================================================================ */
 
 *, *::before, *::after { box-sizing: border-box; }
@@ -610,10 +610,10 @@ button.ih-nav__group--toggle:focus-visible { outline: 2px solid var(--ih-primary
 /* ---------- Premium auth / portal experience ---------- */
 .ih-auth { display: grid; grid-template-columns: 1.05fr 0.95fr; min-height: 100vh; min-height: 100dvh; }
 .ih-auth__brand {
-  position: relative; overflow: hidden; color: #EAECF6;
+  position: relative; overflow: hidden; color: #E7EAE6;
   background:
-    radial-gradient(1100px 520px at 15% -10%, rgba(98,82,229,.55), transparent 60%),
-    radial-gradient(900px 500px at 95% 110%, rgba(6,182,212,.32), transparent 55%),
+    radial-gradient(1100px 520px at 15% -10%, rgba(63,174,134,.20), transparent 60%),
+    radial-gradient(900px 500px at 95% 110%, rgba(63,174,134,.12), transparent 55%),
     linear-gradient(155deg, var(--ih-ink-950), var(--ih-ink-850));
   padding: clamp(2rem, 1.4rem + 3vw, 4rem);
   display: flex; flex-direction: column; justify-content: center;

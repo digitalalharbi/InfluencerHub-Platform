@@ -3,12 +3,12 @@ import type { CSSProperties, ReactNode } from 'react';
 
 /**
  * الهوية البصرية الرسمية لـ InfluencerHub — «الجسر (H)»: عمودان مستديران يمثّلان
- * طرفَي التعاون، ونقطة سماوية بينهما تمثّل المنصّة، داخل بلاطة إنديغو مستديرة.
+ * طرفَي التعاون، ونقطة زمرّدية بينهما تمثّل المنصّة، داخل بلاطة جرافيت مستديرة.
  *
  * مصدر واحد للشعار في كل النظام (لا وسم <img> ولا رموز متناثرة). SVG للواجهة
- * (لا تحوّل تخطيط، أحجام دقيقة). الألوان والهندسة من حزمة الهوية الرسمية:
- *   البلاطة #5B45E0 · الأعمدة #FFFFFF · النقطة #22D3EE دائمًا.
- * قاعدة صارمة: لا يُلوَّن «هب/Hub» بالسماوي أبدًا — السماوي للنقطة فقط.
+ * (لا تحوّل تخطيط، أحجام دقيقة). الألوان والهندسة من هوية IDENTITY-02:
+ *   البلاطة #171A1D (جرافيت) · الأعمدة #FFFFFF · النقطة #3FAE86 (زمرّد).
+ * قاعدة صارمة: الكلمة موحّدة بلا لون منفصل — الزمرّد للنقطة فقط، لا بنفسجي.
  */
 
 // 'auto' يتبع سمة التطبيق (فاتح/داكن) عبر متغيّرات CSS — لِـchrome التطبيق ذي الوضعين.
@@ -16,7 +16,7 @@ import type { CSSProperties, ReactNode } from 'react';
 type Surface = 'light' | 'dark' | 'gradient' | 'auto';
 type Lang = 'ar' | 'en';
 
-// IDENTITY-02 — product UI lockup: monochrome ink/white mark + tiny chartreuse dot.
+// IDENTITY-02 — product UI lockup: monochrome ink/white mark + tiny emerald dot.
 // (No purple in the application UI.) Names kept so the markup below is unchanged.
 const CYAN = '#3FAE86';       // نقطة زمرّد صغيرة — اللمسة الوحيدة
 const INDIGO = '#191A1F';     // مربّع العلامة على سطح فاتح = حبر

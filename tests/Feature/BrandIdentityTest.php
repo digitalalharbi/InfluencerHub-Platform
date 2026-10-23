@@ -52,14 +52,15 @@ class BrandIdentityTest extends TestCase
         }
     }
 
-    /** غلاف البريد يحمل بلاطة الهوية الرسمية ولون إنديغو الرسمي لا القديم. */
+    /** غلاف البريد يحمل بلاطة الهوية الرسمية وأكسنت الزمرّد IDENTITY-02 لا البنفسجي القديم. */
     public function test_email_shell_uses_official_brand(): void
     {
         $html = \Illuminate\Support\Facades\Blade::render('<x-mail.layout>محتوى</x-mail.layout>');
         // بلاطة الهوية كـPNG رسمي (توافق عملاء البريد)
         $this->assertStringContainsString('/icon-192.png', $html);
-        // لون الهوية الرسمي في الروابط، لا القديم
-        $this->assertStringContainsString('#5B45E0', $html);
+        // أكسنت الزمرّد IDENTITY-02 في الروابط، لا البنفسجي القديم بأي صيغة
+        $this->assertStringContainsString('#3FAE86', $html);
+        $this->assertStringNotContainsString('#5B45E0', $html);
         $this->assertStringNotContainsString('#6252e5', $html);
     }
 
@@ -96,14 +97,15 @@ class BrandIdentityTest extends TestCase
         app()->setLocale('ar');
     }
 
-    /** «هب/Hub» لا يُلوَّن سماويًّا أبدًا؛ النقطة وحدها سماوية. */
-    public function test_blade_logo_hub_is_never_cyan(): void
+    /** IDENTITY-02: نقطة المنصّة زمرّدية، الكلمة موحّدة بلا لون منفصل، ولا بنفسجي/سماوي. */
+    public function test_blade_logo_dot_is_emerald_and_wordmark_uniform(): void
     {
         $html = \Illuminate\Support\Facades\Blade::render('<x-ih-logo :withWordmark="true" />');
-        // النقطة السماوية موجودة (circle)، لكن لا نصّ ملوّن بالسماوي
-        $this->assertStringContainsString('#22D3EE', $html);            // نقطة المنصّة
-        $this->assertStringNotContainsString('color:#22D3EE', $html);   // لا نصّ سماوي
-        $this->assertStringNotContainsString('color:#22d3ee', $html);
+        $this->assertStringContainsString('#3FAE86', $html);            // النقطة الزمرّدية (circle)
+        $this->assertStringNotContainsString('#22D3EE', $html);         // لا سماوي قديم
+        $this->assertStringNotContainsString('#5B45E0', $html);         // لا بنفسجي قديم
+        $this->assertStringNotContainsString('color:#22D3EE', $html);   // لا نصّ ملوّن سماوي
+        $this->assertStringNotContainsString('color:#5B45E0', $html);   // لا نصّ ملوّن بنفسجي
     }
 
     /** كل بوّابات الدخول (وكالة/مبدع/عميل/شريك) تعرض القفل الرسمي المحلّي، وشعارها يقود للرئيسية `/`. */
@@ -134,13 +136,15 @@ class BrandIdentityTest extends TestCase
         $this->assertStringContainsString('href="/app"', file_get_contents(resource_path('views/layouts/app.blade.php')));
     }
 
-    /** صفحات الخطأ تستخدم البلاطة الرسمية ولون الهوية والأيقونة الرسمية. */
+    /** صفحات الخطأ تستخدم بلاطة IDENTITY-02 (جرافيت + نقطة زمرّدية) والأيقونة الرسمية. */
     public function test_error_shell_uses_official_brand(): void
     {
         $html = \Illuminate\Support\Facades\Blade::render('<x-error-shell code="404" title="غير موجود" message="تعذّر العثور" />');
-        $this->assertStringContainsString('rx="23.33"', $html);       // بلاطة «الجسر (H)»
-        $this->assertStringContainsString('#5B45E0', $html);          // إنديغو رسمي
+        $this->assertStringContainsString('rx="23.33"', $html);        // بلاطة «الجسر (H)»
+        $this->assertStringContainsString('#171A1D', $html);           // بلاطة جرافيت IDENTITY-02
+        $this->assertStringContainsString('#3FAE86', $html);           // نقطة زمرّدية
         $this->assertStringContainsString('/favicon.svg', $html);      // أيقونة رسمية
+        $this->assertStringNotContainsString('#5B45E0', $html);        // لا بنفسجي قديم
         $this->assertStringNotContainsString('#6d5df6', $html);        // لا لون قديم منحرف
         $this->assertStringNotContainsString('/icons/ih-icon.svg', $html);
     }

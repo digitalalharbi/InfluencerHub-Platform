@@ -38,7 +38,7 @@
                   </td>
                   <td style="vertical-align:middle;text-align:{{ $align }};">
                     <div style="font-size:18px;line-height:1.2;font-weight:700;color:#ffffff;letter-spacing:-.01em;direction:{{ $dir }};text-align:{{ $align }};">{{ $rtl ? 'إنفلونسر هب' : 'InfluencerHub' }}</div>
-                    <div style="margin-top:5px;font-size:12px;line-height:1.4;color:#c7d2fe;">{{ \App\Support\Brand::tagline() }}</div>
+                    <div style="margin-top:5px;font-size:12px;line-height:1.4;color:#A7E0CE;">{{ \App\Support\Brand::tagline() }}</div>
                   </td>
                 </tr>
               </table>
@@ -54,9 +54,9 @@
               <div style="border-top:1px solid #edf0f5;padding-top:18px;color:#667085;font-size:12px;line-height:1.8;text-align:center;">
                 {{ trans('mail.automated_notice', ['brand' => $brand], $locale) }}
                 <div style="margin-top:8px;">
-                  <a href="{{ \App\Support\Brand::url() }}/" style="color:#5B45E0;text-decoration:none;font-weight:700;direction:ltr;display:inline-block;">{{ \App\Support\Brand::domain() }}</a>
+                  <a href="{{ \App\Support\Brand::url() }}/" style="color:#3FAE86;text-decoration:none;font-weight:700;direction:ltr;display:inline-block;">{{ \App\Support\Brand::domain() }}</a>
                   <span style="color:#cbd5e1;"> · </span>
-                  <a href="mailto:{{ \App\Support\Brand::publicEmail() }}" style="color:#5B45E0;text-decoration:none;direction:ltr;display:inline-block;">{{ \App\Support\Brand::publicEmail() }}</a>
+                  <a href="mailto:{{ \App\Support\Brand::publicEmail() }}" style="color:#3FAE86;text-decoration:none;direction:ltr;display:inline-block;">{{ \App\Support\Brand::publicEmail() }}</a>
                 </div>
                 <div style="margin-top:6px;">
                   <a href="{{ \App\Support\Brand::privacyUrl() }}" style="color:#667085;text-decoration:none;">{{ trans('mail.footer.privacy', [], $locale) }}</a>

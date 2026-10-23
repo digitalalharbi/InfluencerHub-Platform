@@ -39,7 +39,7 @@ class DesignSystemPreviewTest extends TestCase
             ->assertOk()
             ->assertSee('نظام التصميم')
             ->assertSee('ih-status-under_review', false)  // نظام الحالات الموحّد
-            ->assertSee('#6252E5');                         // لون الهوية
+            ->assertSee('#3FAE86');                         // لون هوية IDENTITY-02 (زمرّد)
     }
 
     public function test_is_blocked_when_dev_tools_off(): void

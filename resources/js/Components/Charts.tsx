@@ -84,7 +84,7 @@ export function ProgressRing({
   const dash = (pct / 100) * circ;
   const color = tone === 'success' ? 'var(--ih-success, #16a34a)'
     : tone === 'warning' ? 'var(--ih-warning-ink, #B54708)'
-      : tone === 'danger' ? 'var(--ih-danger, #D92D20)' : 'var(--ih-primary, #5B45E0)';
+      : tone === 'danger' ? 'var(--ih-danger, #D92D20)' : 'var(--ih-primary, #171A1D)';
   return (
     <div style={{ display: 'inline-grid', placeItems: 'center', position: 'relative', width: size, height: size }}>
       <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`} role="img" aria-label={`${label ?? ''}: ${Math.round(pct)}${pctSign}`} style={{ transform: 'rotate(-90deg)' }}>

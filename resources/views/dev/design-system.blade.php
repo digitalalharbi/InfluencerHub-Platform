@@ -34,7 +34,7 @@
         <x-ih-logo :size="30" color="var(--ih-primary)"/>
         <div>
             <div style="font-weight:800; font-size:1.15rem;">نظام تصميم InfluencerHub (بادئة <code style="direction:ltr; color:var(--ih-primary);">ih-</code>)</div>
-            <div style="color:var(--ih-text-muted); font-size:.85rem;">هوية أصلية مستقلة — بنفسجي <code style="direction:ltr;">#6252E5</code> + سماوي <code style="direction:ltr;">#06B6D4</code>. مرجع بصري حيّ للـ tokens والمكوّنات. <b>صفحة تطوير فقط (محجوبة في الإنتاج).</b></div>
+            <div style="color:var(--ih-text-muted); font-size:.85rem;">IDENTITY-02 — جرافيت + بورسلين + زمرّد <code style="direction:ltr;">#3FAE86</code> أكسنت مقيّد. مرجع بصري حيّ للـ tokens والمكوّنات. <b>صفحة تطوير فقط (محجوبة في الإنتاج).</b></div>
         </div>
     </div>
 </div>
