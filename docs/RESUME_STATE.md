@@ -4,16 +4,15 @@
 > `CLAUDE.md` + `docs/AI/SESSION-STATE.md` after any compaction.
 > Last updated 2026-10-23.
 
-## CANONICAL DESIGN SYSTEM — IDENTITY-02 (supersedes the acid-lime RADICAL-IDENTITY-01)
+## CANONICAL DESIGN SYSTEM — IDENTITY-02 (EMERALD · premium editorial)
 
-Calmer premium identity. **No purple in the product UI.** Accent is used on ~5–8% of a screen only (active nav, primary CTA, selected state, one highlight) — never as a generic status, never on every card/chart/badge.
+Premium, calm, creator-economy-native identity. **No purple, no chartreuse/neon.** Accent used on ~4–7% of a screen only (primary action, selected state, key chart highlight, active nav) — never a status, never on every card/chart/badge. The product must look premium even with the accent removed.
 
-- **Ink/charcoal** `#191A1F` (text, strong structure) · **deep nav** `#15161B` (sidebar) ·
-  **warm ivory** `#F7F7F3` canvas · **white** cards · secondary surface `#F1F1EC` · border `#E8E8E2` ·
-  text `#18191D` / secondary `#74747B` / muted `#A0A0A5`.
-- **Chartreuse accent** `#C7ED63` (hover `#B7DE52`, soft `#F0F8D9`, ink `#28300F`) — accent only.
-- Semantic states (separate from accent): success `#43A978` · warning `#E5A94C` · danger `#D96363` · info `#648BC7`.
-- Chart palette (≤4 per chart): ink `#23242A`, chartreuse, sage `#8EA789`, soft blue `#86A8D5`, sand `#D6B986`, coral `#D98778`; grid `#ECECE7`.
+- **Midnight graphite** `#161A1F` (nav) / `#101317` (deep) · **porcelain** `#F6F7F4` canvas ·
+  **white** cards · soft surface `#EEF1EC` · border `#E4E7E1` · text `#171A1D` / secondary `#72777A` / muted `#A2A6A6`.
+- **Emerald accent** `#3FAE86` (hover `#359A76`, strong-for-CTA `#2E8468`, soft `#E8F5EF`, ink `#143D31`) + **sage** `#91A68B` secondary. Small pastels (sand/soft-blue/rose/lavender) are supporting surfaces only.
+- Semantic states (separate from accent): success `#3E9B73` · warning `#D99A3F` · danger `#CF5B5B` · info `#5E88B9`.
+- Chart palette (≤4 per chart): graphite `#22272B`, emerald, sage, soft blue `#7EA2C7`, sand `#C8AD7F`, coral `#D98778`; grid `#ECEEEA`.
 - Tokens: `resources/css/tokens.css` (semantic names: `--ih-bg/surface/ink/text/border/accent*/nav*/chart-*`). Shared library `Components/Dash.tsx` + `Charts.AreaChart` + `AppShell.contextRail`. **One system — no per-page reinvention.**
 - Logo: monochrome UI lockup (white on nav, ink on light) + tiny chartreuse dot — purple removed from mark + nprogress.
 - 80% neutral / 15% ink / 5% chartreuse. Sidebar 236px, one chartreuse active capsule. Cards 20px / 16px radius, very soft shadow, minimal border. Field focus = ink border + chartreuse ring.
