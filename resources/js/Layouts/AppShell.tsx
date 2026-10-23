@@ -6,6 +6,7 @@ import PlatformCommandPalette from '@/Components/PlatformCommandPalette';
 import { BrandLogo, BrandLink } from '@/Components/BrandLogo';
 import { LanguageSwitcher } from '@/Components/LanguageSwitcher';
 import { NotificationBell } from '@/Components/NotificationBell';
+import { ThemeToggle } from '@/Components/ThemeToggle';
 import { navLabel } from '@/lib/navI18n';
 import { useLocale } from '@/lib/i18n';
 import { agencyNav, mobilePrimary, type NavGroup, type NavItem } from '@/lib/nav';
@@ -177,6 +178,7 @@ export default function AppShell({
         </nav>
 
         <div className="ih-side__foot">
+          {!rail && <ThemeToggle />}
           {preview?.active ? (
             // في المعاينة لا تسجيل خروج (سيُخرج المالك نفسه). البديل: الخروج من المعاينة.
             <a href={preview.exitHref} className="nav-link ih-nav__link" data-label="الخروج من المعاينة"

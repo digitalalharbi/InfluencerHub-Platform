@@ -229,16 +229,85 @@
   --shadow: var(--ih-shadow);
 }
 
-/* Dark-mode readiness (لا يُفعّل تلقائيًا؛ جاهز للتبديل لاحقًا عبر [data-theme="dark"]) */
-:root[data-theme="dark"] {
-  --ih-bg: var(--ih-ink-950);
-  --ih-surface: var(--ih-ink-900);
-  --ih-surface-muted: var(--ih-ink-850);
-  --ih-surface-sunken: var(--ih-ink-800);
-  --ih-border: #22304A;
-  --ih-border-strong: #2E3E5C;
-  --ih-text: #EAECF2;
-  --ih-text-secondary: #AEB6C6;
-  --ih-text-muted: #8A94A8;
-  --ih-primary-soft: rgba(98, 82, 229, .18);
+/* ============================================================================
+   Dark theme (IDENTITY-02) — قشرة داكنة موحّدة: التنقّل واللوحة والبطاقات معًا.
+   توكنز دلالية فقط؛ الأكسنت الزمرّد نفسه، الحالات بنسخ ناعمة داكنة.
+   يُفعَّل عبر data-theme="dark" (أو system مع تفضيل النظام الداكن).
+   ============================================================================ */
+:root[data-theme="dark"],
+:root[data-theme="system"] {
+  --ih-bg:            #101317;  /* canvas جرافايت عميق */
+  --ih-surface:       #171B20;  /* بطاقة مرفوعة */
+  --ih-surface-soft:  #1C2127;
+  --ih-surface-muted: #1C2127;
+  --ih-surface-sunken:#14181C;
+  --ih-surface-elevated: #1C2127;
+  --ih-border:        #272C32;
+  --ih-border-strong: #353B42;
+
+  --ih-ink:           #ECEEEA;
+  --ih-text:          #ECEEEA;
+  --ih-text-secondary:#A6ABAA;
+  --ih-text-muted:    #777C7C;
+
+  /* --ih-primary = الحبر/القوة → يصبح فاتحًا على الداكن */
+  --ih-primary:       #ECEEEA;
+  --ih-primary-hover: #FFFFFF;
+  --ih-primary-active:#FFFFFF;
+  --ih-primary-700:   #DADED9;
+  --ih-primary-800:   #ECEEEA;
+  --ih-primary-soft:  rgba(63, 174, 134, .16);
+  --ih-primary-ring:  rgba(63, 174, 134, .30);
+
+  /* الأكسنت الزمرّد كما هو؛ الناعم شفّاف على الداكن */
+  --ih-accent-soft:   rgba(63, 174, 134, .16);
+  --ih-lime-soft:     rgba(63, 174, 134, .16);
+
+  /* حالات — نسخ ناعمة داكنة */
+  --ih-success-soft:  #13251E;
+  --ih-warning-soft:  #2A2113;
+  --ih-danger-soft:   #2B1616;
+  --ih-info-soft:     #15202C;
+
+  /* شريط التنقّل — أعمق قليلًا من اللوحة ليقرأ كجزء من القشرة الواحدة */
+  --ih-nav:           #0D0F12;
+  --ih-nav-bg:        #0D0F12;
+  --ih-nav-raised:    #171B20;
+  --ih-nav-border:    rgba(255, 255, 255, .06);
+  --ih-nav-text:      #A6ABAA;
+  --ih-nav-text-strong: #FFFFFF;
+  --ih-nav-muted:     #767B7B;
+  --ih-nav-icon:      #8A8F8E;
+  --ih-nav-hover:     rgba(255, 255, 255, .055);
+  --ih-nav-active-bg: rgba(63, 174, 134, .20);
+  --ih-nav-active-text: #FFFFFF;
+  --ih-nav-active-icon: #54C39B;
+
+  /* رسوم على داكن: خطّ فاتح + شبكة داكنة */
+  --ih-chart-1: #C6CAC6;
+  --ih-chart-grid: #272C32;
+  --ih-chart-neutral: #3A4047;
+
+  color-scheme: dark;
+}
+
+/* وضع النظام: طبّق الداكن فقط حين يفضّل النظام الداكن (data-theme="system" افتراضيًّا فاتح) */
+@media (prefers-color-scheme: light) {
+  :root[data-theme="system"] {
+    --ih-bg: #F6F7F4; --ih-surface: #FFFFFF; --ih-surface-soft: #EEF1EC;
+    --ih-surface-muted: #EEF1EC; --ih-surface-sunken: #EEF1EC; --ih-surface-elevated: #FFFFFF;
+    --ih-border: #E4E7E1; --ih-border-strong: #D4D8D2;
+    --ih-ink: #171A1D; --ih-text: #171A1D; --ih-text-secondary: #72777A; --ih-text-muted: #A2A6A6;
+    --ih-primary: #171A1D; --ih-primary-hover: #101317; --ih-primary-active: #101317;
+    --ih-primary-700: #363B3E; --ih-primary-800: #171A1D;
+    --ih-primary-soft: #E8F5EF; --ih-primary-ring: rgba(23,26,29,.16);
+    --ih-accent-soft: #E8F5EF; --ih-lime-soft: #E8F5EF;
+    --ih-success-soft: #E7F4EC; --ih-warning-soft: #FBF0DD; --ih-danger-soft: #FAEAEA; --ih-info-soft: #EAF1F8;
+    --ih-nav: #161A1F; --ih-nav-bg: #161A1F; --ih-nav-raised: #20252B;
+    --ih-nav-text: #AFB4B2; --ih-nav-text-strong: #FFFFFF; --ih-nav-muted: #7E8481; --ih-nav-icon: #9BA09D;
+    --ih-nav-hover: rgba(255,255,255,.05); --ih-nav-active-bg: rgba(63,174,134,.16);
+    --ih-nav-active-text: #FFFFFF; --ih-nav-active-icon: #54C39B;
+    --ih-chart-1: #22272B; --ih-chart-grid: #ECEEEA; --ih-chart-neutral: #D7DAD5;
+    color-scheme: light;
+  }
 }
