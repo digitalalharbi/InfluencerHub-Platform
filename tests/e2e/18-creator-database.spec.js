@@ -10,7 +10,7 @@ test.describe('قاعدة المؤثرين', () => {
     test('75- وكالة مستحقّة: تصفّح → بحث → معاينة → تواصل → مفضّلة', async ({ page }) => {
         await login(page, 'admin@a.test');
         // الرابط يظهر في القائمة الجانبية (محكوم بالاستحقاق + الدور)
-        await expect(page.locator('aside')).toContainText('قاعدة المؤثرين');
+        await expect(page.locator('aside.ih-side')).toContainText('قاعدة المؤثرين');
         await page.goto('/app/creator-database');
         await expect(page.locator('body')).toContainText('نجم سناب');
 
@@ -66,7 +66,7 @@ test.describe('قاعدة المؤثرين', () => {
     test('79- مؤسسة غير مستحقّة تُمنع (خادم) ولا يظهر الرابط', async ({ page }) => {
         await login(page, 'admin@b.test');
         // لا رابط قاعدة المؤثرين في قائمة «باء»
-        await expect(page.locator('aside')).not.toContainText('قاعدة المؤثرين');
+        await expect(page.locator('aside.ih-side')).not.toContainText('قاعدة المؤثرين');
         // والوصول المباشر مرفوض من الخادم (لا اعتماد على إخفاء الواجهة)
         const res = await page.request.get('/app/creator-database');
         expect(res.status()).toBe(403);

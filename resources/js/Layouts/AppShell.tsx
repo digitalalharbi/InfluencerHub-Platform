@@ -26,10 +26,10 @@ function isActive(url: string, route: string, match?: string, home = base()): bo
 }
 
 export default function AppShell({
-  heading, children, nav: navGroups = agencyNav, home = base(), wsName, wsPlan = 'وكالة · الخطة النشطة', brand = 'InfluencerHub',
+  heading, children, contextRail, nav: navGroups = agencyNav, home = base(), wsName, wsPlan = 'وكالة · الخطة النشطة', brand = 'InfluencerHub',
   portal = 'agency',
 }: {
-  heading?: string; children: ReactNode; nav?: NavGroup[]; home?: string;
+  heading?: string; children: ReactNode; contextRail?: ReactNode; nav?: NavGroup[]; home?: string;
   wsName?: string; wsPlan?: string; brand?: string;
   portal?: 'agency' | 'client' | 'creator' | 'partner' | 'admin' | 'brand' | 'platform';
 }) {
@@ -289,11 +289,14 @@ export default function AppShell({
           </div>
         </header>
 
-        <div className="ih-content">
-          {flash?.ok && (
-            <div className="card" style={{ padding: '.8rem 1rem', marginBottom: '1rem', borderInlineStart: '3px solid var(--ih-success)', background: 'var(--ih-success-soft)', color: 'var(--ih-success-ink)' }}>{flash.ok}</div>
-          )}
-          {children}
+        <div className={contextRail ? 'ih-workarea ih-workarea--rail' : 'ih-workarea'}>
+          <div className="ih-content">
+            {flash?.ok && (
+              <div className="card" style={{ padding: '.8rem 1rem', marginBottom: '1rem', borderInlineStart: '3px solid var(--ih-success)', background: 'var(--ih-success-soft)', color: 'var(--ih-success-ink)' }}>{flash.ok}</div>
+            )}
+            {children}
+          </div>
+          {contextRail && <aside className="ih-context-rail" aria-label="لوحة السياق">{contextRail}</aside>}
         </div>
         <AppFooter />
       </main>

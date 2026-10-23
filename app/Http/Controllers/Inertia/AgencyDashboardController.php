@@ -3,13 +3,19 @@
 namespace App\Http\Controllers\Inertia;
 
 use App\Domain\Campaigns\Models\Campaign;
-use App\Domain\CRM\Models\Client;
+use App\Domain\Collaborations\Models\Collaboration;
+use App\Domain\Content\Models\ContentItem;
 use App\Domain\Finance\Models\Payout;
 use App\Domain\Tenancy\Support\TenantContext;
 use App\Http\Controllers\Controller;
-use App\Support\Analytics\{CampaignAnalytics, ClientAnalytics, CreatorAnalytics};
+use App\Support\Analytics\CampaignAnalytics;
+use App\Support\Analytics\ClientAnalytics;
+use App\Support\Analytics\CreatorAnalytics;
 use App\Support\Dashboard\OperationalDashboard;
+use App\Support\Onboarding\WorkspaceSetup;
 use Illuminate\Http\Request;
+use Illuminate\Support\Carbon;
+use Illuminate\Support\Collection;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -33,7 +39,7 @@ class AgencyDashboardController extends Controller
             'myWork' => $dash['myWork'],
             'team' => $dash['team'],
             // تهيئة المساحة: مساحة فارغة تحتاج خطوة تالية لا رسالة اطمئنان
-            'setup' => \App\Support\Onboarding\WorkspaceSetup::for(
+            'setup' => WorkspaceSetup::for(
                 (int) TenantContext::tenantId(), $orgId,
             ),
         ];
@@ -75,15 +81,38 @@ class AgencyDashboardController extends Controller
             'name' => $c->name,
             'client' => $c->client?->display_name,
             'brand' => $c->brand?->name,
-            'statusTone' => __('statuses.tone.' . $c->status),
-            'statusLabel' => __('statuses.' . $c->status),
+            'statusTone' => __('statuses.tone.'.$c->status),
+            'statusLabel' => __('statuses.'.$c->status),
             'progress' => (int) ($cMetrics[$c->id]['progress'] ?? 0),
             'creators' => (int) ($cMetrics[$c->id]['creators'] ?? 0),
             'deliverables' => (int) ($cMetrics[$c->id]['deliverables'] ?? 0),
             'isLate' => (bool) ($cMetrics[$c->id]['is_late'] ?? false),
         ])->values();
 
+        // اتجاه النشاط التشغيلي — 8 أسابيع حقيقية (محتوى + تعاونات أُنشئت)، مُنطّق بالمستأجر.
+        $since = Carbon::now()->startOfWeek()->subWeeks(7);
+        $weekly = function (string $model) use ($since): Collection {
+            return $model::query()->where('created_at', '>=', $since)
+                ->pluck('created_at')
+                ->groupBy(fn ($d) => Carbon::parse($d)->startOfWeek()->format('Y-m-d'))
+                ->map->count();
+        };
+        $contentW = $weekly(ContentItem::class);
+        $collabW = $weekly(Collaboration::class);
+        $trend = [];
+        for ($i = 7; $i >= 0; $i--) {
+            $ws = Carbon::now()->startOfWeek()->subWeeks($i);
+            $key = $ws->format('Y-m-d');
+            $trend[] = [
+                'label' => $ws->isoFormat('D/M'),
+                'value' => (int) ($contentW[$key] ?? 0) + (int) ($collabW[$key] ?? 0),
+                'content' => (int) ($contentW[$key] ?? 0),
+                'collabs' => (int) ($collabW[$key] ?? 0),
+            ];
+        }
+
         return [
+            'trend' => $trend,
             'kpis' => [
                 'clientsTotal' => $clients->count(),
                 'revenueMinor' => (int) ($op['revenue_minor'] ?? 0),

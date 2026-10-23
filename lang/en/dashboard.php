@@ -123,4 +123,23 @@ return [
     'role_finance' => 'Finance',
     'role_agency_employee' => 'Employee',
     'role_super_admin' => 'Super admin',
+
+    // RADICAL-UI-01 — new dashboard composition
+    'k_campaigns' => 'Active campaigns',
+    'k_decisions' => 'Pending client decisions',
+    'k_review' => 'Content awaiting approval',
+    'k_payouts' => 'Outstanding payouts',
+    'trend_title' => 'Operational activity',
+    'trend_sub' => 'Content & collaborations — last 8 weeks',
+    'focus_title' => 'Focus',
+    'completion' => 'Completion',
+    'campaign_creators' => ':n creators',
+    'campaign_deliverables' => ':n deliverables',
+    'rail_today' => 'Today',
+    'rail_overdue' => ':n overdue',
+    'rail_approvals' => ':n awaiting approval',
+    'rail_decisions' => ':n client decisions',
+    'rail_attention' => 'Needs your attention',
+    'rail_clear' => 'Nothing urgent right now.',
+    'rail_lead' => 'Lead campaign',
 ];
