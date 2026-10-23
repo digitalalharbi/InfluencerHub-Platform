@@ -2,9 +2,10 @@
    - يخزّن فقط الأصول الثابتة (/build/, /icons/, الخطوط) بإستراتيجية cache-first.
    - طلبات التنقّل: network-first مع بديل offline.html — لا يخزّن أبدًا صفحات مُصادَقة أو بيانات.
    - لا يخزّن /api ولا أي محتوى مستأجر/مالي. يمسح الكاش القديم عند التفعيل. */
-const VERSION = 'ih-v1';
+const VERSION = 'ih-v2';
 const STATIC_CACHE = `ih-static-${VERSION}`;
-const PRECACHE = ['/offline.html', '/icons/ih-icon.svg', '/manifest.webmanifest'];
+// المانيفست الكنسي الوحيد + أيقونة رسمية + بديل offline. (bump VERSION عند أي تغيير)
+const PRECACHE = ['/offline.html', '/favicon.svg', '/site.webmanifest'];
 
 self.addEventListener('install', (e) => {
   e.waitUntil(caches.open(STATIC_CACHE).then((c) => c.addAll(PRECACHE)).then(() => self.skipWaiting()));
