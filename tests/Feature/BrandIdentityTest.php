@@ -25,8 +25,9 @@ class BrandIdentityTest extends TestCase
         $this->assertStringContainsString('/site.webmanifest', $html);
         $this->assertStringContainsString('/og-image-1200x630.png', $html);
         $this->assertStringContainsString('summary_large_image', $html);
-        // لون السمة الرسمي (إنديغو) لا القديم
-        $this->assertStringContainsString('name="theme-color" content="#5B45E0"', $html);
+        // لون السمة = هوية IDENTITY-02 المحايدة (canvas فاتح)، لا البنفسجي القديم
+        $this->assertStringContainsString('name="theme-color" content="#F5F6F3"', $html);
+        $this->assertStringNotContainsString('#5B45E0', $html);
         // خط لاتيني رسمي (IBM Plex Sans) لا Inter
         $this->assertStringContainsString('IBM+Plex+Sans', $html);
         $this->assertStringNotContainsString('family=Inter', $html);
@@ -39,7 +40,7 @@ class BrandIdentityTest extends TestCase
     {
         $json = json_decode((string) file_get_contents(public_path('site.webmanifest')), true);
         $this->assertSame('InfluencerHub', $json['name'] ?? null);
-        $this->assertSame('#5B45E0', $json['theme_color'] ?? null);
+        $this->assertSame('#F5F6F3', $json['theme_color'] ?? null);
         $this->assertNotEmpty($json['icons'] ?? []);
     }
 

@@ -33,7 +33,23 @@
     <meta name="twitter:description" content="{{ $brand['tagline'] }}">
     <meta name="twitter:image" content="{{ $brand['url'] }}/og-image-1200x630.png">
     <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Arabic:wght@400;500;600;700&family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
-    <link rel="manifest" href="/site.webmanifest"><meta name="mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-capable" content="yes"><meta name="theme-color" content="#5B45E0">
+    <link rel="manifest" href="/site.webmanifest"><meta name="mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-title" content="InfluencerHub"><meta name="apple-mobile-web-app-status-bar-style" content="default"><link rel="apple-touch-icon" href="/apple-touch-icon.png"><meta name="theme-color" content="#F5F6F3">
+    {{-- ثيم الواجهة (فاتح/داكن/نظام) — يُضبط قبل أوّل طلاء تفاديًا للوميض،
+         ويتبع لون chrome المتصفّح/PWA الثيم الحالي (فاتح #F5F6F3 · داكن #101316) --}}
+    <script>
+      (function () {
+        var t = 'light';
+        try {
+          var s = localStorage.getItem('ih.theme');
+          if (s === 'dark' || s === 'light' || s === 'system') t = s;
+        } catch (e) { /* ignore */ }
+        document.documentElement.setAttribute('data-theme', t);
+        var darkPref = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+        var dark = t === 'dark' || (t === 'system' && darkPref);
+        var m = document.querySelector('meta[name="theme-color"]');
+        if (m) m.setAttribute('content', dark ? '#101316' : '#F5F6F3');
+      })();
+    </script>
     @viteReactRefresh
     @vite(['resources/css/app.css', 'resources/js/inertia.tsx'])
     @inertiaHead

@@ -3,8 +3,12 @@ import { resolvePageComponent } from 'laravel-vite-plugin/inertia-helpers';
 import { createRoot } from 'react-dom/client';
 import type { ComponentType } from 'react';
 import { setBase, setPreviewToken, previewToken } from '@/lib/href';
+import { registerServiceWorker } from '@/lib/pwa';
 
 const appName = 'InfluencerHub';
+
+// PWA — تسجيل Service Worker للتطبيق المُصادَق (كان مسجّلًا في صفحة التسويق فقط)
+registerServiceWorker();
 
 /**
  * إعلان عطل عامّ — منطقة حيّة يقرأها قارئ الشاشة أيضًا.
@@ -72,5 +76,5 @@ createInertiaApp({
       announceFailure('ردّ الخادم بشكل غير متوقّع. أعد تحميل الصفحة ثم حاول مجدّدًا.'));
     if (el) createRoot(el).render(<App {...props} />);
   },
-  progress: { color: '#5B45E0', showSpinner: false },
+  progress: { color: '#3FAE86', showSpinner: false },
 });

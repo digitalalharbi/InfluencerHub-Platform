@@ -9,7 +9,7 @@
     <title>{{ $title }} — {{ $brand }}</title>
     <link rel="icon" href="/favicon.ico" sizes="any">
     <link rel="icon" type="image/svg+xml" href="/favicon.svg">
-    <meta name="theme-color" content="#5B45E0">
+    <meta name="theme-color" content="#F5F6F3">
     <style>
         :root{--ih-primary:#5B45E0;--ih-ink:#14123A;--ih-muted:#6A6690;--ih-border:#E8E6F7;--ih-bg:#F6F5FF;--ih-card:#fff}
         *{box-sizing:border-box} body{margin:0;min-height:100vh;display:grid;place-items:center;background:var(--ih-bg);color:var(--ih-ink);font-family:"IBM Plex Sans Arabic","IBM Plex Sans",system-ui,sans-serif;padding:24px}

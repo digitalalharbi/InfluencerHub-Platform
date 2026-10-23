@@ -2,7 +2,22 @@
 
 > Authoritative, resumable pointer for the next-gen program. Read this +
 > `CLAUDE.md` + `docs/AI/SESSION-STATE.md` after any compaction.
-> Last updated 2026-10-20.
+> Last updated 2026-10-23.
+
+## CANONICAL DESIGN SYSTEM — IDENTITY-02 (EMERALD · premium editorial)
+
+Premium, calm, creator-economy-native identity. **No purple, no chartreuse/neon.** Accent used on ~4–7% of a screen only (primary action, selected state, key chart highlight, active nav) — never a status, never on every card/chart/badge. The product must look premium even with the accent removed.
+
+- **Midnight graphite** `#161A1F` (nav) / `#101317` (deep) · **porcelain** `#F6F7F4` canvas ·
+  **white** cards · soft surface `#EEF1EC` · border `#E4E7E1` · text `#171A1D` / secondary `#72777A` / muted `#A2A6A6`.
+- **Emerald accent** `#3FAE86` (hover `#359A76`, strong-for-CTA `#2E8468`, soft `#E8F5EF`, ink `#143D31`) + **sage** `#91A68B` secondary. Small pastels (sand/soft-blue/rose/lavender) are supporting surfaces only.
+- Semantic states (separate from accent): success `#3E9B73` · warning `#D99A3F` · danger `#CF5B5B` · info `#5E88B9`.
+- Chart palette (≤4 per chart): graphite `#22272B`, emerald, sage, soft blue `#7EA2C7`, sand `#C8AD7F`, coral `#D98778`; grid `#ECEEEA`.
+- Tokens: `resources/css/tokens.css` (semantic names: `--ih-bg/surface/ink/text/border/accent*/nav*/chart-*`). Shared library `Components/Dash.tsx` + `Charts.AreaChart` + `AppShell.contextRail`. **One system — no per-page reinvention.**
+- Logo: monochrome UI lockup (white on nav, ink on light) + tiny chartreuse dot — purple removed from mark + nprogress.
+- 80% neutral / 15% ink / 5% chartreuse. Sidebar 236px, one chartreuse active capsule. Cards 20px / 16px radius, very soft shadow, minimal border. Field focus = ink border + chartreuse ring.
+
+Acceptance standard = the Eduplex composition reference, verified at 1440×900 / 1280 / 390 in AR-RTL + EN-LTR. **No new feature until IDENTITY-02 is merged + production-verified**, then: Creator 360 → Campaign Command Center → Discovery → Client Portal → Communications → Tracking → Reporting → Automation.
 
 ## Anchors
 

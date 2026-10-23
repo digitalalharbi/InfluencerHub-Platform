@@ -171,8 +171,8 @@ export function AreaChart({
         <svg width="100%" height="100%" viewBox="0 0 100 100" preserveAspectRatio="none" style={{ display: 'block', overflow: 'visible' }} aria-hidden="true">
           <defs>
             <linearGradient id={gid} x1="0" y1="0" x2="0" y2="1">
-              <stop offset="0%" stopColor={fill} stopOpacity="0.55" />
-              <stop offset="100%" stopColor={fill} stopOpacity="0.04" />
+              <stop offset="0%" stopColor={fill} stopOpacity="0.14" />
+              <stop offset="100%" stopColor={fill} stopOpacity="0.01" />
             </linearGradient>
           </defs>
           {[4, 50, 96].map((gy) => (
