@@ -1490,8 +1490,8 @@ a.ih-kpi:hover, .ih-kpi--link:hover { box-shadow: var(--ih-shadow); transform: t
 :root { --ih-radius-xl: 20px; --ih-radius-lg: 16px; --ih-radius: 14px; --ih-radius-sm: 12px; }
 
 /* ---- Buttons ---- */
-.btn-primary { background: var(--ih-accent-strong); color: #fff; border-color: var(--ih-accent-strong); box-shadow: none; font-weight: 600; }
-.btn-primary:hover { background: var(--ih-accent-hover); border-color: var(--ih-accent-hover); color: #fff; }
+.btn-primary { background: var(--ih-accent-strong); color: var(--ih-on-accent, #fff); border-color: var(--ih-accent-strong); box-shadow: none; font-weight: 600; }
+.btn-primary:hover { background: var(--ih-accent-hover); border-color: var(--ih-accent-hover); color: var(--ih-on-accent, #fff); }
 .btn-primary:active { background: var(--ih-accent-ink); border-color: var(--ih-accent-ink); }
 .btn-secondary { background: var(--ih-surface); color: var(--ih-text); border-color: var(--ih-border); box-shadow: none; }
 .btn-secondary:hover { background: var(--ih-surface-soft); border-color: var(--ih-border-strong); }
@@ -1503,7 +1503,7 @@ a.ih-kpi:hover, .ih-kpi--link:hover { box-shadow: var(--ih-shadow); transform: t
 .btn-danger:hover { background: var(--ih-danger-ink); border-color: var(--ih-danger-ink); }
 
 /* ---- Sidebar: graphite + ONE quiet emerald active surface (no neon capsule) ---- */
-.ih-side { --ih-surface: var(--ih-nav-bg); --ih-surface-muted: var(--ih-nav-raised); --ih-surface-sunken: var(--ih-nav-hover); --ih-border: var(--ih-nav-border); --ih-text: var(--ih-nav-text-strong); --ih-text-secondary: var(--ih-nav-text); --ih-text-muted: var(--ih-nav-muted); --ih-gray-400: var(--ih-nav-icon); background: var(--ih-nav-bg); border-inline-start: 1px solid var(--ih-nav-border); }
+.ih-side { --ih-surface: var(--ih-nav-bg); --ih-surface-muted: var(--ih-nav-raised); --ih-surface-sunken: var(--ih-nav-hover); --ih-border: var(--ih-nav-border); --ih-text: var(--ih-nav-text-strong); --ih-text-secondary: var(--ih-nav-text); --ih-text-muted: var(--ih-nav-muted); --ih-gray-400: var(--ih-nav-icon); background: var(--ih-nav-bg); border-inline-start: none; border-inline-end: 1px solid var(--ih-nav-border); }
 .ih-side .nav-link { border-radius: 12px; color: var(--ih-nav-text); font-weight: 500; }
 .ih-side .nav-link:hover { background: var(--ih-nav-hover); color: var(--ih-nav-text-strong); }
 .ih-side .nav-link.active { background: var(--ih-nav-active-bg); color: var(--ih-nav-active-text); font-weight: 600; }

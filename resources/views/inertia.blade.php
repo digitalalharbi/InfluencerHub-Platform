@@ -33,7 +33,7 @@
     <meta name="twitter:description" content="{{ $brand['tagline'] }}">
     <meta name="twitter:image" content="{{ $brand['url'] }}/og-image-1200x630.png">
     <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Arabic:wght@400;500;600;700&family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
-    <link rel="manifest" href="/site.webmanifest"><meta name="mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-capable" content="yes"><meta name="theme-color" content="#161A1F">
+    <link rel="manifest" href="/site.webmanifest"><meta name="mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-capable" content="yes"><meta name="theme-color" content="#5B45E0">
     {{-- ثيم الواجهة (فاتح/داكن/نظام) — يُضبط قبل أوّل طلاء تفاديًا للوميض --}}
     <script>
       (function () {
