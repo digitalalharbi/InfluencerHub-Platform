@@ -1,9 +1,10 @@
-import { Head, router, usePage } from '@inertiajs/react';
-import { useEffect, useState, type ReactNode } from 'react';
+import { Head, router, usePage, Link } from '@inertiajs/react';
+import { useState } from 'react';
 import AppShell from '@/Layouts/AppShell';
-import { Bar, Sec, StatusBadge, SummaryStrip, WorkTabs, WorkspaceHeader } from '@/Components/ui';
-import { Bars } from '@/Components/Charts';
-import { Icon } from '@/Components/Icon';
+import { Avatar, StatusBadge } from '@/Components/ui';
+import { Bars, ProgressRing } from '@/Components/Charts';
+import { MetricTile, ChartCard, SectionBar, RailCard } from '@/Components/Dash';
+import { Icon, type IconName } from '@/Components/Icon';
 import { u } from '@/lib/href';
 import { useT } from '@/lib/i18n';
 import type { SharedProps } from '@/types';
@@ -36,7 +37,6 @@ interface Invitation {
   emailVerified: boolean; phoneVerified: boolean;
   canResend: boolean; canRevoke: boolean;
 }
-/** حالة وصول صانع المحتوى إلى بوابته — تُشتقّ في الخادم، والواجهة تعرضها. */
 interface Access {
   state: 'unlinked' | 'pending' | 'email_verified' | 'phone_verified' | 'active' | 'expired' | 'revoked';
   label: string; tone: string;
@@ -58,24 +58,37 @@ function fnum(n: number): string {
 type TFn = ReturnType<typeof useT>;
 const sarWith = (m: number | null, t: TFn) => (m == null ? '—' : Math.round(m / 100).toLocaleString('en-US') + ' ' + t('creators.currency_sar'));
 
-function DataTable({ head, children }: { head: string[]; children: ReactNode }) {
-  return (
-    <div className="ih-dt-wrap"><div className="ih-dt-scroll">
-      <table className="ih-dt"><thead><tr>{head.map((h) => <th key={h}>{h}</th>)}</tr></thead>
-        <tbody>{children}</tbody></table>
-    </div></div>
+/** صفّ علاقة بصري (تعاون/عقد/مستحق) — بديل الجداول على أسطح المراجعة. */
+function RelRow({ title, meta, value, tone, label, href }: {
+  title: string; meta?: string; value?: string; tone: string; label: string; href?: string;
+}) {
+  const inner = (
+    <>
+      <span className="ih-lrow__body">
+        <span className="ih-lrow__title">{title}</span>
+        {meta && <span className="ih-lrow__meta">{meta}</span>}
+      </span>
+      {value && <span className="ih-lrow__value">{value}</span>}
+      <StatusBadge tone={tone} label={label} />
+    </>
   );
+  return href
+    ? <Link href={href} className="ih-lrow ih-lrow--link">{inner}</Link>
+    : <div className="ih-lrow">{inner}</div>;
 }
-function EmptyRow({ span, text }: { span: number; text: string }) {
-  return <tr><td colSpan={span} style={{ textAlign: 'center', color: 'var(--ih-text-muted)', padding: '1.6rem' }}>{text}</td></tr>;
+
+function EmptyPane({ icon, text }: { icon: IconName; text: string }) {
+  return (
+    <div className="ih-vcard ih-empty-pane">
+      <span className="ih-empty__icon"><Icon name={icon} size={24} /></span>
+      <div style={{ marginTop: '.5rem', fontWeight: 650, color: 'var(--ih-text-muted)' }}>{text}</div>
+    </div>
+  );
 }
 
 /**
- * بوابة صانع المحتوى: حالتها وسبيل فتحها.
- *
- * 165 من 168 سجلًّا بلا حساب دخول، وكانت الصفحة صامتة عن ذلك: لا تقول إن
- * الرحلة مقطوعة ولا تعرض ما يُصلحها. القسم يقول الحالة، ويعطي الإجراء، ويشرح
- * سبب تعذّره حين يتعذّر — لا زرّ يفشل عند الضغط.
+ * بوابة صانع المحتوى: حالتها وسبيل فتحها. تُشتقّ في الخادم؛ الواجهة تعرض وتتصرّف.
+ * (منطق الدعوة/الإرسال/الإلغاء كما هو — أُعيد تغليفه في بطاقة النظام الجديد فقط.)
  */
 function AccessPanel({ access, creatorId, link }: { access: Access; creatorId: number; link: string | null }) {
   const t = useT();
@@ -90,19 +103,15 @@ function AccessPanel({ access, creatorId, link }: { access: Access; creatorId: n
   };
 
   return (
-    <Sec title={t('creators.acc_title')} icon="users">
-      <div className="ih-sec__body" style={{ display: 'grid', gap: '.9rem' }}>
+    <ChartCard title={t('creators.acc_title')} icon="users">
+      <div style={{ display: 'grid', gap: '.9rem' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '.6rem', flexWrap: 'wrap' }}>
           <StatusBadge tone={access.tone} label={access.label} />
-          {access.state === 'active' && (
-            <span style={{ fontSize: '.8rem', color: 'var(--ih-text-muted)', direction: 'ltr' }}>{access.email}</span>
-          )}
+          {access.state === 'active' && <span style={{ fontSize: '.8rem', color: 'var(--ih-text-muted)', direction: 'ltr' }}>{access.email}</span>}
         </div>
 
-        {/* الرابط يُعرض مرّة واحدة بعد الإرسال — الرمز لا يُخزَّن خامًا */}
         {link && (
-          <div style={{ padding: '.75rem .9rem', borderRadius: 'var(--ih-radius-sm)',
-            background: 'var(--ih-info-soft)', color: 'var(--ih-info-ink)', fontSize: '.8rem', lineHeight: 1.8 }}>
+          <div style={{ padding: '.75rem .9rem', borderRadius: 'var(--ih-radius-sm)', background: 'var(--ih-info-soft)', color: 'var(--ih-info-ink)', fontSize: '.8rem', lineHeight: 1.8 }}>
             <b>{t('creators.acc_link_once')}</b>
             <div style={{ direction: 'ltr', wordBreak: 'break-all', marginTop: '.3rem', fontFamily: 'var(--ih-font-mono)' }}>{link}</div>
           </div>
@@ -121,44 +130,31 @@ function AccessPanel({ access, creatorId, link }: { access: Access; creatorId: n
           </div>
         )}
 
-        {access.blockedReason && (
-          <div style={{ fontSize: '.82rem', color: 'var(--ih-text-muted)', lineHeight: 1.8 }}>{access.blockedReason}</div>
-        )}
+        {access.blockedReason && <div style={{ fontSize: '.82rem', color: 'var(--ih-text-muted)', lineHeight: 1.8 }}>{access.blockedReason}</div>}
 
-        {/* دعوة جديدة: غير مرتبط، أو انتهت/أُلغيت السابقة */}
         {access.canInvite && ['unlinked', 'expired', 'revoked'].includes(access.state) && (
           <div style={{ display: 'grid', gap: '.5rem' }}>
             <div>
               <label htmlFor="inv-email" style={{ display: 'block', fontSize: '.78rem', fontWeight: 500, marginBottom: '.2rem' }}>{t('creators.acc_f_email')}</label>
-              <input id="inv-email" className="field" style={{ width: '100%', direction: 'ltr' }}
-                value={email} onChange={(e) => setEmail(e.target.value)} placeholder="creator@example.com" />
+              <input id="inv-email" className="field" style={{ width: '100%', direction: 'ltr' }} value={email} onChange={(e) => setEmail(e.target.value)} placeholder="creator@example.com" />
             </div>
             <div>
               <label htmlFor="inv-phone" style={{ display: 'block', fontSize: '.78rem', fontWeight: 500, marginBottom: '.2rem' }}>{t('creators.acc_f_phone')}</label>
-              <input id="inv-phone" className="field" style={{ width: '100%', direction: 'ltr' }}
-                value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="+9665…" />
+              <input id="inv-phone" className="field" style={{ width: '100%', direction: 'ltr' }} value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="+9665…" />
             </div>
             <button className="btn btn-sm btn-primary" disabled={busy || !email.trim()}
-              onClick={() => post(`/creators/${creatorId}/invite`, { email, phone: phone || null })}>
-              {t('creators.acc_send')}
-            </button>
+              onClick={() => post(`/creators/${creatorId}/invite`, { email, phone: phone || null })}>{t('creators.acc_send')}</button>
           </div>
         )}
 
         {inv && (inv.canResend || inv.canRevoke) && (
           <div style={{ display: 'flex', gap: '.5rem', flexWrap: 'wrap' }}>
-            {inv.canResend && (
-              <button className="btn btn-sm btn-outline" disabled={busy}
-                onClick={() => post(`/creator-invitations/${inv.id}/resend`)}>{t('creators.acc_resend')}</button>
-            )}
-            {inv.canRevoke && (
-              <button className="btn btn-sm btn-ghost" disabled={busy}
-                onClick={() => post(`/creator-invitations/${inv.id}/revoke`)}>{t('creators.acc_revoke')}</button>
-            )}
+            {inv.canResend && <button className="btn btn-sm btn-outline" disabled={busy} onClick={() => post(`/creator-invitations/${inv.id}/resend`)}>{t('creators.acc_resend')}</button>}
+            {inv.canRevoke && <button className="btn btn-sm btn-ghost" disabled={busy} onClick={() => post(`/creator-invitations/${inv.id}/revoke`)}>{t('creators.acc_revoke')}</button>}
           </div>
         )}
       </div>
-    </Sec>
+    </ChartCard>
   );
 }
 
@@ -167,208 +163,148 @@ export default function CreatorShow({ creator, intel, access, platforms, collabo
   const sar = (m: number | null) => sarWith(m, t);
   const { props: shared } = usePage<SharedProps & { flash?: { invitation_link?: string } }>();
   const invitationLink = shared.flash?.invitation_link ?? null;
-  const [tab, setTab] = useState('overview');
   const [savingStatus, setSavingStatus] = useState(false);
-  const CR_TABS = ['overview','platforms','collaborations','content','contracts','payouts'];
-  useEffect(() => {
-    const applyHash = () => {
-      const h = window.location.hash.replace('#','');
-      if (CR_TABS.includes(h)) setTab(h);
-    };
-    applyHash();
-    window.addEventListener('hashchange', applyHash);
-    return () => window.removeEventListener('hashchange', applyHash);
-  }, []);
-  const go = (k: string) => {
-    setTab(k);
-    window.history.replaceState(null, '', k === 'overview' ? window.location.pathname : `#${k}`);
-  };
-  const scoreColor = intel.score >= 72 ? 'var(--ih-success)' : intel.score >= 50 ? 'var(--ih-warning)' : 'var(--ih-danger)';
   const m = intel.metrics;
+  const scoreTone = intel.score >= 72 ? 'success' : intel.score >= 50 ? 'warning' : 'danger';
+
+  // عمود السياق (يمين) — بطاقات بيضاء: التقييم + الملف + حالة الحساب
+  const rail = (
+    <>
+      <RailCard title={t('creators.score_label')} icon="gauge">
+        <div style={{ display: 'grid', placeItems: 'center', gap: '.5rem', padding: '.2rem 0 .4rem' }}>
+          <ProgressRing value={intel.score} size={118} tone={scoreTone} label={t('creators.score_label')} />
+          <span className="badge" style={{ background: 'var(--ih-lime-soft)', color: 'var(--ih-lime-ink)', fontWeight: 700 }}>{t('creators.tier_prefix')} {intel.tierLabel}</span>
+        </div>
+        {intel.reasons.length > 0 && (
+          <div style={{ fontSize: '.74rem', color: 'var(--ih-text-muted)', lineHeight: 1.7, marginTop: '.3rem' }}>
+            {t('creators.top_factors')} {intel.reasons.map((r) => `${r.label} (${r.value})`).join(' · ')}
+            {m.overdue > 0 && <> · <span style={{ color: 'var(--ih-danger-ink)' }}>{t('creators.risk_label', { n: m.overdue })}</span></>}
+          </div>
+        )}
+      </RailCard>
+
+      <RailCard title={t('creators.sec_contact')} icon="wallet">
+        <ul className="ih-rail__list">
+          {([[t('creators.c_rate'), sar(creator.rateMinor)], [t('creators.m_city'), creator.city], [t('creators.m_platform'), creator.platform], [t('creators.c_email'), creator.email], [t('creators.c_phone'), creator.phone], [t('creators.c_accept_rate'), m.accept_rate == null ? '—' : `${m.accept_rate}%`]] as [string, string | null][]).map(([k, v]) => (
+            <li key={k} style={{ justifyContent: 'space-between', gap: '.6rem' }}>
+              <span style={{ color: 'var(--ih-text-muted)' }}>{k}</span>
+              <span style={{ fontWeight: 600, direction: 'ltr', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{v ?? '—'}</span>
+            </li>
+          ))}
+        </ul>
+      </RailCard>
+
+      <RailCard title={t('creators.acc_title')} icon="shield-check">
+        <div style={{ display: 'flex', alignItems: 'center', gap: '.5rem', flexWrap: 'wrap' }}>
+          <StatusBadge tone={access.tone} label={access.label} />
+        </div>
+        {access.blockedReason && <div style={{ fontSize: '.73rem', color: 'var(--ih-text-muted)', marginTop: '.45rem', lineHeight: 1.7 }}>{access.blockedReason}</div>}
+      </RailCard>
+    </>
+  );
 
   return (
-    <AppShell heading={t('creators.show_heading')}>
+    <AppShell heading={t('creators.show_heading')} contextRail={rail}>
       <Head title={creator.name} />
 
-      <WorkspaceHeader
-        eyebrow={`${creator.capabilities.join(' · ') || t('creators.no_capabilities')} · ${creator.number}`}
-        title={creator.name}
-        statusTone={creator.statusTone} statusLabel={creator.statusLabel}
-        back={u("/creators")} backLabel={t('creators.back_all')}
-        meta={[
-          [t('creators.m_platform'), creator.platform ?? '—'],
-          [t('creators.m_city'), creator.city ?? '—'],
-          [t('creators.m_trust'), creator.verified ? t('creators.verified') : t('creators.unverified')],
-          ...(creator.categories.length ? [[t('creators.m_categories'), creator.categories.slice(0, 3).join('، ')] as [string, string]] : []),
-        ]}
-        actions={
-          <label style={{ display: 'flex', alignItems: 'center', gap: '.4rem', fontSize: '.8rem' }}>
-            <span style={{ color: 'var(--ih-text-muted)' }}>{t('creators.status_label')}</span>
-            {/* الترشيح يعرض النشطين فقط، ولم يكن للمبدع مسار تحديث — فيُضاف
-                ثم يختفي من الترشيح بلا سبب معروف. */}
-            <select
-              className="field"
-              style={{ minWidth: 120 }}
-              value={creator.status}
-              disabled={savingStatus}
-              onChange={(e) => {
-                setSavingStatus(true);
-                router.post(u(`/creators/${creator.id}/update`), { status: e.target.value }, {
-                  preserveScroll: true,
-                  onFinish: () => setSavingStatus(false),
-                });
-              }}
-            >
+      {/* رأس مدمج — هوية المبدع + تغيير الحالة */}
+      <header className="ih-entity-head">
+        <Avatar name={creator.name} round />
+        <div className="ih-entity-head__id">
+          <div className="ih-entity-head__eyebrow">{(creator.capabilities.join(' · ') || t('creators.no_capabilities')) + ' · ' + creator.number}</div>
+          <h1 className="ih-entity-head__title">
+            {creator.name}
+            {creator.verified && <span className="ih-verified" title={t('creators.verified')}><Icon name="shield-check" size={16} /></span>}
+            <StatusBadge tone={creator.statusTone} label={creator.statusLabel} />
+          </h1>
+          <div className="ih-entity-head__sub">
+            {creator.handle ? <bdi style={{ direction: 'ltr' }}>@{creator.handle.replace(/^@+/, '')}</bdi> : null}
+            {creator.platform ? ` · ${creator.platform}` : ''}{creator.city ? ` · ${creator.city}` : ''}
+          </div>
+        </div>
+        <div className="ih-entity-head__actions">
+          <Link href={u('/creators')} className="btn btn-sm btn-outline"><Icon name="chevron-left" size={15} /> {t('creators.back_all')}</Link>
+          <label className="ih-statuspick">
+            <span>{t('creators.status_label')}</span>
+            <select className="field" value={creator.status} disabled={savingStatus}
+              onChange={(e) => { setSavingStatus(true); router.post(u(`/creators/${creator.id}/update`), { status: e.target.value }, { preserveScroll: true, onFinish: () => setSavingStatus(false) }); }}>
               <option value="prospect">{t('creators.opt_prospect')}</option>
               <option value="active">{t('creators.opt_active')}</option>
               <option value="paused">{t('creators.opt_paused')}</option>
               <option value="blocked">{t('creators.opt_blocked')}</option>
             </select>
           </label>
-        }
-      />
-
-      {/* درجة المبدع + الدرجات الفرعية */}
-      <div className="ih-sec" style={{ marginBottom: '1.2rem' }}>
-        <div className="ih-sec__body" style={{ display: 'flex', gap: '1.6rem', flexWrap: 'wrap', alignItems: 'center' }}>
-          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '.5rem' }}>
-            <div style={{ width: 96, height: 96, borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', background: `conic-gradient(${scoreColor} ${intel.score * 3.6}deg, var(--ih-surface-sunken) 0)` }}>
-              <div style={{ width: 74, height: 74, borderRadius: '50%', background: 'var(--ih-surface)', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
-                <span style={{ fontSize: '1.6rem', fontWeight: 800, lineHeight: 1 }}>{intel.score}</span>
-                <span style={{ fontSize: '.62rem', color: 'var(--ih-text-muted)' }}>{t('creators.score_label')}</span>
-              </div>
-            </div>
-            <span className="badge" style={{ background: 'var(--ih-primary-soft)', color: 'var(--ih-primary-700)', fontWeight: 800 }}>{t('creators.tier_prefix')} {intel.tierLabel}</span>
-          </div>
-          <div style={{ flex: 1, minWidth: 240 }}>
-            <div style={{ fontWeight: 700, fontSize: '.9rem', marginBottom: '.6rem' }}>{t('creators.subscores_title')}</div>
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill,minmax(180px,1fr))', gap: '.5rem .9rem' }}>
-              {intel.subscores.map((s) => (
-                <div key={s.key}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '.74rem', marginBottom: '.2rem' }}>
-                    <span style={{ color: 'var(--ih-text-secondary)' }}>{s.label}</span><span style={{ fontWeight: 700 }}>{s.value}</span>
-                  </div>
-                  <Bar pct={s.value} />
-                </div>
-              ))}
-            </div>
-            <div style={{ marginTop: '.8rem', fontSize: '.76rem', color: 'var(--ih-text-muted)' }}>
-              {t('creators.top_factors')} {intel.reasons.map((r) => `${r.label} (${r.value})`).join(' · ')}
-              {m.overdue > 0 && <> · <span style={{ color: 'var(--ih-danger-ink)' }}>{t('creators.risk_label', { n: m.overdue })}</span></>}
-            </div>
-          </div>
         </div>
+      </header>
+
+      {/* STRIP — مؤشّرات العلاقة */}
+      <div className="ih-tiles ih-tiles--4">
+        <MetricTile label={t('creators.ss_followers')} value={fnum(m.followers)} icon="users" tone="primary" />
+        <MetricTile label={t('creators.ss_engagement')} value={`${m.engagement}%`} icon="activity" />
+        <MetricTile label={t('creators.ss_active_collabs')} value={fnum(m.active_collabs)} icon="megaphone" tone={m.active_collabs ? 'primary' : 'neutral'} />
+        <MetricTile label={t('creators.ss_paid')} value={sar(m.paid_minor)} icon="wallet" tone="success" />
       </div>
 
-      <SummaryStrip items={[
-        { label: t('creators.ss_followers'), value: fnum(m.followers), icon: 'users' },
-        { label: t('creators.ss_engagement'), value: `${m.engagement}%` },
-        { label: t('creators.ss_campaigns'), value: m.campaigns },
-        { label: t('creators.ss_active_collabs'), value: m.active_collabs, tone: m.active_collabs ? 'primary' : undefined },
-        { label: t('creators.ss_content_published'), value: m.content_published, icon: 'image' },
-        { label: t('creators.ss_paid'), value: sar(m.paid_minor), tone: 'success' },
-        { label: t('creators.ss_commitment'), value: m.commitment_rate == null ? '—' : `${m.commitment_rate}%` },
-      ]} />
+      {/* BENTO — الدرجات الفرعية (رسم) + النبذة */}
+      <div className="ih-bento" style={{ marginTop: '1.25rem' }}>
+        <ChartCard className="ih-bento__hero" title={t('creators.subscores_title')} icon="gauge">
+          <Bars bars={intel.subscores.map((s) => ({ label: s.label, value: s.value }))} emptyLabel={t('creators.no_bio')} />
+        </ChartCard>
+        <ChartCard className="ih-bento__side" title={t('creators.sec_bio')} icon="file-text">
+          <p style={{ margin: 0, lineHeight: 1.85, fontSize: '.88rem', color: creator.bio ? 'var(--ih-text)' : 'var(--ih-text-muted)' }}>{creator.bio ?? t('creators.no_bio')}</p>
+          {creator.categories.length > 0 && (
+            <div style={{ display: 'flex', gap: '.4rem', flexWrap: 'wrap', marginTop: '.8rem' }}>
+              {creator.categories.map((c) => <span key={c} className="ih-tag">{c}</span>)}
+            </div>
+          )}
+        </ChartCard>
+      </div>
 
-      {/* الوصول إلى البوابة — قبل التبويبات: «هل يستطيع الدخول؟» يسبق التفاصيل */}
-      <div style={{ marginBottom: '1.1rem' }}>
+      {/* الوصول إلى البوابة */}
+      <div style={{ marginTop: '1.25rem' }}>
         <AccessPanel access={access} creatorId={creator.id} link={invitationLink} />
       </div>
 
-      <WorkTabs active={tab} onChange={go} tabs={[
-        { key: 'overview', label: t('creators.tab_overview'), icon: 'layout-dashboard' },
-        { key: 'platforms', label: t('creators.tab_platforms'), icon: 'radar', count: platforms.length },
-        { key: 'collaborations', label: t('creators.tab_collaborations'), icon: 'megaphone', count: collaborations.length },
-        { key: 'content', label: t('creators.tab_content'), icon: 'image', count: content.length },
-        { key: 'contracts', label: t('creators.tab_contracts'), icon: 'file-text', count: contracts.length },
-        { key: 'payouts', label: t('creators.tab_payouts'), icon: 'wallet', count: payouts.length },
-      ]} />
-
-      {tab === 'overview' && (
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.1rem' }} className="ih-overview-grid">
-          <Sec title={t('creators.sec_bio')} icon="file-text">
-            <div className="ih-sec__body">
-              <p style={{ margin: 0, lineHeight: 1.8, color: creator.bio ? 'var(--ih-text)' : 'var(--ih-text-muted)' }}>{creator.bio ?? t('creators.no_bio')}</p>
-              {creator.categories.length > 0 && (
-                <div style={{ display: 'flex', gap: '.4rem', flexWrap: 'wrap', marginTop: '.8rem' }}>
-                  {creator.categories.map((c) => <span key={c} className="ih-tag">{c}</span>)}
-                </div>
-              )}
-            </div>
-          </Sec>
-          <Sec title={t('creators.sec_contact')} icon="wallet">
-            <div className="ih-sec__body" style={{ display: 'grid', gap: '.7rem' }}>
-              {([[t('creators.c_email'), creator.email], [t('creators.c_phone'), creator.phone], [t('creators.c_rate'), sar(creator.rateMinor)], [t('creators.c_accept_rate'), m.accept_rate == null ? '—' : `${m.accept_rate}%`]] as [string, string | null][]).map(([k, v]) => (
-                <div key={k} style={{ display: 'flex', justifyContent: 'space-between', fontSize: '.86rem' }}>
-                  <span style={{ color: 'var(--ih-text-muted)' }}>{k}</span><span style={{ fontWeight: 600, direction: 'ltr' }}>{v ?? '—'}</span>
+      {/* المنصّات */}
+      <section style={{ marginTop: '1.5rem' }}>
+        <SectionBar title={t('creators.tab_platforms')} icon="radar" count={platforms.length} />
+        {platforms.length === 0 ? <EmptyPane icon="radar" text={t('creators.no_platforms')} /> : (
+          <>
+            {platforms.length > 1 && platforms.some((p) => p.followers > 0) && (
+              <ChartCard title={t('creators.platforms_compare')} icon="users">
+                <Bars bars={[...platforms].sort((a, b) => b.followers - a.followers).map((p) => ({ label: p.platform, value: p.followers }))} />
+              </ChartCard>
+            )}
+            <div className="ih-ccard-grid" style={{ marginTop: platforms.length > 1 ? '1rem' : 0 }}>
+              {platforms.map((p, i) => (
+                <div key={i} className="ih-lrow">
+                  <span className="ih-lrow__logo">{p.platform.slice(0, 1).toUpperCase()}</span>
+                  <span className="ih-lrow__body">
+                    <span className="ih-lrow__title">{p.platform}</span>
+                    <span className="ih-lrow__meta" style={{ direction: 'ltr' }}>{p.handle ? `@${p.handle.replace(/^@+/, '')}` : '—'}</span>
+                  </span>
+                  <span className="ih-lrow__value">{fnum(p.followers)}</span>
                 </div>
               ))}
             </div>
-          </Sec>
-        </div>
-      )}
-
-      {/* المنصّات — بطاقات جمهور لكل منصّة */}
-      {tab === 'platforms' && (
-        platforms.length === 0 ? (
-          <div className="card" style={{ padding: '2.4rem', textAlign: 'center' }}>
-            <span className="ih-empty__icon" style={{ width: 48, height: 48 }}><Icon name="radar" size={22} /></span>
-            <div style={{ marginTop: '.6rem', fontWeight: 700 }}>{t('creators.no_platforms')}</div>
-          </div>
-        ) : (
-          <>
-            {/* مقارنة الوصول عبر المنصّات — إجابة فوريّة: أين الجمهور الأكبر (متابعون فعليّون) */}
-            {platforms.length > 1 && platforms.some((p) => p.followers > 0) && (
-              <div className="card" style={{ padding: '1rem 1.2rem', marginBottom: '.9rem' }}>
-                <div style={{ fontWeight: 800, fontSize: '.9rem', marginBottom: '.7rem' }}>{t('creators.platforms_compare')}</div>
-                <Bars bars={[...platforms].sort((a, b) => b.followers - a.followers).map((p) => ({ label: p.platform, value: p.followers }))} />
-              </div>
-            )}
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))', gap: '.8rem' }}>
-            {platforms.map((p, i) => {
-              const maxF = Math.max(...platforms.map((x) => x.followers), 1);
-              return (
-                <div key={i} className="ih-idcard">
-                  <div className="ih-idcard__top">
-                    <span className="ih-idcard__logo">{p.platform.slice(0, 1).toUpperCase()}</span>
-                    <div style={{ minWidth: 0, flex: 1 }}>
-                      <div style={{ fontWeight: 700, fontSize: '.9rem' }}>{p.platform}</div>
-                      <div style={{ fontSize: '.74rem', color: 'var(--ih-text-muted)', direction: 'ltr', textAlign: 'start' }}>{p.handle ? `@${p.handle.replace(/^@+/, '')}` : '—'}</div>
-                    </div>
-                  </div>
-                  <div>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '.72rem', color: 'var(--ih-text-muted)', marginBottom: '.2rem' }}>
-                      <span>{t('creators.followers')}</span><span style={{ fontWeight: 700, direction: 'ltr', color: 'var(--ih-text)' }}>{fnum(p.followers)}</span>
-                    </div>
-                    <Bar pct={Math.round((p.followers / maxF) * 100)} />
-                  </div>
-                </div>
-              );
-            })}
-            </div>
           </>
-        )
-      )}
+        )}
+      </section>
 
-      {tab === 'collaborations' && (
-        <DataTable head={[t('creators.th_collab'), t('creators.th_campaign'), t('creators.th_fee'), t('creators.th_status')]}>
-          {collaborations.length === 0 ? <EmptyRow span={4} text={t('creators.no_collaborations')} /> :
-            collaborations.map((c) => (
-              <tr key={c.id}><td style={{ fontWeight: 600 }}>{c.title}</td><td>{c.campaign ?? '—'}</td>
-                <td className="ih-dt__num" style={{ direction: 'ltr', textAlign: 'right' }}>{sar(c.feeMinor)}</td>
-                <td><StatusBadge tone={c.statusTone} label={c.statusLabel} /></td></tr>
-            ))}
-        </DataTable>
-      )}
-
-      {/* المحتوى — معرض أعمال المبدع */}
-      {tab === 'content' && (
-        content.length === 0 ? (
-          <div className="card" style={{ padding: '2.4rem', textAlign: 'center' }}>
-            <span className="ih-empty__icon" style={{ width: 48, height: 48 }}><Icon name="image" size={22} /></span>
-            <div style={{ marginTop: '.6rem', fontWeight: 700 }}>{t('creators.no_content')}</div>
+      {/* التعاونات */}
+      <section style={{ marginTop: '1.5rem' }}>
+        <SectionBar title={t('creators.tab_collaborations')} icon="megaphone" count={collaborations.length} />
+        {collaborations.length === 0 ? <EmptyPane icon="megaphone" text={t('creators.no_collaborations')} /> : (
+          <div className="ih-lrow-grid">
+            {collaborations.map((c) => <RelRow key={c.id} title={c.title} meta={c.campaign ?? '—'} value={sar(c.feeMinor)} tone={c.statusTone} label={c.statusLabel} />)}
           </div>
-        ) : (
+        )}
+      </section>
+
+      {/* المحتوى — معرض */}
+      <section style={{ marginTop: '1.5rem' }}>
+        <SectionBar title={t('creators.tab_content')} icon="image" count={content.length} />
+        {content.length === 0 ? <EmptyPane icon="image" text={t('creators.no_content')} /> : (
           <div className="ih-gallery">
             {content.map((c) => (
               <a key={c.id} href={u(`/content/${c.id}`)} className="ih-gtile" style={{ textDecoration: 'none', color: 'inherit' }}>
@@ -388,30 +324,28 @@ export default function CreatorShow({ creator, intel, access, platforms, collabo
               </a>
             ))}
           </div>
-        )
-      )}
+        )}
+      </section>
 
-      {tab === 'contracts' && (
-        <DataTable head={[t('creators.th_contract'), t('creators.th_number'), t('creators.th_value'), t('creators.th_status')]}>
-          {contracts.length === 0 ? <EmptyRow span={4} text={t('creators.no_contracts')} /> :
-            contracts.map((c) => (
-              <tr key={c.id}><td style={{ fontWeight: 600 }}>{c.title}</td><td style={{ direction: 'ltr', textAlign: 'right' }}>{c.number}</td>
-                <td className="ih-dt__num" style={{ direction: 'ltr', textAlign: 'right' }}>{sar(c.valueMinor)}</td>
-                <td><StatusBadge tone={c.statusTone} label={c.statusLabel} /></td></tr>
-            ))}
-        </DataTable>
-      )}
-
-      {tab === 'payouts' && (
-        <DataTable head={[t('creators.th_payout'), t('creators.th_amount'), t('creators.th_status')]}>
-          {payouts.length === 0 ? <EmptyRow span={3} text={t('creators.no_payouts')} /> :
-            payouts.map((p) => (
-              <tr key={p.id}><td style={{ direction: 'ltr', textAlign: 'right', fontWeight: 600 }}>{p.number}</td>
-                <td className="ih-dt__num" style={{ direction: 'ltr', textAlign: 'right' }}>{sar(p.amountMinor)}</td>
-                <td><StatusBadge tone={p.statusTone} label={p.statusLabel} /></td></tr>
-            ))}
-        </DataTable>
-      )}
+      {/* العقود + المستحقات */}
+      <div className="ih-overview-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.1rem', marginTop: '1.5rem', alignItems: 'start' }}>
+        <section>
+          <SectionBar title={t('creators.tab_contracts')} icon="file-text" count={contracts.length} />
+          {contracts.length === 0 ? <EmptyPane icon="file-text" text={t('creators.no_contracts')} /> : (
+            <div className="ih-lrow-grid">
+              {contracts.map((c) => <RelRow key={c.id} title={c.title} meta={c.number} value={sar(c.valueMinor)} tone={c.statusTone} label={c.statusLabel} />)}
+            </div>
+          )}
+        </section>
+        <section>
+          <SectionBar title={t('creators.tab_payouts')} icon="wallet" count={payouts.length} />
+          {payouts.length === 0 ? <EmptyPane icon="wallet" text={t('creators.no_payouts')} /> : (
+            <div className="ih-lrow-grid">
+              {payouts.map((p) => <RelRow key={p.id} title={p.number} value={sar(p.amountMinor)} tone={p.statusTone} label={p.statusLabel} />)}
+            </div>
+          )}
+        </section>
+      </div>
     </AppShell>
   );
 }

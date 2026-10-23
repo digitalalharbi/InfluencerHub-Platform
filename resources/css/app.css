@@ -1448,3 +1448,35 @@ a.ih-kpi:hover, .ih-kpi--link:hover { box-shadow: var(--ih-shadow); transform: t
 /* بطاقة الإعداد — ليموني بدل التدرّج البنفسجي */
 .ih-setup-cta { background: var(--ih-ink-900); color: #fff; }
 .ih-setup-cta .btn { background: var(--ih-lime); color: var(--ih-lime-ink); border-color: var(--ih-lime); }
+
+/* ===== RADICAL-UI-02 — Creator 360 (نفس نظام RADICAL-IDENTITY-01) ===== */
+/* رأس كيان مدمج (مبدع/حملة/عميل…) */
+.ih-entity-head { display: flex; align-items: center; gap: 1rem; margin-bottom: 1.5rem; flex-wrap: wrap; }
+.ih-entity-head .ih-idc__av { width: 52px; height: 52px; font-size: 1.3rem; flex: none; }
+.ih-entity-head__id { flex: 1; min-width: 0; }
+.ih-entity-head__eyebrow { font-size: .72rem; font-weight: 600; color: var(--ih-text-muted); letter-spacing: .01em; }
+.ih-entity-head__title { margin: .15rem 0 .2rem; font-size: 1.6rem; font-weight: 700; letter-spacing: -.01em; line-height: 1.15; display: flex; align-items: center; gap: .5rem; flex-wrap: wrap; }
+.ih-entity-head__sub { font-size: .84rem; color: var(--ih-text-muted); }
+.ih-entity-head__actions { display: flex; align-items: center; gap: .5rem; flex-wrap: wrap; }
+.ih-verified { display: inline-grid; place-items: center; width: 22px; height: 22px; border-radius: 50%; background: var(--ih-lime-soft); color: var(--ih-lime-ink); }
+.ih-statuspick { display: flex; align-items: center; gap: .4rem; font-size: .8rem; color: var(--ih-text-muted); }
+.ih-statuspick .field { min-width: 120px; }
+
+/* شبكة أربع بطاقات صريحة */
+.ih-tiles--4 { grid-template-columns: repeat(4, 1fr); }
+
+/* صفّ علاقة بصري (بديل الجداول على أسطح المراجعة) */
+.ih-lrow-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: .8rem; }
+.ih-lrow { display: flex; align-items: center; gap: .8rem; padding: .85rem 1rem; background: var(--ih-surface); border-radius: var(--ih-radius-lg); box-shadow: var(--ih-shadow-sm); }
+.ih-lrow--link { text-decoration: none; color: inherit; transition: transform var(--ih-motion-fast) var(--ih-ease), box-shadow var(--ih-motion-fast) var(--ih-ease); }
+.ih-lrow--link:hover { transform: translateY(-2px); box-shadow: var(--ih-shadow); }
+.ih-lrow__logo { display: grid; place-items: center; width: 38px; height: 38px; flex: none; border-radius: 11px; background: var(--ih-surface-sunken); color: var(--ih-text-secondary); font-weight: 700; }
+.ih-lrow__body { flex: 1; min-width: 0; display: grid; gap: 2px; }
+.ih-lrow__title { font-weight: 650; font-size: .9rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.ih-lrow__meta { font-size: .76rem; color: var(--ih-text-muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.ih-lrow__value { font-weight: 700; font-variant-numeric: tabular-nums; direction: ltr; white-space: nowrap; font-size: .9rem; }
+
+@media (max-width: 860px) {
+  .ih-tiles--4 { grid-template-columns: repeat(2, 1fr); }
+  .ih-lrow-grid { grid-template-columns: 1fr; }
+}

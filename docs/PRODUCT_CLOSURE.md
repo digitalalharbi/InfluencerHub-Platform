@@ -1,5 +1,11 @@
 # Product Closure Ledger — InfluencerHub
 
+> **Design system (2026-10-23):** canonical identity is RADICAL-IDENTITY-01 (merged
+> #185) — Eduplex-referenced ink/navy + warm off-white + white + acid lime; shared
+> library `Components/Dash.tsx` + `Charts.AreaChart` + `AppShell.contextRail`. NOT
+> indigo-first. Dashboard (#185) and Creator 360 (RADICAL-UI-02) migrated; remaining
+> surfaces follow the same system. See `RESUME_STATE.md`.
+
 > IH-X0 product-truth audit. One row per product area: what is built, the tests
 > that fail if it stops being true, and an honest status. **Git/code/tests
 > outrank older docs.** Audited at `main` after PR #180 (merge `2e6be07`),

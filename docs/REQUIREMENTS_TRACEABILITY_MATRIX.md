@@ -1,5 +1,10 @@
 # Requirements Traceability Matrix — InfluencerHub Next-Generation
 
+> **Visual direction (2026-10-23):** B1/B2 are delivered by RADICAL-IDENTITY-01
+> (#185) — Eduplex-referenced ink/navy + warm off-white + acid lime (not indigo).
+> B3 dashboard done (#185); Creator 360 done (RADICAL-UI-02). Remaining pages apply
+> the same canonical system (`Components/Dash.tsx` + tokens).
+
 > Maps the owner's next-generation + radical-visual/attribution/communication
 > directives to current code reality and the execution unit that closes each gap.
 > Audited 2026-10-20 at `main` (`2e6be07`). Benchmarks (CampaignsHub, digitalSmart)

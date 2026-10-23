@@ -2,7 +2,23 @@
 
 > Authoritative, resumable pointer for the next-gen program. Read this +
 > `CLAUDE.md` + `docs/AI/SESSION-STATE.md` after any compaction.
-> Last updated 2026-10-20.
+> Last updated 2026-10-23.
+
+## CANONICAL DESIGN SYSTEM (RADICAL-IDENTITY-01, merged #185)
+
+The product identity is **Eduplex-referenced**, NOT the old indigo-first direction:
+- **Ink/Navy** `#1D1C2B` (identity, text, sidebar) + **warm off-white** `#F5F5F1`
+  workspace + **white** cards + **acid lime** `#C8F45A` accent (active nav capsule,
+  primary CTA = lime+ink, chart highlight). Purple is a tiny secondary accent only
+  and survives in the legacy logo until the mark is refreshed.
+- Frame: navy sidebar (one solid lime active capsule) · compact header · warm
+  canvas · **bento** grid · **integrated right column of white cards** (not a heavy
+  rail) · charts = lime + ink + grey (restrained).
+- Shared component library: `resources/js/Components/Dash.tsx`
+  (`MetricTile`, `ChartCard`, `SectionBar`, `RailCard`) + `Charts.AreaChart` +
+  `AppShell.contextRail`. **One system, one identity — do not reinvent per page.**
+- Tokens: `resources/css/tokens.css` (names preserved; whole app re-skins).
+  Visual acceptance standard is the Eduplex reference, not a subjective "new look".
 
 ## Anchors
 
@@ -14,10 +30,17 @@
 
 ## Done in this program
 
-- **PR #180 merged** (CI green: Backend ✅ Frontend ✅ E2E ✅). main refreshed.
-- **IH-X0 product-truth audit** complete → this doc + `PRODUCT_CLOSURE.md`,
-  `REQUIREMENTS_TRACEABILITY_MATRIX.md`, `PRODUCTION_READINESS.md`,
-  `INTEGRATION_READINESS.md`. `CLAUDE.md` §0 updated to the benchmark policy.
+- **#180** i18n client portal · **IH-X0** governance (#181) · **CLAUDE.md** §0 benchmark policy.
+- **THEME-01** (#182) dark sidebar + token groundwork — merged, then **superseded** by the identity reset.
+- **#183 / #184** (incremental theme / first bento) — **closed, visually rejected** (old-UI-recolor).
+- **RADICAL-IDENTITY-01 (#185) MERGED** — the canonical design system above (ink/navy + warm off-white + acid lime; bento dashboard; integrated white-card right column; AreaChart). main `1aaf942`.
+- **RADICAL-UI-02 — Creator 360** (this branch): rebuilt `Creators/Show` on the design
+  system — compact entity header, score ring + contact + access in the white-card right
+  column, 4 metric tiles, subscores Bars chart, relationship rows (not tables), content
+  gallery. AccessPanel invite/resend/revoke logic preserved. Live QA 1440 + 390.
+
+## Remaining page migrations (SAME design system — `Dash.tsx` + tokens; no per-page reinvention)
+Campaign Command Center → Discovery → Client Portal → Communications → Attribution/Tracking → Reporting → Automation → Integrations/AI.
 
 ## Execution order (each = fresh main → audit → fail-first test → implement → tests → live QA → mobile → ar/en → PR → CI → merge → deploy → smoke → refresh → next)
 
