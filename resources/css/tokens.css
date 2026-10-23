@@ -135,20 +135,20 @@
   --ih-chart-neutral: #D7DAD5;
   --ih-chart-grid: #ECEEEA;
 
-  /* ---- Navigation (graphite #161A1F + حالة نشطة زمرّدية هادئة) ---- */
-  --ih-nav:              var(--ih-ink-900);   /* #161A1F */
-  --ih-nav-bg:           var(--ih-ink-900);
-  --ih-nav-raised:       var(--ih-ink-850);
-  --ih-nav-border:       rgba(255, 255, 255, .06);
-  --ih-nav-text:         #AFB4B2;  /* porcelain هادئ */
-  --ih-nav-text-strong:  #FFFFFF;
-  --ih-nav-muted:        #7E8481;  /* عناوين المجموعات */
-  --ih-nav-icon:         #9BA09D;
-  --ih-nav-hover:        rgba(255, 255, 255, .05);
+  /* ---- Navigation (الوضع الفاتح: الشريط فاتح أيضًا — يتبع النظام بالكامل) ---- */
+  --ih-nav:              #FFFFFF;
+  --ih-nav-bg:           #FFFFFF;
+  --ih-nav-raised:       var(--ih-gray-50);   /* #F6F7F4 */
+  --ih-nav-border:       var(--ih-gray-200);  /* #E4E7E1 */
+  --ih-nav-text:         #51565A;  /* نصّ غير نشط هادئ */
+  --ih-nav-text-strong:  #171A1D;  /* ink */
+  --ih-nav-muted:        #A2A6A6;  /* عناوين المجموعات */
+  --ih-nav-icon:         #72777A;
+  --ih-nav-hover:        var(--ih-gray-100);  /* #EEF1EC */
   --ih-nav-active:       #3FAE86;
-  --ih-nav-active-bg:    rgba(63, 174, 134, .16);  /* سطح زمرّدي هادئ لا كبسولة ساطعة */
-  --ih-nav-active-text:  #FFFFFF;
-  --ih-nav-active-icon:  #54C39B;
+  --ih-nav-active-bg:    #E8F5EF;             /* سطح زمرّدي ناعم */
+  --ih-nav-active-text:  #143D31;             /* نصّ زمرّدي داكن */
+  --ih-nav-active-icon:  #2E8468;
   --ih-nav-active-indicator: transparent;
 
   /* ---- Elevated surface + larger card radius (18–24px) ---- */
@@ -303,10 +303,11 @@
     --ih-primary-soft: #E8F5EF; --ih-primary-ring: rgba(23,26,29,.16);
     --ih-accent-soft: #E8F5EF; --ih-lime-soft: #E8F5EF;
     --ih-success-soft: #E7F4EC; --ih-warning-soft: #FBF0DD; --ih-danger-soft: #FAEAEA; --ih-info-soft: #EAF1F8;
-    --ih-nav: #161A1F; --ih-nav-bg: #161A1F; --ih-nav-raised: #20252B;
-    --ih-nav-text: #AFB4B2; --ih-nav-text-strong: #FFFFFF; --ih-nav-muted: #7E8481; --ih-nav-icon: #9BA09D;
-    --ih-nav-hover: rgba(255,255,255,.05); --ih-nav-active-bg: rgba(63,174,134,.16);
-    --ih-nav-active-text: #FFFFFF; --ih-nav-active-icon: #54C39B;
+    --ih-nav: #FFFFFF; --ih-nav-bg: #FFFFFF; --ih-nav-raised: #F6F7F4;
+    --ih-nav-border: #E4E7E1;
+    --ih-nav-text: #51565A; --ih-nav-text-strong: #171A1D; --ih-nav-muted: #A2A6A6; --ih-nav-icon: #72777A;
+    --ih-nav-hover: #EEF1EC; --ih-nav-active-bg: #E8F5EF;
+    --ih-nav-active-text: #143D31; --ih-nav-active-icon: #2E8468;
     --ih-chart-1: #22272B; --ih-chart-grid: #ECEEEA; --ih-chart-neutral: #D7DAD5;
     color-scheme: light;
   }
