@@ -16,10 +16,12 @@ import type { CSSProperties, ReactNode } from 'react';
 type Surface = 'light' | 'dark' | 'gradient' | 'auto';
 type Lang = 'ar' | 'en';
 
-const CYAN = '#22D3EE';
-const INDIGO = '#5B45E0';
-const NAVY = '#14123A';
-const INDIGO_LIGHT = '#9D8CFF';
+// IDENTITY-02 — product UI lockup: monochrome ink/white mark + tiny chartreuse dot.
+// (No purple in the application UI.) Names kept so the markup below is unchanged.
+const CYAN = '#C7ED63';       // نقطة شارتروز صغيرة — اللمسة الوحيدة
+const INDIGO = '#191A1F';     // مربّع العلامة على سطح فاتح = حبر
+const NAVY = '#18191D';
+const INDIGO_LIGHT = '#FFFFFF'; // على سطح داكن = أبيض
 
 /**
  * اللغة الحالية من حمولة Inertia المشتركة (locale) — حتميّة وتتبع التبديل فورًا.
@@ -74,7 +76,7 @@ export function BrandLogo({ height = 34, surface = 'light', lang, symbolOnly = f
   const fs = height / 1.2;
   const text = surface === 'auto' ? 'var(--ih-text, #14123A)' : surface === 'light' ? NAVY : '#FFFFFF';
   const hub = onGradient ? '#FFFFFF'
-    : surface === 'auto' ? 'var(--ih-primary, #5B45E0)'
+    : surface === 'auto' ? 'var(--ih-text, #191A1F)'
       : surface === 'light' ? INDIGO : INDIGO_LIGHT;
   const wrap: CSSProperties = {
     display: 'inline-flex', alignItems: 'center', gap: fs * 0.42, lineHeight: 1,

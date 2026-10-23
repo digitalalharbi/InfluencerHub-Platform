@@ -72,5 +72,5 @@ createInertiaApp({
       announceFailure('ردّ الخادم بشكل غير متوقّع. أعد تحميل الصفحة ثم حاول مجدّدًا.'));
     if (el) createRoot(el).render(<App {...props} />);
   },
-  progress: { color: '#5B45E0', showSpinner: false },
+  progress: { color: '#C7ED63', showSpinner: false },
 });

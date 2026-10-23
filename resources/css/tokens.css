@@ -33,54 +33,57 @@
   --ih-accent-600: #0891B2;
   --ih-accent-700: #0E7490;
 
-  /* ---- Ink / Navy (الشريط الجانبي والأسطح الداكنة) ---- */
-  --ih-ink-950: #15141F;
-  --ih-ink-900: #1D1C2B;
-  --ih-ink-850: #26253A;
-  --ih-ink-800: #302E47;
+  /* ---- Ink / Charcoal (IDENTITY-02 — أهدأ، بلا زرقة بنفسجية) ---- */
+  --ih-ink-950: #15161B;  /* أعمق — خلفية التنقّل */
+  --ih-ink-900: #191A1F;  /* فحم — نصّ قويّ/خطوط الرسوم */
+  --ih-ink-850: #23242A;  /* سطح داكن مرتفع / tooltip */
+  --ih-ink-800: #2E2F36;
 
-  /* ---- Neutral (دافئ — مرجع Eduplex: خلفية #F5F5F1، حدّ #ECECE7، ثانوي #7B7985) ---- */
-  --ih-gray-25:  #FCFCFB;
-  --ih-gray-50:  #F5F5F1;
-  --ih-gray-100: #F0F0EC;
-  --ih-gray-200: #ECECE7;
-  --ih-gray-300: #DBDBD4;
-  --ih-gray-400: #A9A7B0;
-  --ih-gray-500: #7B7985;
-  --ih-gray-600: #55535E;
-  --ih-gray-700: #3A3942;
-  --ih-gray-800: #26252E;
-  --ih-gray-900: #191820;
+  /* ---- Neutral (IDENTITY-02 — عاج دافئ: canvas #F7F7F3، حدّ #E8E8E2) ---- */
+  --ih-gray-25:  #FBFBF8;
+  --ih-gray-50:  #F7F7F3;  /* canvas عاجي */
+  --ih-gray-100: #F1F1EC;  /* سطح ثانوي */
+  --ih-gray-200: #E8E8E2;  /* حدّ */
+  --ih-gray-300: #D9D9D3;
+  --ih-gray-400: #A0A0A5;  /* نصّ خافت */
+  --ih-gray-500: #74747B;  /* نصّ ثانوي */
+  --ih-gray-600: #55555B;
+  --ih-gray-700: #3A3A40;
+  --ih-gray-800: #26262B;
+  --ih-gray-900: #18191D;  /* نصّ أساسي */
 
-  /* ---- State ---- */
-  --ih-success: #16A36A;
-  --ih-success-soft: #E7F6EF;
-  --ih-success-ink: #0E7A4E;
-  --ih-warning: #F3B85A;
-  --ih-warning-soft: #FDF2DD;
+  /* ---- State (أهدأ — منفصلة تمامًا عن الأكسنت) ---- */
+  --ih-success: #43A978;
+  --ih-success-soft: #E8F6EF;
+  --ih-success-ink: #2E7D5A;
+  --ih-warning: #E5A94C;
+  --ih-warning-soft: #FFF4DF;
   --ih-warning-ink: #8A5A12;
-  --ih-danger:  #E96B6B;
+  --ih-danger:  #D96363;
   --ih-danger-soft: #FCEAEA;
   --ih-danger-ink: #A83A3A;
-  --ih-info:    #4F93D6;
-  --ih-info-soft: #E5F1FF;
-  --ih-info-ink: #2A5E96;
+  --ih-info:    #648BC7;
+  --ih-info-soft: #EDF3FC;
+  --ih-info-ink: #3A5E96;
 
   /* ---- Soft category accents (أسطح خفيفة فقط) ---- */
   --ih-peach:   #FFE8DB;
   --ih-blue-soft: #E5F1FF;
   --ih-mint:    #EAF6DF;
 
-  /* ---- Semantic surfaces (light) ---- */
-  --ih-bg:            var(--ih-gray-50);
+  /* ---- Semantic surfaces (IDENTITY-02) ---- */
+  --ih-bg:            var(--ih-gray-50);   /* عاج #F7F7F3 */
   --ih-surface:       #FFFFFF;
-  --ih-surface-muted: #FAFAF6;
+  --ih-surface-soft:  var(--ih-gray-100);  /* سطح ثانوي #F1F1EC */
+  --ih-surface-muted: var(--ih-gray-100);
   --ih-surface-sunken:var(--ih-gray-100);
-  --ih-border:        var(--ih-gray-200);
+  --ih-surface-elevated: #FFFFFF;
+  --ih-border:        var(--ih-gray-200);  /* #E8E8E2 */
   --ih-border-strong: var(--ih-gray-300);
-  --ih-text:          #191820;
-  --ih-text-secondary:var(--ih-gray-500);
-  --ih-text-muted:    #9A98A4;
+  --ih-ink:           var(--ih-ink-900);   /* #191A1F */
+  --ih-text:          var(--ih-gray-900);  /* #18191D */
+  --ih-text-secondary:var(--ih-gray-500);  /* #74747B */
+  --ih-text-muted:    var(--ih-gray-400);  /* #A0A0A5 */
   --ih-on-primary:    #FFFFFF;
 
   /* ---- Primary intents → حبر (النصّ/الأيقونات/الروابط/النشط الهادئ) ----
@@ -93,36 +96,53 @@
   --ih-accent:        var(--ih-accent-500);
   --ih-accent-soft:   var(--ih-accent-50);
 
-  /* ---- Lime (product accent LAYER — references-inspired energy; NOT the brand) ----
-     الهوية تبقى بنفسجية. الليموني طبقة أكسنت مقيّدة: التنقّل النشط، تمييز إيجابي،
-     إبراز رسم — وليس زرّ CTA الأساسي. */
-  /* القيم الرسمية (مرجع Eduplex): ليموني حمضي #C8F45A */
-  --ih-lime-50:  #FBFEE9;
-  --ih-lime-100: #EFFACF;
-  --ih-lime-200: #E4F7AE;
-  --ih-lime-300: #D8F58C;
-  --ih-lime-400: #C8F45A;
-  --ih-lime-500: #B8E94A;
-  --ih-lime-600: #9FD022;
-  --ih-lime-700: #7FA81B;
-  --ih-lime:      #C8F45A;
-  --ih-lime-hover:#B8E94A;
-  --ih-lime-soft: #EFFACF;
-  --ih-lime-ink:  #27330C; /* نصّ على الليموني — تباين قويّ */
+  /* ---- Chartreuse accent (IDENTITY-02 — أهدأ من الأكسيد؛ 5–8% من الشاشة فقط) ----
+     الأكسنت للانتباه والتفاعل: التنقّل النشط، زرّ CTA الأساسي، الحالة المختارة،
+     إبراز واحد مهمّ. ليس حالة نجاح/تحذير/معلومة، ولا على كل بطاقة/رسم/شارة. */
+  --ih-lime-50:  #F7FBE9;
+  --ih-lime-100: #F0F8D9;
+  --ih-lime-200: #E4F0B5;
+  --ih-lime-300: #D8EA8E;
+  --ih-lime-400: #C7ED63;
+  --ih-lime-500: #B7DE52;
+  --ih-lime-600: #9BC23A;
+  --ih-lime-700: #6F8F28;
+  --ih-lime:      #C7ED63;
+  --ih-lime-hover:#B7DE52;
+  --ih-lime-soft: #F0F8D9;
+  --ih-lime-ink:  #28300F; /* نصّ على الشارتروز — تباين قويّ */
   --ih-positive:  var(--ih-success);
 
-  /* ---- Navigation (navy + كبسولة ليمونية صلبة — حالة نشطة واحدة) ---- */
-  --ih-nav:              var(--ih-ink-900);   /* #1D1C2B navy */
+  /* الأسماء الدلالية المعتمدة للأكسنت (IDENTITY-02) — الشارتروز، لا السماوي */
+  --ih-accent:       var(--ih-lime);
+  --ih-accent-hover: var(--ih-lime-hover);
+  --ih-accent-soft:  var(--ih-lime-soft);
+  --ih-accent-ink:   var(--ih-lime-ink);
+
+  /* ---- Chart palette (IDENTITY-02 — ≤4 ألوان/رسم، بلا قوس قزح) ---- */
+  --ih-chart-1: #23242A;  /* ink */
+  --ih-chart-2: #C7ED63;  /* chartreuse */
+  --ih-chart-3: #8EA789;  /* sage */
+  --ih-chart-4: #86A8D5;  /* soft blue */
+  --ih-chart-5: #D6B986;  /* sand */
+  --ih-chart-6: #D98778;  /* coral */
+  --ih-chart-neutral: #D9D9D3;
+  --ih-chart-grid: #ECECE7;
+
+  /* ---- Navigation (deep ink #15161B + كبسولة شارتروز واحدة) ---- */
+  --ih-nav:              var(--ih-ink-950);   /* #15161B */
+  --ih-nav-bg:           var(--ih-ink-950);
   --ih-nav-raised:       var(--ih-ink-850);
-  --ih-nav-border:       rgba(255, 255, 255, .07);
-  --ih-nav-text:         #B9B7C4;  /* نصّ غير نشط هادئ على navy */
+  --ih-nav-border:       rgba(255, 255, 255, .06);
+  --ih-nav-text:         #B6B6BC;  /* نصّ غير نشط هادئ */
   --ih-nav-text-strong:  #FFFFFF;
-  --ih-nav-muted:        #85838F;  /* عناوين المجموعات */
-  --ih-nav-icon:         #9C9AA6;
-  --ih-nav-hover:        rgba(255, 255, 255, .06);
-  --ih-nav-active-bg:    var(--ih-lime);        /* كبسولة ليمونية صلبة */
-  --ih-nav-active-text:  var(--ih-lime-ink);    /* نصّ/أيقونة حبريّة داكنة */
-  --ih-nav-active-indicator: transparent;        /* لا مؤشّر إضافي — حالة واحدة تكفي */
+  --ih-nav-muted:        #86868C;  /* عناوين المجموعات */
+  --ih-nav-icon:         #9A9AA0;
+  --ih-nav-hover:        rgba(255, 255, 255, .055);
+  --ih-nav-active:       var(--ih-lime);
+  --ih-nav-active-bg:    var(--ih-lime);        /* كبسولة شارتروز واحدة */
+  --ih-nav-active-text:  var(--ih-lime-ink);    /* نصّ/أيقونة حبريّة */
+  --ih-nav-active-indicator: transparent;        /* حالة واحدة فقط */
 
   /* ---- Elevated surface + larger card radius (18–24px) ---- */
   --ih-surface-raised: #FFFFFF;
