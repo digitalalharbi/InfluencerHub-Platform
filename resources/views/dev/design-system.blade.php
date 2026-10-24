@@ -34,7 +34,7 @@
         <x-ih-logo :size="30" color="var(--ih-primary)"/>
         <div>
             <div style="font-weight:800; font-size:1.15rem;">نظام تصميم InfluencerHub (بادئة <code style="direction:ltr; color:var(--ih-primary);">ih-</code>)</div>
-            <div style="color:var(--ih-text-muted); font-size:.85rem;">هوية أصلية مستقلة — بنفسجي <code style="direction:ltr;">#6252E5</code> + سماوي <code style="direction:ltr;">#06B6D4</code>. مرجع بصري حيّ للـ tokens والمكوّنات. <b>صفحة تطوير فقط (محجوبة في الإنتاج).</b></div>
+            <div style="color:var(--ih-text-muted); font-size:.85rem;">IDENTITY-03 — Midnight Navy + محايدات باردة + علامة إنديغو-بنفسجي <code style="direction:ltr;">#5B57D9</code>. الأخضر دلالة نجاح فقط. مرجع بصري حيّ للـ tokens والمكوّنات. <b>صفحة تطوير فقط (محجوبة في الإنتاج).</b></div>
         </div>
     </div>
 </div>
@@ -45,7 +45,7 @@
 <div class="card" style="padding:1.3rem 1.4rem; margin-bottom:1.4rem;">
     <h3 style="{{ $sec }}">🎨 الألوان — Color Tokens</h3>
 
-    <div style="color:var(--ih-text-muted); font-size:.8rem; margin:.6rem 0 .3rem;">Primary — بنفسجي (الهوية)</div>
+    <div style="color:var(--ih-text-muted); font-size:.8rem; margin:.6rem 0 .3rem;">Primary — حبر كحليّ (نصّ/أيقونات)</div>
     <div style="display:flex; flex-wrap:wrap; gap:.4rem;">
         @foreach($primaryScale as $s)
             <div style="flex:1; min-width:62px; text-align:center;">
@@ -55,7 +55,7 @@
         @endforeach
     </div>
 
-    <div style="color:var(--ih-text-muted); font-size:.8rem; margin:1rem 0 .3rem;">Accent — سماوي (ذكاء / تكامل / مباشر)</div>
+    <div style="color:var(--ih-text-muted); font-size:.8rem; margin:1rem 0 .3rem;">Accent — إنديغو-بنفسجي (العلامة / CTA / نشط)</div>
     <div style="display:flex; flex-wrap:wrap; gap:.4rem;">
         @foreach($accentScale as $s)
             <div style="flex:1; min-width:62px; text-align:center;">

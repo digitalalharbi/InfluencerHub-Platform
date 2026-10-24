@@ -21,7 +21,7 @@ function applyMode(m: Mode) {
   const darkPref = typeof window !== 'undefined' && window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
   const dark = m === 'dark' || (m === 'system' && darkPref);
   const meta = document.querySelector('meta[name="theme-color"]');
-  if (meta) meta.setAttribute('content', dark ? '#101316' : '#F5F6F3');
+  if (meta) meta.setAttribute('content', dark ? '#11131A' : '#F5F6FA');
 }
 
 export function ThemeToggle() {

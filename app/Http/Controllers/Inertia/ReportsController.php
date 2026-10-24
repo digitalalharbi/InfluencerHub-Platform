@@ -36,11 +36,14 @@ class ReportsController extends Controller
 
     private const REPORT_TEMPLATE = 'v1';
 
-    /** جدول تقرير أداء العملاء — مصدر واحد للتصدير والمعاينة (بلا وقت في الصفوف). */
-    private function reportTabular(): TabularData
+    /**
+     * جدول تقرير أداء العملاء — مصدر واحد للتصدير والمعاينة (بلا وقت في الصفوف).
+     * يقبل عملاء/مقاييس محسوبة مسبقًا (PERF-01) لتجنّب إعادة حساب forPage في صفحة التقارير.
+     */
+    private function reportTabular(?\Illuminate\Support\Collection $clients = null, ?array $metrics = null): TabularData
     {
-        $clients = Client::query()->get();
-        $metrics = ClientAnalytics::forPage($clients);
+        $clients ??= Client::query()->get();
+        $metrics ??= ClientAnalytics::forPage($clients);
         $sar = fn (int $minor) => number_format($minor / 100, 0).' ر.س';
         $rows = $clients->map(fn (Client $c) => [
             'name' => $c->display_name,
@@ -129,10 +132,10 @@ class ReportsController extends Controller
     }
 
     /** بيانات مستند التقرير لصفحة التقارير — مسارات نسبية للتركيب. */
-    public function reportDocMeta(DocumentArtifactService $svc): array
+    public function reportDocMeta(DocumentArtifactService $svc, ?\Illuminate\Support\Collection $clients = null, ?array $metrics = null): array
     {
         $latest = $svc->latest(self::REPORT_TYPE, $this->reportSubject());
-        $currentFp = $svc->fingerprint(['rows' => collect($this->reportTabular()->rows)->toArray()], self::REPORT_TEMPLATE, 'pdf');
+        $currentFp = $svc->fingerprint(['rows' => collect($this->reportTabular($clients, $metrics)->rows)->toArray()], self::REPORT_TEMPLATE, 'pdf');
 
         return [
             'title' => 'تقرير أداء العملاء',
@@ -162,16 +165,19 @@ class ReportsController extends Controller
             return $out;
         };
 
-        // سلسلة زمنية حقيقية — آخر 6 أشهر (بلا تقديرات)
+        // سلسلة زمنية حقيقية — آخر 6 أشهر (بلا تقديرات). التجميع في PostgreSQL عبر
+        // date_trunc('month') — دلاء شهرية فقط بدل سحب كل الصفوف إلى PHP (PERF-01).
+        // الأعمدة timestamp بلا منطقة (UTC) وapp.timezone=UTC ⇒ الشهر يطابق format('Y-m').
         $months = collect(range(5, 0))->map(fn ($i) => now()->startOfMonth()->subMonths($i));
-        $paidByMonth = Payout::where('status', 'paid')->whereNotNull('paid_at')
-            ->where('paid_at', '>=', $months->first())->get()
-            ->groupBy(fn ($p) => $p->paid_at->format('Y-m'))->map(fn ($g) => (int) $g->sum('amount_minor'));
-        $campaignsByMonth = Campaign::where('created_at', '>=', $months->first())->get()
-            ->groupBy(fn ($c) => $c->created_at->format('Y-m'));
-        $publishedByMonth = ContentItem::where('status', 'published')->whereNotNull('published_at')
-            ->where('published_at', '>=', $months->first())->get()
-            ->groupBy(fn ($c) => $c->published_at->format('Y-m'))->map->count();
+        $since = $months->first();
+        $mk = fn (string $col) => "to_char(date_trunc('month', $col), 'YYYY-MM')";
+        $paidByMonth = Payout::where('status', 'paid')->whereNotNull('paid_at')->where('paid_at', '>=', $since)
+            ->selectRaw($mk('paid_at').' as mk, sum(amount_minor) as s')->groupBy('mk')->pluck('s', 'mk');
+        $campaignsByMonth = Campaign::where('created_at', '>=', $since)
+            ->selectRaw($mk('created_at').' as mk, count(*) as c, coalesce(sum(budget_minor),0) as b')
+            ->groupBy('mk')->get()->keyBy('mk');
+        $publishedByMonth = ContentItem::where('status', 'published')->whereNotNull('published_at')->where('published_at', '>=', $since)
+            ->selectRaw($mk('published_at').' as mk, count(*) as c')->groupBy('mk')->pluck('c', 'mk');
 
         $AR_MONTHS = ['01' => 'يناير', '02' => 'فبراير', '03' => 'مارس', '04' => 'أبريل', '05' => 'مايو', '06' => 'يونيو',
             '07' => 'يوليو', '08' => 'أغسطس', '09' => 'سبتمبر', '10' => 'أكتوبر', '11' => 'نوفمبر', '12' => 'ديسمبر'];
@@ -183,15 +189,16 @@ class ReportsController extends Controller
                 'key' => $key,
                 'label' => Lang::has("reports.mon_{$mm}") ? trans("reports.mon_{$mm}") : $AR_MONTHS[$mm],
                 'paidMinor' => (int) ($paidByMonth[$key] ?? 0),
-                'budgetMinor' => (int) (($campaignsByMonth[$key] ?? collect())->sum('budget_minor')),
-                'campaigns' => ($campaignsByMonth[$key] ?? collect())->count(),
+                'budgetMinor' => (int) ($campaignsByMonth[$key]->b ?? 0),
+                'campaigns' => (int) ($campaignsByMonth[$key]->c ?? 0),
                 'published' => (int) ($publishedByMonth[$key] ?? 0),
             ];
         })->values();
 
-        // أبرز العملاء بالإيراد (من نفس محرك تحليلات العميل)
-        $allClients = Client::query()->get();
-        $clientMetrics = ClientAnalytics::forPage($allClients);
+        // أبرز العملاء بالإيراد — يُعاد استخدام عملاء/مقاييس operational() (PERF-01: بلا
+        // إعادة حساب forPage). نفس المجموعة والأرقام المحسوبة أعلاه.
+        $allClients = $op['clients'];
+        $clientMetrics = $op['client_metrics'];
         $topClients = $allClients->map(fn ($c) => [
             'id' => $c->id, 'name' => $c->display_name,
             'revenueMinor' => (int) ($clientMetrics[$c->id]['revenue_minor'] ?? 0),
@@ -199,7 +206,7 @@ class ReportsController extends Controller
         ])->filter(fn ($r) => $r['revenueMinor'] > 0)->sortByDesc('revenueMinor')->take(6)->values();
 
         return Inertia::render('Reports/Index', [
-            'documents' => ['report' => $this->reportDocMeta($artifacts)],
+            'documents' => ['report' => $this->reportDocMeta($artifacts, $op['clients'], $op['client_metrics'])],
             'timeline' => $timeline,
             'topClients' => $topClients,
             // كل حدّ من FinancialMetrics — لا يُعاد حسابه هنا بتعريف ثانٍ

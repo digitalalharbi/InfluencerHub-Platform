@@ -8,7 +8,8 @@ interface Notif { id: number; title: string; body: string | null; actionUrl: str
 
 /**
  * جرس الإشعارات مع قائمة منسدلة — اطّلاع سريع وتعليم مقروء دون مغادرة الصفحة.
- * البيانات مشتركة من HandleInertiaRequests (recentNotifications + unreadNotifications).
+ * العدّاد (unreadNotifications) مشترك دائمًا؛ وأحدث الإشعارات (recentNotifications)
+ * تُحمَّل عند فتح الجرس فقط عبر إعادة تحميل جزئية (PERF-01: لا استعلام على كل صفحة).
  * النقر على إشعار يستدعي مسار «read» الذي يعلّمه مقروءًا ثم يحوّل إلى وجهته.
  */
 export function NotificationBell() {
@@ -17,7 +18,21 @@ export function NotificationBell() {
   const unread = props.unreadNotifications ?? 0;
   const items = props.recentNotifications ?? [];
   const [open, setOpen] = useState(false);
+  const [loading, setLoading] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
+
+  // تحميل أحدث الإشعارات عند الطلب فقط (prop اختياري من الخادم).
+  const fetchRecent = () => router.reload({
+    only: ['recentNotifications'],
+    onStart: () => setLoading(true),
+    onFinish: () => setLoading(false),
+  });
+
+  const toggle = () => setOpen((v) => {
+    const next = !v;
+    if (next) fetchRecent();
+    return next;
+  });
 
   useEffect(() => {
     if (!open) return;
@@ -29,14 +44,14 @@ export function NotificationBell() {
   }, [open]);
 
   const openItem = (n: Notif) => { setOpen(false); router.post(u(`/notifications/${n.id}/read`), {}, { preserveScroll: true }); };
-  const markAll = () => router.post(u('/notifications/read-all'), {}, { preserveScroll: true });
+  const markAll = () => router.post(u('/notifications/read-all'), {}, { preserveScroll: true, onSuccess: fetchRecent });
 
   return (
     <div ref={ref} style={{ position: 'relative', marginInlineEnd: '.4rem' }}>
       <button
         type="button"
         className="ih-bell"
-        onClick={() => setOpen((v) => !v)}
+        onClick={toggle}
         aria-haspopup="menu"
         aria-expanded={open}
         aria-label={t('common.notifications')}
@@ -58,7 +73,9 @@ export function NotificationBell() {
             {unread > 0 && <button type="button" className="ih-notifpanel__markall" onClick={markAll}>{t('common.notif_mark_all')}</button>}
           </div>
           <div className="ih-notifpanel__list">
-            {items.length === 0 ? (
+            {loading && items.length === 0 ? (
+              <div className="ih-notifpanel__empty">{t('common.loading', '…')}</div>
+            ) : items.length === 0 ? (
               <div className="ih-notifpanel__empty">{t('common.notif_empty')}</div>
             ) : items.map((n) => (
               <button key={n.id} type="button" role="menuitem" className={`ih-notifitem${n.read ? '' : ' is-unread'}`} onClick={() => openItem(n)}>

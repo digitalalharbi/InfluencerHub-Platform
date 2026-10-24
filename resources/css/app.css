@@ -610,10 +610,10 @@ button.ih-nav__group--toggle:focus-visible { outline: 2px solid var(--ih-primary
 /* ---------- Premium auth / portal experience ---------- */
 .ih-auth { display: grid; grid-template-columns: 1.05fr 0.95fr; min-height: 100vh; min-height: 100dvh; }
 .ih-auth__brand {
-  position: relative; overflow: hidden; color: #EAECF6;
+  position: relative; overflow: hidden; color: #DADFEC;
   background:
-    radial-gradient(1100px 520px at 15% -10%, rgba(98,82,229,.55), transparent 60%),
-    radial-gradient(900px 500px at 95% 110%, rgba(6,182,212,.32), transparent 55%),
+    radial-gradient(1100px 520px at 15% -10%, rgba(91,87,217,.38), transparent 60%),
+    radial-gradient(900px 500px at 95% 110%, rgba(114,152,205,.18), transparent 55%),
     linear-gradient(155deg, var(--ih-ink-950), var(--ih-ink-850));
   padding: clamp(2rem, 1.4rem + 3vw, 4rem);
   display: flex; flex-direction: column; justify-content: center;
@@ -716,7 +716,7 @@ button.ih-nav__group--toggle:focus-visible { outline: 2px solid var(--ih-primary
   background: var(--ih-nav-active-bg); color: var(--ih-nav-active-text); font-weight: 650;
   position: relative;
 }
-/* مؤشر ليموني أنيق بدل الظل الثقيل */
+/* مؤشر إنديغو أنيق بدل الظل الثقيل */
 .ih-side .nav-link.active::before {
   content: ''; position: absolute; inset-inline-start: 0; top: 50%;
   transform: translateY(-50%); width: 3px; height: 17px; border-radius: 0 3px 3px 0;
@@ -1286,7 +1286,7 @@ a.ih-kpi:hover, .ih-kpi--link:hover { box-shadow: var(--ih-shadow); transform: t
 
 /* ============================================================================
    RADICAL-UI-01 — تكوين لوحة جديد (Bento + ريل سياق + بطاقات مميّزة الوظيفة)
-   مسافات سخيّة · ظلال ناعمة · حدود أقل · إنديغو هوية، ليموني أكسنت مقيّد.
+   مسافات سخيّة · ظلال ناعمة · حدود أقل · إنديغو هوية، إنديغو أكسنت مقيّد.
    ============================================================================ */
 
 /* ريل السياق (يمين) — قابل لإعادة الاستخدام عبر AppShell rail */
@@ -1407,11 +1407,11 @@ a.ih-kpi:hover, .ih-kpi--link:hover { box-shadow: var(--ih-shadow); transform: t
 }
 
 /* ============================================================================
-   RADICAL-IDENTITY-01 — فرض الهوية (حبر/كحلي + أوف-وايت دافئ + ليموني حمضي)
+   RADICAL-IDENTITY-01 — فرض الهوية (حبر/كحلي + أوف-وايت دافئ + إنديغو حمضي)
    مرجع Eduplex. يَلغي هيمنة البنفسجي. يأتي آخر الملف ليفوز على التعريفات الأقدم.
    ============================================================================ */
 
-/* أزرار — الأساسي ليموني + حبر، الثانوي أبيض بحدّ */
+/* أزرار — الأساسي إنديغو + حبر، الثانوي أبيض بحدّ */
 .btn-primary { background: var(--ih-lime); color: var(--ih-lime-ink); border-color: var(--ih-lime); box-shadow: 0 1px 2px rgba(39,51,12,.14); font-weight: 650; }
 .btn-primary:hover { background: var(--ih-lime-hover); border-color: var(--ih-lime-hover); color: var(--ih-lime-ink); }
 .btn-primary:active { background: var(--ih-lime-hover); }
@@ -1420,7 +1420,7 @@ a.ih-kpi:hover, .ih-kpi--link:hover { box-shadow: var(--ih-shadow); transform: t
 .btn-outline { color: var(--ih-text); border-color: var(--ih-border-strong); }
 .btn-outline:hover { background: var(--ih-surface-muted); }
 
-/* شريط جانبي — كبسولة نشطة ليمونية صلبة، حالة واحدة فقط */
+/* شريط جانبي — كبسولة نشطة إنديغوة صلبة، حالة واحدة فقط */
 .ih-side .nav-link.active { background: var(--ih-lime); color: var(--ih-lime-ink); font-weight: 700; }
 .ih-side .nav-link.active::before { display: none; }
 .ih-side .ih-nav__link.active .ih-icon { color: var(--ih-lime-ink); }
@@ -1437,7 +1437,7 @@ a.ih-kpi:hover, .ih-kpi--link:hover { box-shadow: var(--ih-shadow); transform: t
 .ih-rail__lead-bar > span, .ih-rail__lead-foot b { background: var(--ih-lime-600); }
 .ih-rail__lead-foot b { background: none; color: var(--ih-lime-700); }
 
-/* بطاقات KPI — شريحة الأيقونة الأساسية ليمونية (حضور ليموني مقيّد) */
+/* بطاقات KPI — شريحة الأيقونة الأساسية إنديغوة (حضور إنديغو مقيّد) */
 .ih-tile__icon--primary { background: var(--ih-lime-soft); color: var(--ih-lime-ink); }
 
 /* تدرّج طباعة أقوى (مرجع Eduplex) */
@@ -1445,19 +1445,19 @@ a.ih-kpi:hover, .ih-kpi--link:hover { box-shadow: var(--ih-shadow); transform: t
 .ih-dash-head__eyebrow { color: var(--ih-text-muted); }
 .ih-sectionbar__count { background: var(--ih-lime-soft); color: var(--ih-lime-ink); }
 
-/* بطاقة الإعداد — ليموني بدل التدرّج البنفسجي */
+/* بطاقة الإعداد — إنديغو بدل التدرّج البنفسجي */
 .ih-setup-cta { background: var(--ih-ink-900); color: #fff; }
 .ih-setup-cta .btn { background: var(--ih-lime); color: var(--ih-lime-ink); border-color: var(--ih-lime); }
 
 /* ============================================================================
-   IDENTITY-02 — نظام تصميم موحّد (أهدأ، premium). يأتي آخر الملف ليفوز.
-   شارتروز 5–8% فقط · حبر/عاج · حالات دلالية منفصلة عن الأكسنت.
+   IDENTITY-03 — نظام تصميم موحّد (أهدأ، premium). يأتي آخر الملف ليفوز.
+   إنديغو-بنفسجي 5–8% فقط · حبر/عاج · حالات دلالية منفصلة عن الأكسنت.
    ============================================================================ */
 :root {
   --ih-sidebar-w: 236px;       /* 228–240 */
   --ih-radius-2xl: 20px;       /* بطاقات كبيرة 20 */
   --ih-radius-lg: 16px;        /* بطاقات مدمجة 16 */
-  --ih-ring: 0 0 0 3px var(--ih-accent-soft);   /* حلقة تركيز شارتروز خفيفة */
+  --ih-ring: 0 0 0 3px var(--ih-accent-soft);   /* حلقة تركيز إنديغو-بنفسجي خفيفة */
   /* ظلال ناعمة جدًّا دافئة */
   --ih-shadow-xs: 0 1px 2px rgba(24, 25, 29, .05);
   --ih-shadow-sm: 0 1px 2px rgba(24, 25, 29, .05), 0 1px 3px rgba(24, 25, 29, .04);
@@ -1465,7 +1465,7 @@ a.ih-kpi:hover, .ih-kpi--link:hover { box-shadow: var(--ih-shadow); transform: t
   --ih-shadow-lg: 0 10px 40px -16px rgba(24, 25, 29, .16);
 }
 
-/* الأكسنت لا يُفرَش: شرائح/عدّادات محايدة (ليست شارتروز) */
+/* الأكسنت لا يُفرَش: شرائح/عدّادات محايدة (ليست إنديغو-بنفسجي) */
 .ih-tile__icon--primary { background: var(--ih-surface-sunken); color: var(--ih-ink); }
 .ih-sectionbar__count { background: var(--ih-surface-sunken); color: var(--ih-text-secondary); }
 
@@ -1473,19 +1473,19 @@ a.ih-kpi:hover, .ih-kpi--link:hover { box-shadow: var(--ih-shadow); transform: t
 .ih-side .nav-link { border-radius: 12px; }
 .ih-side .nav-link.active { border-radius: 12px; }
 
-/* الحقول: زاوية 12، تركيز حبر + حلقة شارتروز */
+/* الحقول: زاوية 12، تركيز حبر + حلقة إنديغو-بنفسجي */
 .field { border-radius: 12px; }
 .field:focus { outline: none; border-color: var(--ih-ink); box-shadow: 0 0 0 3px var(--ih-accent-soft); }
 
-/* تركيز عام للأزرار/الروابط — حلقة شارتروز لا بنفسجية */
+/* تركيز عام للأزرار/الروابط — حلقة إنديغو-بنفسجي لا بنفسجية */
 .btn:focus-visible, a:focus-visible, button:focus-visible { outline: 2px solid var(--ih-accent); outline-offset: 2px; }
 
 /* بطاقات: حدّ شبه معدوم + ظلّ ناعم جدًّا */
 .ih-vcard, .ih-tile, .ih-lrow, .ih-ccard, .ih-rail__group, .card { box-shadow: var(--ih-shadow-sm); }
 
 /* ============================================================================
-   IDENTITY-02 · EMERALD (authoritative) — premium editorial, graphite + porcelain
-   + emerald 4–7%. آخر الملف: يفوز على كل الكتل السابقة. One product identity.
+   IDENTITY-03 · indigo-violet (authoritative) — premium editorial, midnight-navy + cool-neutral
+   + indigo-violet 4–7%. آخر الملف: يفوز على كل الكتل السابقة. One product identity.
    ============================================================================ */
 :root { --ih-radius-xl: 20px; --ih-radius-lg: 16px; --ih-radius: 14px; --ih-radius-sm: 12px; }
 
@@ -1502,7 +1502,7 @@ a.ih-kpi:hover, .ih-kpi--link:hover { box-shadow: var(--ih-shadow); transform: t
 .btn-danger { background: var(--ih-danger); color: #fff; border-color: var(--ih-danger); }
 .btn-danger:hover { background: var(--ih-danger-ink); border-color: var(--ih-danger-ink); }
 
-/* ---- Sidebar: graphite + ONE quiet emerald active surface (no neon capsule) ---- */
+/* ---- Sidebar: midnight-navy + ONE quiet indigo-violet active surface (no neon capsule) ---- */
 .ih-side { --ih-surface: var(--ih-nav-bg); --ih-surface-muted: var(--ih-nav-raised); --ih-surface-sunken: var(--ih-nav-hover); --ih-border: var(--ih-nav-border); --ih-text: var(--ih-nav-text-strong); --ih-text-secondary: var(--ih-nav-text); --ih-text-muted: var(--ih-nav-muted); --ih-gray-400: var(--ih-nav-icon); background: var(--ih-nav-bg); border-inline-start: none; border-inline-end: 1px solid var(--ih-nav-border); }
 .ih-side .nav-link { border-radius: 12px; color: var(--ih-nav-text); font-weight: 500; }
 .ih-side .nav-link:hover { background: var(--ih-nav-hover); color: var(--ih-nav-text-strong); }
@@ -1514,7 +1514,7 @@ a.ih-kpi:hover, .ih-kpi--link:hover { box-shadow: var(--ih-shadow); transform: t
 .ih-side .ih-nav__badge { background: color-mix(in srgb, var(--ih-nav-text) 14%, transparent); color: var(--ih-nav-text); }
 .ih-side .ih-nav__link.active .ih-nav__badge { background: var(--ih-accent); color: #fff; }
 
-/* ---- Fields: graphite border on focus + subtle emerald ring ---- */
+/* ---- Fields: midnight-navy border on focus + subtle indigo-violet ring ---- */
 .field { border-radius: 12px; min-height: 44px; border-color: var(--ih-border); }
 .field:hover { border-color: var(--ih-border-strong); }
 .field:focus { outline: none; border-color: var(--ih-ink); box-shadow: 0 0 0 3px var(--ih-accent-soft); }
@@ -1530,7 +1530,7 @@ a.ih-kpi:hover, .ih-kpi--link:hover { box-shadow: var(--ih-shadow); transform: t
 .ih-tile__icon--primary { background: var(--ih-surface-soft); color: var(--ih-ink); }
 .ih-sectionbar__count { background: var(--ih-surface-soft); color: var(--ih-text-secondary); }
 
-/* ---- Tables: quiet, horizontal separators, roomy rows, emerald-soft selection ---- */
+/* ---- Tables: quiet, horizontal separators, roomy rows, indigo-violet-soft selection ---- */
 .ih-dt, table.ih-dt { border-collapse: collapse; width: 100%; background: var(--ih-surface); }
 .ih-dt thead th { background: var(--ih-surface); color: var(--ih-text-muted); font-weight: 600; font-size: .75rem; border-bottom: 1px solid var(--ih-border); }
 .ih-dt tbody td { border-bottom: 1px solid var(--ih-border); padding-block: .85rem; }
@@ -1540,11 +1540,11 @@ a.ih-kpi:hover, .ih-kpi--link:hover { box-shadow: var(--ih-shadow); transform: t
 /* ---- Status pills: compact & quiet (accent is NOT a status) ---- */
 .badge { font-weight: 600; border-radius: 999px; }
 
-/* ---- Setup CTA: graphite, emerald action ---- */
+/* ---- Setup CTA: midnight-navy, indigo-violet action ---- */
 .ih-setup-cta { background: var(--ih-ink-900); color: #fff; border-radius: var(--ih-radius-xl); }
 .ih-setup-cta .btn { background: var(--ih-accent-strong); color: #fff; border-color: var(--ih-accent-strong); }
 
-/* focus-visible emerald everywhere */
+/* focus-visible indigo-violet everywhere */
 .btn:focus-visible, a:focus-visible, button:focus-visible, [tabindex]:focus-visible { outline: 2px solid var(--ih-accent); outline-offset: 2px; }
 
 /* ---- Theme toggle (sidebar footer) — فاتح/داكن/نظام ---- */
