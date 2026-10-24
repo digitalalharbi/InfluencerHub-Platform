@@ -145,7 +145,7 @@ export function Sparkline({
  * خطوط مستقيمة (لا تنعيم) ولا جسر للفجوات ولا بيانات مُختلَقة؛ عند غيابها حالة فارغة.
  */
 export function AreaChart({
-  data, height = 190, line = 'var(--ih-text)', fill = 'var(--ih-lime)', emptyLabel = 'لا بيانات كافية بعد', ariaLabel,
+  data, height = 190, line = 'var(--ih-text)', fill = 'var(--ih-accent)', emptyLabel = 'لا بيانات كافية بعد', ariaLabel,
 }: {
   data: { label: string; value: number }[]; height?: number; line?: string; fill?: string; emptyLabel?: string; ariaLabel?: string;
 }) {

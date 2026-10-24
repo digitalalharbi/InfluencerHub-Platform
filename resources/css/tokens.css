@@ -116,12 +116,6 @@
   --ih-accent-ink:    #3F3B9E;   /* نصّ علامة قويّ على سطح ناعم */
   --ih-sage:          #8187A0;   /* محايد داعم */
 
-  /* جسر الأسماء القديمة (--ih-lime*) → العلامة، حتى لا يبقى أخضر في أي مستدعٍ */
-  --ih-lime:      var(--ih-accent);
-  --ih-lime-hover:var(--ih-accent-hover);
-  --ih-lime-soft: var(--ih-accent-soft);
-  --ih-lime-ink:  var(--ih-accent-ink);
-  --ih-positive:  var(--ih-success);
 
   /* ---- Chart palette (فاتح — فئوي: إنديغو/أزرق/أردوازي/رملي؛ + نجاح/خطر دلالي) ---- */
   --ih-chart-1: #5B57D9;  /* indigo (brand) */
@@ -151,7 +145,7 @@
 
   /* ---- Elevated surface + larger card radius ---- */
   --ih-surface-raised: #FFFFFF;
-  --ih-radius-2xl: 24px;
+  --ih-radius-2xl: 20px;
 
   /* ---- Typography ---- */
   --ih-font-sans: "IBM Plex Sans Arabic", "IBM Plex Sans", "Tajawal", system-ui, -apple-system, "Segoe UI", sans-serif;
@@ -177,22 +171,22 @@
   --ih-space-4: 1rem; --ih-space-5: 1.25rem; --ih-space-6: 1.5rem;
   --ih-space-8: 2rem; --ih-space-10: 2.5rem; --ih-space-12: 3rem;
 
-  /* ---- Radius ---- */
-  --ih-radius-sm: 8px; --ih-radius: 12px; --ih-radius-lg: 16px; --ih-radius-xl: 20px; --ih-radius-pill: 999px;
+  /* ---- Radius (قيم IDENTITY-03 النهائية) ---- */
+  --ih-radius-sm: 12px; --ih-radius: 14px; --ih-radius-lg: 16px; --ih-radius-xl: 20px; --ih-radius-pill: 999px;
 
-  /* ---- Shadows (هادئة، محايدة — لا توهّج بنفسجي) ---- */
-  --ih-shadow-xs: 0 1px 2px rgba(17, 19, 26, .05);
-  --ih-shadow-sm: 0 1px 3px rgba(17, 19, 26, .07), 0 1px 2px rgba(17, 19, 26, .04);
-  --ih-shadow:    0 6px 18px -6px rgba(17, 19, 26, .14), 0 2px 6px -2px rgba(17, 19, 26, .06);
-  --ih-shadow-lg: 0 20px 40px -12px rgba(17, 19, 26, .20);
-  --ih-ring: 0 0 0 3px var(--ih-primary-ring);
+  /* ---- Shadows (هادئة جدًّا، محايدة — لا توهّج بنفسجي) ---- */
+  --ih-shadow-xs: 0 1px 2px rgba(24, 25, 29, .05);
+  --ih-shadow-sm: 0 1px 2px rgba(24, 25, 29, .05), 0 1px 3px rgba(24, 25, 29, .04);
+  --ih-shadow:    0 1px 2px rgba(24, 25, 29, .05), 0 8px 30px -12px rgba(24, 25, 29, .10);
+  --ih-shadow-lg: 0 10px 40px -16px rgba(24, 25, 29, .16);
+  --ih-ring: 0 0 0 3px var(--ih-accent-soft);
 
   /* ---- Motion ---- */
   --ih-motion-fast: 140ms; --ih-motion: 180ms; --ih-motion-slow: 240ms;
   --ih-ease: cubic-bezier(.4, 0, .2, 1);
 
   /* ---- Layout ---- */
-  --ih-sidebar-w: 258px;
+  --ih-sidebar-w: 236px;
   --ih-rail-w: 64px;
   --ih-topbar-h: 62px;
   --ih-z-sticky: 30; --ih-z-drawer: 40; --ih-z-modal: 50; --ih-z-toast: 60; --ih-z-cmd: 70;

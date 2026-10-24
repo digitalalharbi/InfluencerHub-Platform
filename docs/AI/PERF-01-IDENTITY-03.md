@@ -99,4 +99,62 @@ refined indigo-violet (#5B57D9)**; green is **semantic success only** (#33966F).
   neutrals, no green; translations resolve (no raw keys) on initial HTML and warm nav;
   notification bell loads on open.
 
+## Frontend / CSS consolidation (same branch, follow-up pass)
+
+The backend/warm-nav wins above were accepted; this pass removes the historical CSS
+debt and trims the first-load bundle.
+
+### One canonical system — superseded layers deleted
+Removed the three stacked identity blocks (`RADICAL-IDENTITY-01`, the duplicate
+`IDENTITY-03` "unified" block, and the `IDENTITY-03 authoritative` override block). Each
+component's final value now lives **once**, in its own section:
+
+| Selector | Before | After |
+|---|---|---|
+| `.btn-primary` (+ variants) | 3 definitions | **1** (buttons section) |
+| `.ih-side .nav-link.active` | 4 | 2 (generic + sidebar) |
+| `.field` | 3 | **1** |
+| `.ih-tile__icon--primary` | 4 | **1** |
+| `.ih-sectionbar__count` | 4 | **1** |
+| `.ih-setup-cta` | 3 | **1** |
+
+Structural token overrides (radius / shadow / ring / sidebar-width) moved out of app.css
+into `tokens.css`. `app.css`: **1555 → 1443 lines; 113.0 KB → 104.6 KB raw;
+21.7 KB → 20.2 KB gzip**. ~9 superseded/duplicate rule blocks removed.
+
+### Legacy brand aliases gone
+`--ih-lime` / `--ih-lime-soft` / `--ih-lime-ink` / `--ih-lime-600/700` (indigo values
+hiding under a "lime" name) **migrated to `--ih-accent*`** across app.css, Charts.tsx,
+Dashboard.tsx, then deleted from tokens.css. `--ih-emerald*`: none. Repo-wide scan of
+built assets: **0** `ih-lime` / `ih-emerald` / `3FAE86` / `4BB890`. Brand = indigo-violet,
+success = green, and they are never conflated.
+
+### First-load CSS trimmed (measured)
+`gateway.css` (login gateway, `.gw-*`, used only by `Public/Gateway` + `Public/Start`) was
+`@import`ed into the global bundle — every authenticated page downloaded it. Moved to a
+per-page `import` so Vite code-splits it:
+
+| Bundle (gzip) | Before | After |
+|---|---|---|
+| main app CSS | **31.66 KB** | **28.53 KB** (−9.9%) |
+| gateway (loads only on 2 public pages) | — | 3.37 KB |
+
+`public.css` was **kept** global — it is used by authenticated Admin/Platform/Invoices/
+BrandPortal pages too, so splitting it would break them.
+
+### First-route / fonts / images / prefetch
+- **Bundle**: pages already code-split, AppShell its own chunk, lucide tree-shaken, command
+  palette platform-only (95 lines) — no first-paint eager load worth splitting for >1–2 KB.
+- **Fonts**: already optimal — `preconnect` + `display=swap`, only the used weights
+  (Plex Sans/Arabic 400–700, Mono 400–500); no change.
+- **Images**: thumbnails/avatars use `loading="lazy"` inside CSS-sized containers (no
+  attribute CLS).
+- **Prefetch**: hover-prefetch added to the primary sidebar destinations (Inertia `<Link>`;
+  Blade/external items stay `<a>`). Not applied product-wide.
+
+### Re-verified (no regression)
+PERF baseline **identical** (/app 19,287 B / 61 q, etc.); full backend **1446 passed**;
+`tsc` clean; browser QA of dashboard (dark) + creators (light) — indigo-violet, cool
+neutrals, green only for success/status, identical to the approved IDENTITY-03.
+
 `CampaignsHub touched = 0 · digitalSmart touched = 0`.

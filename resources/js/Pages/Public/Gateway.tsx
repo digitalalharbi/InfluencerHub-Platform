@@ -1,3 +1,4 @@
+import '../../../css/gateway.css'
 import { Head, Link, router } from '@inertiajs/react'
 import { useEffect, useState } from 'react'
 
