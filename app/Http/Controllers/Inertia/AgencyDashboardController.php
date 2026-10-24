@@ -15,7 +15,6 @@ use App\Support\Dashboard\OperationalDashboard;
 use App\Support\Onboarding\WorkspaceSetup;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
-use Illuminate\Support\Collection;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -90,12 +89,14 @@ class AgencyDashboardController extends Controller
         ])->values();
 
         // اتجاه النشاط التشغيلي — 8 أسابيع حقيقية (محتوى + تعاونات أُنشئت)، مُنطّق بالمستأجر.
+        // التجميع في PostgreSQL عبر date_trunc('week') — يعيد الدلاء الثمانية فقط بدل سحب
+        // كل الصفوف إلى PHP. created_at = timestamp بلا منطقة (UTC)، وapp.timezone=UTC،
+        // فحدّ الأسبوع يطابق Carbon::startOfWeek (الاثنين UTC) تمامًا.
         $since = Carbon::now()->startOfWeek()->subWeeks(7);
-        $weekly = function (string $model) use ($since): Collection {
+        $weekly = function (string $model) use ($since): array {
             return $model::query()->where('created_at', '>=', $since)
-                ->pluck('created_at')
-                ->groupBy(fn ($d) => Carbon::parse($d)->startOfWeek()->format('Y-m-d'))
-                ->map->count();
+                ->selectRaw("to_char(date_trunc('week', created_at), 'YYYY-MM-DD') as wk, count(*) as c")
+                ->groupBy('wk')->pluck('c', 'wk')->all();
         };
         $contentW = $weekly(ContentItem::class);
         $collabW = $weekly(Collaboration::class);

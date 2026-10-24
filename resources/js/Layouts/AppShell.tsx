@@ -167,6 +167,7 @@ export default function AppShell({
                     aria-current={active ? 'page' : undefined}
                     data-label={nl(item.label)}
                     title={rail ? nl(item.label) : undefined}
+                    prefetch
                   >
                     {inner}
                   </Link>

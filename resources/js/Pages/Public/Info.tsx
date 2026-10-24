@@ -27,7 +27,7 @@ export default function Info() {
     >
       <section className="pub-hero">
         <div className="pub-wrap">
-          <div style={{ direction: 'ltr', fontWeight: 800, fontSize: '1.1rem', color: 'var(--ih-primary, #6252e5)' }}>{brand.name}</div>
+          <div style={{ direction: 'ltr', fontWeight: 800, fontSize: '1.1rem', color: 'var(--ih-primary, #1A1D29)' }}>{brand.name}</div>
           <h1 className="pub-hero-title">عن {brand.name}</h1>
           <p className="pub-hero-lede">
             {brand.name} منصة لإدارة وتشغيل حملات المؤثرين وصنّاع المحتوى، بما يشمل إدارة العملاء

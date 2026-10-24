@@ -34,6 +34,10 @@ return Application::configure(basePath: dirname(__DIR__))
         // حلّ لغة الواجهة (ar|en) من تفضيل المستخدم/الجلسة قبل التصيير — مصدر واحد.
         $middleware->web(append: [\App\Http\Middleware\SetLocale::class]);
 
+        // حقن ترجمات السطح حسب مكوّن Inertia (PERF-01) — يلفّ حول وسيط Inertia،
+        // فيعدّل الاستجابة النهائية بعد توليدها (CORE يُرسَل مشتركًا، والباقي يُحقَن هنا).
+        $middleware->web(append: [\App\Http\Middleware\InjectPageTranslations::class]);
+
         // حارس معاينة عالميّ (§P3-hardening §4): أيّ طلب غير آمن يحمل منحة معاينة ⇒ 403
         // قبل أي تحوّر — يغطّي مسارات الخروج/التبديل الواقعة خارج مجموعات البوّابات.
         $middleware->web(append: [\App\Http\Middleware\PlatformPreviewGuard::class]);

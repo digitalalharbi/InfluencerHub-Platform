@@ -25,8 +25,8 @@ class BrandIdentityTest extends TestCase
         $this->assertStringContainsString('/site.webmanifest', $html);
         $this->assertStringContainsString('/og-image-1200x630.png', $html);
         $this->assertStringContainsString('summary_large_image', $html);
-        // لون السمة = هوية IDENTITY-02 المحايدة (canvas فاتح)، لا البنفسجي القديم
-        $this->assertStringContainsString('name="theme-color" content="#F5F6F3"', $html);
+        // لون السمة = canvas IDENTITY-03 المحايد البارد، لا لون علامة مشبع
+        $this->assertStringContainsString('name="theme-color" content="#F5F6FA"', $html);
         $this->assertStringNotContainsString('#5B45E0', $html);
         // خط لاتيني رسمي (IBM Plex Sans) لا Inter
         $this->assertStringContainsString('IBM+Plex+Sans', $html);
@@ -40,7 +40,7 @@ class BrandIdentityTest extends TestCase
     {
         $json = json_decode((string) file_get_contents(public_path('site.webmanifest')), true);
         $this->assertSame('InfluencerHub', $json['name'] ?? null);
-        $this->assertSame('#F5F6F3', $json['theme_color'] ?? null);
+        $this->assertSame('#F5F6FA', $json['theme_color'] ?? null);
         $this->assertNotEmpty($json['icons'] ?? []);
     }
 
@@ -52,14 +52,15 @@ class BrandIdentityTest extends TestCase
         }
     }
 
-    /** غلاف البريد يحمل بلاطة الهوية الرسمية ولون إنديغو الرسمي لا القديم. */
+    /** غلاف البريد يحمل بلاطة الهوية الرسمية ولون علامة IDENTITY-03 (إنديغو-بنفسجي) لا القديم. */
     public function test_email_shell_uses_official_brand(): void
     {
         $html = \Illuminate\Support\Facades\Blade::render('<x-mail.layout>محتوى</x-mail.layout>');
         // بلاطة الهوية كـPNG رسمي (توافق عملاء البريد)
         $this->assertStringContainsString('/icon-192.png', $html);
-        // لون الهوية الرسمي في الروابط، لا القديم
-        $this->assertStringContainsString('#5B45E0', $html);
+        // لون العلامة IDENTITY-03 في الروابط، لا أي بنفسجي قديم
+        $this->assertStringContainsString('#5B57D9', $html);
+        $this->assertStringNotContainsString('#5B45E0', $html);
         $this->assertStringNotContainsString('#6252e5', $html);
     }
 
@@ -96,13 +97,15 @@ class BrandIdentityTest extends TestCase
         app()->setLocale('ar');
     }
 
-    /** «هب/Hub» لا يُلوَّن سماويًّا أبدًا؛ النقطة وحدها سماوية. */
+    /** IDENTITY-03: العلامة إنديغو-بنفسجي، لا سماوي ولا بنفسجي قديم؛ النقطة توقيع بنفسجي ناعم. */
     public function test_blade_logo_hub_is_never_cyan(): void
     {
         $html = \Illuminate\Support\Facades\Blade::render('<x-ih-logo :withWordmark="true" />');
-        // النقطة السماوية موجودة (circle)، لكن لا نصّ ملوّن بالسماوي
-        $this->assertStringContainsString('#22D3EE', $html);            // نقطة المنصّة
-        $this->assertStringNotContainsString('color:#22D3EE', $html);   // لا نصّ سماوي
+        $this->assertStringContainsString('#5B57D9', $html);            // علامة إنديغو-بنفسجي (بلاطة/كلمة)
+        $this->assertStringContainsString('#C9C6F4', $html);            // نقطة المنصّة (توقيع بنفسجي ناعم)
+        $this->assertStringNotContainsString('#22D3EE', $html);         // لا سماوي قديم
+        $this->assertStringNotContainsString('#5B45E0', $html);         // لا بنفسجي قديم
+        $this->assertStringNotContainsString('color:#22D3EE', $html);
         $this->assertStringNotContainsString('color:#22d3ee', $html);
     }
 
@@ -139,8 +142,9 @@ class BrandIdentityTest extends TestCase
     {
         $html = \Illuminate\Support\Facades\Blade::render('<x-error-shell code="404" title="غير موجود" message="تعذّر العثور" />');
         $this->assertStringContainsString('rx="23.33"', $html);       // بلاطة «الجسر (H)»
-        $this->assertStringContainsString('#5B45E0', $html);          // إنديغو رسمي
+        $this->assertStringContainsString('#5B57D9', $html);          // علامة إنديغو-بنفسجي IDENTITY-03
         $this->assertStringContainsString('/favicon.svg', $html);      // أيقونة رسمية
+        $this->assertStringNotContainsString('#5B45E0', $html);        // لا بنفسجي قديم
         $this->assertStringNotContainsString('#6d5df6', $html);        // لا لون قديم منحرف
         $this->assertStringNotContainsString('/icons/ih-icon.svg', $html);
     }

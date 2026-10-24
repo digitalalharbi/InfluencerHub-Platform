@@ -1,3 +1,4 @@
+import '../../../css/gateway.css'
 import { Head, Link, useForm } from '@inertiajs/react'
 import { useState } from 'react'
 

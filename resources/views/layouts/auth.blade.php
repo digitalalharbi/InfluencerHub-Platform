@@ -4,7 +4,7 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
     <meta name="csrf-token" content="{{ csrf_token() }}">
-    <meta name="theme-color" content="#F5F6F3">
+    <meta name="theme-color" content="#F5F6FA">
     <title>@yield('title', 'تسجيل الدخول') — InfluencerHub</title>
     <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Arabic:wght@400;500;600;700&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
     <link rel="manifest" href="/site.webmanifest"><meta name="apple-mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"><link rel="apple-touch-icon" href="/apple-touch-icon.png">
@@ -31,7 +31,7 @@
 <div class="ih-auth">
     {{-- ============ القسم التسويقي ============ --}}
     <section class="ih-auth__brand">
-        <a href="/" class="ih-auth__logo" aria-label="InfluencerHub — الرئيسية"><x-ih-logo :size="30" :withWordmark="true" color="#FFFFFF" hubColor="#9D8CFF"/></a>
+        <a href="/" class="ih-auth__logo" aria-label="InfluencerHub — الرئيسية"><x-ih-logo :size="30" :withWordmark="true" :inverted="true" color="#FFFFFF"/></a>
         <h1 class="ih-auth__headline">@yield('headline', 'منصّة تشغيل متكاملة لوكالات المؤثرين')</h1>
         <p class="ih-auth__sub">@yield('sub', 'أدر العملاء والعلامات والمؤثرين والطلبات والحملات والمحتوى والعقود والمدفوعات والتقارير — في بيئة تشغيل موحّدة بدل الرسائل والملفات المتفرّقة.')</p>
         <div class="ih-auth__benefits">
