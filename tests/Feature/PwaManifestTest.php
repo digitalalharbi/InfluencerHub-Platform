@@ -6,7 +6,7 @@ use Tests\TestCase;
 
 /**
  * بوّابة PWA — مانيفست كنسي واحد، بلا القديم، وService Worker مسجّل فعلًا.
- * هوية IDENTITY-02: theme/background محايد (#F5F6F3)، لا بنفسجي/شارتروز.
+ * هوية IDENTITY-03: theme/background محايد بارد (#F5F6FA)؛ العلامة إنديغو-بنفسجي.
  */
 class PwaManifestTest extends TestCase
 {
@@ -29,9 +29,9 @@ class PwaManifestTest extends TestCase
         $this->assertSame('standalone', $m['display'] ?? null);
         $this->assertNotEmpty($m['dir'] ?? null);
         $this->assertNotEmpty($m['lang'] ?? null);
-        // هوية IDENTITY-02 المحايدة، لا البنفسجي القديم
-        $this->assertSame('#F5F6F3', $m['theme_color'] ?? null);
-        $this->assertSame('#F5F6F3', $m['background_color'] ?? null);
+        // هوية IDENTITY-03 المحايدة، لا البنفسجي القديم
+        $this->assertSame('#F5F6FA', $m['theme_color'] ?? null);
+        $this->assertSame('#F5F6FA', $m['background_color'] ?? null);
         $this->assertNotContains($m['theme_color'] ?? '', ['#6252E5', '#5B45E0'], 'theme_color يحمل هوية بنفسجية قديمة');
 
         // أيقونات: 192 + 512 + maskable
@@ -72,7 +72,7 @@ class PwaManifestTest extends TestCase
     {
         $html = $this->get('/features')->assertOk()->getContent();
         $this->assertStringContainsString('rel="manifest" href="/site.webmanifest"', $html);
-        $this->assertStringContainsString('name="theme-color" content="#F5F6F3"', $html);
+        $this->assertStringContainsString('name="theme-color" content="#F5F6FA"', $html);
         $this->assertStringContainsString('name="apple-mobile-web-app-capable"', $html);
         $this->assertStringContainsString('name="apple-mobile-web-app-title" content="InfluencerHub"', $html);
         $this->assertStringNotContainsString('manifest.webmanifest', $html);

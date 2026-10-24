@@ -13,8 +13,10 @@ use App\Domain\Tenancy\Models\Organization;
 use App\Domain\Tenancy\Support\TenantContext;
 use App\Support\Brand;
 use App\Support\Http\MountPrefix;
+use App\Support\I18n\PageTranslations;
 use App\Support\Navigation\NavigationBadges;
 use Illuminate\Http\Request;
+use Inertia\Inertia;
 use Inertia\Middleware;
 
 /**
@@ -26,9 +28,34 @@ class HandleInertiaRequests extends Middleware
 {
     protected $rootView = 'inertia';
 
+    /** سياق المؤسسة الحالي — يُحلّ مرّة واحدة لكل طلب ويُعاد استخدامه (PERF-01). */
+    private ?Organization $org = null;
+
+    private bool $orgResolved = false;
+
     public function version(Request $request): ?string
     {
         return parent::version($request);
+    }
+
+    /**
+     * المؤسسة الحالية (بلا نطاق المستأجر) مع المستأجر محمَّلًا مسبقًا — استعلام واحد
+     * يخدم workspaceName/isShowcase/navCapabilities بدل ثلاثة استعلامات منفصلة.
+     */
+    private function currentOrg(): ?Organization
+    {
+        if ($this->orgResolved) {
+            return $this->org;
+        }
+        $this->orgResolved = true;
+        try {
+            $oid = TenantContext::organizationId();
+            $this->org = $oid ? Organization::withoutGlobalScopes()->with('tenant')->find($oid) : null;
+        } catch (\Throwable) {
+            $this->org = null;
+        }
+
+        return $this->org;
     }
 
     public function share(Request $request): array
@@ -53,8 +80,9 @@ class HandleInertiaRequests extends Middleware
             'unreadNotifications' => fn () => $request->user()
                 ? Notification::where('user_id', $request->user()->id)->whereNull('read_at')->count()
                 : 0,
-            // أحدث الإشعارات — لقائمة الجرس المنسدلة (اطّلاع سريع بلا مغادرة الصفحة)
-            'recentNotifications' => fn () => $request->user()
+            // أحدث الإشعارات — تُحمَّل عند فتح الجرس فقط (Inertia::optional): لا استعلام
+            // على كل صفحة. الواجهة تطلبها بإعادة تحميل جزئية only=['recentNotifications'].
+            'recentNotifications' => Inertia::optional(fn () => $request->user()
                 ? Notification::where('user_id', $request->user()->id)->latest('id')->limit(8)->get()
                     ->map(fn (Notification $n) => [
                         'id' => $n->id,
@@ -64,7 +92,7 @@ class HandleInertiaRequests extends Middleware
                         'read' => $n->read_at !== null,
                         'at' => $n->created_at?->format('Y-m-d H:i'),
                     ])->values()
-                : [],
+                : []),
             'flash' => [
                 'ok' => fn () => $request->session()->get('ok'),
                 'error' => fn () => $request->session()->get('error'),
@@ -75,35 +103,10 @@ class HandleInertiaRequests extends Middleware
             ],
             'locale' => app()->getLocale(),
             'dir' => app()->getLocale() === 'ar' ? 'rtl' : 'ltr',
-            // حزمة الترجمة للواجهة (React) — مجموعات مشتركة تُحلّ باللغة الحالية.
-            // t() في الواجهة يقرأ من هنا؛ المفتاح المفقود يعود كما هو (لا مفاتيح خام مكشوفة إن اكتملت الملفّات).
-            'translations' => fn () => [
-                'navigation' => (array) trans('navigation'),
-                'actions' => (array) trans('actions'),
-                'statuses' => (array) trans('statuses'),
-                'entities' => (array) trans('entities'),
-                'common' => (array) trans('common'),
-                'dashboard' => (array) trans('dashboard'),
-                'client_dashboard' => (array) trans('client_dashboard'),
-                'creator_dashboard' => (array) trans('creator_dashboard'),
-                'partner_dashboard' => (array) trans('partner_dashboard'),
-                'admin_dashboard' => (array) trans('admin_dashboard'),
-                'shortlisting' => (array) trans('shortlisting'),
-                'content' => (array) trans('content'),
-                'brands' => (array) trans('brands'),
-                'clients' => (array) trans('clients'),
-                'contracts' => (array) trans('contracts'),
-                'payouts' => (array) trans('payouts'),
-                'invoices' => (array) trans('invoices'),
-                'campaigns' => (array) trans('campaigns'),
-                'creators' => (array) trans('creators'),
-                'creator_database' => (array) trans('creator_database'),
-                'collaborations' => (array) trans('collaborations'),
-                'service_requests' => (array) trans('service_requests'),
-                'reports' => (array) trans('reports'),
-                'client_portal' => (array) trans('client_portal'),
-                'automation' => (array) trans('automation'),
-            ],
+            // حزمة الترجمة للواجهة (React) — CORE فقط هنا (مشتركة، صغيرة). مجموعات
+            // السطح الحالي تُحقَن حسب المكوّن في InjectPageTranslations (PERF-01).
+            // t() يقرأ من هنا؛ المفتاح المفقود يعود كما هو (لا مفاتيح خام إن اكتمل CORE+السطح).
+            'translations' => fn () => PageTranslations::core(),
             'base' => MountPrefix::for($request),
             // معاينة مالك المنصّة (§P3) — يُشارَك فقط داخل معاينة نشطة. الرمز يمرَّر
             // في الروابط الداخلية (u()) للتنقّل الآمن متعدّد النوافذ، والشريط يعرض الهدف.
@@ -171,7 +174,7 @@ class HandleInertiaRequests extends Middleware
             // والدور يملك صلاحية العرض — حوكمة مزدوجة تُطابق ما يفرضه المتحكّم في الخادم.
             $cdb = false;
             if (CreatorDatabaseAbilities::can($role, CreatorDatabaseAbilities::VIEW)) {
-                $org = TenantContext::withBypass(fn () => Organization::find($oid));
+                $org = $this->currentOrg();
                 $cdb = $org !== null && app(EntitlementService::class)->allows($org, 'creator_database.access');
             }
 
@@ -189,30 +192,11 @@ class HandleInertiaRequests extends Middleware
 
     private function workspaceName(): ?string
     {
-        try {
-            $oid = TenantContext::organizationId();
-            if ($oid) {
-                return Organization::withoutGlobalScopes()->find($oid)?->name;
-            }
-        } catch (\Throwable) {
-            // ignore
-        }
-
-        return null;
+        return $this->currentOrg()?->name;
     }
 
     private function isShowcase(): bool
     {
-        try {
-            $oid = TenantContext::organizationId();
-            if (! $oid) {
-                return false;
-            }
-            $org = Organization::withoutGlobalScopes()->find($oid);
-
-            return $org?->tenant?->slug === 'showcase';
-        } catch (\Throwable) {
-            return false;
-        }
+        return $this->currentOrg()?->tenant?->slug === 'showcase';
     }
 }

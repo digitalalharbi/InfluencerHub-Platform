@@ -1,7 +1,8 @@
 @import 'tailwindcss';
 @import './tokens.css';
 @import './public.css';
-@import './gateway.css';
+/* gateway.css يُحمَّل عند الحاجة فقط (صفحتا Public/Gateway + Public/Start) عبر
+   استيراد المكوّن — خارج الحزمة العامّة كي لا يُنزّله تطبيق الوكالة (PERF-01). */
 
 @source '../../vendor/laravel/framework/src/Illuminate/Pagination/resources/views/*.blade.php';
 @source '../../storage/framework/views/*.php';
@@ -68,17 +69,17 @@ img, svg, video, canvas, table { max-width: 100%; }
 .btn:hover { background: var(--ih-surface-muted); border-color: var(--ih-border-strong); }
 .btn:active { transform: translateY(1px); }
 .btn:disabled, .btn[disabled] { opacity: .55; cursor: not-allowed; }
-.btn-primary { background: var(--ih-primary); color: var(--ih-on-primary); border-color: var(--ih-primary); box-shadow: 0 1px 2px rgba(33,29,76,.24); }
-.btn-primary:hover { background: var(--ih-primary-hover); border-color: var(--ih-primary-hover); }
-.btn-primary:active { background: var(--ih-primary-active); }
-.btn-secondary { background: var(--ih-primary-soft); color: var(--ih-primary-700); border-color: transparent; box-shadow: none; }
-.btn-secondary:hover { background: var(--ih-primary-100); }
-.btn-outline { background: transparent; color: var(--ih-primary-700); border-color: var(--ih-primary-300); box-shadow: none; }
-.btn-outline:hover { background: var(--ih-primary-50); }
+.btn-primary { background: var(--ih-accent-strong); color: var(--ih-on-accent, #fff); border-color: var(--ih-accent-strong); box-shadow: none; }
+.btn-primary:hover { background: var(--ih-accent-hover); border-color: var(--ih-accent-hover); color: var(--ih-on-accent, #fff); }
+.btn-primary:active { background: var(--ih-accent-ink); border-color: var(--ih-accent-ink); }
+.btn-secondary { background: var(--ih-surface); color: var(--ih-text); border-color: var(--ih-border); box-shadow: none; }
+.btn-secondary:hover { background: var(--ih-surface-soft); border-color: var(--ih-border-strong); }
+.btn-outline { background: transparent; color: var(--ih-text); border-color: var(--ih-border-strong); box-shadow: none; }
+.btn-outline:hover { background: var(--ih-surface-soft); }
 .btn-danger { background: var(--ih-danger); color: #fff; border-color: var(--ih-danger); }
-.btn-danger:hover { background: #b91c1c; }
+.btn-danger:hover { background: var(--ih-danger-ink); border-color: var(--ih-danger-ink); }
 .btn-ghost { background: transparent; border-color: transparent; box-shadow: none; color: var(--ih-text-secondary); }
-.btn-ghost:hover { background: var(--ih-surface-muted); color: var(--ih-text); }
+.btn-ghost:hover { background: var(--ih-surface-soft); color: var(--ih-text); }
 .btn-xs { min-height: 30px; padding: .3rem .6rem; font-size: .78rem; }
 .btn-sm { min-height: 34px; padding: .4rem .75rem; font-size: .82rem; }
 .btn-lg { min-height: 46px; padding: .75rem 1.3rem; font-size: .95rem; }
@@ -132,16 +133,16 @@ img, svg, video, canvas, table { max-width: 100%; }
 
 /* ---------- Forms ---------- */
 .field {
-  width: 100%; padding: .62rem .8rem; min-height: 42px;
-  border: 1px solid var(--ih-border-strong); border-radius: var(--ih-radius-sm);
+  width: 100%; padding: .62rem .8rem; min-height: 44px;
+  border: 1px solid var(--ih-border); border-radius: var(--ih-radius-sm);
   font-size: 16px; /* يمنع تكبير iOS التلقائي */ font-family: inherit; color: var(--ih-text);
   background: var(--ih-surface);
   transition: border-color var(--ih-motion-fast) var(--ih-ease), box-shadow var(--ih-motion-fast) var(--ih-ease);
 }
 @media (min-width: 768px) { .field { font-size: .9rem; } }
 .field::placeholder { color: var(--ih-gray-400); }
-.field:hover { border-color: var(--ih-gray-400); }
-.field:focus { outline: none; border-color: var(--ih-primary); box-shadow: var(--ih-ring); }
+.field:hover { border-color: var(--ih-border-strong); }
+.field:focus { outline: none; border-color: var(--ih-ink); box-shadow: var(--ih-ring); }
 .field:disabled { background: var(--ih-surface-muted); color: var(--ih-text-muted); cursor: not-allowed; }
 .label { display: block; font-size: .82rem; font-weight: 700; margin-bottom: .35rem; color: var(--ih-text); }
 select.field { appearance: none; background-image: linear-gradient(45deg, transparent 50%, var(--ih-gray-500) 50%), linear-gradient(135deg, var(--ih-gray-500) 50%, transparent 50%); background-position: left 1rem center, left .72rem center; background-size: 5px 5px, 5px 5px; background-repeat: no-repeat; padding-left: 2rem; }
@@ -161,7 +162,7 @@ select.field { appearance: none; background-image: linear-gradient(45deg, transp
   transition: background var(--ih-motion-fast) var(--ih-ease), color var(--ih-motion-fast) var(--ih-ease);
 }
 .nav-link:hover { background: var(--ih-surface-muted); color: var(--ih-text); }
-.nav-link.active { background: var(--ih-primary-soft); color: var(--ih-primary-700); box-shadow: inset 3px 0 0 var(--ih-primary); }
+.nav-link.active { background: var(--ih-accent-soft); color: var(--ih-accent-ink); box-shadow: inset 3px 0 0 var(--ih-accent); }
 
 /* ---------- Central navigation (config-driven) ---------- */
 .ih-nav__group {
@@ -610,10 +611,10 @@ button.ih-nav__group--toggle:focus-visible { outline: 2px solid var(--ih-primary
 /* ---------- Premium auth / portal experience ---------- */
 .ih-auth { display: grid; grid-template-columns: 1.05fr 0.95fr; min-height: 100vh; min-height: 100dvh; }
 .ih-auth__brand {
-  position: relative; overflow: hidden; color: #EAECF6;
+  position: relative; overflow: hidden; color: #DADFEC;
   background:
-    radial-gradient(1100px 520px at 15% -10%, rgba(98,82,229,.55), transparent 60%),
-    radial-gradient(900px 500px at 95% 110%, rgba(6,182,212,.32), transparent 55%),
+    radial-gradient(1100px 520px at 15% -10%, rgba(91,87,217,.38), transparent 60%),
+    radial-gradient(900px 500px at 95% 110%, rgba(114,152,205,.18), transparent 55%),
     linear-gradient(155deg, var(--ih-ink-950), var(--ih-ink-850));
   padding: clamp(2rem, 1.4rem + 3vw, 4rem);
   display: flex; flex-direction: column; justify-content: center;
@@ -669,7 +670,7 @@ button.ih-nav__group--toggle:focus-visible { outline: 2px solid var(--ih-primary
   --ih-gray-400: var(--ih-nav-icon);
   width: var(--ih-sidebar-w); flex-shrink: 0; display: flex; flex-direction: column;
   background: var(--ih-nav);
-  border-inline-start: 1px solid var(--ih-nav-border);
+  border-inline-start: none; border-inline-end: 1px solid var(--ih-nav-border);
   padding: 0; color: var(--ih-nav-text); padding-bottom: var(--ih-safe-bottom);
   transition: width var(--ih-motion) var(--ih-ease);
 }
@@ -716,7 +717,7 @@ button.ih-nav__group--toggle:focus-visible { outline: 2px solid var(--ih-primary
   background: var(--ih-nav-active-bg); color: var(--ih-nav-active-text); font-weight: 650;
   position: relative;
 }
-/* مؤشر ليموني أنيق بدل الظل الثقيل */
+/* مؤشر إنديغو أنيق بدل الظل الثقيل */
 .ih-side .nav-link.active::before {
   content: ''; position: absolute; inset-inline-start: 0; top: 50%;
   transform: translateY(-50%); width: 3px; height: 17px; border-radius: 0 3px 3px 0;
@@ -726,7 +727,7 @@ button.ih-nav__group--toggle:focus-visible { outline: 2px solid var(--ih-primary
 .ih-side .ih-nav__link:hover .ih-icon { color: var(--ih-nav-text); }
 .ih-side .ih-nav__link.active .ih-icon { color: var(--ih-nav-active-text); }
 .ih-side .ih-nav__badge { background: var(--ih-nav-hover); color: var(--ih-nav-text); font-weight: 650; }
-.ih-side .ih-nav__link.active .ih-nav__badge { background: var(--ih-nav-active-indicator); color: var(--ih-nav); }
+.ih-side .ih-nav__link.active .ih-nav__badge { background: var(--ih-accent); color: #fff; }
 
 /* ---- Collapsed rail (icon + tooltip) ---- */
 .ih-shell.rail-collapsed .ih-side { width: var(--ih-rail-w); }
@@ -1286,7 +1287,7 @@ a.ih-kpi:hover, .ih-kpi--link:hover { box-shadow: var(--ih-shadow); transform: t
 
 /* ============================================================================
    RADICAL-UI-01 — تكوين لوحة جديد (Bento + ريل سياق + بطاقات مميّزة الوظيفة)
-   مسافات سخيّة · ظلال ناعمة · حدود أقل · إنديغو هوية، ليموني أكسنت مقيّد.
+   مسافات سخيّة · ظلال ناعمة · حدود أقل · إنديغو هوية، إنديغو أكسنت مقيّد.
    ============================================================================ */
 
 /* ريل السياق (يمين) — قابل لإعادة الاستخدام عبر AppShell rail */
@@ -1295,16 +1296,16 @@ a.ih-kpi:hover, .ih-kpi--link:hover { box-shadow: var(--ih-shadow); transform: t
 .ih-context-rail { display: none; }
 @media (min-width: 1120px) {
   .ih-workarea--rail .ih-context-rail {
-    display: flex; flex-direction: column; gap: 1.5rem;
+    display: flex; flex-direction: column; gap: 1.1rem;
     width: 304px; flex: none; align-self: stretch;
-    padding: 1.6rem 1.25rem; border-inline-start: 1px solid var(--ih-border);
-    background: var(--ih-surface-muted);
+    padding: 1.75rem 1.25rem 1.75rem 1.5rem; border-inline-start: none;
+    background: transparent;
     position: sticky; top: 0; max-height: 100vh; overflow-y: auto; scrollbar-width: thin;
   }
 }
-.ih-rail__group { display: flex; flex-direction: column; gap: .7rem; }
+.ih-rail__group { display: flex; flex-direction: column; gap: .7rem; padding: 1.1rem 1.15rem; }
 .ih-rail__title { display: flex; align-items: center; gap: .45rem; font-size: .72rem; font-weight: 700; letter-spacing: .02em; text-transform: uppercase; color: var(--ih-text-muted); }
-.ih-rail__title svg { color: var(--ih-primary); }
+.ih-rail__title svg { color: var(--ih-accent-ink); }
 .ih-rail__date { font-size: .92rem; font-weight: 700; color: var(--ih-text); }
 .ih-rail__list { list-style: none; margin: 0; padding: 0; display: grid; gap: .5rem; }
 .ih-rail__list li { display: flex; align-items: center; gap: .55rem; font-size: .83rem; color: var(--ih-text-secondary); }
@@ -1315,24 +1316,25 @@ a.ih-kpi:hover, .ih-kpi--link:hover { box-shadow: var(--ih-shadow); transform: t
 .ih-rail__item-title { font-weight: 650; font-size: .85rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .ih-rail__item-meta { font-size: .72rem; color: var(--ih-text-muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .ih-rail__empty { font-size: .82rem; color: var(--ih-text-muted); padding: .4rem 0; }
-.ih-rail__lead { display: block; padding: .8rem; border-radius: var(--ih-radius); background: var(--ih-surface); border: 1px solid var(--ih-border); text-decoration: none; color: var(--ih-text); }
+.ih-rail__lead { display: block; padding: .8rem; border-radius: var(--ih-radius); background: var(--ih-surface-muted); border: 1px solid var(--ih-border); text-decoration: none; color: var(--ih-text); }
 .ih-rail__lead-top { display: flex; align-items: center; gap: .4rem; justify-content: space-between; margin-bottom: .3rem; }
 .ih-rail__lead-bar { height: 7px; border-radius: 99px; background: var(--ih-surface-sunken); overflow: hidden; margin: .55rem 0 .4rem; }
-.ih-rail__lead-bar > span { display: block; height: 100%; border-radius: 99px; background: var(--ih-primary); }
+.ih-rail__lead-bar > span { display: block; height: 100%; border-radius: 99px; background: var(--ih-accent); }
 .ih-rail__lead-foot { display: flex; align-items: center; justify-content: space-between; font-size: .74rem; color: var(--ih-text-muted); }
-.ih-rail__lead-foot b { color: var(--ih-primary); font-variant-numeric: tabular-nums; }
+.ih-rail__lead-foot b { color: var(--ih-accent-ink); font-variant-numeric: tabular-nums; }
 
 /* رأس مدمج */
 .ih-dash-head { display: flex; align-items: flex-end; justify-content: space-between; gap: 1rem; flex-wrap: wrap; margin-bottom: 1.6rem; }
-.ih-dash-head__eyebrow { font-size: .72rem; font-weight: 700; letter-spacing: .04em; text-transform: uppercase; color: var(--ih-primary); }
-.ih-dash-head__title { margin: .2rem 0 .15rem; font-size: 1.75rem; font-weight: 800; letter-spacing: -.01em; color: var(--ih-text); line-height: 1.15; }
+.ih-dash-head__eyebrow { font-size: .72rem; font-weight: 700; letter-spacing: .04em; text-transform: uppercase; color: var(--ih-text-muted); }
+.ih-dash-head__title { margin: .2rem 0 .15rem; font-size: 1.9rem; font-weight: 700; letter-spacing: -.02em; color: var(--ih-text); line-height: 1.15; }
 .ih-dash-head__sub { font-size: .9rem; color: var(--ih-text-muted); }
 
 /* CTA إعداد */
-.ih-setup-cta { display: flex; align-items: center; gap: .9rem; padding: .9rem 1.1rem; margin-bottom: 1.4rem; border-radius: var(--ih-radius-lg); text-decoration: none; color: #fff; background: linear-gradient(135deg, var(--ih-primary-600), var(--ih-primary-800)); box-shadow: var(--ih-shadow); }
+.ih-setup-cta { display: flex; align-items: center; gap: .9rem; padding: .9rem 1.1rem; margin-bottom: 1.4rem; border-radius: var(--ih-radius-xl); text-decoration: none; color: #fff; background: var(--ih-ink-900); box-shadow: var(--ih-shadow); }
 .ih-setup-cta__icon { display: grid; place-items: center; width: 40px; height: 40px; border-radius: 12px; background: rgba(255,255,255,.16); flex: none; }
 .ih-setup-cta__body { flex: 1; min-width: 0; display: grid; gap: 2px; }
 .ih-setup-cta__body small { opacity: .8; font-size: .76rem; }
+.ih-setup-cta .btn { background: var(--ih-accent-strong); color: #fff; border-color: var(--ih-accent-strong); }
 
 /* STRIP — بطاقات KPI مضغوطة */
 .ih-tiles { display: grid; grid-template-columns: repeat(4, 1fr); gap: 1.1rem; margin-bottom: 1.25rem; }
@@ -1340,11 +1342,11 @@ a.ih-kpi:hover, .ih-kpi--link:hover { box-shadow: var(--ih-shadow); transform: t
 .ih-tile--link { text-decoration: none; color: inherit; }
 .ih-tile--link:hover { transform: translateY(-2px); box-shadow: var(--ih-shadow); }
 .ih-tile__icon { grid-area: icon; align-self: center; display: grid; place-items: center; width: 44px; height: 44px; border-radius: 13px; background: var(--ih-surface-sunken); color: var(--ih-text-secondary); }
-.ih-tile__icon--primary { background: var(--ih-primary-soft); color: var(--ih-primary); }
+.ih-tile__icon--primary { background: var(--ih-surface-soft); color: var(--ih-ink); }
 .ih-tile__icon--warning { background: var(--ih-warning-soft); color: var(--ih-warning-ink); }
 .ih-tile__icon--danger  { background: var(--ih-danger-soft);  color: var(--ih-danger-ink); }
 .ih-tile__icon--success { background: var(--ih-success-soft); color: var(--ih-success-ink); }
-.ih-tile__icon--accent  { background: var(--ih-lime-soft);    color: var(--ih-lime-ink); }
+.ih-tile__icon--accent  { background: var(--ih-accent-soft);    color: var(--ih-accent-ink); }
 .ih-tile__label { grid-area: label; font-size: .78rem; color: var(--ih-text-muted); font-weight: 600; }
 .ih-tile__value { grid-area: value; font-size: 1.7rem; font-weight: 800; line-height: 1.1; letter-spacing: -.01em; font-variant-numeric: tabular-nums; }
 .ih-tile__value small { font-size: .7rem; font-weight: 600; color: var(--ih-text-muted); }
@@ -1365,7 +1367,7 @@ a.ih-kpi:hover, .ih-kpi--link:hover { box-shadow: var(--ih-shadow); transform: t
 .ih-sectionbar { display: flex; align-items: center; justify-content: space-between; gap: .6rem; margin-bottom: .9rem; }
 .ih-sectionbar__title { margin: 0; font-size: 1.05rem; font-weight: 750; display: flex; align-items: center; gap: .5rem; }
 .ih-sectionbar__title svg { color: var(--ih-primary); }
-.ih-sectionbar__count { min-width: 22px; height: 22px; padding: 0 .4rem; border-radius: 99px; background: var(--ih-primary-soft); color: var(--ih-primary); font-size: .74rem; font-weight: 700; display: inline-flex; align-items: center; justify-content: center; }
+.ih-sectionbar__count { min-width: 22px; height: 22px; padding: 0 .4rem; border-radius: 99px; background: var(--ih-surface-soft); color: var(--ih-text-secondary); font-size: .74rem; font-weight: 700; display: inline-flex; align-items: center; justify-content: center; }
 
 /* بطاقات المهام */
 .ih-task-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 1rem; }
@@ -1407,117 +1409,10 @@ a.ih-kpi:hover, .ih-kpi--link:hover { box-shadow: var(--ih-shadow); transform: t
 }
 
 /* ============================================================================
-   RADICAL-IDENTITY-01 — فرض الهوية (حبر/كحلي + أوف-وايت دافئ + ليموني حمضي)
-   مرجع Eduplex. يَلغي هيمنة البنفسجي. يأتي آخر الملف ليفوز على التعريفات الأقدم.
+   IDENTITY-03 — shared component polish (cards · tables · status · theme toggle).
+   القيم النهائية للمكوّنات معرّفة في أقسامها أعلاه؛ هنا فقط قواعد مكوّنات مشتركة
+   لا تنتمي لقسم واحد. لا كتلة «هوية تفرض» ولا تعريفات مكرّرة.
    ============================================================================ */
-
-/* أزرار — الأساسي ليموني + حبر، الثانوي أبيض بحدّ */
-.btn-primary { background: var(--ih-lime); color: var(--ih-lime-ink); border-color: var(--ih-lime); box-shadow: 0 1px 2px rgba(39,51,12,.14); font-weight: 650; }
-.btn-primary:hover { background: var(--ih-lime-hover); border-color: var(--ih-lime-hover); color: var(--ih-lime-ink); }
-.btn-primary:active { background: var(--ih-lime-hover); }
-.btn-secondary { background: var(--ih-surface); color: var(--ih-text); border-color: var(--ih-border); box-shadow: none; }
-.btn-secondary:hover { background: var(--ih-surface-muted); border-color: var(--ih-border-strong); }
-.btn-outline { color: var(--ih-text); border-color: var(--ih-border-strong); }
-.btn-outline:hover { background: var(--ih-surface-muted); }
-
-/* شريط جانبي — كبسولة نشطة ليمونية صلبة، حالة واحدة فقط */
-.ih-side .nav-link.active { background: var(--ih-lime); color: var(--ih-lime-ink); font-weight: 700; }
-.ih-side .nav-link.active::before { display: none; }
-.ih-side .ih-nav__link.active .ih-icon { color: var(--ih-lime-ink); }
-.ih-side .ih-nav__badge { background: rgba(255,255,255,.08); color: var(--ih-nav-text); }
-.ih-side .ih-nav__link.active .ih-nav__badge { background: var(--ih-lime-ink); color: var(--ih-lime); }
-
-/* العمود الأيمن — بطاقات بيضاء مدمجة بدل ريل ثقيل */
-@media (min-width: 1120px) {
-  .ih-workarea--rail .ih-context-rail { background: transparent; border-inline-start: none; padding: 1.75rem 1.25rem 1.75rem 1.5rem; gap: 1.1rem; }
-}
-.ih-rail__group { background: var(--ih-surface); border-radius: var(--ih-radius-lg); padding: 1.1rem 1.15rem; box-shadow: var(--ih-shadow-sm); }
-.ih-rail__title svg { color: var(--ih-lime-700); }
-.ih-rail__lead { background: var(--ih-surface-muted); border-color: var(--ih-border); }
-.ih-rail__lead-bar > span, .ih-rail__lead-foot b { background: var(--ih-lime-600); }
-.ih-rail__lead-foot b { background: none; color: var(--ih-lime-700); }
-
-/* بطاقات KPI — شريحة الأيقونة الأساسية ليمونية (حضور ليموني مقيّد) */
-.ih-tile__icon--primary { background: var(--ih-lime-soft); color: var(--ih-lime-ink); }
-
-/* تدرّج طباعة أقوى (مرجع Eduplex) */
-.ih-dash-head__title { font-size: 1.9rem; font-weight: 700; letter-spacing: -.02em; }
-.ih-dash-head__eyebrow { color: var(--ih-text-muted); }
-.ih-sectionbar__count { background: var(--ih-lime-soft); color: var(--ih-lime-ink); }
-
-/* بطاقة الإعداد — ليموني بدل التدرّج البنفسجي */
-.ih-setup-cta { background: var(--ih-ink-900); color: #fff; }
-.ih-setup-cta .btn { background: var(--ih-lime); color: var(--ih-lime-ink); border-color: var(--ih-lime); }
-
-/* ============================================================================
-   IDENTITY-02 — نظام تصميم موحّد (أهدأ، premium). يأتي آخر الملف ليفوز.
-   شارتروز 5–8% فقط · حبر/عاج · حالات دلالية منفصلة عن الأكسنت.
-   ============================================================================ */
-:root {
-  --ih-sidebar-w: 236px;       /* 228–240 */
-  --ih-radius-2xl: 20px;       /* بطاقات كبيرة 20 */
-  --ih-radius-lg: 16px;        /* بطاقات مدمجة 16 */
-  --ih-ring: 0 0 0 3px var(--ih-accent-soft);   /* حلقة تركيز شارتروز خفيفة */
-  /* ظلال ناعمة جدًّا دافئة */
-  --ih-shadow-xs: 0 1px 2px rgba(24, 25, 29, .05);
-  --ih-shadow-sm: 0 1px 2px rgba(24, 25, 29, .05), 0 1px 3px rgba(24, 25, 29, .04);
-  --ih-shadow:    0 1px 2px rgba(24, 25, 29, .05), 0 8px 30px -12px rgba(24, 25, 29, .10);
-  --ih-shadow-lg: 0 10px 40px -16px rgba(24, 25, 29, .16);
-}
-
-/* الأكسنت لا يُفرَش: شرائح/عدّادات محايدة (ليست شارتروز) */
-.ih-tile__icon--primary { background: var(--ih-surface-sunken); color: var(--ih-ink); }
-.ih-sectionbar__count { background: var(--ih-surface-sunken); color: var(--ih-text-secondary); }
-
-/* الشريط: كبسولة نشطة أنعم زاوية، حالة واحدة */
-.ih-side .nav-link { border-radius: 12px; }
-.ih-side .nav-link.active { border-radius: 12px; }
-
-/* الحقول: زاوية 12، تركيز حبر + حلقة شارتروز */
-.field { border-radius: 12px; }
-.field:focus { outline: none; border-color: var(--ih-ink); box-shadow: 0 0 0 3px var(--ih-accent-soft); }
-
-/* تركيز عام للأزرار/الروابط — حلقة شارتروز لا بنفسجية */
-.btn:focus-visible, a:focus-visible, button:focus-visible { outline: 2px solid var(--ih-accent); outline-offset: 2px; }
-
-/* بطاقات: حدّ شبه معدوم + ظلّ ناعم جدًّا */
-.ih-vcard, .ih-tile, .ih-lrow, .ih-ccard, .ih-rail__group, .card { box-shadow: var(--ih-shadow-sm); }
-
-/* ============================================================================
-   IDENTITY-02 · EMERALD (authoritative) — premium editorial, graphite + porcelain
-   + emerald 4–7%. آخر الملف: يفوز على كل الكتل السابقة. One product identity.
-   ============================================================================ */
-:root { --ih-radius-xl: 20px; --ih-radius-lg: 16px; --ih-radius: 14px; --ih-radius-sm: 12px; }
-
-/* ---- Buttons ---- */
-.btn-primary { background: var(--ih-accent-strong); color: var(--ih-on-accent, #fff); border-color: var(--ih-accent-strong); box-shadow: none; font-weight: 600; }
-.btn-primary:hover { background: var(--ih-accent-hover); border-color: var(--ih-accent-hover); color: var(--ih-on-accent, #fff); }
-.btn-primary:active { background: var(--ih-accent-ink); border-color: var(--ih-accent-ink); }
-.btn-secondary { background: var(--ih-surface); color: var(--ih-text); border-color: var(--ih-border); box-shadow: none; }
-.btn-secondary:hover { background: var(--ih-surface-soft); border-color: var(--ih-border-strong); }
-.btn-outline { background: transparent; color: var(--ih-text); border-color: var(--ih-border-strong); box-shadow: none; }
-.btn-outline:hover { background: var(--ih-surface-soft); }
-.btn-ghost { background: transparent; border-color: transparent; color: var(--ih-text-secondary); }
-.btn-ghost:hover { background: var(--ih-surface-soft); color: var(--ih-text); }
-.btn-danger { background: var(--ih-danger); color: #fff; border-color: var(--ih-danger); }
-.btn-danger:hover { background: var(--ih-danger-ink); border-color: var(--ih-danger-ink); }
-
-/* ---- Sidebar: graphite + ONE quiet emerald active surface (no neon capsule) ---- */
-.ih-side { --ih-surface: var(--ih-nav-bg); --ih-surface-muted: var(--ih-nav-raised); --ih-surface-sunken: var(--ih-nav-hover); --ih-border: var(--ih-nav-border); --ih-text: var(--ih-nav-text-strong); --ih-text-secondary: var(--ih-nav-text); --ih-text-muted: var(--ih-nav-muted); --ih-gray-400: var(--ih-nav-icon); background: var(--ih-nav-bg); border-inline-start: none; border-inline-end: 1px solid var(--ih-nav-border); }
-.ih-side .nav-link { border-radius: 12px; color: var(--ih-nav-text); font-weight: 500; }
-.ih-side .nav-link:hover { background: var(--ih-nav-hover); color: var(--ih-nav-text-strong); }
-.ih-side .nav-link.active { background: var(--ih-nav-active-bg); color: var(--ih-nav-active-text); font-weight: 600; }
-.ih-side .nav-link.active::before { display: none; }
-.ih-side .ih-nav__link .ih-icon { color: var(--ih-nav-icon); }
-.ih-side .ih-nav__link:hover .ih-icon { color: var(--ih-nav-text); }
-.ih-side .ih-nav__link.active .ih-icon { color: var(--ih-nav-active-icon); }
-.ih-side .ih-nav__badge { background: color-mix(in srgb, var(--ih-nav-text) 14%, transparent); color: var(--ih-nav-text); }
-.ih-side .ih-nav__link.active .ih-nav__badge { background: var(--ih-accent); color: #fff; }
-
-/* ---- Fields: graphite border on focus + subtle emerald ring ---- */
-.field { border-radius: 12px; min-height: 44px; border-color: var(--ih-border); }
-.field:hover { border-color: var(--ih-border-strong); }
-.field:focus { outline: none; border-color: var(--ih-ink); box-shadow: 0 0 0 3px var(--ih-accent-soft); }
 
 /* ---- Cards: 18–20 radius · almost-flat shadow · hairline border ---- */
 .ih-vcard, .ih-tile, .ih-lrow, .ih-ccard, .ih-rail__group, .card {
@@ -1527,10 +1422,8 @@ a.ih-kpi:hover, .ih-kpi--link:hover { box-shadow: var(--ih-shadow); transform: t
 .ih-tile--link:hover, .ih-lrow--link:hover, .ih-ccard:hover, .ih-task:hover {
   transform: none; box-shadow: 0 2px 10px -4px rgba(16,19,23,.12); border-color: var(--ih-border-strong);
 }
-.ih-tile__icon--primary { background: var(--ih-surface-soft); color: var(--ih-ink); }
-.ih-sectionbar__count { background: var(--ih-surface-soft); color: var(--ih-text-secondary); }
 
-/* ---- Tables: quiet, horizontal separators, roomy rows, emerald-soft selection ---- */
+/* ---- Tables: quiet, horizontal separators, roomy rows, indigo-violet-soft selection ---- */
 .ih-dt, table.ih-dt { border-collapse: collapse; width: 100%; background: var(--ih-surface); }
 .ih-dt thead th { background: var(--ih-surface); color: var(--ih-text-muted); font-weight: 600; font-size: .75rem; border-bottom: 1px solid var(--ih-border); }
 .ih-dt tbody td { border-bottom: 1px solid var(--ih-border); padding-block: .85rem; }
@@ -1540,11 +1433,7 @@ a.ih-kpi:hover, .ih-kpi--link:hover { box-shadow: var(--ih-shadow); transform: t
 /* ---- Status pills: compact & quiet (accent is NOT a status) ---- */
 .badge { font-weight: 600; border-radius: 999px; }
 
-/* ---- Setup CTA: graphite, emerald action ---- */
-.ih-setup-cta { background: var(--ih-ink-900); color: #fff; border-radius: var(--ih-radius-xl); }
-.ih-setup-cta .btn { background: var(--ih-accent-strong); color: #fff; border-color: var(--ih-accent-strong); }
-
-/* focus-visible emerald everywhere */
+/* focus-visible indigo-violet everywhere */
 .btn:focus-visible, a:focus-visible, button:focus-visible, [tabindex]:focus-visible { outline: 2px solid var(--ih-accent); outline-offset: 2px; }
 
 /* ---- Theme toggle (sidebar footer) — فاتح/داكن/نظام ---- */

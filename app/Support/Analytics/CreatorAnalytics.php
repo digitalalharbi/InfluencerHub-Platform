@@ -69,23 +69,40 @@ class CreatorAnalytics
         return $out;
     }
 
+    /**
+     * ملخّص المبدعين — عدّادات الشرائح في استعلام تجميعي واحد (count(*) FILTER).
+     * كانت عشرة استعلامات COUNT متطابقة النطاق (نمط N+1 على اللوحة/القائمة/التقارير).
+     * الشروط مطابقة تمامًا للحالة السابقة (نفس الحقيقة؛ دلالات SQL ذاتها لـ«!=» مع NULL).
+     */
     public static function summary(?string $type): array
     {
-        $base = fn () => self::typed(Creator::query(), $type);
+        $activeIn = "'".implode("','", self::ACTIVE_COLLAB)."'";
+        $row = self::typed(Creator::query(), $type)->selectRaw(
+            'count(*) as total,'.
+            'count(*) filter (where followers_count >= ?) as tier_a,'.
+            'count(*) filter (where followers_count >= ? and followers_count < ?) as tier_b,'.
+            'count(*) filter (where followers_count < ?) as tier_c,'.
+            "count(*) filter (where mowthooq_status = 'verified') as verified,".
+            "count(*) filter (where mowthooq_status <> 'verified') as unverified,".
+            "count(*) filter (where status = 'active') as active,".
+            'count(*) filter (where bio is null or rate_per_post_minor is null) as incomplete,'.
+            "count(*) filter (where mowthooq_status = 'pending') as needs_review,".
+            'count(*) filter (where exists (select 1 from collaborations c '.
+            "where c.creator_id = creators.id and c.status in ($activeIn))) as has_active_collab",
+            [self::TIER_A, self::TIER_B, self::TIER_A, self::TIER_B]
+        )->first();
 
         return [
-            'total' => $base()->count(),
-            'tier_a' => $base()->where('followers_count', '>=', self::TIER_A)->count(),
-            'tier_b' => $base()->whereBetween('followers_count', [self::TIER_B, self::TIER_A - 1])->count(),
-            'tier_c' => $base()->where('followers_count', '<', self::TIER_B)->count(),
-            'verified' => $base()->where('mowthooq_status', 'verified')->count(),
-            'unverified' => $base()->where('mowthooq_status', '!=', 'verified')->count(),
-            'active' => $base()->where('status', 'active')->count(),
-            'incomplete' => $base()->where(fn ($q) => $q->whereNull('bio')->orWhereNull('rate_per_post_minor'))->count(),
-            'needs_review' => $base()->where('mowthooq_status', 'pending')->count(),
-            'has_active_collab' => $base()->whereExists(fn ($q) => $q->select(DB::raw(1))->from('collaborations')
-                ->whereColumn('collaborations.creator_id', 'creators.id')
-                ->whereIn('collaborations.status', self::ACTIVE_COLLAB))->count(),
+            'total' => (int) ($row->total ?? 0),
+            'tier_a' => (int) ($row->tier_a ?? 0),
+            'tier_b' => (int) ($row->tier_b ?? 0),
+            'tier_c' => (int) ($row->tier_c ?? 0),
+            'verified' => (int) ($row->verified ?? 0),
+            'unverified' => (int) ($row->unverified ?? 0),
+            'active' => (int) ($row->active ?? 0),
+            'incomplete' => (int) ($row->incomplete ?? 0),
+            'needs_review' => (int) ($row->needs_review ?? 0),
+            'has_active_collab' => (int) ($row->has_active_collab ?? 0),
         ];
     }
 

@@ -16,12 +16,12 @@ import type { CSSProperties, ReactNode } from 'react';
 type Surface = 'light' | 'dark' | 'gradient' | 'auto';
 type Lang = 'ar' | 'en';
 
-// IDENTITY-02 — product UI lockup: monochrome ink/white mark + tiny chartreuse dot.
-// (No purple in the application UI.) Names kept so the markup below is unchanged.
-const CYAN = '#3FAE86';       // نقطة زمرّد صغيرة — اللمسة الوحيدة
-const INDIGO = '#191A1F';     // مربّع العلامة على سطح فاتح = حبر
-const NAVY = '#18191D';
-const INDIGO_LIGHT = '#FFFFFF'; // على سطح داكن = أبيض
+// IDENTITY-03 — product UI lockup: midnight/indigo mark + subtle violet signature dot.
+// (Green reserved for success only.) Const names kept so the markup below is unchanged.
+const CYAN = '#8883EF';       // نقطة بنفسجية صغيرة — توقيع العلامة (اللمسة الوحيدة)
+const INDIGO = '#5B57D9';     // مربّع/كلمة العلامة على سطح فاتح = إنديغو-بنفسجي
+const NAVY = '#1A1D29';       // نصّ الكلمة على سطح فاتح = حبر كحليّ
+const INDIGO_LIGHT = '#D7D4FF'; // توقيع «هب» على سطح داكن = بنفسجي فاتح (بورسلين + توقيع)
 
 /**
  * اللغة الحالية من حمولة Inertia المشتركة (locale) — حتميّة وتتبع التبديل فورًا.
@@ -78,9 +78,9 @@ export function BrandLogo({ height = 34, surface = 'light', lang, symbolOnly = f
   }
 
   const fs = height / 1.2;
-  const text = surface === 'auto' ? 'var(--ih-text, #14123A)' : surface === 'light' ? NAVY : '#FFFFFF';
+  const text = surface === 'auto' ? 'var(--ih-text, #1A1D29)' : surface === 'light' ? NAVY : '#FFFFFF';
   const hub = onGradient ? '#FFFFFF'
-    : surface === 'auto' ? 'var(--ih-text, #191A1F)'
+    : surface === 'auto' ? 'var(--ih-accent, #5B57D9)'
       : surface === 'light' ? INDIGO : INDIGO_LIGHT;
   const wrap: CSSProperties = {
     display: 'inline-flex', alignItems: 'center', gap: fs * 0.42, lineHeight: 1,

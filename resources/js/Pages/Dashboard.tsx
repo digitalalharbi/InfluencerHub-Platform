@@ -169,7 +169,7 @@ export default function Dashboard() {
   const workSegs = [
     { label: t('dashboard.insight_urgent'), value: urgent, color: 'var(--ih-danger)' },
     { label: t('dashboard.insight_approval'), value: approvalN, color: 'var(--ih-warning)' },
-    { label: t('dashboard.insight_upcoming'), value: upcoming, color: 'var(--ih-lime-600)' },
+    { label: t('dashboard.insight_upcoming'), value: upcoming, color: 'var(--ih-accent)' },
   ];
   const totalWork = urgent + approvalN + upcoming;
 
