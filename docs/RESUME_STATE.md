@@ -1,78 +1,91 @@
-# Resume State — InfluencerHub Next-Generation Program
+# Resume State — InfluencerHub Completion Program
 
-> Authoritative, resumable pointer for the next-gen program. Read this +
-> `CLAUDE.md` + `docs/AI/SESSION-STATE.md` after any compaction.
-> Last updated 2026-10-23.
+> Authoritative, resumable pointer. Read this + `CLAUDE.md` +
+> `docs/MASTER_COMPLETION_ROADMAP.md` + `docs/AI/SESSION-STATE.md` after any compaction.
+> Last updated 2026-10-25.
 
-## CANONICAL DESIGN SYSTEM — IDENTITY-02 (EMERALD · premium editorial)
+## Canonical references
 
-Premium, calm, creator-economy-native identity. **No purple, no chartreuse/neon.** Accent used on ~4–7% of a screen only (primary action, selected state, key chart highlight, active nav) — never a status, never on every card/chart/badge. The product must look premium even with the accent removed.
-
-- **Midnight graphite** `#161A1F` (nav) / `#101317` (deep) · **porcelain** `#F6F7F4` canvas ·
-  **white** cards · soft surface `#EEF1EC` · border `#E4E7E1` · text `#171A1D` / secondary `#72777A` / muted `#A2A6A6`.
-- **Emerald accent** `#3FAE86` (hover `#359A76`, strong-for-CTA `#2E8468`, soft `#E8F5EF`, ink `#143D31`) + **sage** `#91A68B` secondary. Small pastels (sand/soft-blue/rose/lavender) are supporting surfaces only.
-- Semantic states (separate from accent): success `#3E9B73` · warning `#D99A3F` · danger `#CF5B5B` · info `#5E88B9`.
-- Chart palette (≤4 per chart): graphite `#22272B`, emerald, sage, soft blue `#7EA2C7`, sand `#C8AD7F`, coral `#D98778`; grid `#ECEEEA`.
-- Tokens: `resources/css/tokens.css` (semantic names: `--ih-bg/surface/ink/text/border/accent*/nav*/chart-*`). Shared library `Components/Dash.tsx` + `Charts.AreaChart` + `AppShell.contextRail`. **One system — no per-page reinvention.**
-- Logo: monochrome UI lockup (white on nav, ink on light) + tiny chartreuse dot — purple removed from mark + nprogress.
-- 80% neutral / 15% ink / 5% chartreuse. Sidebar 236px, one chartreuse active capsule. Cards 20px / 16px radius, very soft shadow, minimal border. Field focus = ink border + chartreuse ring.
-
-Acceptance standard = the Eduplex composition reference, verified at 1440×900 / 1280 / 390 in AR-RTL + EN-LTR. **No new feature until IDENTITY-02 is merged + production-verified**, then: Creator 360 → Campaign Command Center → Discovery → Client Portal → Communications → Tracking → Reporting → Automation.
-
-## Anchors
-
-- **Canonical repo:** `digitalalharbi/InfluencerHub-Platform` (only write target).
+- **Roadmap (canonical):** `docs/MASTER_COMPLETION_ROADMAP.md` — the ordered program
+  GATE-00 → CORE-01 → … → CLOSE-01. Execute units in that exact order, one bounded PR each.
+- **Design system (canonical):** **IDENTITY-03**. See `docs/AI/PERF-01-IDENTITY-03.md`.
+- **Canonical repo (only write target):** `digitalalharbi/InfluencerHub-Platform`.
 - **Production:** https://influencerhub.io/
-- **main after PR #180:** merge `2e6be07` (i18n bilingual Client portal — Documents/Notifications/Team).
-- **Benchmarks (read-only patterns):** CampaignsHub, digitalSmart. `CampaignsHub touched = 0 · digitalSmart touched = 0`. Code firewall absolute (`CLAUDE.md` §0).
-- **Local working clone:** `~/Desktop/Project/InfluencerHub/InfluencerHub-Platform`; pgsql DB `influencerhub` (owner = mac user, empty password; `DB_USERNAME` = mac user, NOT `postgres`). Preview via `php artisan serve` (used port 8030). `gh` works; plain git over https may time out in sandbox.
+- **Benchmarks (read-only patterns, never code):** CampaignsHub, digitalSmart.
+  `CampaignsHub touched = 0 · digitalSmart touched = 0`. Firewall absolute (`CLAUDE.md` §0).
 
-## Done in this program
+## CANONICAL DESIGN SYSTEM — IDENTITY-03
 
-- **PR #180 merged** (CI green: Backend ✅ Frontend ✅ E2E ✅). main refreshed.
-- **IH-X0 product-truth audit** complete → this doc + `PRODUCT_CLOSURE.md`,
-  `REQUIREMENTS_TRACEABILITY_MATRIX.md`, `PRODUCTION_READINESS.md`,
-  `INTEGRATION_READINESS.md`. `CLAUDE.md` §0 updated to the benchmark policy.
+Midnight Navy + cool neutrals + refined indigo-violet. **Green = semantic success only.**
+Brand accent used sparingly (~5–8%): primary action, selected state, active nav, one key
+chart highlight — never a status, never on every card/chart/badge. One token system only
+(`resources/css/tokens.css`), no stacked historical identity layers.
 
-## Execution order (each = fresh main → audit → fail-first test → implement → tests → live QA → mobile → ar/en → PR → CI → merge → deploy → smoke → refresh → next)
+- **Brand:** `#5B57D9` (light, hover `#4D49C8`, soft `#EEEDFC`, strong-text `#3F3B9E`) /
+  `#8883EF` (dark, soft `#29264C`, ink `#D7D4FF`). Never saturated-violet browser chrome.
+- **Light:** canvas `#F5F6FA` · sidebar `#F0F2F7` · surfaces `#FFFFFF`/`#ECEFF5`/`#E5E8F0` ·
+  border `#DDE1EA`/`#CDD2DF` · text `#1A1D29`/`#656B7C`/`#9298A8`.
+- **Dark:** canvas `#11131A` · sidebar `#0D0F16` · surfaces `#181B24`/`#202430`/`#282D3A` ·
+  border `#2D3241`/`#3A4052` · text `#F3F4F8`/`#B0B5C3`/`#7E8494`. Same brand, not a skin.
+- **Semantic:** success `#33966F` · warning `#D5963F` · danger `#CC5C68` · info `#527FBB`.
+- **Charts:** indigo `#5B57D9` / blue `#557DB8` / slate `#7B8498` / sand `#C39D6B`; success &
+  danger reserved for meaning (green is never a generic highlight).
+- **theme-color:** light `#F5F6FA` · dark `#11131A`.
+- Legacy `--ih-lime*` aliases removed; emerald (`#3FAE86/#4BB890`) and old indigo
+  (`#5B45E0/#6252E5`) / cyan (`#22D3EE`) are **0** in built assets.
 
-**Governance**
-- [x] IH-X0 Product truth + governance
+## Current repository truth (2026-10-25)
 
-**Visual program (owner's radical visual directive — highest live priority)**
-- [ ] **THEME-01** tokens (`--ih-*`) + dark sidebar + light canvas shell + card/chart primitives + motion (next unit)
-- [ ] THEME-02 dashboard command center ("المطلوب منك الآن", charts-first, table→card audit, form reduction)
-- [ ] THEME-03 Creator 360 + right context panel + relationship timeline
-- [ ] THEME-04 Campaign command center + contextual calendar
-- [ ] THEME-05 client decision surfaces → **قبول / رفض / مشاركة** only (advanced behind "…")
-- [ ] THEME-06 notifications center + first-class sharing (expiry/revoke/scope/audit)
+- **main:** `6f02e41` — "Merge pull request #189" (PERF-01 + IDENTITY-03 + CSS consolidation).
+  Contains the exact #189 head `a005705`.
+- **PR #189: MERGED.** PRs #183/#184/#188 closed (superseded). #181/#182/#185/#187 merged.
+- **Local clone:** `~/Desktop/Project/InfluencerHub/InfluencerHub-Platform`; pgsql DB
+  `influencerhub` (owner = mac user, empty password; `DB_USERNAME` = mac user). Preview via
+  `php artisan serve` (port 8030). E2E: `influencerhub_e2e` + `bash tests/e2e/boot.sh`.
+  `gh` works; plain git https may time out in sandbox (retry).
 
-**Communication**
-- [ ] COMMS-01 unified creator communication timeline
-- [ ] COMMS-02 WhatsApp official connector + conversation inbox
-- [ ] COMMS-03 QR/device pairing — only if compliant provider supports it, else record `UNSUPPORTED_BY_APPROVED_PROVIDER`
+## Done
 
-**Attribution / tracking (athar.link-style, patterns only)**
-- [ ] TRACK-01 tracking-link domain + first-party click events (opaque ids, consent)
-- [ ] TRACK-02 UTM builder + creator link experience (copy/QR/share/report)
-- [ ] TRACK-03 creator attribution dashboard + weekly deterministic insights
-- [ ] TRACK-04 provider-neutral server-side event pipeline (adapters gated by readiness ladder)
-- [ ] TRACK-05 tracking health center (per-connector rings/last-event/failures)
+- **PERF-01** (merged in #189): per-navigation Inertia payload ~207KB → 13–27KB (~90%);
+  translation dictionary split to CORE + per-component (InjectPageTranslations +
+  PageTranslationsCoverageTest guard); notifications on-demand; Organization resolved once;
+  NavigationBadges 30s tenant cache; CreatorAnalytics `FILTER` aggregate; dashboard/reports
+  time-series `date_trunc` SQL; reports `forPage` deduped. Baseline harness
+  `tests/Perf/BaselineTest.php`. Details: `docs/AI/PERF-01-IDENTITY-03.md`.
+- **IDENTITY-03** (merged in #189): one canonical token system; emerald removed as brand;
+  logo + auth + gateway + error shells + email + PWA + theme-color migrated.
+- **CSS consolidation** (merged in #189): three stacked identity blocks removed, `--ih-lime*`
+  gone, gateway.css code-split (main app CSS −10% gzip).
+- **GATE-00:** #189 CI green → merged → main CI/CD + deploy → production smoke.
 
-**Reporting / QA**
-- [ ] REPORT-01 visual influencer report builder + client-safe share link
-- [ ] QA-01 mobile 390 + ar/en + accessibility (WCAG 2.2 AA, chart a11y) + performance/query budgets
+## Execution order — MASTER_COMPLETION_ROADMAP §39
+
+`GATE-00` (done) → **`CORE-01`** (security + permission enforcement + query budgets — NEXT) →
+`CREATOR-01` → `INTEGRATIONS-01` → `GOOGLE-01` → `COMMS-01` → `SOCIAL-01` → `SOCIAL-02` →
+`CASTING-01` → `CAMPAIGN-01` → `RIGHTS-01` → `PROOF-01` → `TRACK-01/02/03` →
+`ADS-01/02/03` → `COMMERCE-01` → `REPORT-01` → `SHARE-01` → `FINANCE-01` → `AUTOMATION-01` →
+`AI-01` → `QA-01` → `CLOSE-01`.
+
+Each unit: audit → implement → tests → PR → CI → merge → deploy → production smoke → docs →
+refresh main → next. One bounded branch per unit; never one unbounded branch for the program.
 
 ## Non-negotiable invariants (every unit)
 
 1. Real persisted data only; unknown ≠ zero; missing looks missing.
-2. No fake KPIs/revenue/ROAS/AI/integration-Connected.
-3. Client ⊬ creator cost/margin/payout internals; creator ⊬ sell price/margin.
-4. Mutating provider/automation/payment actions: propose → permission → approve → execute → audit → read-back; payment "paid" only from verified settlement.
-5. Preserve InfluencerHub indigo identity; add lime accent as a token layer, never hard-coded.
-6. Charts only on real data; every chart has a text/table twin + aria-label.
-7. Do not merge automatically — stop before merge for review (per CLAUDE.md working agreements).
+2. No fake KPIs/revenue/ROAS/AI/Connected/delivery/payment without real evidence.
+3. Client ⊬ creator cost/margin/payout internals/sourcing/bank; creator ⊬ sell price/margin.
+4. Mutating provider/automation/payment: propose → permission → approve → execute → audit →
+   read-back; "paid" only from verified settlement.
+5. Multi-tenancy fail-closed; RBAC enforced server-side (not CSS hiding).
+6. Preserve IDENTITY-03, PERF-01, mobile/PWA. One token system, no new identity.
+7. Charts only on real data; every chart has a text/table twin + aria-label.
+8. External integration without credentials → build everything internally (contract/adapter/
+   OAuth/webhook/sync/health/UI/tests/sandbox), mark `BLOCKED_EXTERNAL_CREDENTIALS` in
+   `docs/EXTERNAL_BLOCKERS.md`, continue to the next unit.
 
 ## Next exact step
 
-Start **THEME-01**: audit current `resources/css/*` and the app shell layout, introduce the `--ih-*` token layer (dark nav + light canvas + lime accent over the existing indigo identity), build the dark sidebar + content shell + card/chart primitives, preview live, then PR.
+**CORE-01** — fresh branch from main `6f02e41`: server-side permission-enforcement sweep,
+IDOR / cross-tenant / cross-portal checks, high-value query budgets + performance guard
+tests. No integrations or Creator 360 in this branch. Close the full cycle, then continue
+the roadmap in order.

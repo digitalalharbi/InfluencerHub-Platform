@@ -1,20 +1,20 @@
 # Production Readiness — InfluencerHub
 
-> IH-X0 audit, 2026-10-20 at `main` (`2e6be07`). Production: https://influencerhub.io/
+> Updated 2026-10-25 at `main` (`6f02e41`, PR #189 merged). Production: https://influencerhub.io/
+> Canonical plan: `docs/MASTER_COMPLETION_ROADMAP.md`. Design system: **IDENTITY-03**.
 > `merged ≠ deployed ≠ production-verified` — three independent states.
 
 ## CI gates (run on every PR)
 
 | Gate | Job | State |
 |------|-----|-------|
-| Backend Laravel checks | `php artisan test` (+ pint, phpstan per CLAUDE.md gate list) | ✅ green on #180 |
-| Frontend React checks | tsc strict · lint · build | ✅ green on #180 |
-| End-to-end (Playwright, cross-browser) | 24 specs, Chromium + Firefox/WebKit | ✅ green on #180 (16m33s) |
+| Backend Laravel checks | `php artisan test` | ✅ green on #189 (1446 passed) |
+| Frontend React checks | `tsc --noEmit` · build | ✅ green on #189 |
+| End-to-end (Playwright, cross-browser) | Chromium + Firefox + WebKit | ✅ green on #189 (209+ passed) |
 | Deploy to VPS over SSH | on push to `main` only | runs post-merge (`git reset --hard origin/main`) |
-| Production smoke | `production-smoke.yml` | post-deploy |
 
-Local gate before "done" (from `CLAUDE.md`): `php artisan test` · `pint --test` ·
-`phpstan analyse` · `npm run typecheck` · `npm run lint` · `npm run build` · E2E.
+Local gate before "done": `php artisan test` · `npx tsc --noEmit` · `npm run build` · focused E2E.
+(`pint`/`phpstan` are not in deploy.yml; run if touching their domains.)
 
 ## Production-ready now (VERIFIED, no external blocker)
 
@@ -24,24 +24,31 @@ Local gate before "done" (from `CLAUDE.md`): `php artisan test` · `pint --test`
 - Finance ledger: invoices, margins, payout lifecycle (manual settlement), separation of duties.
 - Reporting exports (CSV/XLSX/PDF) with immutable snapshots.
 - Platform Owner control center, entitlements, feature flags, scoped read-only preview.
+- **PERF-01:** per-navigation Inertia payload ~90% smaller; domain-scoped translations;
+  on-demand notifications; SQL-aggregated dashboard/reports time series; query counts cut.
+- **IDENTITY-03:** one canonical token system (Midnight Navy + indigo-violet; green = success
+  only); light + dark; mobile/PWA preserved; CSS consolidated (−10% main bundle gzip).
 
-## Blocked on external credentials (code-complete, awaiting commissioning)
+## Blocked on external credentials (build internally, then `BLOCKED_EXTERNAL_CREDENTIALS`)
 
-- Email (SMTP), SMS/OTP (Twilio), WhatsApp Business (Meta), Google OAuth login.
-- Payment settlement (no provider class/webhook yet) — **blocks** real money movement.
-- Social-platform creator data sync (all `waiting_for_credentials`).
+Tracked per provider in `docs/EXTERNAL_BLOCKERS.md` as integration units land:
+Email (SMTP), SMS/OTP, WhatsApp Business (Meta), Google Workspace OAuth, Instagram/TikTok/
+YouTube/X/Snapchat/LinkedIn, Meta/TikTok/Snapchat/Google/X/LinkedIn/OpenAI Ads, Salla/Zid,
+SaaS billing + payment settlement. Each: build contract/adapter/OAuth/webhook/sync/health/
+UI/tests/sandbox first; mark the ladder state honestly; never claim Connected/Live without evidence.
 
-## Not started (next-gen program — see `RESUME_STATE.md`)
+## Remaining program (see `docs/MASTER_COMPLETION_ROADMAP.md` §39)
 
-- Radical visual system (dark sidebar + light canvas + lime accent) — THEME units.
-- WhatsApp conversation inbox + QR device pairing — COMMS units.
-- Native attribution/tracking layer (links, click events, UTM, health, server-side events) — TRACK units.
-- Custom report builder + public client-safe share links — REPORT unit.
-- AI agents (proposal→approval→execution) — after deterministic workflows reliable.
+GATE-00 ✅ → **CORE-01 (next)** → CREATOR-01 → INTEGRATIONS-01 → GOOGLE-01 → COMMS-01 →
+SOCIAL-01/02 → CASTING-01 → CAMPAIGN-01 → RIGHTS-01 → PROOF-01 → TRACK-01/02/03 →
+ADS-01/02/03 → COMMERCE-01 → REPORT-01 → SHARE-01 → FINANCE-01 → AUTOMATION-01 → AI-01 →
+QA-01 → CLOSE-01.
 
-## Known production-readiness risks (fix before scaling)
+## Known production-readiness risks (CORE-01 addresses the first two)
 
-- **Permission-enforcement sweep:** some guards exist in schema/UI but not server-enforced (IH-X14). Needs IDOR + permission-matrix tests per surface.
-- **Performance/query budgets:** no query-budget tests yet on high-value pages (dashboard, Creator 360, reports) — add before data volume grows.
-- **Publication-proof / results store** missing — required for truthful attribution evidence.
-- Stale docs reconciled in this pass; keep `docs/AI/SESSION-STATE.md` current per CLAUDE.md.
+- **Permission-enforcement sweep (CORE-01):** verify every guard is server-enforced, not UI/CSS;
+  IDOR + cross-tenant + cross-portal tests per surface.
+- **Performance/query budgets (CORE-01):** add query-budget guard tests on high-value pages
+  (Dashboard, Creator Database, Creator 360, Campaign Workspace, Reports, Finance).
+- **Publication-proof / results store** missing — required for truthful attribution (PROOF-01).
+- Observability/health endpoints + backup verification — QA-01 / §33.

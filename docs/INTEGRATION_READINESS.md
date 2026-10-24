@@ -1,6 +1,7 @@
 # Integration Readiness — InfluencerHub
 
-> IH-X0 audit, 2026-10-20 at `main` (`2e6be07`). One provider-readiness model.
+> Updated 2026-10-25 at `main` `6f02e41`. One provider-readiness model (the canonical ladder is
+> `MASTER_COMPLETION_ROADMAP.md` §5; owner-action register is `docs/EXTERNAL_BLOCKERS.md`).
 > **"Connected" is never shown from stored credentials alone.** Commissioning
 > must prove: credential → auth round-trip → resource discovery → first real
 > read/sync → webhook (where applicable) → write/read-back → result visible in
