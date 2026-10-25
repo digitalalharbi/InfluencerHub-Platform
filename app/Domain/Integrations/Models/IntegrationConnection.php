@@ -46,6 +46,31 @@ class IntegrationConnection extends Model
 
     public const CONNECTED_STATUSES = ['connected', 'sandbox', 'limited'];
 
+    /** سلّم الجاهزية الكنسي (§5) — رمز وحده لا يعني Connected؛ كل درجة تحتاج دليلًا. */
+    public const READINESS = [
+        'NOT_CONFIGURED', 'SANDBOX_VERIFIED', 'AWAITING_CREDENTIALS', 'READY_FOR_CONFIGURATION',
+        'AUTH_VERIFIED', 'RESOURCE_DISCOVERY_VERIFIED', 'LIVE_READ_VERIFIED', 'LIVE_WRITE_VERIFIED',
+    ];
+
+    /**
+     * درجة الجاهزية المشتقّة من إشارات حقيقية (الحالة/الرمز/الحساب المكتشَف/آخر مزامنة ناجحة/
+     * علامة كتابة حيّة). لا تُرفع درجة بلا دليلها: AUTH يتطلّب رمزًا، RESOURCE حسابًا مكتشَفًا،
+     * LIVE_READ مزامنة قراءة ناجحة، LIVE_WRITE علامة كتابة مؤكَّدة في meta.
+     */
+    public function readiness(): string
+    {
+        return match (true) {
+            $this->status === 'sandbox' => 'SANDBOX_VERIFIED',
+            $this->status === 'waiting_for_credentials' => 'AWAITING_CREDENTIALS',
+            in_array($this->status, ['waiting_for_approval', 'connecting'], true) => 'READY_FOR_CONFIGURATION',
+            $this->isConnected() && ! empty($this->meta['live_write_verified_at']) => 'LIVE_WRITE_VERIFIED',
+            $this->isConnected() && $this->last_success_sync_at !== null => 'LIVE_READ_VERIFIED',
+            $this->isConnected() && ! empty($this->external_account_id) => 'RESOURCE_DISCOVERY_VERIFIED',
+            $this->isConnected() && ! empty($this->access_token) => 'AUTH_VERIFIED',
+            default => 'NOT_CONFIGURED',
+        };
+    }
+
     public function syncRuns(): HasMany
     {
         return $this->hasMany(IntegrationSyncRun::class, 'connection_id');

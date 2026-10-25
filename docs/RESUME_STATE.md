@@ -74,10 +74,20 @@ chart highlight — never a status, never on every card/chart/badge. One token s
   Social-account metric enrichment deferred to SOCIAL-01/02 (needs connectors — no dead schema).
   8 feature tests (`CreatorRelationshipTest`); verified end-to-end in browser (AR-RTL, IDENTITY-03).
 
+- **INTEGRATIONS-01:** Integration Foundation V2 reconciliation + gap-fill (§5). Audit found the
+  foundation already built (IntegrationConnection with encrypted tokens + token-expiry, adapter
+  registry, sync runs with cursor/retry(`tries=3`,backoff)/rate-limit tracking/safe-errors/health,
+  webhook events with `unique(provider,event_id)` idempotency + signature, external object map,
+  sync jobs, control center, fake-adapter tests). Added the two genuine gaps: **readiness ladder**
+  (`IntegrationConnection::readiness()` derived from real signals — token alone ≠ Connected) and the
+  **OAuth lifecycle** (`SupportsOAuth` contract + `OAuthFlowService`: state + PKCE S256 + exchange +
+  refresh + revoke, single-use state, encrypted token storage, tenant-scoped). 7 tests
+  (`OAuthFlowTest`). Live provider creds come in later provider units (none needed here).
+
 ## Execution order — MASTER_COMPLETION_ROADMAP §39
 
-`GATE-00` ✅ → `CORE-01` ✅ → `CREATOR-01` ✅ → **`INTEGRATIONS-01`** (Integration Foundation V2 —
-NEXT) → `GOOGLE-01` → `COMMS-01` → `SOCIAL-01` → `SOCIAL-02` →
+`GATE-00` ✅ → `CORE-01` ✅ → `CREATOR-01` ✅ → `INTEGRATIONS-01` ✅ → **`GOOGLE-01`** (Drive +
+Sheets + Gmail + Calendar — NEXT) → `COMMS-01` → `SOCIAL-01` → `SOCIAL-02` →
 `CASTING-01` → `CAMPAIGN-01` → `RIGHTS-01` → `PROOF-01` → `TRACK-01/02/03` →
 `ADS-01/02/03` → `COMMERCE-01` → `REPORT-01` → `SHARE-01` → `FINANCE-01` → `AUTOMATION-01` →
 `AI-01` → `QA-01` → `CLOSE-01`.
@@ -101,12 +111,9 @@ refresh main → next. One bounded branch per unit; never one unbounded branch f
 
 ## Next exact step
 
-**INTEGRATIONS-01** — fresh branch from current main (after CREATOR-01 merges): Integration
-Foundation V2 (roadmap §5). Reuse/extend the existing IntegrationConnection / IntegrationAdapter /
-AdapterRegistry / IntegrationSyncRun / IntegrationWebhookEvent / ExternalObjectMap / SyncProviderJob
-(no parallel framework): OAuth state + PKCE, encrypted tokens, refresh/revoke, scopes, webhooks,
-idempotency, cursor/incremental sync, backfill, reconciliation, retry/backoff, rate-limit handling,
-health checks, scheduler, audit, safe errors — and the readiness ladder
-(NOT_CONFIGURED → SANDBOX_VERIFIED → AWAITING_CREDENTIALS → READY_FOR_CONFIGURATION →
-AUTH_VERIFIED → RESOURCE_DISCOVERY_VERIFIED → LIVE_READ_VERIFIED → LIVE_WRITE_VERIFIED). Token
-alone ≠ Connected. No live provider creds needed for the foundation; providers come in later units.
+**GOOGLE-01** — fresh branch from current main (after INTEGRATIONS-01 merges): Google Workspace
+on the Integration Foundation (roadmap §8). Build the provider adapter(s) implementing
+`IntegrationAdapter` + `SupportsOAuth` for Drive / Sheets / Gmail / Calendar with incremental
+scopes, resource discovery, sync, and the UI — everything internal + fake/sandbox tested. Live
+Google OAuth creds are external: build fully, then record `BLOCKED_EXTERNAL_CREDENTIALS` in
+`docs/EXTERNAL_BLOCKERS.md` and continue. Never show Connected without a real auth round-trip.
