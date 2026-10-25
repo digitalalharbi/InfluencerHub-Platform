@@ -10,6 +10,7 @@ use App\Domain\Creators\Models\CreatorInvitation;
 use App\Domain\Creators\Models\CreatorNote;
 use App\Domain\Creators\Models\CreatorTask;
 use App\Domain\Finance\Models\Payout;
+use App\Domain\Integrations\Models\IntegrationExternalEvent;
 
 /**
  * الخطّ الزمني الموحّد لعلاقة المبدع (CREATOR-01 · §4) — مصدر واحد يجمع الأحداث الحقيقية
@@ -59,6 +60,21 @@ class CreatorTimeline
         foreach (CreatorInvitation::where('creator_id', $id)->latest()->limit($limit)->get() as $i) {
             $push($i->created_at, 'invitation', 'user-plus', 'info',
                 trans($i->accepted_at ? 'creators.tl_invite_accepted' : 'creators.tl_invite_sent'), $i->email ?: $i->phone);
+        }
+        // أحداث خارجيّة حقيقيّة من التكاملات (Gmail/Calendar — GOOGLE-01). صفوف مُخزَّنة فعلًا،
+        // لا اختلاق. البريد الوارد/الصادر وأحداث التقويم تظهر في خطّ العلاقة نفسه.
+        foreach (IntegrationExternalEvent::where('creator_id', $id)->latest('occurred_at')->limit($limit)->get() as $x) {
+            [$icon, $tone] = match ($x->kind) {
+                'email_in' => ['mail', 'info'],
+                'email_out' => ['send', 'primary'],
+                'meeting', 'briefing' => ['users', 'info'],
+                'shoot' => ['camera', 'accent'],
+                'content_deadline', 'publication' => ['calendar-clock', 'warning'],
+                'rights_expiry' => ['shield-alert', 'danger'],
+                'payout_due' => ['wallet', 'success'],
+                default => ['calendar', 'neutral'],
+            };
+            $push($x->occurred_at ?? $x->created_at, 'google_'.$x->capability, $icon, $tone, (string) ($x->title ?: $x->summary), $x->summary ?: null);
         }
 
         usort($ev, fn ($a, $b) => $b['ts'] <=> $a['ts']);

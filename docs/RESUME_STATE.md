@@ -36,9 +36,11 @@ chart highlight — never a status, never on every card/chart/badge. One token s
 
 ## Current repository truth (2026-10-25)
 
-- **main:** `6f02e41` — "Merge pull request #189" (PERF-01 + IDENTITY-03 + CSS consolidation).
-  Contains the exact #189 head `a005705`.
-- **PR #189: MERGED.** PRs #183/#184/#188 closed (superseded). #181/#182/#185/#187 merged.
+- **main:** `c645f17` — "Merge pull request #193" (INTEGRATIONS-01). Deployed to VPS; prod smoke
+  `/up` 200 + `/` 200.
+- **PRs MERGED+DEPLOYED:** #189 (PERF-01/IDENTITY-03), #190 (docs), #191 (CORE-01), #192 (CREATOR-01),
+  #193 (INTEGRATIONS-01). #183/#184/#188 closed (superseded).
+- **GOOGLE-01:** PR open on branch `google-01-workspace-foundation` (awaiting CI → merge → deploy).
 - **Local clone:** `~/Desktop/Project/InfluencerHub/InfluencerHub-Platform`; pgsql DB
   `influencerhub` (owner = mac user, empty password; `DB_USERNAME` = mac user). Preview via
   `php artisan serve` (port 8030). E2E: `influencerhub_e2e` + `bash tests/e2e/boot.sh`.
@@ -74,15 +76,31 @@ chart highlight — never a status, never on every card/chart/badge. One token s
   Social-account metric enrichment deferred to SOCIAL-01/02 (needs connectors — no dead schema).
   8 feature tests (`CreatorRelationshipTest`); verified end-to-end in browser (AR-RTL, IDENTITY-03).
 
-- **INTEGRATIONS-01:** Integration Foundation V2 reconciliation + gap-fill (§5). Audit found the
-  foundation already built (IntegrationConnection with encrypted tokens + token-expiry, adapter
-  registry, sync runs with cursor/retry(`tries=3`,backoff)/rate-limit tracking/safe-errors/health,
-  webhook events with `unique(provider,event_id)` idempotency + signature, external object map,
-  sync jobs, control center, fake-adapter tests). Added the two genuine gaps: **readiness ladder**
-  (`IntegrationConnection::readiness()` derived from real signals — token alone ≠ Connected) and the
-  **OAuth lifecycle** (`SupportsOAuth` contract + `OAuthFlowService`: state + PKCE S256 + exchange +
-  refresh + revoke, single-use state, encrypted token storage, tenant-scoped). 7 tests
-  (`OAuthFlowTest`). Live provider creds come in later provider units (none needed here).
+- **INTEGRATIONS-01 (VERIFIED):** Integration Foundation V2 reconciliation + gap-fill (§5). Audit
+  found the foundation already built (IntegrationConnection with encrypted tokens + token-expiry,
+  adapter registry, sync runs with cursor/retry(`tries=3`,backoff)/rate-limit tracking/safe-errors/
+  health, webhook events with `unique(provider,event_id)` idempotency + signature, external object
+  map, sync jobs, control center, fake-adapter tests). Added the two genuine gaps: **readiness
+  ladder** (`IntegrationConnection::readiness()` from real signals — token alone ≠ Connected) and the
+  **OAuth lifecycle** (`SupportsOAuth` + `OAuthFlowService`: state + PKCE S256 + exchange + refresh +
+  revoke, single-use state, encrypted token storage, tenant-scoped). 7 tests (`OAuthFlowTest`).
+  #193 merged (`c645f17`) → main CI green → VPS deploy → prod smoke `/up`+`/` 200.
+
+- **GOOGLE-01 (PR open):** Google Workspace on the foundation (§8), **extending
+  `IntegrationConnection` with no parallel architecture** (provider `google`, one OAuth connection
+  per tenant, granted capabilities on `capabilities`, cursors/watch/sync-tokens in `meta`, Drive
+  file links via `external_object_map`). Incremental consent via `SupportsScopedAuthorization` +
+  `GoogleScopes` (least-privilege per capability); `OAuthFlowService.begin()` extended additively to
+  carry requested capabilities. Swappable `GoogleClient` (`HttpGoogleClient` real — fails closed
+  without creds; `FakeGoogleClient` sandbox/tests). Capability services: **Drive**
+  (list/metadata/upload/download/permissions/share + doc↔creator/campaign link), **Sheets**
+  (creator import: mapping/preview/validation/dedup/conflict/commit reusing `CreateCreator` +
+  shortlist/report export), **Gmail** (threads/messages/send/reply/attachments/history-sync +
+  contact matching + timeline), **Calendar** (calendars/availability/typed-kind CRUD/sync + timeline).
+  New `IntegrationExternalEvent` persists real Gmail/Calendar events; `CreatorTimeline` reads them
+  (no fabrication). HTTP connect/callback routes under `/app/integrations/google/*`. 18 tests
+  (`GoogleWorkspaceTest`, FakeGoogleClient). Live Google = `BLOCKED_EXTERNAL_CREDENTIALS` +
+  `BLOCKED_PROVIDER_APPROVAL` (restricted Gmail scopes) — see `docs/EXTERNAL_BLOCKERS.md`.
 
 ## Execution order — MASTER_COMPLETION_ROADMAP §39
 

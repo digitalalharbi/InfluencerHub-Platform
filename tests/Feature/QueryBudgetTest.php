@@ -10,7 +10,9 @@ use App\Domain\Creators\Models\Creator;
 use App\Domain\CRM\Models\Client;
 use App\Domain\Finance\Models\Payout;
 use App\Domain\Identity\Models\User;
-use App\Domain\Tenancy\Models\{Organization, OrganizationMembership, Tenant};
+use App\Domain\Tenancy\Models\Organization;
+use App\Domain\Tenancy\Models\OrganizationMembership;
+use App\Domain\Tenancy\Models\Tenant;
 use App\Domain\Tenancy\Support\TenantContext;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
@@ -42,7 +44,9 @@ class QueryBudgetTest extends TestCase
         '/app/automation' => 24,
     ];
 
-    private const CREATOR_PROFILE_BUDGET = 30;
+    // GOOGLE-01 أضاف مصدرًا حقيقيًّا واحدًا للخطّ الزمني (IntegrationExternalEvent — استعلام واحد،
+    // بلا علاقات ولا N+1)، فارتفع الفعليّ من 30 إلى 31؛ رُفعت الميزانية مع هامش يبقي الحارس فعّالًا.
+    private const CREATOR_PROFILE_BUDGET = 34;
 
     private int $creatorId = 0;
 
@@ -116,7 +120,7 @@ class QueryBudgetTest extends TestCase
         $n = count(DB::getQueryLog());
         DB::disableQueryLog();
         $res->assertOk();
-        $report .= sprintf("  %-18s %3d / %3d\n", "/app/creators/:id", $n, self::CREATOR_PROFILE_BUDGET);
+        $report .= sprintf("  %-18s %3d / %3d\n", '/app/creators/:id', $n, self::CREATOR_PROFILE_BUDGET);
         if ($n > self::CREATOR_PROFILE_BUDGET) {
             $over[] = "/app/creators/{$this->creatorId} used $n queries (budget ".self::CREATOR_PROFILE_BUDGET.')';
         }

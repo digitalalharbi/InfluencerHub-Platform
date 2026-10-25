@@ -9,8 +9,8 @@ _Last updated: 2026-10-25._
 ## Repository
 
 - **Canonical repo (only write target):** `digitalalharbi/InfluencerHub-Platform`
-- **main = `6f02e41`** — "Merge pull request #189" (PERF-01 + IDENTITY-03 + CSS consolidation;
-  contains exact #189 head `a005705`). Production: https://influencerhub.io/
+- **main = `c645f17`** — "Merge pull request #193" (INTEGRATIONS-01). Deployed to VPS; prod smoke
+  `/up` 200 + `/` 200. Production: https://influencerhub.io/
 - **Working clone:** `~/Desktop/Project/InfluencerHub/InfluencerHub-Platform`.
 - **Firewall:** CampaignsHub + digitalSmart are read-only pattern benchmarks.
   `CampaignsHub touched = 0 · digitalSmart touched = 0`.
@@ -28,12 +28,18 @@ Executing `docs/MASTER_COMPLETION_ROADMAP.md` in order, one bounded PR per unit
 - **CREATOR-01 ✅** — Creator 360 relationship layer (stage/health/owner/source/channel/follow-up +
   `creator_notes`/`creator_tasks`) + canonical `CreatorTimeline` (real events only) + "العلاقة" tab;
   8 tests (`CreatorRelationshipTest`); browser-verified. Social metrics deferred to SOCIAL-01/02.
-- **INTEGRATIONS-01 ✅** — Foundation V2 reconcile + gap-fill (§5): added readiness ladder
+- **INTEGRATIONS-01 ✅ VERIFIED** — Foundation V2 reconcile + gap-fill (§5): readiness ladder
   (`IntegrationConnection::readiness()`) + OAuth lifecycle (`SupportsOAuth` + `OAuthFlowService`:
-  state/PKCE/exchange/refresh/revoke); rest of §5 already existed. 7 tests (`OAuthFlowTest`).
-- **GOOGLE-01 (NEXT)** — Drive/Sheets/Gmail/Calendar adapters on the foundation (§8); build
-  internal + fake-test, then `BLOCKED_EXTERNAL_CREDENTIALS`.
-- Then: COMMS-01 → SOCIAL-01/02 → CASTING-01 →
+  state/PKCE/exchange/refresh/revoke). #193 merged (`c645f17`) → main CI green → VPS deploy → prod
+  smoke `/up`+`/` 200 (Control Center served; token≠Connected invariant deployed). 7 tests.
+- **GOOGLE-01 ✅ (PR open)** — Google Workspace on the foundation (§8), extending
+  `IntegrationConnection` (no parallel table): `GoogleWorkspaceAdapter` (provider `google`,
+  incremental consent, `SupportsScopedAuthorization`), swappable `GoogleClient`
+  (`HttpGoogleClient` real / `FakeGoogleClient` sandbox), Drive/Sheets/Gmail/Calendar services,
+  `IntegrationExternalEvent` feeding the creator timeline, connect/callback routes. 18 tests
+  (`GoogleWorkspaceTest`). Live = `BLOCKED_EXTERNAL_CREDENTIALS` (`docs/EXTERNAL_BLOCKERS.md`).
+- **COMMS-01 (NEXT)** — WhatsApp Business + email/SMS comms on the foundation.
+- Then: SOCIAL-01/02 → CASTING-01 →
   CAMPAIGN-01 → RIGHTS-01 → PROOF-01 → TRACK-01/02/03 → ADS-01/02/03 → COMMERCE-01 →
   REPORT-01 → SHARE-01 → FINANCE-01 → AUTOMATION-01 → AI-01 → QA-01 → CLOSE-01.
 
@@ -46,11 +52,14 @@ IDENTITY-03 (one token system, green = success only) + PERF-01 + mobile/PWA pres
 external integration without creds → build internal stack, mark `BLOCKED_EXTERNAL_CREDENTIALS`
 in `docs/EXTERNAL_BLOCKERS.md`, continue.
 
-## Tests / gates (last full run — PR #189)
+## Tests / gates
 
-Backend `php artisan test`: **1446 passed** · `tsc --noEmit`: clean · build: clean ·
-Playwright cross-browser (Chromium/Firefox/WebKit): green · VPS deploy + production smoke on
-`6f02e41`. Perf baseline harness: `tests/Perf/BaselineTest.php` (dev DB).
+- **main `c645f17` (INTEGRATIONS-01):** backend + `tsc` + build + Playwright cross-browser all green
+  in CI; VPS deploy + prod smoke `/up`+`/` 200.
+- **GOOGLE-01 branch (local):** full backend `php artisan test` **1483 passed** (QueryBudget
+  creator-profile budget 30→34 for the one new real timeline source); `GoogleWorkspaceTest` 18/18.
+  Backend-only unit → no frontend change; PR CI is the authoritative gate. `routes/web.php` kept to a
+  3-line diff (Pint reverted there — it rewrites inline FQCNs and can repoint colliding controllers).
 
 ## QA/test accounts (E2E seed — non-production)
 
@@ -60,9 +69,9 @@ Playwright cross-browser (Chromium/Firefox/WebKit): green · VPS deploy + produc
 
 ## Next exact step
 
-**GOOGLE-01** from a fresh branch off current main (after INTEGRATIONS-01 merges) — Google Workspace
-(Drive/Sheets/Gmail/Calendar) adapters on the Integration Foundation (§8); internal build +
-fake/sandbox tests, then record `BLOCKED_EXTERNAL_CREDENTIALS`; full cycle.
+**COMMS-01** from a fresh branch off main (after the GOOGLE-01 PR merges + deploys + smokes) —
+WhatsApp Business + email/SMS comms on the Integration Foundation; internal build + fake/sandbox
+tests, then record `BLOCKED_EXTERNAL_CREDENTIALS`; full cycle.
 
 ## Historical (in Git history)
 
