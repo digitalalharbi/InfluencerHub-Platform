@@ -830,6 +830,9 @@ Route::middleware(['auth', 'tenant', 'platform_preview:agency', 'agency_member']
         Route::get('/my-tasks', [\App\Http\Controllers\Inertia\MyTasksController::class, 'index']);
         Route::get('/shortlisting', [\App\Http\Controllers\Inertia\ShortlistingController::class, 'index'])->middleware('nomination:agency');
         Route::get('/integrations', [\App\Http\Controllers\Inertia\IntegrationsController::class, 'index']);
+        // GOOGLE-01 — دورة تفويض Google (قبل مسار {provider} العامّ؛ مساران من جزأين لا يتعارضان معه).
+        Route::get('/integrations/google/connect', [\App\Http\Controllers\Inertia\GoogleOAuthController::class, 'connect']);
+        Route::get('/integrations/google/callback', [\App\Http\Controllers\Inertia\GoogleOAuthController::class, 'callback']);
         Route::get('/integrations/{provider}', [\App\Http\Controllers\Inertia\IntegrationsController::class, 'show']);
         Route::post('/integrations/{provider}/sync', [\App\Http\Controllers\Inertia\IntegrationsController::class, 'syncNow']);
         Route::get('/notifications', [\App\Http\Controllers\Inertia\NotificationController::class, 'index']);

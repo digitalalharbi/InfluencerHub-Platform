@@ -4,6 +4,7 @@ namespace App\Domain\Integrations\Services;
 
 use App\Domain\Integrations\Adapters\AdapterRegistry;
 use App\Domain\Integrations\Adapters\SupportsOAuth;
+use App\Domain\Integrations\Adapters\SupportsScopedAuthorization;
 use App\Domain\Integrations\Models\IntegrationConnection;
 use App\Domain\Tenancy\Support\TenantContext;
 use Illuminate\Support\Facades\Cache;
@@ -23,11 +24,14 @@ class OAuthFlowService
     public function __construct(private AdapterRegistry $adapters) {}
 
     /**
-     * يبدأ الدورة: يولّد state + PKCE، يخزّنهما، ويعيد رابط التفويض.
+     * يبدأ الدورة: يولّد state + PKCE، يخزّنهما، ويعيد رابط التفويض. حين تُمرَّر قدرات
+     * ويدعم المحوّل التفويض المُنطّق، يُبنى الرابط بنطاق تلك القدرات فقط (تدريجي)، وتُحفظ
+     * القدرات في سياق state لتُثبَّت على الاتّصال عند الإكمال.
      *
+     * @param  array<int,string>  $capabilities
      * @return array{url:string,state:string}
      */
-    public function begin(int $tenantId, string $provider, string $redirectUri): array
+    public function begin(int $tenantId, string $provider, string $redirectUri, array $capabilities = []): array
     {
         $adapter = $this->oauthAdapter($provider);
         $state = Str::random(40);
@@ -35,10 +39,15 @@ class OAuthFlowService
         $challenge = self::base64Url(hash('sha256', $verifier, true));
 
         Cache::put(self::key($state), [
-            'tenant_id' => $tenantId, 'provider' => $provider, 'verifier' => $verifier, 'redirect_uri' => $redirectUri,
+            'tenant_id' => $tenantId, 'provider' => $provider, 'verifier' => $verifier,
+            'redirect_uri' => $redirectUri, 'capabilities' => array_values($capabilities),
         ], self::STATE_TTL);
 
-        return ['url' => $adapter->authorizeUrl($state, $challenge, $redirectUri), 'state' => $state];
+        $url = ($capabilities !== [] && $adapter instanceof SupportsScopedAuthorization)
+            ? $adapter->authorizeUrlScoped($state, $challenge, $redirectUri, $capabilities)
+            : $adapter->authorizeUrl($state, $challenge, $redirectUri);
+
+        return ['url' => $url, 'state' => $state];
     }
 
     /** يُكمل الدورة من ردّ المزوّد: يتحقّق من state، يبادل الرمز، ويحفظ الاتصال المتّصل. */
@@ -60,6 +69,14 @@ class OAuthFlowService
                 'external_account_id' => $tokens['external_account_id'] ?? $conn->external_account_id,
                 'external_account_name' => $tokens['external_account_name'] ?? $conn->external_account_name,
             ]);
+            // تُثبَّت القدرات المطلوبة على الاتّصال (capability => connected) بدمج ما سبق.
+            if (! empty($ctx['capabilities'])) {
+                $caps = $conn->capabilities ?? [];
+                foreach ($ctx['capabilities'] as $cap) {
+                    $caps[$cap] = 'connected';
+                }
+                $conn->capabilities = $caps;
+            }
             $conn->save();
 
             return $conn;

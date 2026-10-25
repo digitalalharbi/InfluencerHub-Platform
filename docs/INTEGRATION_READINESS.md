@@ -62,3 +62,26 @@ The provider-neutral foundation is built and fake-adapter-tested:
 Tests: `IntegrationDomainTest`, `OAuthFlowTest`, `IntegrationControlCenterTest`. Real provider
 adapters (Google/Meta/TikTok/…) are built in their own units and recorded in `EXTERNAL_BLOCKERS.md`
 until live credentials/approval arrive.
+
+## Google Workspace (GOOGLE-01)
+
+First real provider on the foundation — Drive · Sheets · Gmail · Calendar — **extending
+`IntegrationConnection` with no parallel architecture**: provider `google`, one OAuth connection per
+tenant, granted capabilities on `capabilities`, cursors/watch/sync-tokens in `meta`, Drive file
+links via `external_object_map`.
+
+- **Adapter** — `GoogleWorkspaceAdapter` (`IntegrationAdapter` + `SupportsScopedAuthorization`):
+  incremental Google consent (least-privilege scopes per requested capability via `GoogleScopes`),
+  `exchangeCode`/`refreshTokens`/`revokeTokens` delegating to a swappable `GoogleClient`
+  (`HttpGoogleClient` real — fails closed without creds; `FakeGoogleClient` sandbox/tests).
+- **Capabilities** — Drive (list/metadata/upload/download/permissions/share + doc↔creator/campaign
+  link), Sheets (creator import: mapping/preview/validation/dedup/conflict/commit reusing
+  `CreateCreator` + shortlist/report export), Gmail (threads/messages/send/reply/attachments/
+  history-sync + contact matching + timeline), Calendar (calendars/availability/typed-kind CRUD/
+  sync + timeline).
+- **Timeline** — `IntegrationExternalEvent` persists real Gmail/Calendar events; `CreatorTimeline`
+  reads them (no fabrication; `unknown ≠ 0`).
+- **Reachable** — OAuth connect/callback at `/app/integrations/google/*` (admin-gated).
+- **Readiness** — SANDBOX_VERIFIED (FakeGoogleClient, `GoogleWorkspaceTest` 18 tests). Live Google =
+  `BLOCKED_EXTERNAL_CREDENTIALS` + `BLOCKED_PROVIDER_APPROVAL` (restricted Gmail scopes). Exact owner
+  inputs: `docs/EXTERNAL_BLOCKERS.md`.

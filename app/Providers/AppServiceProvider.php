@@ -41,6 +41,9 @@ use App\Domain\Finance\Policies\InvoicePolicy;
 use App\Domain\Finance\Policies\PayoutPolicy;
 use App\Domain\Identity\Models\User;
 use App\Domain\Integrations\Adapters\AdapterRegistry;
+use App\Domain\Integrations\Google\GoogleClient;
+use App\Domain\Integrations\Google\GoogleWorkspaceAdapter;
+use App\Domain\Integrations\Google\HttpGoogleClient;
 use App\Domain\Partners\Models\ExternalAgency;
 use App\Domain\Partners\Policies\ExternalAgencyPolicy;
 use App\Domain\Requests\Models\ServiceRequest;
@@ -59,9 +62,15 @@ class AppServiceProvider extends ServiceProvider
 {
     public function register(): void
     {
-        // سجلّ محوّلات التكامل — فارغ افتراضًا؛ يُسجَّل مزوّد حقيقي حين تتوفّر بيانات
-        // اعتماده (BLOCKED_EXTERNAL حتى ذلك). الإطار (تشغيلات/جدولة/معالجة) جاهز.
-        $this->app->singleton(AdapterRegistry::class, fn () => new AdapterRegistry([]));
+        // عميل Google (GOOGLE-01): التنفيذ الحقيقي HttpGoogleClient يحتاج اعتمادًا؛ بدونه
+        // يرمي صراحةً (لا نجاح وهميّ). يُستبدَل بـFakeGoogleClient في الاختبار/التجريب.
+        $this->app->singleton(GoogleClient::class, HttpGoogleClient::class);
+
+        // سجلّ محوّلات التكامل — يُسجَّل محوّل Google الكامل (إطار + دورة OAuth) دائمًا؛ التشغيل
+        // الحيّ محجوب حتى تتوفّر اعتماداته (BLOCKED_EXTERNAL_CREDENTIALS). المزوّدون الآخرون لاحقًا.
+        $this->app->singleton(AdapterRegistry::class, fn ($app) => new AdapterRegistry([
+            $app->make(GoogleWorkspaceAdapter::class),
+        ]));
 
         // سجلّ قنوات التسليم — الترتيب مقصود (in_app أوّلًا). القنوات الخارجية
         // متاحة فقط حين تُفعَّل بيانات اعتمادها؛ افتراضها غير مهيّأ.
