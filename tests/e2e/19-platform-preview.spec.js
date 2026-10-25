@@ -64,8 +64,20 @@ test.describe('معاينة مالك المنصّة (P3) — رحلة كاملة
     // ⇒ الخادم يردّ 403 قبل أي إنشاء. (لا نعتمد على حالة سجلّ قد يُطفَّر في اختبار سابق.)
     await sideNav(page, 'الحساب', 'العلامات');
     await page.waitForURL('**/client/brands**');
-    await page.getByRole('button', { name: '+ علامة جديدة' }).click();
-    await page.locator('.modal input').first().fill('علامة معاينة اختبار');
+    // فتح نافذة العلامة بثبات: على فايرفوكس قد يتأخّر تفاعل الزرّ بعد التنقّل، فيضيع النقر
+    // ولا تظهر النافذة. ننتظر ظهور الحقل، ونعيد فتح النافذة مرّة واحدة إن لم يظهر — دون
+    // إخفاء فشل حقيقي (يسقط الاختبار إن لم تُفتح النافذة بعد إعادة المحاولة).
+    const addBrandBtn = page.getByRole('button', { name: '+ علامة جديدة' });
+    await addBrandBtn.waitFor({ state: 'visible' });
+    const brandNameInput = page.locator('.modal input').first();
+    await addBrandBtn.click();
+    try {
+      await brandNameInput.waitFor({ state: 'visible', timeout: 5000 });
+    } catch {
+      await addBrandBtn.click();
+      await brandNameInput.waitFor({ state: 'visible', timeout: 10000 });
+    }
+    await brandNameInput.fill('علامة معاينة اختبار');
     const [resp] = await Promise.all([
       page.waitForResponse((r) => r.request().method() === 'POST' && /\/brands(\?|$)/.test(r.url())),
       page.locator('.modal').getByRole('button', { name: 'حفظ كمسودة' }).click(),
