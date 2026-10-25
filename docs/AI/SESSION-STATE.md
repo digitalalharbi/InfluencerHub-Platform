@@ -22,10 +22,11 @@ Executing `docs/MASTER_COMPLETION_ROADMAP.md` in order, one bounded PR per unit
 
 - **GATE-00 ✅** — #189 merged; main CI/CD + VPS deploy; production smoke; docs refreshed
   (this unit). Design system canonical = **IDENTITY-03**. PERF-01 preserved.
-- **CORE-01 (NEXT)** — server-side permission-enforcement sweep · IDOR / cross-tenant /
-  cross-portal checks · high-value query budgets + performance guard tests. Bounded; no
-  integrations or Creator 360 in this branch.
-- Then: CREATOR-01 → INTEGRATIONS-01 → GOOGLE-01 → COMMS-01 → SOCIAL-01/02 → CASTING-01 →
+- **CORE-01 ✅** — `QueryBudgetTest` (locks PERF-01 vs N+1) + `PermissionEnforcementSweepTest`
+  (NavigationBadges 30s cache proven tenant-scoped, guest redirect, cross-portal block). Audit:
+  cross-tenant/IDOR/cross-portal already covered by existing suites — no gap found.
+- **CREATOR-01 (NEXT)** — Creator 360 canonical profile + relationship timeline (roadmap §3–§4).
+- Then: INTEGRATIONS-01 → GOOGLE-01 → COMMS-01 → SOCIAL-01/02 → CASTING-01 →
   CAMPAIGN-01 → RIGHTS-01 → PROOF-01 → TRACK-01/02/03 → ADS-01/02/03 → COMMERCE-01 →
   REPORT-01 → SHARE-01 → FINANCE-01 → AUTOMATION-01 → AI-01 → QA-01 → CLOSE-01.
 
@@ -52,8 +53,8 @@ Playwright cross-browser (Chromium/Firefox/WebKit): green · VPS deploy + produc
 
 ## Next exact step
 
-**CORE-01** from a fresh branch off main `6f02e41` — security/permission enforcement sweep +
-query budgets + performance guard tests; full cycle; then continue the roadmap in order.
+**CREATOR-01** from a fresh branch off current main (after CORE-01 merges) — Creator 360
+canonical profile + single relationship timeline (roadmap §3–§4); real data only; full cycle.
 
 ## Historical (in Git history)
 

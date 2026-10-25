@@ -44,11 +44,14 @@ SOCIAL-01/02 → CASTING-01 → CAMPAIGN-01 → RIGHTS-01 → PROOF-01 → TRACK
 ADS-01/02/03 → COMMERCE-01 → REPORT-01 → SHARE-01 → FINANCE-01 → AUTOMATION-01 → AI-01 →
 QA-01 → CLOSE-01.
 
-## Known production-readiness risks (CORE-01 addresses the first two)
+## Known production-readiness risks
 
-- **Permission-enforcement sweep (CORE-01):** verify every guard is server-enforced, not UI/CSS;
-  IDOR + cross-tenant + cross-portal tests per surface.
-- **Performance/query budgets (CORE-01):** add query-budget guard tests on high-value pages
-  (Dashboard, Creator Database, Creator 360, Campaign Workspace, Reports, Finance).
+- **Permission enforcement — ✅ CORE-01:** route groups enforce portals via middleware
+  (`agency_member`/`creator`/`client_member`/…); cross-tenant/IDOR/cross-portal covered by
+  `TenantIsolationSweep`/`TenantHttpIsolation`/`BrandWorkspaceIsolation`/`LoginPortalAccess`/
+  `CrmPolicy`/`PlatformOwnerAccess`; CORE-01 added `PermissionEnforcementSweepTest`
+  (guest-redirect, cross-portal block, PERF-01 badge cache proven tenant-scoped).
+- **Performance/query budgets — ✅ CORE-01:** `QueryBudgetTest` guards Dashboard / Creator
+  Database / Creator-360 / Campaigns / Reports / Payouts / Automation against N+1.
 - **Publication-proof / results store** missing — required for truthful attribution (PROOF-01).
 - Observability/health endpoints + backup verification — QA-01 / §33.

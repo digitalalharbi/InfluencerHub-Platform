@@ -56,12 +56,19 @@ chart highlight — never a status, never on every card/chart/badge. One token s
   logo + auth + gateway + error shells + email + PWA + theme-color migrated.
 - **CSS consolidation** (merged in #189): three stacked identity blocks removed, `--ih-lime*`
   gone, gateway.css code-split (main app CSS −10% gzip).
-- **GATE-00:** #189 CI green → merged → main CI/CD + deploy → production smoke.
+- **GATE-00:** #189 CI green → merged → main CI/CD + deploy → production smoke; docs unit #190
+  merged (main `a44c4db`, roadmap canonical).
+- **CORE-01:** query-budget guard tests (`QueryBudgetTest` — locks PERF-01 on Dashboard/Creators/
+  Campaigns/Reports/Payouts/Automation/Creator-360 against N+1) + permission sweep
+  (`PermissionEnforcementSweepTest` — NavigationBadges 30s cache proven tenant-scoped, guest
+  redirect, cross-portal blocked). Audit: cross-tenant/IDOR/cross-portal already covered by
+  TenantIsolationSweep / TenantHttpIsolation / BrandWorkspaceIsolation / LoginPortalAccess /
+  CrmPolicy / PlatformOwnerAccess — no enforcement gap found; CORE-01 adds the two missing guards.
 
 ## Execution order — MASTER_COMPLETION_ROADMAP §39
 
-`GATE-00` (done) → **`CORE-01`** (security + permission enforcement + query budgets — NEXT) →
-`CREATOR-01` → `INTEGRATIONS-01` → `GOOGLE-01` → `COMMS-01` → `SOCIAL-01` → `SOCIAL-02` →
+`GATE-00` ✅ → `CORE-01` ✅ → **`CREATOR-01`** (Creator 360 + relationship timeline — NEXT) →
+`INTEGRATIONS-01` → `GOOGLE-01` → `COMMS-01` → `SOCIAL-01` → `SOCIAL-02` →
 `CASTING-01` → `CAMPAIGN-01` → `RIGHTS-01` → `PROOF-01` → `TRACK-01/02/03` →
 `ADS-01/02/03` → `COMMERCE-01` → `REPORT-01` → `SHARE-01` → `FINANCE-01` → `AUTOMATION-01` →
 `AI-01` → `QA-01` → `CLOSE-01`.
@@ -85,7 +92,9 @@ refresh main → next. One bounded branch per unit; never one unbounded branch f
 
 ## Next exact step
 
-**CORE-01** — fresh branch from main `6f02e41`: server-side permission-enforcement sweep,
-IDOR / cross-tenant / cross-portal checks, high-value query budgets + performance guard
-tests. No integrations or Creator 360 in this branch. Close the full cycle, then continue
-the roadmap in order.
+**CREATOR-01** — fresh branch from current main (after CORE-01 merges): Creator 360 as the
+canonical single source for each creator (identity · contact · social accounts with
+real-data-only metrics + freshness + `unknown ≠ 0` · commercial/rate card · relationship ·
+full history) + the single canonical relationship timeline (roadmap §3–§4). Real persisted
+data only; reuse existing CRM/Creators domains; no new identity. Close the full cycle, then
+continue the roadmap in order.
