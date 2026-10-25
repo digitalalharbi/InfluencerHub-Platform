@@ -2,8 +2,9 @@
 
 > IH-X0 product-truth audit. One row per product area: what is built, the tests
 > that fail if it stops being true, and an honest status. **Git/code/tests
-> outrank older docs.** Audited at `main` after PR #180 (merge `2e6be07`),
-> 2026-10-20.
+> outrank older docs.** Canonical plan: `docs/MASTER_COMPLETION_ROADMAP.md`; design system:
+> **IDENTITY-03**. Audited at `main` `6f02e41` (PR #189 merged: PERF-01 + IDENTITY-03),
+> 2026-10-25.
 >
 > Status vocabulary: `VERIFIED` · `IMPLEMENTED_NOT_VERIFIED` ·
 > `BLOCKED_EXTERNAL_CREDENTIALS` · `BLOCKED_OPERATIONAL_EVIDENCE` ·

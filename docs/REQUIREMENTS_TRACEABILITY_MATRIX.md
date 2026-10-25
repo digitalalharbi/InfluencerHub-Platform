@@ -2,7 +2,7 @@
 
 > Maps the owner's next-generation + radical-visual/attribution/communication
 > directives to current code reality and the execution unit that closes each gap.
-> Audited 2026-10-20 at `main` (`2e6be07`). Benchmarks (CampaignsHub, digitalSmart)
+> Audited 2026-10-25 at `main` (`6f02e41` (PR #189 merged)). Benchmarks (CampaignsHub, digitalSmart)
 > inform PATTERNS only — see `CLAUDE.md` §0.
 
 Status legend: `VERIFIED` · `PARTIAL` · `NOT_STARTED` · `BLOCKED_EXTERNAL`.
@@ -29,8 +29,8 @@ Status legend: `VERIFIED` · `PARTIAL` · `NOT_STARTED` · `BLOCKED_EXTERNAL`.
 
 | Req | Requirement | Current status | Unit |
 |-----|-------------|----------------|------|
-| B1 | Canonical visual system: dark sidebar + light canvas + right context panel, `--ih-*` tokens | NOT_STARTED (existing theme is indigo, no dark-nav shell) | **THEME-01** |
-| B2 | Lime/green accent as product layer, preserve indigo identity | NOT_STARTED | THEME-01 |
+| B1 | Canonical visual system: one `--ih-*` token layer, light + dark, theme-following sidebar | **VERIFIED** (IDENTITY-03, PR #189) | — |
+| B2 | Refined indigo-violet brand accent (`#5B57D9`); green = semantic success only | **VERIFIED** (IDENTITY-03, PR #189) | — |
 | B3 | Redesigned agency dashboard (command center, "المطلوب منك الآن", charts-first) | NOT_STARTED | THEME-02 |
 | B4 | Creator 360 + right context panel | PARTIAL (data VERIFIED) | THEME-03 |
 | B5 | Campaign command center visual | PARTIAL | THEME-04 |
