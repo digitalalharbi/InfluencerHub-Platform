@@ -82,7 +82,60 @@ Next commissioning action (owner):
      production env; a real OAuth round-trip then advances readiness to AUTH_VERIFIED → LIVE_*.
 ```
 
-_Remaining planned coverage (roadmap): WhatsApp Business · Instagram · TikTok · YouTube · X ·
-Snapchat · LinkedIn · Meta Ads · TikTok Ads · Snapchat Ads · Google/YouTube Ads · X Ads · LinkedIn
-Ads · OpenAI Ads · Salla · Zid · Email (SMTP) · SMS/OTP · SaaS billing + payment settlement ·
-e-signature provider — each added here once its unit ships its internal build._
+### Communications — WhatsApp Business · Email · SMS (COMMS-01)
+
+Internal build **complete** and fake-tested. The outbound notification layer already existed
+(channels, delivery attempts, status webhook). COMMS-01 adds the **two-way relationship layer**:
+inbound WhatsApp ingestion (idempotent via `integration_webhook_events`), sender→creator/client
+matching (`ContactMatcher`, phone digit-normalized), `message_in`/`message_out` events persisted as
+`IntegrationExternalEvent` feeding `CreatorTimeline`, free-form `sendText` + template send
+(`ConversationService`), and WhatsApp/Email/SMS represented on the readiness ladder
+(`CommsConnectionService`, status derived from real config — never invented). No live message is
+sent/received until the owner supplies the values below.
+
+```
+Provider: WhatsApp Business (Meta Cloud API, Graph v21.0)
+App / Account: Meta app + WhatsApp Business Account (WABA) + a registered business phone number
+Required credentials (config/channels.whatsapp):
+  - WHATSAPP_PHONE_NUMBER_ID
+  - WHATSAPP_ACCESS_TOKEN (System User long-lived token)
+  - WHATSAPP_BUSINESS_ACCOUNT_ID
+  - WHATSAPP_APP_SECRET (verifies X-Hub-Signature-256 on inbound webhook)
+  - WHATSAPP_VERIFY_TOKEN (webhook subscribe handshake)
+  - CHANNEL_WHATSAPP_ENABLED=true
+Scopes / features: whatsapp_business_messaging, whatsapp_business_management; approved message
+  templates for out-of-session initiation (free-form text only inside the 24h service window).
+Redirect URL: n/a (long-lived token, not OAuth redirect).
+Webhook URL: https://influencerhub.io/api/webhooks/whatsapp (GET verify + POST receive; subscribe
+  the WABA to the `messages` field).
+Approval status: Meta app review for the messaging permissions + business verification; each
+  template requires Meta approval.
+Sandbox / live status: SANDBOX_VERIFIED (fake WhatsApp client, CommunicationsInboxTest). Live = AWAITING.
+State: BLOCKED_EXTERNAL_CREDENTIALS + BLOCKED_PROVIDER_APPROVAL (app review + template approval)
+Next commissioning action (owner): create the Meta app + WABA, register the number, generate a
+  System User token, set the env vars above, subscribe the webhook to `messages`, submit the app +
+  templates for review.
+```
+
+```
+Provider: Email (transactional SMTP / provider)
+Required credentials: MAIL_* (host/port/username/password/from) or provider API key; CHANNEL_EMAIL_ENABLED=true
+Inbound: optional — two-way email relationship events arrive via GOOGLE-01 Gmail (already built);
+  a non-Google inbound-email provider (e.g. SES inbound/Postmark) would be a later increment.
+State: BLOCKED_EXTERNAL_CREDENTIALS
+Next commissioning action (owner): provide SMTP/provider credentials; enable the channel.
+```
+
+```
+Provider: SMS / OTP (Twilio)
+Required credentials (config/services.twilio): TWILIO_SID, TWILIO_AUTH_TOKEN, TWILIO_VERIFY_SID,
+  TWILIO_WHATSAPP_FROM (optional); CHANNEL_SMS_ENABLED=true
+State: BLOCKED_EXTERNAL_CREDENTIALS
+Next commissioning action (owner): provide Twilio account SID + auth token (+ Verify service SID);
+  enable the channel.
+```
+
+_Remaining planned coverage (roadmap): Instagram · TikTok · YouTube · X · Snapchat · LinkedIn ·
+Meta Ads · TikTok Ads · Snapchat Ads · Google/YouTube Ads · X Ads · LinkedIn Ads · OpenAI Ads ·
+Salla · Zid · SaaS billing + payment settlement · e-signature provider — each added here once its
+unit ships its internal build._

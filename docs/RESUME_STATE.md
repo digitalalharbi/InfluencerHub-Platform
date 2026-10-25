@@ -102,10 +102,23 @@ chart highlight — never a status, never on every card/chart/badge. One token s
   (`GoogleWorkspaceTest`, FakeGoogleClient). Live Google = `BLOCKED_EXTERNAL_CREDENTIALS` +
   `BLOCKED_PROVIDER_APPROVAL` (restricted Gmail scopes) — see `docs/EXTERNAL_BLOCKERS.md`.
 
+- **COMMS-01 (PR pending):** two-way messaging layer on the foundation. The existing Communications
+  domain was **outbound-only** (notifications, delivery attempts, status webhook). COMMS-01 adds the
+  relationship-grade **inbound + conversational** layer: inbound WhatsApp ingestion idempotent via
+  `IntegrationWebhookEvent` (`unique(provider,event_id)`); `ContactMatcher` (phone digit-normalized,
+  cross-tenant resolve — no fabricated tenant/match); `message_in`/`message_out` persisted as
+  `IntegrationExternalEvent` feeding `CreatorTimeline` (type now provider-agnostic `ext_<capability>`);
+  `ConversationService` (free-form `sendText` within the 24h window + template send, records outbound +
+  marks the channel live); `CommsConnectionService` represents WhatsApp/Email/SMS on the readiness
+  ladder from **real config** (configured ⇒ connected, else waiting_for_credentials — never invented).
+  Inbound wired into `WhatsAppWebhookController` (alongside existing status handling). 7 tests
+  (`CommunicationsInboxTest`). Live = `BLOCKED_EXTERNAL_CREDENTIALS` + `BLOCKED_PROVIDER_APPROVAL`
+  (Meta app review + template approval) — `docs/EXTERNAL_BLOCKERS.md`.
+
 ## Execution order — MASTER_COMPLETION_ROADMAP §39
 
-`GATE-00` ✅ → `CORE-01` ✅ → `CREATOR-01` ✅ → `INTEGRATIONS-01` ✅ → **`GOOGLE-01`** (Drive +
-Sheets + Gmail + Calendar — NEXT) → `COMMS-01` → `SOCIAL-01` → `SOCIAL-02` →
+`GATE-00` ✅ → `CORE-01` ✅ → `CREATOR-01` ✅ → `INTEGRATIONS-01` ✅ → `GOOGLE-01` ✅ →
+`COMMS-01` ✅ (PR pending) → **`SOCIAL-01`** (NEXT) → `SOCIAL-02` →
 `CASTING-01` → `CAMPAIGN-01` → `RIGHTS-01` → `PROOF-01` → `TRACK-01/02/03` →
 `ADS-01/02/03` → `COMMERCE-01` → `REPORT-01` → `SHARE-01` → `FINANCE-01` → `AUTOMATION-01` →
 `AI-01` → `QA-01` → `CLOSE-01`.
@@ -129,9 +142,9 @@ refresh main → next. One bounded branch per unit; never one unbounded branch f
 
 ## Next exact step
 
-**GOOGLE-01** — fresh branch from current main (after INTEGRATIONS-01 merges): Google Workspace
-on the Integration Foundation (roadmap §8). Build the provider adapter(s) implementing
-`IntegrationAdapter` + `SupportsOAuth` for Drive / Sheets / Gmail / Calendar with incremental
-scopes, resource discovery, sync, and the UI — everything internal + fake/sandbox tested. Live
-Google OAuth creds are external: build fully, then record `BLOCKED_EXTERNAL_CREDENTIALS` in
-`docs/EXTERNAL_BLOCKERS.md` and continue. Never show Connected without a real auth round-trip.
+**SOCIAL-01** — fresh branch from main (after the COMMS-01 PR merges + deploys + smokes): social
+account connect + profile/metrics ingestion (Instagram/TikTok/YouTube/Snapchat/X/LinkedIn) on the
+Integration Foundation. Build provider adapters implementing `IntegrationAdapter` (+ `SupportsOAuth`
+where applicable), resource discovery, and metric sync into real persisted fields (no fabricated
+engagement/audience) — everything internal + fake/sandbox tested. Live creds external: record
+`BLOCKED_EXTERNAL_CREDENTIALS` in `docs/EXTERNAL_BLOCKERS.md`. First: merge → deploy → smoke COMMS-01.

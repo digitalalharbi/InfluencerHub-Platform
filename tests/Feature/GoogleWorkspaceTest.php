@@ -286,7 +286,7 @@ class GoogleWorkspaceTest extends TestCase
         $this->assertSame($creator->id, $ev->creator_id);
 
         $timeline = TenantContext::withTenant($t->id, fn () => CreatorTimeline::for($creator->fresh()));
-        $this->assertTrue(collect($timeline)->contains(fn ($e) => $e['type'] === 'google_google_calendar'));
+        $this->assertTrue(collect($timeline)->contains(fn ($e) => $e['type'] === 'ext_google_calendar'));
     }
 
     public function test_calendar_rejects_unknown_kind(): void

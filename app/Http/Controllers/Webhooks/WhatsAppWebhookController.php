@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Webhooks;
 
+use App\Domain\Communications\Inbox\InboundMessageService;
 use App\Domain\Communications\Models\NotificationDeliveryAttempt;
 use App\Domain\Tenancy\Support\TenantContext;
 use App\Http\Controllers\Controller;
@@ -47,6 +48,11 @@ class WhatsAppWebhookController extends Controller
                 foreach ($change['value']['statuses'] ?? [] as $status) {
                     $this->applyStatus($status);
                 }
+                // COMMS-01 — الرسائل الواردة ثنائيّة الاتّجاه: تُبتلَع idempotent وتُربط بالمرسِل
+                // (مبدع/عميل) وتغذّي الخطّ الزمني. لا تُنشئ صندوق وارد كاملًا؛ أحداث علاقة فقط.
+                foreach ($change['value']['messages'] ?? [] as $message) {
+                    app(InboundMessageService::class)->ingest($message);
+                }
             }
         }
 
@@ -59,10 +65,11 @@ class WhatsAppWebhookController extends Controller
         if (! $secret) {
             // بلا سرّ لا يمكن التحقّق — نرفض بدل الثقة العمياء.
             Log::warning('whatsapp webhook rejected: no app_secret configured');
+
             return false;
         }
         $header = (string) $r->header('X-Hub-Signature-256', '');
-        $expected = 'sha256=' . hash_hmac('sha256', $r->getContent(), (string) $secret);
+        $expected = 'sha256='.hash_hmac('sha256', $r->getContent(), (string) $secret);
 
         return $header !== '' && hash_equals($expected, $header);
     }
