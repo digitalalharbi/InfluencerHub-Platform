@@ -28,9 +28,12 @@ Executing `docs/MASTER_COMPLETION_ROADMAP.md` in order, one bounded PR per unit
 - **CREATOR-01 ✅** — Creator 360 relationship layer (stage/health/owner/source/channel/follow-up +
   `creator_notes`/`creator_tasks`) + canonical `CreatorTimeline` (real events only) + "العلاقة" tab;
   8 tests (`CreatorRelationshipTest`); browser-verified. Social metrics deferred to SOCIAL-01/02.
-- **INTEGRATIONS-01 (NEXT)** — Integration Foundation V2 (§5): extend existing adapter framework +
-  readiness ladder; no live creds needed.
-- Then: GOOGLE-01 → COMMS-01 → SOCIAL-01/02 → CASTING-01 →
+- **INTEGRATIONS-01 ✅** — Foundation V2 reconcile + gap-fill (§5): added readiness ladder
+  (`IntegrationConnection::readiness()`) + OAuth lifecycle (`SupportsOAuth` + `OAuthFlowService`:
+  state/PKCE/exchange/refresh/revoke); rest of §5 already existed. 7 tests (`OAuthFlowTest`).
+- **GOOGLE-01 (NEXT)** — Drive/Sheets/Gmail/Calendar adapters on the foundation (§8); build
+  internal + fake-test, then `BLOCKED_EXTERNAL_CREDENTIALS`.
+- Then: COMMS-01 → SOCIAL-01/02 → CASTING-01 →
   CAMPAIGN-01 → RIGHTS-01 → PROOF-01 → TRACK-01/02/03 → ADS-01/02/03 → COMMERCE-01 →
   REPORT-01 → SHARE-01 → FINANCE-01 → AUTOMATION-01 → AI-01 → QA-01 → CLOSE-01.
 
@@ -57,8 +60,9 @@ Playwright cross-browser (Chromium/Firefox/WebKit): green · VPS deploy + produc
 
 ## Next exact step
 
-**INTEGRATIONS-01** from a fresh branch off current main (after CREATOR-01 merges) — Integration
-Foundation V2 (§5): extend the existing adapter/connection framework + readiness ladder; full cycle.
+**GOOGLE-01** from a fresh branch off current main (after INTEGRATIONS-01 merges) — Google Workspace
+(Drive/Sheets/Gmail/Calendar) adapters on the Integration Foundation (§8); internal build +
+fake/sandbox tests, then record `BLOCKED_EXTERNAL_CREDENTIALS`; full cycle.
 
 ## Historical (in Git history)
 

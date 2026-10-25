@@ -40,3 +40,25 @@ Framework **VERIFIED** by `IntegrationDomainTest`(6), `IntegrationControlCenterT
 2. Sandbox can never report a live verdict; sandbox state is visibly labelled.
 3. No provider capability may be invented; capability flags gate UI actions.
 4. Payment "paid" is never set from a redirect/UI — only from verified settlement (webhook + amount/currency re-check + backend read-back + audit). Today `markPaid()` records a manual reference only.
+
+## Foundation status (INTEGRATIONS-01)
+
+The provider-neutral foundation is built and fake-adapter-tested:
+
+- `IntegrationConnection` — encrypted `access_token`/`refresh_token` (hidden), `token_expires_at` +
+  `tokenExpired()`, scopes/capabilities/health, sync timestamps, safe `last_error`.
+- **Readiness ladder** — `IntegrationConnection::readiness()` derives one of
+  `NOT_CONFIGURED → SANDBOX_VERIFIED → AWAITING_CREDENTIALS → READY_FOR_CONFIGURATION →
+  AUTH_VERIFIED → RESOURCE_DISCOVERY_VERIFIED → LIVE_READ_VERIFIED → LIVE_WRITE_VERIFIED` from real
+  signals (status/token/discovered-account/last-successful-sync/live-write flag). **Token alone ≠ Connected.**
+- **OAuth lifecycle** — `SupportsOAuth` adapter contract + `OAuthFlowService`: `begin` (state + PKCE
+  S256, single-use state, 10-min TTL) → `complete` (state verification + code exchange + encrypted
+  token persist, tenant-scoped) → `refresh` → `revoke`. Providers implement `SupportsOAuth`.
+- Sync: `IntegrationConnectionService::runSync` (cursor/incremental, rate-limit tracking, health),
+  `SyncProviderJob` (`tries=3`, backoff `[30,120]`), `AdapterRegistry`.
+- Webhooks: `IntegrationWebhookEvent` with `unique(provider,event_id)` idempotency + `signature_valid`.
+- Object mapping: `external_object_map` unique per `(tenant,provider,type,external_id)`.
+
+Tests: `IntegrationDomainTest`, `OAuthFlowTest`, `IntegrationControlCenterTest`. Real provider
+adapters (Google/Meta/TikTok/…) are built in their own units and recorded in `EXTERNAL_BLOCKERS.md`
+until live credentials/approval arrive.
