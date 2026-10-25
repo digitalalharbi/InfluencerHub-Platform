@@ -44,10 +44,19 @@ interface Access {
   canInvite: boolean; blockedReason: string | null;
   invitation: Invitation | null;
 }
+interface Relationship {
+  stage: string | null; health: string | null; ownerId: number | null; ownerName: string | null;
+  source: string | null; preferredChannel: string | null; manager: string | null; managerContact: string | null;
+  doNotContact: boolean; nextFollowUpAt: string | null; lastInteractionAt: string | null;
+}
+interface TimelineEvent { at: string; ts: number; type: string; icon: string; tone: string; text: string; meta: string | null }
+interface Note { id: number; body: string; author: string | null; at: string | null; pinned: boolean }
+interface TaskRow { id: number; title: string; status: string; dueAt: string | null; done: boolean }
 interface Props {
   creator: Creator; intel: Intel; access: Access;
   platforms: { platform: string; handle: string | null; followers: number }[];
   collaborations: Collab[]; content: Content[]; contracts: ContractRow[]; payouts: PayoutRow[];
+  relationship: Relationship; timeline: TimelineEvent[]; notes: Note[]; tasks: TaskRow[]; canManage: boolean;
 }
 
 function fnum(n: number): string {
@@ -162,14 +171,149 @@ function AccessPanel({ access, creatorId, link }: { access: Access; creatorId: n
   );
 }
 
-export default function CreatorShow({ creator, intel, access, platforms, collaborations, content, contracts, payouts }: Props) {
+/** CREATOR-01 — طبقة العلاقة: حقول العلاقة + الخطّ الزمني الموحّد + ملاحظات + مهام (بيانات حقيقية). */
+function RelationshipTab({ creatorId, relationship, timeline, notes, tasks, canManage }:
+  { creatorId: number; relationship: Relationship; timeline: TimelineEvent[]; notes: Note[]; tasks: TaskRow[]; canManage: boolean }) {
+  const t = useT();
+  const [form, setForm] = useState({
+    relationship_stage: relationship.stage ?? '', relationship_health: relationship.health ?? '',
+    source: relationship.source ?? '', preferred_channel: relationship.preferredChannel ?? '',
+    manager_name: relationship.manager ?? '', manager_contact: relationship.managerContact ?? '',
+    do_not_contact: relationship.doNotContact, next_follow_up_at: relationship.nextFollowUpAt ?? '',
+  });
+  const [note, setNote] = useState('');
+  const [task, setTask] = useState('');
+  const [taskDue, setTaskDue] = useState('');
+  const [busy, setBusy] = useState(false);
+  const post = (url: string, data: Record<string, string | number | boolean | null>, done?: () => void) => {
+    setBusy(true);
+    router.post(u(url), data, { preserveScroll: true, onFinish: () => { setBusy(false); done?.(); } });
+  };
+
+  return (
+    <div className="ih-rel-grid" style={{ display: 'grid', gridTemplateColumns: 'minmax(0,1fr) minmax(0,1.3fr)', gap: '1.25rem' }}>
+      {/* العلاقة + المهام */}
+      <div style={{ display: 'grid', gap: '1.25rem', minWidth: 0 }}>
+        <Sec title={t('creators.rel_title')}>
+          <div style={{ display: 'grid', gap: '.7rem' }}>
+            <label className="label">{t('creators.rel_stage')}
+              <select className="field" value={form.relationship_stage} disabled={!canManage}
+                onChange={(e) => setForm({ ...form, relationship_stage: e.target.value })}>
+                <option value="">{t('creators.rel_unknown')}</option>
+                {['prospect', 'engaged', 'active', 'dormant'].map((s) => <option key={s} value={s}>{t(`creators.stage_${s}`)}</option>)}
+              </select>
+            </label>
+            <label className="label">{t('creators.rel_health')}
+              <select className="field" value={form.relationship_health} disabled={!canManage}
+                onChange={(e) => setForm({ ...form, relationship_health: e.target.value })}>
+                <option value="">{t('creators.rel_unknown')}</option>
+                {['healthy', 'at_risk', 'inactive'].map((s) => <option key={s} value={s}>{t(`creators.health_${s}`)}</option>)}
+              </select>
+            </label>
+            <label className="label">{t('creators.rel_preferred_channel')}
+              <select className="field" value={form.preferred_channel} disabled={!canManage}
+                onChange={(e) => setForm({ ...form, preferred_channel: e.target.value })}>
+                <option value="">{t('creators.rel_unknown')}</option>
+                {['whatsapp', 'email', 'phone'].map((s) => <option key={s} value={s}>{t(`creators.channel_${s}`)}</option>)}
+              </select>
+            </label>
+            <label className="label">{t('creators.rel_source')}
+              <input className="field" value={form.source} disabled={!canManage} onChange={(e) => setForm({ ...form, source: e.target.value })} />
+            </label>
+            <label className="label">{t('creators.rel_manager')}
+              <input className="field" value={form.manager_name} disabled={!canManage} onChange={(e) => setForm({ ...form, manager_name: e.target.value })} />
+            </label>
+            <label className="label">{t('creators.rel_next_follow_up')}
+              <input type="date" className="field" value={form.next_follow_up_at} disabled={!canManage} onChange={(e) => setForm({ ...form, next_follow_up_at: e.target.value })} />
+            </label>
+            <label style={{ display: 'flex', alignItems: 'center', gap: '.5rem', fontSize: '.85rem' }}>
+              <input type="checkbox" checked={form.do_not_contact} disabled={!canManage} onChange={(e) => setForm({ ...form, do_not_contact: e.target.checked })} />
+              {t('creators.rel_do_not_contact')}
+            </label>
+            {canManage && (
+              <button className="btn btn-primary btn-sm" disabled={busy}
+                onClick={() => post(`/creators/${creatorId}/relationship`, form)}>{t('creators.rel_save')}</button>
+            )}
+          </div>
+        </Sec>
+
+        <Sec title={t('creators.rel_tasks')}>
+          {canManage && (
+            <div style={{ display: 'flex', gap: '.5rem', marginBottom: '.7rem', flexWrap: 'wrap' }}>
+              <input className="field" style={{ flex: '2 1 140px' }} placeholder={t('creators.rel_task_title')} value={task} onChange={(e) => setTask(e.target.value)} />
+              <input type="date" className="field" style={{ flex: '1 1 120px' }} value={taskDue} onChange={(e) => setTaskDue(e.target.value)} />
+              <button className="btn btn-secondary btn-sm" disabled={busy || !task.trim()}
+                onClick={() => post(`/creators/${creatorId}/tasks`, { title: task, due_at: taskDue || null }, () => { setTask(''); setTaskDue(''); })}>{t('creators.rel_add_task')}</button>
+            </div>
+          )}
+          {tasks.length === 0 ? <p className="ih-muted" style={{ fontSize: '.85rem' }}>{t('creators.rel_no_tasks')}</p> : (
+            <ul style={{ listStyle: 'none', margin: 0, padding: 0, display: 'grid', gap: '.4rem' }}>
+              {tasks.map((tk) => (
+                <li key={tk.id} style={{ display: 'flex', alignItems: 'center', gap: '.5rem', justifyContent: 'space-between' }}>
+                  <span style={{ textDecoration: tk.done ? 'line-through' : 'none', opacity: tk.done ? .6 : 1 }}>
+                    {tk.title}{tk.dueAt && <span className="ih-muted" style={{ fontSize: '.75rem' }}> · {tk.dueAt}</span>}
+                  </span>
+                  {!tk.done && canManage && (
+                    <button className="btn btn-outline btn-xs" disabled={busy}
+                      onClick={() => post(`/creators/${creatorId}/tasks/${tk.id}/complete`, {})}>{t('creators.rel_mark_done')}</button>
+                  )}
+                </li>
+              ))}
+            </ul>
+          )}
+        </Sec>
+      </div>
+
+      {/* الخطّ الزمني + الملاحظات */}
+      <div style={{ display: 'grid', gap: '1.25rem', minWidth: 0 }}>
+        <Sec title={t('creators.rel_timeline')}>
+          {timeline.length === 0 ? <p className="ih-muted" style={{ fontSize: '.85rem' }}>{t('creators.rel_no_timeline')}</p> : (
+            <ul style={{ listStyle: 'none', margin: 0, padding: 0, display: 'grid', gap: '.6rem' }}>
+              {timeline.map((e, i) => (
+                <li key={i} style={{ display: 'flex', gap: '.6rem', alignItems: 'flex-start' }}>
+                  <span style={{ marginTop: 2, color: 'var(--ih-text-muted)' }}><Icon name={e.icon as Parameters<typeof Icon>[0]['name']} size={16} /></span>
+                  <span style={{ minWidth: 0 }}>
+                    <span style={{ display: 'block', fontSize: '.86rem' }}>{e.text}</span>
+                    <span className="ih-muted" style={{ fontSize: '.72rem' }}>{e.at}{e.meta && ` · ${e.meta}`}</span>
+                  </span>
+                </li>
+              ))}
+            </ul>
+          )}
+        </Sec>
+
+        <Sec title={t('creators.rel_notes')}>
+          {canManage && (
+            <div style={{ display: 'flex', gap: '.5rem', marginBottom: '.7rem' }}>
+              <input className="field" placeholder={t('creators.rel_note_placeholder')} value={note} onChange={(e) => setNote(e.target.value)} />
+              <button className="btn btn-secondary btn-sm" disabled={busy || !note.trim()}
+                onClick={() => post(`/creators/${creatorId}/notes`, { body: note }, () => setNote(''))}>{t('creators.rel_add_note')}</button>
+            </div>
+          )}
+          {notes.length === 0 ? <p className="ih-muted" style={{ fontSize: '.85rem' }}>{t('creators.rel_no_notes')}</p> : (
+            <ul style={{ listStyle: 'none', margin: 0, padding: 0, display: 'grid', gap: '.6rem' }}>
+              {notes.map((n) => (
+                <li key={n.id} style={{ borderInlineStart: '2px solid var(--ih-border)', paddingInlineStart: '.6rem' }}>
+                  <span style={{ display: 'block', fontSize: '.86rem', whiteSpace: 'pre-wrap' }}>{n.body}</span>
+                  <span className="ih-muted" style={{ fontSize: '.72rem' }}>{n.author}{n.at && ` · ${n.at}`}</span>
+                </li>
+              ))}
+            </ul>
+          )}
+        </Sec>
+      </div>
+    </div>
+  );
+}
+
+export default function CreatorShow({ creator, intel, access, platforms, collaborations, content, contracts, payouts, relationship, timeline, notes, tasks, canManage }: Props) {
   const t = useT();
   const sar = (m: number | null) => sarWith(m, t);
   const { props: shared } = usePage<SharedProps & { flash?: { invitation_link?: string } }>();
   const invitationLink = shared.flash?.invitation_link ?? null;
   const [tab, setTab] = useState('overview');
   const [savingStatus, setSavingStatus] = useState(false);
-  const CR_TABS = ['overview','platforms','collaborations','content','contracts','payouts'];
+  const CR_TABS = ['overview','relationship','platforms','collaborations','content','contracts','payouts'];
   useEffect(() => {
     const applyHash = () => {
       const h = window.location.hash.replace('#','');
@@ -277,6 +421,7 @@ export default function CreatorShow({ creator, intel, access, platforms, collabo
 
       <WorkTabs active={tab} onChange={go} tabs={[
         { key: 'overview', label: t('creators.tab_overview'), icon: 'layout-dashboard' },
+        { key: 'relationship', label: t('creators.rel_title'), icon: 'handshake' },
         { key: 'platforms', label: t('creators.tab_platforms'), icon: 'radar', count: platforms.length },
         { key: 'collaborations', label: t('creators.tab_collaborations'), icon: 'megaphone', count: collaborations.length },
         { key: 'content', label: t('creators.tab_content'), icon: 'image', count: content.length },
@@ -309,6 +454,10 @@ export default function CreatorShow({ creator, intel, access, platforms, collabo
       )}
 
       {/* المنصّات — بطاقات جمهور لكل منصّة */}
+      {tab === 'relationship' && (
+        <RelationshipTab creatorId={creator.id} relationship={relationship} timeline={timeline} notes={notes} tasks={tasks} canManage={canManage} />
+      )}
+
       {tab === 'platforms' && (
         platforms.length === 0 ? (
           <div className="card" style={{ padding: '2.4rem', textAlign: 'center' }}>

@@ -11,7 +11,7 @@ Status legend: `VERIFIED` · `PARTIAL` · `NOT_STARTED` · `BLOCKED_EXTERNAL`.
 
 | Req | Requirement | Current status | Gap → Unit |
 |-----|-------------|----------------|------------|
-| A1 | Creator 360 relationship CRM | VERIFIED (CRM + Creators) | Add single relationship timeline + context panel → IH-X2 / THEME-03 |
+| A1 | Creator 360 relationship CRM + single relationship timeline | **VERIFIED** (CREATOR-01: relationship layer + `CreatorTimeline` + notes/tasks + "العلاقة" tab) | Social metric enrichment → SOCIAL-01/02 |
 | A2 | Discovery & Casting OS (search-first, compare, shortlist tray) | PARTIAL (engine VERIFIED; UX not search-first) | IH-X3 |
 | A3 | Campaign Command Center (one dominant next action) | PARTIAL (lifecycle VERIFIED; not command-center UX) | IH-X4 / THEME-04 |
 | A4 | Collaboration / Content / **Rights** model | PARTIAL (contracts VERIFIED; no usage-rights/licensing model, no publication-proof store) | IH-X5 |

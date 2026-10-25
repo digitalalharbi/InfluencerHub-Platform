@@ -797,6 +797,11 @@ Route::middleware(['auth', 'tenant', 'platform_preview:agency', 'agency_member']
         Route::post('/creator-invitations/{invitation}/revoke', [\App\Http\Controllers\Inertia\CreatorInvitationController::class, 'revoke']);
         Route::post('/creators', [\App\Http\Controllers\Inertia\CreatorsController::class, 'store']);
         Route::get('/creators/{creator}', [\App\Http\Controllers\Inertia\CreatorDetailController::class, 'show']);
+        // CREATOR-01 — طبقة العلاقة (علاقة/ملاحظات/مهام) على ملف المبدع
+        Route::post('/creators/{creator}/relationship', [\App\Http\Controllers\Inertia\CreatorDetailController::class, 'updateRelationship']);
+        Route::post('/creators/{creator}/notes', [\App\Http\Controllers\Inertia\CreatorDetailController::class, 'addNote']);
+        Route::post('/creators/{creator}/tasks', [\App\Http\Controllers\Inertia\CreatorDetailController::class, 'addTask']);
+        Route::post('/creators/{creator}/tasks/{task}/complete', [\App\Http\Controllers\Inertia\CreatorDetailController::class, 'completeTask']);
 
         // طلبات الخدمة — قُصّت من Blade بتكافؤ كامل (بما فيها التحويل إلى حملة)
         Route::get('/service-requests', [\App\Http\Controllers\Inertia\ServiceRequestsController::class, 'index']);
