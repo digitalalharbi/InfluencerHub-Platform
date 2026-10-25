@@ -9,8 +9,8 @@ _Last updated: 2026-10-25._
 ## Repository
 
 - **Canonical repo (only write target):** `digitalalharbi/InfluencerHub-Platform`
-- **main = `c645f17`** — "Merge pull request #193" (INTEGRATIONS-01). Deployed to VPS; prod smoke
-  `/up` 200 + `/` 200. Production: https://influencerhub.io/
+- **main = `0aa0020`** — "Merge pull request #194" (GOOGLE-01). Deployed to VPS; prod smoke
+  `/up` 200 + `/` 200; migration `google_workspace_layer` applied. Production: https://influencerhub.io/
 - **Working clone:** `~/Desktop/Project/InfluencerHub/InfluencerHub-Platform`.
 - **Firewall:** CampaignsHub + digitalSmart are read-only pattern benchmarks.
   `CampaignsHub touched = 0 · digitalSmart touched = 0`.
@@ -32,14 +32,23 @@ Executing `docs/MASTER_COMPLETION_ROADMAP.md` in order, one bounded PR per unit
   (`IntegrationConnection::readiness()`) + OAuth lifecycle (`SupportsOAuth` + `OAuthFlowService`:
   state/PKCE/exchange/refresh/revoke). #193 merged (`c645f17`) → main CI green → VPS deploy → prod
   smoke `/up`+`/` 200 (Control Center served; token≠Connected invariant deployed). 7 tests.
-- **GOOGLE-01 ✅ (PR open)** — Google Workspace on the foundation (§8), extending
+- **GOOGLE-01 ✅ VERIFIED** — #194 merged (`0aa0020`) → main CI green → VPS deploy → prod smoke
+  `/up`+`/` 200 (migration applied). Google Workspace on the foundation (§8), extending
   `IntegrationConnection` (no parallel table): `GoogleWorkspaceAdapter` (provider `google`,
   incremental consent, `SupportsScopedAuthorization`), swappable `GoogleClient`
   (`HttpGoogleClient` real / `FakeGoogleClient` sandbox), Drive/Sheets/Gmail/Calendar services,
   `IntegrationExternalEvent` feeding the creator timeline, connect/callback routes. 18 tests
   (`GoogleWorkspaceTest`). Live = `BLOCKED_EXTERNAL_CREDENTIALS` (`docs/EXTERNAL_BLOCKERS.md`).
-- **COMMS-01 (NEXT)** — WhatsApp Business + email/SMS comms on the foundation.
-- Then: SOCIAL-01/02 → CASTING-01 →
+- **COMMS-01 ✅ (PR pending)** — two-way messaging layer on the foundation. Existing comms was
+  outbound-only (notifications + status webhook); COMMS-01 adds inbound WhatsApp ingestion (idempotent
+  via `integration_webhook_events`), sender→creator/client matching (`ContactMatcher`, phone
+  digit-normalized, cross-tenant resolve), `message_in`/`message_out` as `IntegrationExternalEvent`
+  feeding `CreatorTimeline`, free-form `sendText` + template send (`ConversationService`), and
+  WhatsApp/Email/SMS on the readiness ladder (`CommsConnectionService`, status from real config).
+  Inbound wired into `WhatsAppWebhookController`. 7 tests (`CommunicationsInboxTest`). Live =
+  `BLOCKED_EXTERNAL_CREDENTIALS`/`BLOCKED_PROVIDER_APPROVAL` (`docs/EXTERNAL_BLOCKERS.md`).
+- **SOCIAL-01 (NEXT)** — social account connect + profile/metrics ingestion (Instagram/TikTok/…).
+- Then: SOCIAL-02 → CASTING-01 →
   CAMPAIGN-01 → RIGHTS-01 → PROOF-01 → TRACK-01/02/03 → ADS-01/02/03 → COMMERCE-01 →
   REPORT-01 → SHARE-01 → FINANCE-01 → AUTOMATION-01 → AI-01 → QA-01 → CLOSE-01.
 
@@ -56,10 +65,10 @@ in `docs/EXTERNAL_BLOCKERS.md`, continue.
 
 - **main `c645f17` (INTEGRATIONS-01):** backend + `tsc` + build + Playwright cross-browser all green
   in CI; VPS deploy + prod smoke `/up`+`/` 200.
-- **GOOGLE-01 branch (local):** full backend `php artisan test` **1483 passed** (QueryBudget
-  creator-profile budget 30→34 for the one new real timeline source); `GoogleWorkspaceTest` 18/18.
-  Backend-only unit → no frontend change; PR CI is the authoritative gate. `routes/web.php` kept to a
-  3-line diff (Pint reverted there — it rewrites inline FQCNs and can repoint colliding controllers).
+- **COMMS-01 branch (local):** full backend `php artisan test` **1490 passed** (+7 COMMS-01);
+  `CommunicationsInboxTest` 7/7, `GoogleWorkspaceTest` 18/18. Backend-only unit → no frontend change;
+  PR CI is the authoritative gate. `routes/*` NOT Pint-formatted (it rewrites inline FQCNs and can
+  repoint colliding controllers); only new/changed app+test files were formatted.
 
 ## QA/test accounts (E2E seed — non-production)
 
@@ -69,9 +78,10 @@ in `docs/EXTERNAL_BLOCKERS.md`, continue.
 
 ## Next exact step
 
-**COMMS-01** from a fresh branch off main (after the GOOGLE-01 PR merges + deploys + smokes) —
-WhatsApp Business + email/SMS comms on the Integration Foundation; internal build + fake/sandbox
-tests, then record `BLOCKED_EXTERNAL_CREDENTIALS`; full cycle.
+**SOCIAL-01** from a fresh branch off main (after the COMMS-01 PR merges + deploys + smokes) —
+social account connect + profile/metrics ingestion (Instagram/TikTok/YouTube/Snapchat/X/LinkedIn)
+on the Integration Foundation; internal build + fake/sandbox tests, then record
+`BLOCKED_EXTERNAL_CREDENTIALS`; full cycle. COMMS-01 PR is pending merge → deploy → smoke first.
 
 ## Historical (in Git history)
 

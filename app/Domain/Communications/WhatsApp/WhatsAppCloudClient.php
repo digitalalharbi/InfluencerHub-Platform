@@ -44,12 +44,45 @@ class WhatsAppCloudClient
         $res = Http::withToken($token)
             ->acceptJson()
             ->timeout(15)
-            ->post(self::GRAPH . '/' . $phoneId . '/messages', $payload);
+            ->post(self::GRAPH.'/'.$phoneId.'/messages', $payload);
 
         if (! $res->successful()) {
             // رمز خطأ المزوّد دون تفاصيل حسّاسة
             $code = $res->json('error.code') ?? $res->status();
-            throw new RuntimeException('whatsapp_send_failed:' . $code);
+            throw new RuntimeException('whatsapp_send_failed:'.$code);
+        }
+
+        $id = $res->json('messages.0.id');
+        if (! $id) {
+            throw new RuntimeException('whatsapp_no_message_id');
+        }
+
+        return (string) $id;
+    }
+
+    /**
+     * يُرسل رسالة نصّية حرّة (COMMS-01). مسموحة فقط ضمن نافذة خدمة العملاء (24 ساعة من آخر
+     * رسالة واردة من المستخدم)؛ خارجها يرفض Meta ويلزم قالب — نُعيد الخطأ صادقًا لا نخفيه.
+     * يعيد معرّف الرسالة من المزوّد.
+     */
+    public function sendText(string $to, string $body): string
+    {
+        $phoneId = config('channels.whatsapp.phone_number_id');
+        $token = config('channels.whatsapp.access_token');
+
+        $res = Http::withToken($token)
+            ->acceptJson()
+            ->timeout(15)
+            ->post(self::GRAPH.'/'.$phoneId.'/messages', [
+                'messaging_product' => 'whatsapp',
+                'to' => $to,
+                'type' => 'text',
+                'text' => ['body' => $body],
+            ]);
+
+        if (! $res->successful()) {
+            $code = $res->json('error.code') ?? $res->status();
+            throw new RuntimeException('whatsapp_send_failed:'.$code);
         }
 
         $id = $res->json('messages.0.id');

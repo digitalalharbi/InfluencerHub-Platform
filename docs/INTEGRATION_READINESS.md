@@ -85,3 +85,24 @@ links via `external_object_map`.
 - **Readiness** — SANDBOX_VERIFIED (FakeGoogleClient, `GoogleWorkspaceTest` 18 tests). Live Google =
   `BLOCKED_EXTERNAL_CREDENTIALS` + `BLOCKED_PROVIDER_APPROVAL` (restricted Gmail scopes). Exact owner
   inputs: `docs/EXTERNAL_BLOCKERS.md`.
+
+## Communications — two-way messaging (COMMS-01)
+
+The Communications domain was **outbound-only** (notifications, delivery attempts, WhatsApp status
+webhook). COMMS-01 adds the relationship-grade **inbound + conversational** layer, on the same
+foundation (no parallel architecture):
+
+- **Inbound** — `InboundMessageService` ingests WhatsApp inbound messages idempotently
+  (`IntegrationWebhookEvent` `unique(provider,event_id)`), resolves the owning tenant from the sender
+  phone, and persists a real `IntegrationExternalEvent` (`message_in`) only when a creator/client
+  matches — unmatched senders are logged (webhook `skipped`), never given a fabricated tenant/match.
+  Wired into `WhatsAppWebhookController` alongside the existing status handling.
+- **Matching** — `ContactMatcher` (phone digit-normalized via Postgres `regexp_replace`, email
+  lowercase; per-tenant + cross-tenant resolve).
+- **Outbound** — `ConversationService`: free-form `sendText` (24h service window) + template send,
+  each recorded as `message_out` and marking the channel live.
+- **Timeline** — Gmail/WhatsApp/Calendar events share `CreatorTimeline` (type `ext_<capability>`).
+- **Readiness** — `CommsConnectionService` represents WhatsApp/Email/SMS on the ladder from real
+  `config/channels` (configured ⇒ connected; else waiting_for_credentials; LIVE_* only after a real
+  send/receive). SANDBOX_VERIFIED (`CommunicationsInboxTest` 7 tests). Live =
+  `BLOCKED_EXTERNAL_CREDENTIALS` + `BLOCKED_PROVIDER_APPROVAL` (Meta app review + templates).

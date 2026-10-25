@@ -61,12 +61,14 @@ class CreatorTimeline
             $push($i->created_at, 'invitation', 'user-plus', 'info',
                 trans($i->accepted_at ? 'creators.tl_invite_accepted' : 'creators.tl_invite_sent'), $i->email ?: $i->phone);
         }
-        // أحداث خارجيّة حقيقيّة من التكاملات (Gmail/Calendar — GOOGLE-01). صفوف مُخزَّنة فعلًا،
-        // لا اختلاق. البريد الوارد/الصادر وأحداث التقويم تظهر في خطّ العلاقة نفسه.
+        // أحداث خارجيّة حقيقيّة من التكاملات (Gmail/Calendar — GOOGLE-01؛ واتساب — COMMS-01).
+        // صفوف مُخزَّنة فعلًا لا اختلاق — بريد/رسائل واردة وصادرة وأحداث تقويم في خطّ العلاقة نفسه.
         foreach (IntegrationExternalEvent::where('creator_id', $id)->latest('occurred_at')->limit($limit)->get() as $x) {
             [$icon, $tone] = match ($x->kind) {
                 'email_in' => ['mail', 'info'],
                 'email_out' => ['send', 'primary'],
+                'message_in' => ['message-circle', 'info'],
+                'message_out' => ['send', 'primary'],
                 'meeting', 'briefing' => ['users', 'info'],
                 'shoot' => ['camera', 'accent'],
                 'content_deadline', 'publication' => ['calendar-clock', 'warning'],
@@ -74,7 +76,7 @@ class CreatorTimeline
                 'payout_due' => ['wallet', 'success'],
                 default => ['calendar', 'neutral'],
             };
-            $push($x->occurred_at ?? $x->created_at, 'google_'.$x->capability, $icon, $tone, (string) ($x->title ?: $x->summary), $x->summary ?: null);
+            $push($x->occurred_at ?? $x->created_at, 'ext_'.$x->capability, $icon, $tone, (string) ($x->title ?: $x->summary), $x->summary ?: null);
         }
 
         usort($ev, fn ($a, $b) => $b['ts'] <=> $a['ts']);
