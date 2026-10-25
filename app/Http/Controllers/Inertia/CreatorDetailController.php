@@ -8,11 +8,15 @@ use App\Domain\Contracts\Models\Contract;
 use App\Domain\Creators\Models\Creator;
 use App\Domain\Creators\Models\CreatorCapability;
 use App\Domain\Creators\Models\CreatorInvitation;
+use App\Domain\Creators\Models\CreatorNote;
+use App\Domain\Creators\Models\CreatorTask;
 use App\Domain\Creators\Services\CreatorInvitationService;
+use App\Domain\Creators\Services\CreatorTimeline;
 use App\Domain\Finance\Models\Payout;
 use App\Domain\Identity\Models\User;
 use App\Http\Controllers\Controller;
 use App\Support\Analytics\CreatorAnalytics;
+use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Lang;
 use Inertia\Inertia;
@@ -112,7 +116,82 @@ class CreatorDetailController extends Controller
             'contracts' => $contracts,
             'payouts' => $payouts,
             'access' => $this->access($creator, $r),
+            // CREATOR-01 — طبقة العلاقة + الخطّ الزمني الموحّد (بيانات حقيقية؛ غير معروف ≠ صفر)
+            'relationship' => [
+                'stage' => $creator->relationship_stage,
+                'health' => $creator->relationship_health,
+                'ownerId' => $creator->relationship_owner_id,
+                'ownerName' => $creator->relationshipOwner?->name,
+                'source' => $creator->source,
+                'preferredChannel' => $creator->preferred_channel,
+                'manager' => $creator->manager_name,
+                'managerContact' => $creator->manager_contact,
+                'doNotContact' => (bool) $creator->do_not_contact,
+                'nextFollowUpAt' => $creator->next_follow_up_at?->format('Y-m-d'),
+                'lastInteractionAt' => $creator->last_interaction_at?->format('Y-m-d'),
+            ],
+            'timeline' => CreatorTimeline::for($creator),
+            'notes' => $creator->notes()->with('author')->latest()->get()->map(fn (CreatorNote $n) => [
+                'id' => $n->id, 'body' => $n->body, 'author' => $n->author?->name,
+                'at' => $n->created_at?->format('Y-m-d H:i'), 'pinned' => (bool) $n->pinned,
+            ])->values(),
+            'tasks' => $creator->tasks()->latest()->get()->map(fn (CreatorTask $t) => [
+                'id' => $t->id, 'title' => $t->title, 'status' => $t->status,
+                'dueAt' => $t->due_at?->format('Y-m-d'), 'done' => $t->status === CreatorTask::DONE,
+            ])->values(),
+            'canManage' => $r->user()->can('update', $creator),
         ]);
+    }
+
+    /** تحديث حقول العلاقة (CREATOR-01) — عضو الوكالة ذو صلاحية التعديل فقط. */
+    public function updateRelationship(Request $r, Creator $creator): RedirectResponse
+    {
+        $this->authorize('update', $creator);
+        $data = $r->validate([
+            'relationship_stage' => 'nullable|in:prospect,engaged,active,dormant',
+            'relationship_health' => 'nullable|in:healthy,at_risk,inactive',
+            'source' => 'nullable|string|max:160',
+            'preferred_channel' => 'nullable|in:whatsapp,email,phone',
+            'manager_name' => 'nullable|string|max:160',
+            'manager_contact' => 'nullable|string|max:160',
+            'do_not_contact' => 'boolean',
+            'next_follow_up_at' => 'nullable|date',
+        ]);
+        $creator->update($data);
+
+        return back()->with('ok', trans('creators.rel_save'));
+    }
+
+    /** إضافة ملاحظة علاقة (CREATOR-01) — تُحدّث «آخر تفاعل» وتظهر في الخطّ الزمني. */
+    public function addNote(Request $r, Creator $creator): RedirectResponse
+    {
+        $this->authorize('update', $creator);
+        $data = $r->validate(['body' => 'required|string|max:5000']);
+        CreatorNote::create(['tenant_id' => $creator->tenant_id, 'creator_id' => $creator->id, 'author_id' => $r->user()->id, 'body' => $data['body']]);
+        $creator->forceFill(['last_interaction_at' => now()])->save();
+
+        return back()->with('ok', trans('creators.rel_add_note'));
+    }
+
+    /** إضافة مهمة متابعة (CREATOR-01). */
+    public function addTask(Request $r, Creator $creator): RedirectResponse
+    {
+        $this->authorize('update', $creator);
+        $data = $r->validate(['title' => 'required|string|max:200', 'due_at' => 'nullable|date']);
+        CreatorTask::create(['tenant_id' => $creator->tenant_id, 'creator_id' => $creator->id, 'created_by' => $r->user()->id,
+            'title' => $data['title'], 'due_at' => $data['due_at'] ?? null, 'status' => CreatorTask::OPEN]);
+
+        return back()->with('ok', trans('creators.rel_add_task'));
+    }
+
+    /** إنجاز مهمة (CREATOR-01) — محميّ بأن المهمة تخصّ هذا المبدع (ضدّ IDOR). */
+    public function completeTask(Request $r, Creator $creator, CreatorTask $task): RedirectResponse
+    {
+        $this->authorize('update', $creator);
+        abort_unless($task->creator_id === $creator->id, 404);
+        $task->forceFill(['status' => CreatorTask::DONE, 'completed_at' => now()])->save();
+
+        return back()->with('ok', trans('creators.rel_mark_done'));
     }
 
     /**

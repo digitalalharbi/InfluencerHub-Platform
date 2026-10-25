@@ -25,8 +25,12 @@ Executing `docs/MASTER_COMPLETION_ROADMAP.md` in order, one bounded PR per unit
 - **CORE-01 ✅** — `QueryBudgetTest` (locks PERF-01 vs N+1) + `PermissionEnforcementSweepTest`
   (NavigationBadges 30s cache proven tenant-scoped, guest redirect, cross-portal block). Audit:
   cross-tenant/IDOR/cross-portal already covered by existing suites — no gap found.
-- **CREATOR-01 (NEXT)** — Creator 360 canonical profile + relationship timeline (roadmap §3–§4).
-- Then: INTEGRATIONS-01 → GOOGLE-01 → COMMS-01 → SOCIAL-01/02 → CASTING-01 →
+- **CREATOR-01 ✅** — Creator 360 relationship layer (stage/health/owner/source/channel/follow-up +
+  `creator_notes`/`creator_tasks`) + canonical `CreatorTimeline` (real events only) + "العلاقة" tab;
+  8 tests (`CreatorRelationshipTest`); browser-verified. Social metrics deferred to SOCIAL-01/02.
+- **INTEGRATIONS-01 (NEXT)** — Integration Foundation V2 (§5): extend existing adapter framework +
+  readiness ladder; no live creds needed.
+- Then: GOOGLE-01 → COMMS-01 → SOCIAL-01/02 → CASTING-01 →
   CAMPAIGN-01 → RIGHTS-01 → PROOF-01 → TRACK-01/02/03 → ADS-01/02/03 → COMMERCE-01 →
   REPORT-01 → SHARE-01 → FINANCE-01 → AUTOMATION-01 → AI-01 → QA-01 → CLOSE-01.
 
@@ -53,8 +57,8 @@ Playwright cross-browser (Chromium/Firefox/WebKit): green · VPS deploy + produc
 
 ## Next exact step
 
-**CREATOR-01** from a fresh branch off current main (after CORE-01 merges) — Creator 360
-canonical profile + single relationship timeline (roadmap §3–§4); real data only; full cycle.
+**INTEGRATIONS-01** from a fresh branch off current main (after CREATOR-01 merges) — Integration
+Foundation V2 (§5): extend the existing adapter/connection framework + readiness ladder; full cycle.
 
 ## Historical (in Git history)
 

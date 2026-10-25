@@ -8,10 +8,16 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 class Creator extends Model {
     use BelongsToTenant, SoftDeletes;
     protected $fillable = ['tenant_id','creator_number','type','display_name','handle','email','phone','city',
-        'country_code','primary_platform','followers_count','content_categories','status','rate_per_post_minor','bio','created_by','user_id','professional_name','whatsapp','gender','languages','mowthooq_license_number','mowthooq_expires_at','mowthooq_status','beneficiary_name','bank_name','iban_encrypted','iban_last4','financial_verification_status','avatar_path','mowthooq_document_path','iban_document_path','publisher_id','pool_creator_id'];
-    protected $casts = ['content_categories' => 'array', 'languages' => 'array', 'followers_count' => 'integer', 'rate_per_post_minor' => 'integer', 'mowthooq_expires_at' => 'date'];
+        'country_code','primary_platform','followers_count','content_categories','status','rate_per_post_minor','bio','created_by','user_id','professional_name','whatsapp','gender','languages','mowthooq_license_number','mowthooq_expires_at','mowthooq_status','beneficiary_name','bank_name','iban_encrypted','iban_last4','financial_verification_status','avatar_path','mowthooq_document_path','iban_document_path','publisher_id','pool_creator_id',
+        'relationship_stage','relationship_health','relationship_owner_id','source','preferred_channel','manager_name','manager_contact',
+        'do_not_contact','consent_at','first_contact_at','last_interaction_at','next_follow_up_at'];
+    protected $casts = ['content_categories' => 'array', 'languages' => 'array', 'followers_count' => 'integer', 'rate_per_post_minor' => 'integer', 'mowthooq_expires_at' => 'date',
+        'do_not_contact' => 'boolean', 'consent_at' => 'datetime', 'first_contact_at' => 'datetime', 'last_interaction_at' => 'datetime', 'next_follow_up_at' => 'datetime'];
     protected $hidden = ['iban_encrypted'];
     public function platforms(): HasMany { return $this->hasMany(CreatorPlatform::class); }
+    public function notes(): HasMany { return $this->hasMany(CreatorNote::class); }
+    public function tasks(): HasMany { return $this->hasMany(CreatorTask::class); }
+    public function relationshipOwner(): \Illuminate\Database\Eloquent\Relations\BelongsTo { return $this->belongsTo(\App\Domain\Identity\Models\User::class, 'relationship_owner_id'); }
     public function services(): HasMany { return $this->hasMany(CreatorService::class); }
     public function portfolios(): HasMany { return $this->hasMany(CreatorPortfolio::class); }
     public function capabilities(): HasMany { return $this->hasMany(CreatorCapability::class); }

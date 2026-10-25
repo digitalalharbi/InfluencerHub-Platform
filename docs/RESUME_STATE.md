@@ -65,10 +65,19 @@ chart highlight — never a status, never on every card/chart/badge. One token s
   TenantIsolationSweep / TenantHttpIsolation / BrandWorkspaceIsolation / LoginPortalAccess /
   CrmPolicy / PlatformOwnerAccess — no enforcement gap found; CORE-01 adds the two missing guards.
 
+- **CREATOR-01:** Creator 360 relationship layer + canonical relationship timeline (§3–§4).
+  Migration (relationship fields on creators + `creator_notes` + `creator_tasks`); `CreatorNote`/
+  `CreatorTask` models (tenant fail-closed); `CreatorTimeline` service (one chronological stream
+  from real events: collabs/content/contracts/payouts/notes/tasks/invitations — no fabrication);
+  relationship/notes/tasks CRUD on `CreatorDetailController` (RBAC `update`, IDOR-guarded);
+  Creators/Show "العلاقة" tab (editable fields + timeline + notes + tasks, `unknown ≠ 0`).
+  Social-account metric enrichment deferred to SOCIAL-01/02 (needs connectors — no dead schema).
+  8 feature tests (`CreatorRelationshipTest`); verified end-to-end in browser (AR-RTL, IDENTITY-03).
+
 ## Execution order — MASTER_COMPLETION_ROADMAP §39
 
-`GATE-00` ✅ → `CORE-01` ✅ → **`CREATOR-01`** (Creator 360 + relationship timeline — NEXT) →
-`INTEGRATIONS-01` → `GOOGLE-01` → `COMMS-01` → `SOCIAL-01` → `SOCIAL-02` →
+`GATE-00` ✅ → `CORE-01` ✅ → `CREATOR-01` ✅ → **`INTEGRATIONS-01`** (Integration Foundation V2 —
+NEXT) → `GOOGLE-01` → `COMMS-01` → `SOCIAL-01` → `SOCIAL-02` →
 `CASTING-01` → `CAMPAIGN-01` → `RIGHTS-01` → `PROOF-01` → `TRACK-01/02/03` →
 `ADS-01/02/03` → `COMMERCE-01` → `REPORT-01` → `SHARE-01` → `FINANCE-01` → `AUTOMATION-01` →
 `AI-01` → `QA-01` → `CLOSE-01`.
@@ -92,9 +101,12 @@ refresh main → next. One bounded branch per unit; never one unbounded branch f
 
 ## Next exact step
 
-**CREATOR-01** — fresh branch from current main (after CORE-01 merges): Creator 360 as the
-canonical single source for each creator (identity · contact · social accounts with
-real-data-only metrics + freshness + `unknown ≠ 0` · commercial/rate card · relationship ·
-full history) + the single canonical relationship timeline (roadmap §3–§4). Real persisted
-data only; reuse existing CRM/Creators domains; no new identity. Close the full cycle, then
-continue the roadmap in order.
+**INTEGRATIONS-01** — fresh branch from current main (after CREATOR-01 merges): Integration
+Foundation V2 (roadmap §5). Reuse/extend the existing IntegrationConnection / IntegrationAdapter /
+AdapterRegistry / IntegrationSyncRun / IntegrationWebhookEvent / ExternalObjectMap / SyncProviderJob
+(no parallel framework): OAuth state + PKCE, encrypted tokens, refresh/revoke, scopes, webhooks,
+idempotency, cursor/incremental sync, backfill, reconciliation, retry/backoff, rate-limit handling,
+health checks, scheduler, audit, safe errors — and the readiness ladder
+(NOT_CONFIGURED → SANDBOX_VERIFIED → AWAITING_CREDENTIALS → READY_FOR_CONFIGURATION →
+AUTH_VERIFIED → RESOURCE_DISCOVERY_VERIFIED → LIVE_READ_VERIFIED → LIVE_WRITE_VERIFIED). Token
+alone ≠ Connected. No live provider creds needed for the foundation; providers come in later units.
